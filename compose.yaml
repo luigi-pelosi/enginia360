@@ -1,0 +1,43 @@
+name: enginia360
+services:
+  api:
+    build:
+      context: .
+      dockerfile: src/Enginia360.Api/Dockerfile
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=16m"]
+    expose: ["8080"]
+    networks: [backend]
+    mem_limit: 256m
+    cpus: 1.0
+    pids_limit: 128
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+  web:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=16m"]
+    ports: ["80:8080"]
+    depends_on:
+      api:
+        condition: service_healthy
+    networks: [frontend, backend]
+    mem_limit: 128m
+    cpus: 0.5
+    pids_limit: 128
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+networks:
+  frontend:
+  backend:
+    internal: true
