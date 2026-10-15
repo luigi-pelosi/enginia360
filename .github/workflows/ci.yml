@@ -1,0 +1,24 @@
+name: Bootstrap verification
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Integration tests in pinned SDK
+        run: docker run --rm -v "$PWD:/source" -w /source mcr.microsoft.com/dotnet/sdk:10.0.402-alpine3.24 sh -c 'dotnet restore tests/Enginia360.Api.Tests --locked-mode && dotnet test tests/Enginia360.Api.Tests -c Release --no-restore'
+      - name: Build and start hardened containers
+        run: docker compose up -d --build --wait --wait-timeout 120
+      - name: HTTP smoke tests
+        run: sh scripts/smoke.sh
+      - name: Container diagnostics
+        if: always()
+        run: docker compose ps && docker compose logs --tail=100
+      - name: Stop containers
+        if: always()
+        run: docker compose down
