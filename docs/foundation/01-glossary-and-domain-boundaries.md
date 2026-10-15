@@ -519,7 +519,7 @@ Il controllo deve essere coerente anche con prenotazioni concorrenti e retry: ne
 
 **D35 — Tracciabilità minima della carcassa confermata:** registrare commessa e lavorazione di provenienza, collegamento alla riga del ricambio installato, descrizione e quantità del particolare rientrato, data e operatore di ricezione. Per il primo scenario non si introducono un catalogo separato delle carcasse o una matricola obbligatoria. Il rientro non aumenta la disponibilità dei ricambi nuovi; politica di restituzione e conseguenze di workflow restano nel customizing societario del tipo documento (D30).
 
-La conferma non stabilisce valorizzazione, rimborso fornitore, smaltimento o ulteriori obblighi legali. Destinazione fisica e configurazione dimostrativa dei vincoli di restituzione restano da specificare senza imporre una politica universale.
+La conferma non stabilisce valorizzazione, rimborso fornitore, smaltimento o ulteriori obblighi legali. La destinazione fisica del caso iniziale è chiarita in D38. La configurazione dimostrativa dei vincoli di restituzione resta da specificare senza imporre una politica universale.
 
 ### D36 — Campi anagrafici minimi comuni e societari
 
@@ -536,3 +536,11 @@ Le società A e B usano la medesima identità senza accesso automatico alle dest
 **D37 — Chiusura tecnica e amministrativa separate nel primo scenario esterno:** a lavorazioni concluse e requisiti locali configurati soddisfatti, la chiusura tecnica è consentita anche se il gestionale esterno è indisponibile. La richiesta amministrativa è conservata nella coda persistente; stato visibile «completata tecnicamente — in attesa di conferma amministrativa». La chiusura amministrativa resta bloccata fino alla conferma dell'esito di business richiesto, non al solo invio riuscito. Un rifiuto rimane visibile e richiede riconciliazione, preservando i fatti tecnici già avvenuti. Nessuna autorizzazione implicita a incasso, riconsegna del veicolo o deroghe ai vincoli configurati.
 
 Sono preservati D27 per deroghe configurate/autorizzate/tracciate e D30 per vincoli della carcassa. Esiti incerti non sono conferme; nessuna cancellazione dei fatti locali per nascondere un rifiuto esterno. Gli ulteriori comportamenti fisici durante un disservizio restano decisioni separate.
+
+### D38 — Ubicazione dimostrativa per la carcassa ricevuta
+
+**Fonte e conferma:** Luigi Pelosi, proprietario del prodotto, risponde «Va bene» alla proposta di ubicazione dedicata ai particolari sostituiti. **Stato:** DP limitata al primo scenario; non approvazione complessiva del dossier o autorizzazione implementativa.
+
+**D38 — Destinazione dimostrativa della carcassa:** collocare il particolare sostituito ricevuto in un'ubicazione dedicata, separata dai ricambi nuovi e senza disponibilità vendibile. Nessuna valorizzazione monetaria o gestione dello smaltimento è introdotta in questa fase. È una configurazione del primo scenario, non un vincolo universale; restano validi sede/magazzino autorizzati e customizing societario.
+
+O01 del documento 09 è risolta. La conferma non introduce un catalogo separato delle carcasse, una matricola obbligatoria, recuperi di valore o obblighi di smaltimento. I vincoli dimostrativi di restituzione/chiusura restano da specificare in O02.

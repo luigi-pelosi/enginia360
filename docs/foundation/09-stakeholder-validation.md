@@ -39,7 +39,7 @@ La prova tecnica e la validazione specialistica sono esiti distinti. Parametri s
 
 | ID | Decisione richiesta / risposta attesa | Referente | Incrementi interessati | Stato |
 | --- | --- | --- | --- | --- |
-| O01 | Collocazione della carcassa ricevuta, distinta dal nuovo e dalla disponibilità vendibile | Proprietario con referente magazzino/officina | B09 | Da discutere |
+| O01 | Ubicazione dedicata ai particolari sostituiti, separata dal nuovo e non vendibile; nessuna valorizzazione o gestione dello smaltimento introdotta | Proprietario, conferma D38 | B09 | Risolta per il primo scenario |
 | O02 | Configurazione societaria del tipo dimostrativo: associazione righe/lavorazione, uso dell'area facoltativa, politica di rientro e relativi vincoli; distinguere valori di esempio e regole universali | Proprietario con referente officina | B04–B09 | Da consolidare |
 | O03 | Contratto del simulatore: quale esito di business completa il trattamento amministrativo e quali riferimenti restituisce | Proprietario con evidenze tecniche | B10–B11 | Da dettagliare |
 
@@ -49,7 +49,8 @@ I referenti operativi non sono stati identificati come disponibili dalla sola co
 
 - [x] Registro delle domande con referente per ruolo, risultato richiesto e incremento interessato.
 - [x] Separazione fra decisioni di prodotto e validazioni specialistiche.
-- [ ] Parametri dimostrativi O01–O03 concordati e riportati nella slice/backlog.
+- [x] Destinazione dimostrativa O01 concordata e riportata nella slice/backlog (D38).
+- [ ] Parametri dimostrativi O02–O03 concordati e riportati nella slice/backlog.
 - [ ] Trasmissione delle domande F01–F04 al referente confermata dal proprietario.
 - [ ] Risposte necessarie acquisite, oppure rinvii espliciti con gate sugli incrementi interessati.
 
