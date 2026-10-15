@@ -102,7 +102,8 @@ Non trasferire automaticamente tutte le voci in Pronto dopo l'approvazione del b
 
 - **Risultato:** ricevere il particolare sostituito e riferirlo al componente/intervento pertinenti secondo una politica dimostrativa esplicita del tipo documento.
 - **Accettazione:** carcassa e nuovo inutilizzato non confusi; nessun ripristino improprio della disponibilità del nuovo. Vincoli di chiusura derivano dalla configurazione, non da un obbligo universale hardcoded.
-- **Prova:** rientro idempotente e prova del vincolo configurato; destinazione/identificazione minime esplicitate. T05, T12.
+- **Identificazione confermata D35:** commessa/lavorazione, riga del ricambio installato, descrizione e quantità della carcassa, data e operatore di ricezione. Nessun catalogo separato o matricola obbligatoria nel caso iniziale.
+- **Prova:** rientro idempotente e prova del vincolo configurato; dati D35 verificati. Destinazione fisica e ulteriori parametri della configurazione dimostrativa da specificare. T05, T12.
 
 ### B10 — Destinazione esterna simulata
 

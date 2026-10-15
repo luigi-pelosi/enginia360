@@ -503,7 +503,7 @@ Il gestore di sistema autorizzato decide nel customizing della società se utili
 
 Con area abilitata si traccia il passaggio nell'ubicazione di preparazione, mantenendo il componente in giacenza e assegnato alla commessa. Senza area il prelievo non richiede un transito fittizio in tale ubicazione: prelievo e installazione/consumo restano fatti distinti e riconciliabili, anche se ravvicinati. La sola preparazione interna non riduce il valore aggregato del magazzino; criteri di valorizzazione e rilevazione contabile restano separati e non sono approvati implicitamente.
 
-Il customizing rispetta sede di testata, permessi, audit, assenza di doppi scarichi e non retroattività predefinita. La copertura della prenotazione nel caso minimo è chiarita in D34. Restano da dettagliare identificazione della carcassa e ulteriori parametri del caso dimostrativo; D01 non è conclusa.
+Il customizing rispetta sede di testata, permessi, audit, assenza di doppi scarichi e non retroattività predefinita. La copertura della prenotazione nel caso minimo è chiarita in D34. La tracciabilità minima della carcassa è chiarita in D35. Restano ulteriori parametri del caso dimostrativo; D01 non è conclusa.
 
 ### D34 — Prenotazione solo con disponibilità sufficiente nella prima slice
 
@@ -512,3 +512,11 @@ Il customizing rispetta sede di testata, permessi, audit, assenza di doppi scari
 **D34 — Prenotazione coperta da disponibilità nel caso minimo:** il ricambio può essere inserito nella commessa anche quando non è disponibile, ma la prenotazione riesce soltanto se la disponibilità impegnabile è sufficiente. Il rifiuto è motivato e non blocca automaticamente tutta la commessa. Dopo il ricevimento e la disponibilità del materiale si può riprovare. Richieste strutturate in attesa di approvvigionamento rinviate. Decisione limitata allo scenario dimostrativo: non approva una politica universale di stock negativo o ulteriori blocchi di workflow.
 
 Il controllo deve essere coerente anche con prenotazioni concorrenti e retry: nessuna quantità impegnata oltre la disponibilità ammessa nello scenario. Il rifiuto di prenotazione non è un ordine di acquisto né una prenotazione futura già coperta. Le politiche per prelievi/consumi in assenza di stock non sono dedotte da questa conferma.
+
+### D35 — Identificazione minima della carcassa nella prima slice
+
+**Fonte e conferma:** Luigi Pelosi, proprietario del prodotto, risponde «Perfetto» alla proposta di tracciabilità minima della carcassa. **Stato:** DP sul caso iniziale, non approvazione complessiva del dossier o autorizzazione implementativa.
+
+**D35 — Tracciabilità minima della carcassa confermata:** registrare commessa e lavorazione di provenienza, collegamento alla riga del ricambio installato, descrizione e quantità del particolare rientrato, data e operatore di ricezione. Per il primo scenario non si introducono un catalogo separato delle carcasse o una matricola obbligatoria. Il rientro non aumenta la disponibilità dei ricambi nuovi; politica di restituzione e conseguenze di workflow restano nel customizing societario del tipo documento (D30).
+
+La conferma non stabilisce valorizzazione, rimborso fornitore, smaltimento o ulteriori obblighi legali. Destinazione fisica e configurazione dimostrativa dei vincoli di restituzione restano da specificare senza imporre una politica universale.
