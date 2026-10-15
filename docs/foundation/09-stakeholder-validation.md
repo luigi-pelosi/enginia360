@@ -15,14 +15,18 @@ Per ogni risposta registrare ruolo del validatore, versione del caso, risultato 
 
 | ID | Domanda / risultato richiesto | Validatore richiesto | Prima di | Stato |
 | --- | --- | --- | --- | --- |
-| F01 | Quale caso di vendita domestica usare come riferimento per una prestazione e un ricambio? Fornire trattamento IVA atteso, imponibile, imposte e totale di un esempio sintetico, distinguendo regola validata e parametro tecnico di prova. | Commercialista, tramite referente disponibile se necessario | Validazione dei parametri B05; uso reale | Da sottoporre |
-| F02 | Quali precisioni e arrotondamenti adottare per quantità, prezzi, sconti, righe, imponibile e imposte? Fornire casi limite con esiti attesi e criterio di gestione degli scarti. | Referente amministrativo con validazione del commercialista per gli aspetti fiscali | B05 e B12 | Da sottoporre |
-| F03 | Quali dati e riferimenti conservare nella fattura tecnica collegata alla commessa? Quali differenze devono restare esplicite rispetto a una fattura realmente emessa? | Referente amministrativo/commercialista secondo competenza | B12; prima di uso fiscale reale | Da sottoporre |
+| F01 | Quale caso di vendita domestica usare come riferimento per una prestazione e un ricambio? Fornire trattamento IVA atteso, imponibile, imposte e totale di un esempio sintetico, distinguendo regola validata e parametro tecnico di prova. | Commercialista, tramite referente disponibile se necessario | Validazione dei parametri B05; uso reale | Caso funzionale ricevuto; validazione specialistica da attestare |
+| F02 | Quali precisioni e arrotondamenti adottare per quantità, prezzi, sconti, righe, imponibile e imposte? Fornire casi limite con esiti attesi e criterio di gestione degli scarti. | Referente amministrativo con validazione del commercialista per gli aspetti fiscali | B05 e B12 | Politica di base e confronto per-riga ricevuti; casi limite da completare |
+| F03 | Quali dati e riferimenti conservare nella fattura tecnica collegata alla commessa? Quali differenze devono restare esplicite rispetto a una fattura realmente emessa? | Referente amministrativo/commercialista secondo competenza | B12; prima di uso fiscale reale | Mapping righe/riepiloghi ricevuto; dati completi ancora da raccogliere |
 | F04 | Quale piano dei conti dimostrativo e quale scrittura attesa usare per il caso F01, con riferimenti fattura/commessa? Specificare conti, importi attesi e quadratura; l'agente non sceglie il piano. | Commercialista | B13 | Da sottoporre |
 
 Costi del venduto, criteri di valorizzazione per marginalità, ciclo passivo completo e margine sono rinviati da D32. Queste domande non riaprono tale perimetro. Nessuna aliquota, conto, scrittura o conformità è approvata dal presente documento.
 
 La prova tecnica e la validazione specialistica sono esiti distinti. Parametri sintetici eventualmente concordati per una prova non diventano regole per uso reale.
+
+**D41 — Caso funzionale 001 fornito dal proprietario:** riepilogo commerciale atteso 164.50 EUR di imponibile, 36.19 EUR di IVA e 200.69 EUR di totale. Prezzi netti fino a 6 decimali, quantità fino a 3, sconti prima dell'IVA, imponibili di riga a 2 decimali; imposta sul raggruppamento di righe con stesso trattamento/aliquota, a 2 decimali con ROUND_HALF_UP. La verifica decimale indipendente è passata; non è un test del motore applicativo o di SdI. Specifica e fixture nel [caso 001](10-test-case-001.md); validazione del commercialista non esplicitamente attestata.
+
+F01–F02 sono risposte funzionali trasmesse dal proprietario; non si presume che siano già state validate dal commercialista. F03 riceve un’indicazione di mapping, non ancora l’elenco completo dei dati; F04 non è stata fornita. Nessuna conferma di trasmissione al referente è dedotta dal solo messaggio.
 
 ## 3. Decisioni di prodotto già acquisite
 

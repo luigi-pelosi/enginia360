@@ -560,3 +560,11 @@ O02 del documento 09 è risolta per questi parametri. La conferma non rende obbl
 **D40 — Esito del simulatore amministrativo:** «richiesta ricevuta» indica sola acquisizione e lascia la commessa in attesa. «Elaborazione completata» restituisce una conferma di business e un riferimento esterno stabile, soddisfacendo il requisito esterno per la chiusura amministrativa. Rifiuto o esito incerto mantengono la chiusura bloccata e richiedono riconciliazione. La conferma simulata non rappresenta fattura fiscalmente emessa, incasso o registrazione contabile reale. Restano validi gli altri prerequisiti di chiusura e le autorizzazioni.
 
 O03 è risolta sul piano del comportamento di business e dei riferimenti richiesti. Schema del payload, protocollo di risposta, correlazione/idempotenza e verifica degli esiti restano da progettare e testare negli incrementi B10–B11; non sono contratti già implementati.
+
+### D41 — Caso 001 e politica di arrotondamento di riferimento
+
+**Fonte:** Luigi Pelosi fornisce «Caso di test 001 — Vendita nazionale con prestazione e ricambio» con input, esiti attesi e regole di precisione/arrotondamento. **Stato:** specifica funzionale del proprietario e riscontro aritmetico indipendente; non attestazione di validazione specialistica, approvazione del dossier o autorizzazione implementativa.
+
+**D41 — Caso funzionale 001 fornito dal proprietario:** riepilogo commerciale atteso 164.50 EUR di imponibile, 36.19 EUR di IVA e 200.69 EUR di totale. Prezzi netti fino a 6 decimali, quantità fino a 3, sconti prima dell'IVA, imponibili di riga a 2 decimali; imposta sul raggruppamento di righe con stesso trattamento/aliquota, a 2 decimali con ROUND_HALF_UP. La verifica decimale indipendente è passata; non è un test del motore applicativo o di SdI. Specifica e fixture nel [caso 001](10-test-case-001.md); validazione del commercialista non esplicitamente attestata.
+
+Il caso fiscale usa un filtro olio e non sostituisce implicitamente il componente dimostrativo con carcassa di D35–D39. TD01 e mapping DettaglioLinee/DatiRiepilogo sono riferimenti per la futura fatturazione, non emissione XML implementata. F01 è ricevuta come caso funzionale; F02 è ricevuta per politica di base e confronto aggregato/per-riga. Restano provenienza della validazione, ulteriori casi limite, completamento F03 e piano/scrittura F04.
