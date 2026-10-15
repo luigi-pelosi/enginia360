@@ -149,6 +149,8 @@ Non trasferire automaticamente tutte le voci in Pronto dopo l'approvazione del b
 
 ## 5. Blocchi decisionali da risolvere al momento giusto
 
+Domande ai referenti, disponibilità dichiarata e gate per incremento sono raccolti in [09 — Validazioni dei referenti](09-stakeholder-validation.md). Referente amministrativo/commercialista disponibile secondo il proprietario; risposte e validazione ancora da acquisire.
+
 | Gate | Necessario prima di | Chi valida |
 | --- | --- | --- |
 | Dossier e scope implementativo autorizzati | B01 e codice di dominio | Proprietario |
