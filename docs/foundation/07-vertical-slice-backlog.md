@@ -40,6 +40,8 @@ Non trasferire automaticamente tutte le voci in Pronto dopo l'approvazione del b
 
 ## 3. Schede degli incrementi
 
+**D39 — Configurazione societaria dimostrativa confermata:** prestazione e ricambio sono collegati alla stessa lavorazione; area di preparazione abilitata per esercitare la separazione fra prelievo e installazione; rientro della carcassa richiesto per il ricambio dell'esempio prima della chiusura tecnica. Sono valori del tipo documento dello scenario di prova, non obblighi universali: restano governati dal customizing societario. La chiusura tecnica di D37 richiede quindi anche tale rientro nel caso dimostrativo. Restano separati permessi, invarianti e regola di non retroattività.
+
 ### B00 — Gate di avvio
 
 - **Risultato:** dossier consolidato, approvazioni distinte da proposte, decisioni bloccanti e proprietari registrati; autorizzazione esplicita alla prima implementazione.
@@ -104,7 +106,7 @@ Non trasferire automaticamente tutte le voci in Pronto dopo l'approvazione del b
 - **Accettazione:** carcassa e nuovo inutilizzato non confusi; nessun ripristino improprio della disponibilità del nuovo. Vincoli di chiusura derivano dalla configurazione, non da un obbligo universale hardcoded.
 - **Identificazione confermata D35:** commessa/lavorazione, riga del ricambio installato, descrizione e quantità della carcassa, data e operatore di ricezione. Nessun catalogo separato o matricola obbligatoria nel caso iniziale.
 - **Destinazione D38:** ubicazione dedicata ai particolari sostituiti, separata dai ricambi nuovi e non vendibile nel primo scenario; valorizzazione e smaltimento non introdotti. Non è un vincolo universale.
-- **Prova:** rientro idempotente, dati D35 e destinazione D38 verificati. Ulteriori parametri dimostrativi dei vincoli di restituzione/chiusura da specificare. T05, T12.
+- **Prova:** rientro idempotente, dati D35 e destinazione D38 verificati. D39: verificare che la chiusura tecnica del caso dimostrativo sia rifiutata prima del rientro richiesto e consentita dopo il suo completamento, a parità degli altri requisiti. T05, T12.
 
 ### B10 — Destinazione esterna simulata
 

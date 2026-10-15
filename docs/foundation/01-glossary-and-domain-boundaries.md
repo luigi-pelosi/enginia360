@@ -519,7 +519,7 @@ Il controllo deve essere coerente anche con prenotazioni concorrenti e retry: ne
 
 **D35 — Tracciabilità minima della carcassa confermata:** registrare commessa e lavorazione di provenienza, collegamento alla riga del ricambio installato, descrizione e quantità del particolare rientrato, data e operatore di ricezione. Per il primo scenario non si introducono un catalogo separato delle carcasse o una matricola obbligatoria. Il rientro non aumenta la disponibilità dei ricambi nuovi; politica di restituzione e conseguenze di workflow restano nel customizing societario del tipo documento (D30).
 
-La conferma non stabilisce valorizzazione, rimborso fornitore, smaltimento o ulteriori obblighi legali. La destinazione fisica del caso iniziale è chiarita in D38. La configurazione dimostrativa dei vincoli di restituzione resta da specificare senza imporre una politica universale.
+La conferma non stabilisce valorizzazione, rimborso fornitore, smaltimento o ulteriori obblighi legali. La destinazione fisica del caso iniziale è chiarita in D38. La configurazione dimostrativa dei vincoli di restituzione è chiarita in D39, senza imporre una politica universale.
 
 ### D36 — Campi anagrafici minimi comuni e societari
 
@@ -543,4 +543,12 @@ Sono preservati D27 per deroghe configurate/autorizzate/tracciate e D30 per vinc
 
 **D38 — Destinazione dimostrativa della carcassa:** collocare il particolare sostituito ricevuto in un'ubicazione dedicata, separata dai ricambi nuovi e senza disponibilità vendibile. Nessuna valorizzazione monetaria o gestione dello smaltimento è introdotta in questa fase. È una configurazione del primo scenario, non un vincolo universale; restano validi sede/magazzino autorizzati e customizing societario.
 
-O01 del documento 09 è risolta. La conferma non introduce un catalogo separato delle carcasse, una matricola obbligatoria, recuperi di valore o obblighi di smaltimento. I vincoli dimostrativi di restituzione/chiusura restano da specificare in O02.
+O01 del documento 09 è risolta. La conferma non introduce un catalogo separato delle carcasse, una matricola obbligatoria, recuperi di valore o obblighi di smaltimento. I vincoli dimostrativi di restituzione/chiusura sono chiariti in D39 (O02 risolta).
+
+### D39 — Parametri del tipo documento dimostrativo
+
+**Fonte e conferma:** Luigi Pelosi, proprietario del prodotto, risponde «Si» alla proposta dei tre parametri dimostrativi: associazione alla stessa lavorazione, area di preparazione abilitata e carcassa richiesta prima della chiusura tecnica. **Stato:** DP sullo scenario di prova; nessuna approvazione complessiva del dossier o autorizzazione implementativa.
+
+**D39 — Configurazione societaria dimostrativa confermata:** prestazione e ricambio sono collegati alla stessa lavorazione; area di preparazione abilitata per esercitare la separazione fra prelievo e installazione; rientro della carcassa richiesto per il ricambio dell'esempio prima della chiusura tecnica. Sono valori del tipo documento dello scenario di prova, non obblighi universali: restano governati dal customizing societario. La chiusura tecnica di D37 richiede quindi anche tale rientro nel caso dimostrativo. Restano separati permessi, invarianti e regola di non retroattività.
+
+O02 del documento 09 è risolta per questi parametri. La conferma non rende obbligatorie area o carcassa in ogni società/tipo e non approva deroghe, valorizzazioni o regole fiscali. Contratto simulato O03 e validazioni specialistiche restano aperti.
