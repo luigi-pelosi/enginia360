@@ -494,3 +494,13 @@ Nessuna modifica al charter, al runtime o al flag di approvazione del dossier.
 Per la prima slice il risultato è il riepilogo commerciale: imponibile delle righe al netto degli sconti, imposte e totale a carico del soggetto previsto nello scenario. Non rappresenta margine, utile o costo del venduto. Determinazione dei costi di ricambi/manodopera, valorizzazioni per marginalità e calcolo del margine sono rinviati a un incremento successivo; non si introduce neppure una marginalità provvisoria in questo perimetro.
 
 D01-Q01 è risolta; il criterio relativo al significato del risultato di B05 è soddisfatto. Restano da concordare i parametri e gli arrotondamenti dello scenario tecnico e da sottoporre allo specialista le regole per uso reale. Nessun obbligo di implementare l'intero ciclo passivo per ottenere il riepilogo commerciale. Le altre domande di D01, i gate implementativi e la validazione fiscale restano aperti.
+
+### D33 — Area di preparazione facoltativa nel customizing societario
+
+**Fonte e conferma:** Luigi Pelosi, proprietario del prodotto: «Ok va bene ma non è un vincolo utilizzare l’area di preparazione. Meglio permettere al gestore di sistema di deciderlo nel customizing societario». **Stato:** DP sul comportamento configurabile, non approvazione complessiva del dossier o autorizzazione implementativa.
+
+Il gestore di sistema autorizzato decide nel customizing della società se utilizzare l'area di preparazione. Nessuna obbligatorietà globale, ereditarietà tenant o override di sede è introdotto. L'esempio con area rappresentata da un'ubicazione dello stesso magazzino è accettato, non imposto a tutte le società.
+
+Con area abilitata si traccia il passaggio nell'ubicazione di preparazione, mantenendo il componente in giacenza e assegnato alla commessa. Senza area il prelievo non richiede un transito fittizio in tale ubicazione: prelievo e installazione/consumo restano fatti distinti e riconciliabili, anche se ravvicinati. La sola preparazione interna non riduce il valore aggregato del magazzino; criteri di valorizzazione e rilevazione contabile restano separati e non sono approvati implicitamente.
+
+Il customizing rispetta sede di testata, permessi, audit, assenza di doppi scarichi e non retroattività predefinita. Restano da dettagliare stock negativo, identificazione della carcassa e ulteriori parametri del caso dimostrativo; D01 non è conclusa.

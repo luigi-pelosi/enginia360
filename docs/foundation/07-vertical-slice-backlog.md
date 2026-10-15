@@ -86,10 +86,10 @@ Non trasferire automaticamente tutte le voci in Pronto dopo l'approvazione del b
 
 ### B07 — Prelievo e preparazione
 
-- **Risultato:** prelevare il componente e predisporlo per la lavorazione nell'area scelta per lo scenario; renderne visibile la collocazione e l'assegnazione senza marcarlo installato.
+- **Risultato:** prelevare il componente per la lavorazione; usare l'area di preparazione soltanto se abilitata dal gestore autorizzato nel customizing societario (D33). Collocazione e assegnazione visibili senza dichiarare installazione o consumo.
 - **Accettazione:** picking list distinta dall'area fisica; quantità e provenienza riconciliabili; nessun consumo implicito o doppio scarico. Magazzini operativi coerenti con la sede di testata.
 - **Prova:** scenario con componente in preparazione e non installato, retry e prelievo concorrente. T01, T05.
-- **Gate:** definire ubicazione/magazzino dell'area e perimetro di giacenza; niente magazzino logistico completo per questa sola prova.
+- **Decisione D33:** area facoltativa; accettato l'esempio di ubicazione nello stesso magazzino, senza imporlo globalmente. Nessun transito fittizio se disabilitata; prelievo e installazione restano distinti. Ulteriori effetti e politiche di stock da dettagliare; niente magazzino logistico completo per questa sola prova.
 
 ### B08 — Installazione e consumo
 
