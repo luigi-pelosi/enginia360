@@ -1,6 +1,6 @@
 # Dossier di fondazione — 09. Validazioni dei referenti (D01)
 
-**Stato:** domande preparate; risposte specialistiche non ancora acquisite. D01 resta in corso.
+**Stato:** caso 001 e relativa politica di arrotondamento validati dal referente secondo attestazione del proprietario (D42); ulteriori risposte ancora da acquisire. D01 resta in corso.
 **Fonti:** `PROJECT_CHARTER.md` §11–12 e §15; [slice](04-first-vertical-slice.md); [decisioni D32–D37](01-glossary-and-domain-boundaries.md); issue GitHub #3.
 
 ## 1. Disponibilità e responsabilità
@@ -15,8 +15,8 @@ Per ogni risposta registrare ruolo del validatore, versione del caso, risultato 
 
 | ID | Domanda / risultato richiesto | Validatore richiesto | Prima di | Stato |
 | --- | --- | --- | --- | --- |
-| F01 | Quale caso di vendita domestica usare come riferimento per una prestazione e un ricambio? Fornire trattamento IVA atteso, imponibile, imposte e totale di un esempio sintetico, distinguendo regola validata e parametro tecnico di prova. | Commercialista, tramite referente disponibile se necessario | Validazione dei parametri B05; uso reale | Caso funzionale ricevuto; validazione specialistica da attestare |
-| F02 | Quali precisioni e arrotondamenti adottare per quantità, prezzi, sconti, righe, imponibile e imposte? Fornire casi limite con esiti attesi e criterio di gestione degli scarti. | Referente amministrativo con validazione del commercialista per gli aspetti fiscali | B05 e B12 | Politica di base e confronto per-riga ricevuti; casi limite da completare |
+| F01 | Quale caso di vendita domestica usare come riferimento per una prestazione e un ricambio? Fornire trattamento IVA atteso, imponibile, imposte e totale di un esempio sintetico, distinguendo regola validata e parametro tecnico di prova. | Commercialista, tramite referente disponibile se necessario | Validazione dei parametri B05; uso reale | Caso 001 ricevuto; validazione del referente confermata dal proprietario (D42) |
+| F02 | Quali precisioni e arrotondamenti adottare per quantità, prezzi, sconti, righe, imponibile e imposte? Fornire casi limite con esiti attesi e criterio di gestione degli scarti. | Referente amministrativo con validazione del commercialista per gli aspetti fiscali | B05 e B12 | Politica del caso 001 e confronto per-riga validati secondo il proprietario (D42); ulteriori casi limite da completare |
 | F03 | Quali dati e riferimenti conservare nella fattura tecnica collegata alla commessa? Quali differenze devono restare esplicite rispetto a una fattura realmente emessa? | Referente amministrativo/commercialista secondo competenza | B12; prima di uso fiscale reale | Mapping righe/riepiloghi ricevuto; dati completi ancora da raccogliere |
 | F04 | Quale piano dei conti dimostrativo e quale scrittura attesa usare per il caso F01, con riferimenti fattura/commessa? Specificare conti, importi attesi e quadratura; l'agente non sceglie il piano. | Commercialista | B13 | Da sottoporre |
 
@@ -24,9 +24,11 @@ Costi del venduto, criteri di valorizzazione per marginalità, ciclo passivo com
 
 La prova tecnica e la validazione specialistica sono esiti distinti. Parametri sintetici eventualmente concordati per una prova non diventano regole per uso reale.
 
-**D41 — Caso funzionale 001 fornito dal proprietario:** riepilogo commerciale atteso 164.50 EUR di imponibile, 36.19 EUR di IVA e 200.69 EUR di totale. Prezzi netti fino a 6 decimali, quantità fino a 3, sconti prima dell'IVA, imponibili di riga a 2 decimali; imposta sul raggruppamento di righe con stesso trattamento/aliquota, a 2 decimali con ROUND_HALF_UP. La verifica decimale indipendente è passata; non è un test del motore applicativo o di SdI. Specifica e fixture nel [caso 001](10-test-case-001.md); validazione del commercialista non esplicitamente attestata.
+**D41 — Caso funzionale 001 fornito dal proprietario:** riepilogo commerciale atteso 164.50 EUR di imponibile, 36.19 EUR di IVA e 200.69 EUR di totale. Prezzi netti fino a 6 decimali, quantità fino a 3, sconti prima dell'IVA, imponibili di riga a 2 decimali; imposta sul raggruppamento di righe con stesso trattamento/aliquota, a 2 decimali con ROUND_HALF_UP. La verifica decimale indipendente è passata; non è un test del motore applicativo o di SdI. Specifica e fixture nel [caso 001](10-test-case-001.md); validazione del referente sul caso e sulle regole di arrotondamento successivamente confermata dal proprietario in D42.
 
-F01–F02 sono risposte funzionali trasmesse dal proprietario; non si presume che siano già state validate dal commercialista. F03 riceve un’indicazione di mapping, non ancora l’elenco completo dei dati; F04 non è stata fornita. Nessuna conferma di trasmissione al referente è dedotta dal solo messaggio.
+F01–F02 sono risposte funzionali trasmesse dal proprietario; D42 attesta, tramite il proprietario, la validazione del referente per il caso 001 e le relative regole di arrotondamento. F03 riceve un’indicazione di mapping, non ancora l’elenco completo dei dati; F04 non è stata fornita. La conferma di validazione non si estende a F03/F04 o a casi ulteriori.
+
+**D42 — Validazione del caso 001 riferita dal proprietario:** Luigi Pelosi conferma che il caso e le regole di arrotondamento sono già stati validati dal referente disponibile. L'attestazione riguarda il caso 001 e la sua politica di calcolo; non è una validazione generale del motore fiscale, di altri trattamenti IVA, della fatturazione elettronica o delle scritture contabili. Il ruolo professionale esatto del referente e un verbale separato non sono stati comunicati; nessun contatto diretto dell'agente è dichiarato.
 
 ## 3. Decisioni di prodotto già acquisite
 
@@ -56,7 +58,8 @@ I referenti operativi non sono stati identificati come disponibili dalla sola co
 - [x] Destinazione dimostrativa O01 concordata e riportata nella slice/backlog (D38).
 - [x] Parametri del tipo dimostrativo O02 concordati e riportati nella slice/backlog (D39).
 - [x] Semantica di business O03 e riferimento esterno concordati e riportati nella slice/backlog (D40). Schema/protocollo e idempotenza restano progettazione/verifica di B10–B11.
-- [ ] Trasmissione delle domande F01–F04 al referente confermata dal proprietario.
+- [x] Validazione del referente sul caso 001 e sulle regole F01/F02 attestata dal proprietario (D42).
+- [ ] Trasmissione/completamento delle ulteriori domande F02 e delle domande F03/F04 confermati dal proprietario.
 - [ ] Risposte necessarie acquisite, oppure rinvii espliciti con gate sugli incrementi interessati.
 
 Il documento non chiude D01, non approva il dossier completo e non autorizza implementazione, contatti esterni o deployment.

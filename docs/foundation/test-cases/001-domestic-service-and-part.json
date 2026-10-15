@@ -1,7 +1,7 @@
 {
   "id": "001",
   "title": "Vendita nazionale con prestazione e ricambio",
-  "source": "Provided by the product owner; specialist validation not explicitly attested",
+  "source": "Provided by the product owner; owner confirms case and rounding rules validated by the available adviser (D42); exact professional role not specified",
   "documentType": "TD01",
   "currency": "EUR",
   "scenario": "Italian workshop, ordinary VAT regime, domestic taxable sale to a customer resident in Italy",
