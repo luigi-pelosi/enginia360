@@ -38,6 +38,8 @@ Nomi esemplificativi in inglese, non contratti API già approvati. I fatti non i
 
 La selezione del contesto non si fida di un identificativo inviato dal client: controllare appartenenza e autorizzazione server-side. Magazzino appartenente alla sede della testata. La conferma di fattura e la scrittura contabile sono transazioni dei rispettivi moduli; il processo deve rendere visibili eventuali esiti parziali, non promettere atomicità globale.
 
+**D34 — Prenotazione coperta da disponibilità nel caso minimo:** il ricambio può essere inserito nella commessa anche quando non è disponibile, ma la prenotazione riesce soltanto se la disponibilità impegnabile è sufficiente. Il rifiuto è motivato e non blocca automaticamente tutta la commessa. Dopo il ricevimento e la disponibilità del materiale si può riprovare. Richieste strutturate in attesa di approvvigionamento rinviate. Decisione limitata allo scenario dimostrativo: non approva una politica universale di stock negativo o ulteriori blocchi di workflow.
+
 ## 3. Destinazioni alternative e continuità
 
 ### Interna

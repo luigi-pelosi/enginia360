@@ -82,7 +82,8 @@ Non trasferire automaticamente tutte le voci in Pronto dopo l'approvazione del b
 
 - **Risultato:** prenotare il componente per la commessa/lavorazione nel magazzino della sede autorizzata.
 - **Accettazione:** disponibilità impegnabile ridotta senza alterazione della quantità fisica; retry non duplica impegno; prenotazioni concorrenti rispettano la disponibilità consentita.
-- **Prova:** test su prenotazioni concorrenti, riferimenti estranei e insufficienza; politica di quantità e stock negativo esplicita per il caso di test. T01, T05.
+- **Decisione D34:** nello scenario minimo il ricambio può essere inserito anche se indisponibile; prenotazione rifiutata con motivo quando la disponibilità impegnabile è insufficiente. Nessun blocco automatico dell’intera commessa; richieste strutturate in attesa di approvvigionamento rinviate. Nessuna politica universale di stock negativo dedotta.
+- **Prova:** test su prenotazioni concorrenti, riferimenti estranei, insufficienza e retry dopo disponibilità del materiale, senza sovraprenotazioni o doppi impegni. T01, T05.
 
 ### B07 — Prelievo e preparazione
 
