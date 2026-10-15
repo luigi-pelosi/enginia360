@@ -1,0 +1,162 @@
+# Dossier di fondazione — 07. Backlog della prima vertical slice
+
+**Stato:** proposta ordinata per revisione, non autorizzazione a implementare. Nessuna issue o board GitHub creata da questo documento.
+**Fonti:** `PROJECT_CHARTER.md` §11–14; [slice](04-first-vertical-slice.md), [architettura](05-solution-and-module-boundaries.md), [minacce](06-initial-threat-model.md). Le decisioni acquisite restano nel [registro](01-glossary-and-domain-boundaries.md).
+
+## 1. Metodo proposto
+
+Ogni voce diventerà una issue con risultato, perimetro escluso, dipendenze, criteri di accettazione e prove. Gli ID Bxx sono identificativi del dossier, non numeri di issue GitHub. Nessuna stima di durata o data di consegna è promessa.
+
+Flusso Kanban proposto: **Backlog → Pronto → In corso → In verifica → Completato**. Un solo incremento implementativo in corso; analisi e verifiche indipendenti possono procedere senza avviare altre funzionalità. Le dipendenze non trasformano ogni singola voce in un servizio o modulo.
+
+- **Pronto:** requisiti sufficienti, dipendenze completate, decisioni necessarie risolte e autorizzazione nell'ambito approvato.
+- **In verifica:** codice e prove disponibili, review/CI o validazione ancora in corso.
+- **Completato:** risultato esercitato, criteri superati e limiti dichiarati; non basta compilare o creare una PR.
+- **Bloccato:** indicatore trasversale con motivo e decisione richiesta, non una colonna in cui perdere l'ordine del lavoro.
+
+Non trasferire automaticamente tutte le voci in Pronto dopo l'approvazione del backlog. L'approvazione dell'ordine non approva il dossier completo, il provider di identità o le regole fiscali.
+
+## 2. Sequenza e dipendenze
+
+| ID | Risultato dimostrabile | Dipende da | Natura |
+| --- | --- | --- | --- |
+| B00 | Dossier revisionato e gate di avvio esplicito | — | Decisione/documentazione |
+| B01 | Prova identity e ambiente protetto di test | B00 | Abilitatore tecnico con prova concreta |
+| B02 | Entrare solo nel contesto organizzativo autorizzato, persistito | B01 | Incremento attraversabile UI/API/database |
+| B03 | Usare una controparte comune con destinazioni societarie protette | B02 | Incremento anagrafiche/accessi |
+| B04 | Aprire direttamente una commessa nel tipo societario consentito | B03 | Incremento documento commerciale |
+| B05 | Aggiungere e valorizzare prestazione e ricambio | B04 | Incremento economico dimostrativo |
+| B06 | Prenotare il ricambio senza consumo fisico | B05 | Incremento magazzino |
+| B07 | Prelevare e preparare il ricambio senza dichiararlo installato | B06 | Incremento logistico |
+| B08 | Registrare installazione e relativo consumo senza doppi effetti | B07 | Incremento officina/magazzino |
+| B09 | Ricevere la carcassa secondo la configurazione di esempio | B08 | Incremento di rientro distinto |
+| B10 | Consegnare il risultato a un destinatario amministrativo simulato | B09 | Primo percorso esterno completo |
+| B11 | Recuperare indisponibilità, timeout incerti e richieste interrotte | B10 | Incremento di continuità e riconciliazione |
+| B12 | Produrre e confermare una fattura tecnica interna collegata | B09 | Percorso amministrativo interno |
+| B13 | Registrare contabilmente la fattura con scrittura quadrata | B12 | Incremento contabile tecnico |
+| B14 | Eseguire e ripristinare lo scenario completo in modo ripetibile | B11, B13 | Chiusura verificabile della slice |
+
+**Ordine confermato da Luigi Pelosi:** percorso esterno simulato prima di quello contabile interno, per dimostrare presto il ciclo operativo e la resilienza senza inventare regole fiscali. B12–B13 possono essere preparati mentre si risolvono le relative validazioni, senza dichiararli Pronto prematuramente. La conferma riguarda la sequenza proposta, non l'approvazione del dossier completo, di ogni dettaglio delle schede o l'autorizzazione all'implementazione.
+
+## 3. Schede degli incrementi
+
+### B00 — Gate di avvio
+
+- **Risultato:** dossier consolidato, approvazioni distinte da proposte, decisioni bloccanti e proprietari registrati; autorizzazione esplicita alla prima implementazione.
+- **Accettazione:** sono presenti backlog, domande agli operatori/commercialista, scenari di costo e rischi; le scelte ancora aperte hanno un gate concreto e non sono spacciate per risolte. Allineare AGENTS.md allo scope approvato quando autorizzato, senza reinterpretare i divieti attuali.
+- **Prova:** checklist e review del dossier; nessun flag runtime cambiato come sostituto dell'approvazione.
+
+### B01 — Identity e ambiente di prova protetto
+
+- **Risultato:** prova comparabile per scegliere il provider di federation/MFA; ambiente ripetibile per dati sintetici, non pubblicato anonimamente sul bootstrap HTTP.
+- **Accettazione:** autenticazione, rifiuto accesso anonimo, verifica token/sessione e revoca rilevante dimostrati nella prova; scelta motivata con alternativa e oneri operativi. Nessun provider scelto a priori dal backlog.
+- **Prova:** test positivi/negativi e istruzioni ripetibili; vincoli dell'ambiente dichiarati. Non è già il sistema IAM completo.
+
+### B02 — Contesto autorizzato persistito
+
+- **Risultato:** un utente di test sceglie società/sede consentite e accede a una minima risorsa persistita; due tenant di test, più società e scope differenti.
+- **Accettazione:** cambi di ID tenant/società/sede/magazzino non ampliano i permessi; contesto visibile e validato nel backend. Capability disabilitata rifiuta l'azione pertinente. Migrazione locale e health della persistenza ripetibili.
+- **Prova:** API/UI e test negativi di isolamento, incluso riutilizzo connessioni; prime verifiche di dipendenze/visibilità dei soli moduli introdotti. Minacce T01, T03, T09.
+
+### B03 — Controparte comune e destinazioni
+
+- **Risultato:** A e B dello stesso tenant usano la stessa identità; B aggiunge una destinazione locale non esposta ad A; pubblicazione comune soltanto esplicita e autorizzata.
+- **Accettazione:** altro tenant escluso; edit anagrafica comune negato senza permesso specifico; dati societari restano distinti. Soltanto campi necessari al caso minimo, non intera anagrafica ERP.
+- **Prova:** letture/ricerche e modifiche con ruoli differenti; audit dell'azione senza payload sensibili superflui. T01, T02, T04, T11.
+
+### B04 — Commessa diretta nel tipo societario
+
+- **Risultato:** creare una commessa che è già ordine cliente, usando un tipo configurato della società e una sede unica; selezionare un veicolo con intestatario diverso dal soggetto a carico.
+- **Accettazione:** nessun preventivo/appuntamento obbligatorio se il tipo consente creazione diretta; singolo soggetto a carico nello scenario. Versione della configurazione rilevante tracciata senza inventare il congelamento universale del documento.
+- **Prova:** percorso UI/API persistito, mancata sovrascrittura del pagante alla selezione veicolo, rifiuto riferimenti non autorizzati. T01, T04.
+- **Escluso:** editor visuale del workflow, catalogo universale dei tipi e ripartizioni/garanzia.
+
+### B05 — Prestazione, ricambio e valori riproducibili
+
+- **Risultato:** aggiungere una prestazione e un ricambio; esporre imponibile, imposta e totale di prova con regole esplicite.
+- **Accettazione:** default un soggetto a carico per riga, associazione a lavorazione secondo configurazione dimostrativa; nessun doppio conteggio nei raggruppamenti operativi. Decimal/value object e arrotondamenti riproducibili; storico non ricalcolato silenziosamente da cambi anagrafici.
+- **Prova:** test su valori limite e arrotondamenti, payload reali UI/API coerenti; parametri sintetici dichiarati non fiscalmente validati. T05, T12.
+- **Gate:** definire il significato minimo del risultato economico; non equipararlo implicitamente al margine.
+
+### B06 — Prenotazione
+
+- **Risultato:** prenotare il componente per la commessa/lavorazione nel magazzino della sede autorizzata.
+- **Accettazione:** disponibilità impegnabile ridotta senza alterazione della quantità fisica; retry non duplica impegno; prenotazioni concorrenti rispettano la disponibilità consentita.
+- **Prova:** test su prenotazioni concorrenti, riferimenti estranei e insufficienza; politica di quantità e stock negativo esplicita per il caso di test. T01, T05.
+
+### B07 — Prelievo e preparazione
+
+- **Risultato:** prelevare il componente e predisporlo per la lavorazione nell'area scelta per lo scenario; renderne visibile la collocazione e l'assegnazione senza marcarlo installato.
+- **Accettazione:** picking list distinta dall'area fisica; quantità e provenienza riconciliabili; nessun consumo implicito o doppio scarico. Magazzini operativi coerenti con la sede di testata.
+- **Prova:** scenario con componente in preparazione e non installato, retry e prelievo concorrente. T01, T05.
+- **Gate:** definire ubicazione/magazzino dell'area e perimetro di giacenza; niente magazzino logistico completo per questa sola prova.
+
+### B08 — Installazione e consumo
+
+- **Risultato:** registrare l'installazione tecnica e gli effetti di consumo nel modulo competente; eventuale consegna al tecnico distinta.
+- **Accettazione:** il solo ritiro non prova installazione; tentativi ripetuti non duplicano movimenti. Errore tra conferma tecnica ed effetto di stock visibile e recuperabile, senza transazione globale fittizia.
+- **Prova:** happy path, retry ed errore intermodulo con recupero; nessun secondo scarico che riconti il movimento di preparazione. T05, T10.
+
+### B09 — Carcassa
+
+- **Risultato:** ricevere il particolare sostituito e riferirlo al componente/intervento pertinenti secondo una politica dimostrativa esplicita del tipo documento.
+- **Accettazione:** carcassa e nuovo inutilizzato non confusi; nessun ripristino improprio della disponibilità del nuovo. Vincoli di chiusura derivano dalla configurazione, non da un obbligo universale hardcoded.
+- **Prova:** rientro idempotente e prova del vincolo configurato; destinazione/identificazione minime esplicitate. T05, T12.
+
+### B10 — Destinazione esterna simulata
+
+- **Risultato:** inviare il risultato al simulatore e mostrare un esito amministrativo coerente senza fattura interna duplicata.
+- **Accettazione:** richiesta salvata durevolmente, identificativo stabile e scope preservato; fatto locale e outbox nella stessa transazione del proprietario quando applicabile. Trasporto riuscito distinto da accettazione di business.
+- **Prova:** invio/esito e consultazione autorizzata della richiesta, riferimenti alla commessa e contratto del simulatore. T03, T07, T11.
+
+### B11 — Continuità e riconciliazione
+
+- **Risultato:** destinatario indisponibile → richiesta in attesa → ripresa controllata, inclusi riavvio worker e timeout dopo esecuzione esterna.
+- **Accettazione:** nessuna perdita o duplicazione non riconciliata; rifiuti di business non ritentati all'infinito; esiti incerti distinti. Chiusure definitive dipendenti dalla conferma bloccate per default; deroghe solo configurate, autorizzate e tracciate entro invarianti.
+- **Prova:** fault injection deterministica, duplicati, dipendenze/ordine, fallimenti e azioni di recupero autorizzate. Nessuna promessa exactly-once dal solo trasporto. T03, T05, T06, T07, T10.
+
+### B12 — Fattura tecnica interna
+
+- **Risultato:** nell'alternativa interna generare bozza e confermare una fattura tecnica collegata alla commessa; mantenere dati storici e riferimenti.
+- **Accettazione:** tipo/workflow consentiti dal customizing, nessuna sequenza universale imposta ad altri tipi; idempotenza e capability/permessi verificati. Nessun invio SdI, nessuna affermazione di emissione fiscale reale.
+- **Prova:** valori e riferimenti verificabili, chiamata ripetuta e azione non autorizzata. T01, T05, T12.
+- **Gate:** casi e parametri di prova espliciti; regole fiscali per uso reale sottoposte al commercialista.
+
+### B13 — Scrittura contabile tecnica
+
+- **Risultato:** produrre una scrittura quadrata riferita a fattura e commessa; mostrare eventuali errori senza cancellare la fattura confermata.
+- **Accettazione:** nessuna doppia registrazione a richiesta ripetuta; transazione locale al modulo, errori recuperabili e piano di prova documentato.
+- **Prova:** quadratura, retry ed errore intermodulo, riferimenti immutati. T05, T10, T12.
+- **Gate:** piano dei conti e regole dimostrative dichiarati; nessuna scelta fiscale definitiva dell'agente. Distinguere validazione tecnica e approvazione del commercialista.
+
+### B14 — Verifica finale e recupero operativo
+
+- **Risultato:** eseguire entrambi i percorsi dalla stessa logica officina, con istruzioni Docker ripetibili e prove di recupero dei dati.
+- **Accettazione:** suite API/UI/database, isolamento, dipendenze, coda e CI eseguite; migrazioni e rollback operativo documentati, backup/ripristino esercitato su dati di test. Log/metriche/tracce e audit consentono diagnosi senza esporre segreti. Storage/backend non pubblici; nessun dominio anonimo aggiunto al bootstrap.
+- **Prova:** report con comandi/esiti reali, demo manuale del percorso e review dei casi critici. Validazioni specialistiche mancanti e incompatibilità ERP reali dichiarate, non inventate. T01–T12 dove le superfici sono attivate; upload/allegati non introdotti restano gate futuri.
+
+## 4. Definition of Done comune
+
+- Test-first per comportamento applicativo; casi negativi su autorizzazione e invarianti, non soltanto compilazione.
+- UI minima con stato, errore e azione successiva; contratto runtime UI/API esercitato.
+- Contratti e ownership rispettati, dipendenze verificate, nessuna query sulle tabelle degli altri moduli.
+- Migrazioni, configurazione, log/audit, diagnosi e recupero pertinenti al cambiamento documentati.
+- Review, test e CI con esiti reali; distinguere implementato, verificato tecnicamente e validato dal dominio.
+- Nessun dato o segreto reale nel repository; nessuna esposizione pubblica non autorizzata.
+- PR collegata all'issue una volta adottato il workflow GitHub; prova di merge/chiusura verificata, non dedotta dall'avvio dei comandi.
+
+## 5. Blocchi decisionali da risolvere al momento giusto
+
+| Gate | Necessario prima di | Chi valida |
+| --- | --- | --- |
+| Dossier e scope implementativo autorizzati | B01 e codice di dominio | Proprietario |
+| Provider identity/ambiente scelti dalla prova | Chiusura B01, poi B02 | Proprietario con evidenze tecniche |
+| Campi comuni/locali minimi e permessi di pubblicazione | B03 | Proprietario/referenti anagrafiche |
+| Configurazione societaria dimostrativa e dati obbligatori | B04–B05 | Proprietario/referente officina |
+| Risultato economico e regole di calcolo di prova | B05 | Proprietario; specialista per significati fiscali |
+| Disponibilità, collocazione, consumo e carcassa del caso minimo | B06–B09 | Referenti officina/magazzino |
+| Contratto simulato, stati e chiusure da bloccare | B10–B11 | Proprietario con test tecnici |
+| Valorizzazioni/piano e regole contabili del caso tecnico | B12–B13 | Proprietario/commercialista secondo competenza |
+| Costi, ripristino, ambiente e limiti operativi | B14 e prima di qualsiasi pilota reale | Proprietario |
+
+Questo backlog non sostituisce domande ai referenti, costi o approvazione complessiva. La creazione futura di Project/issue richiederà discovery dei duplicati e verifica dei record pubblicati; non è dichiarata già avvenuta.
