@@ -32,7 +32,9 @@ Tenant = cliente/gruppo contrattuale (es. Beta Group)
 - La condivisione dell'identità non concede implicitamente accesso a documenti, saldi, condizioni commerciali o customizing delle altre società.
 - Non esiste condivisione automatica tra tenant di clienti estranei.
 
-L'elenco preciso dei campi comuni/locali, deduplicazione, revoca della condivisione e conservazione dei dati storici sono da dettagliare. Il mantenimento dei dati storici dei documenti è un vincolo del charter, non un aggiornamento retroattivo implicito.
+**D36 — Controparte aziendale minima:** per il primo scenario, dati comuni al tenant = ragione sociale, identificativo fiscale e indirizzo della sede legale; dati societari = una destinazione operativa aggiuntiva riservata alla società che la registra, salvo condivisione esplicita autorizzata. Dati esclusivamente sintetici; nessuna definizione di obbligatorietà fiscale o catalogo anagrafico completo.
+
+Il catalogo completo dei campi, i formati e le validazioni, la deduplicazione, la revoca della condivisione e le modalità di conservazione dei dati storici sono da dettagliare. Il mantenimento dei dati storici dei documenti è un vincolo del charter, non un aggiornamento retroattivo implicito.
 
 ## Accessi confermati
 

@@ -15,6 +15,8 @@ Dimostrare un unico percorso operativo dalla commessa al risultato economico, co
 
 **Composizione minima proposta:** Enginia360 autorevole su anagrafiche necessarie allo scenario, catalogo e magazzino nei due percorsi; cambia soltanto la destinazione amministrativa. Il magazzino esterno del profilo P1 è una variante ulteriore, non una dipendenza implicita della prima slice. La coda è provata verso la destinazione amministrativa simulata; ciò non dimostra già il protocollo di prenotazione stock di un ERP reale.
 
+**D36 — Controparte aziendale minima:** per il primo scenario, dati comuni al tenant = ragione sociale, identificativo fiscale e indirizzo della sede legale; dati societari = una destinazione operativa aggiuntiva riservata alla società che la registra, salvo condivisione esplicita autorizzata. Dati esclusivamente sintetici; nessuna definizione di obbligatorietà fiscale o catalogo anagrafico completo.
+
 ## 2. Percorso proposto: comandi, fatti e ownership
 
 Nomi esemplificativi in inglese, non contratti API già approvati. I fatti non impongono pubblicazione asincrona o un broker: gli eventi distribuiti si introducono solo dove necessari. Confini e ownership tecniche dei concetti commerciali comuni restano da consolidare nella solution.

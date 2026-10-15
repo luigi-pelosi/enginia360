@@ -61,7 +61,7 @@ Non trasferire automaticamente tutte le voci in Pronto dopo l'approvazione del b
 ### B03 — Controparte comune e destinazioni
 
 - **Risultato:** A e B dello stesso tenant usano la stessa identità; B aggiunge una destinazione locale non esposta ad A; pubblicazione comune soltanto esplicita e autorizzata.
-- **Accettazione:** altro tenant escluso; edit anagrafica comune negato senza permesso specifico; dati societari restano distinti. Soltanto campi necessari al caso minimo, non intera anagrafica ERP.
+- **Accettazione:** altro tenant escluso; edit anagrafica comune negato senza permesso specifico; dati societari restano distinti. Campi del caso minimo confermati in D36: ragione sociale, identificativo fiscale e sede legale comuni; una destinazione operativa societaria riservata salvo condivisione esplicita autorizzata. Non è l’intera anagrafica ERP o una definizione di obblighi fiscali.
 - **Prova:** letture/ricerche e modifiche con ruoli differenti; audit dell'azione senza payload sensibili superflui. T01, T02, T04, T11.
 
 ### B04 — Commessa diretta nel tipo societario

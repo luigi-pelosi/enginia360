@@ -520,3 +520,11 @@ Il controllo deve essere coerente anche con prenotazioni concorrenti e retry: ne
 **D35 — Tracciabilità minima della carcassa confermata:** registrare commessa e lavorazione di provenienza, collegamento alla riga del ricambio installato, descrizione e quantità del particolare rientrato, data e operatore di ricezione. Per il primo scenario non si introducono un catalogo separato delle carcasse o una matricola obbligatoria. Il rientro non aumenta la disponibilità dei ricambi nuovi; politica di restituzione e conseguenze di workflow restano nel customizing societario del tipo documento (D30).
 
 La conferma non stabilisce valorizzazione, rimborso fornitore, smaltimento o ulteriori obblighi legali. Destinazione fisica e configurazione dimostrativa dei vincoli di restituzione restano da specificare senza imporre una politica universale.
+
+### D36 — Campi anagrafici minimi comuni e societari
+
+**Fonte e conferma:** Luigi Pelosi, proprietario del prodotto, risponde «Perfetto» alla proposta di una controparte aziendale minima con dati comuni e una destinazione societaria riservata. **Stato:** DP limitata al primo scenario, non approvazione del dossier completo o autorizzazione implementativa.
+
+**D36 — Controparte aziendale minima:** per il primo scenario, dati comuni al tenant = ragione sociale, identificativo fiscale e indirizzo della sede legale; dati societari = una destinazione operativa aggiuntiva riservata alla società che la registra, salvo condivisione esplicita autorizzata. Dati esclusivamente sintetici; nessuna definizione di obbligatorietà fiscale o catalogo anagrafico completo.
+
+Le società A e B usano la medesima identità senza accesso automatico alle destinazioni locali altrui. Restano validi isolamento fra tenant, permesso specifico di modifica (D21), autorizzazioni contestuali (D23) e autorità unica sul nucleo comune (D26). La conferma non sceglie formato/validazione degli identificativi fiscali, deduplicazione, ruoli nominali o permessi di pubblicazione/revoca nel dettaglio. Nessun dato identificativo reale è richiesto o pubblicato.
