@@ -114,7 +114,7 @@ Non trasferire automaticamente tutte le voci in Pronto dopo l'approvazione del b
 ### B11 — Continuità e riconciliazione
 
 - **Risultato:** destinatario indisponibile → richiesta in attesa → ripresa controllata, inclusi riavvio worker e timeout dopo esecuzione esterna.
-- **Accettazione:** nessuna perdita o duplicazione non riconciliata; rifiuti di business non ritentati all'infinito; esiti incerti distinti. Chiusure definitive dipendenti dalla conferma bloccate per default; deroghe solo configurate, autorizzate e tracciate entro invarianti.
+- **Accettazione:** nessuna perdita o duplicazione non riconciliata; rifiuti di business non ritentati all'infinito; esiti incerti distinti. D37: chiusura tecnica consentita con requisiti locali soddisfatti; richiesta in coda e stato di attesa esplicito; chiusura amministrativa bloccata fino alla conferma di business esterna, non al solo invio. Rifiuto visibile e riconciliabile senza cancellare il lavoro eseguito. Nessun incasso/riconsegna impliciti; deroghe solo configurate, autorizzate e tracciate entro invarianti.
 - **Prova:** fault injection deterministica, duplicati, dipendenze/ordine, fallimenti e azioni di recupero autorizzate. Nessuna promessa exactly-once dal solo trasporto. T03, T05, T06, T07, T10.
 
 ### B12 — Fattura tecnica interna

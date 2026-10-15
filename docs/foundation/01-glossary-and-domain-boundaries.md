@@ -528,3 +528,11 @@ La conferma non stabilisce valorizzazione, rimborso fornitore, smaltimento o ult
 **D36 — Controparte aziendale minima:** per il primo scenario, dati comuni al tenant = ragione sociale, identificativo fiscale e indirizzo della sede legale; dati societari = una destinazione operativa aggiuntiva riservata alla società che la registra, salvo condivisione esplicita autorizzata. Dati esclusivamente sintetici; nessuna definizione di obbligatorietà fiscale o catalogo anagrafico completo.
 
 Le società A e B usano la medesima identità senza accesso automatico alle destinazioni locali altrui. Restano validi isolamento fra tenant, permesso specifico di modifica (D21), autorizzazioni contestuali (D23) e autorità unica sul nucleo comune (D26). La conferma non sceglie formato/validazione degli identificativi fiscali, deduplicazione, ruoli nominali o permessi di pubblicazione/revoca nel dettaglio. Nessun dato identificativo reale è richiesto o pubblicato.
+
+### D37 — Chiusura tecnica durante indisponibilità del gestionale esterno
+
+**Fonte e conferma:** Luigi Pelosi, proprietario del prodotto, risponde «Confermo» alla proposta di separare chiusura tecnica e amministrativa nel caso iniziale. **Stato:** DP sullo scenario esterno simulato; non autorizzazione implementativa, approvazione complessiva del dossier o prova di compatibilità con un ERP reale.
+
+**D37 — Chiusura tecnica e amministrativa separate nel primo scenario esterno:** a lavorazioni concluse e requisiti locali configurati soddisfatti, la chiusura tecnica è consentita anche se il gestionale esterno è indisponibile. La richiesta amministrativa è conservata nella coda persistente; stato visibile «completata tecnicamente — in attesa di conferma amministrativa». La chiusura amministrativa resta bloccata fino alla conferma dell'esito di business richiesto, non al solo invio riuscito. Un rifiuto rimane visibile e richiede riconciliazione, preservando i fatti tecnici già avvenuti. Nessuna autorizzazione implicita a incasso, riconsegna del veicolo o deroghe ai vincoli configurati.
+
+Sono preservati D27 per deroghe configurate/autorizzate/tracciate e D30 per vincoli della carcassa. Esiti incerti non sono conferme; nessuna cancellazione dei fatti locali per nascondere un rifiuto esterno. Gli ulteriori comportamenti fisici durante un disservizio restano decisioni separate.

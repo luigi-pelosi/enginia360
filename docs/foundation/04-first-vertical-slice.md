@@ -54,7 +54,9 @@ Commessa → risultato → richiesta persistente → tentativo invio → esito v
 
 Scenari da provare: destinatario disponibile, indisponibile con recupero, rifiuto di business e timeout con esito incerto. Idempotenza dell'operazione e deduplicazione/verifica esito evitano duplicazioni; nessuna promessa exactly-once dalla sola coda. Restart del worker non deve perdere le richieste già salvate.
 
-Default confermato in D27: operazioni accodabili; chiusure definitive subordinate a conferma esterna bloccate in assenza di tale conferma. La chiusura tecnica locale non va equiparata automaticamente alla chiusura amministrativa. Elenco degli specifici blocchi ancora da definire; deroghe solo se configurate, autorizzate e tracciate entro invarianti inderogabili.
+Default confermato in D27: operazioni accodabili; chiusure definitive subordinate a conferma esterna bloccate in assenza di tale conferma. La chiusura tecnica locale è distinta da quella amministrativa come confermato in D37. Deroghe solo se configurate, autorizzate e tracciate entro invarianti inderogabili.
+
+**D37 — Chiusura tecnica e amministrativa separate nel primo scenario esterno:** a lavorazioni concluse e requisiti locali configurati soddisfatti, la chiusura tecnica è consentita anche se il gestionale esterno è indisponibile. La richiesta amministrativa è conservata nella coda persistente; stato visibile «completata tecnicamente — in attesa di conferma amministrativa». La chiusura amministrativa resta bloccata fino alla conferma dell'esito di business richiesto, non al solo invio riuscito. Un rifiuto rimane visibile e richiede riconciliazione, preservando i fatti tecnici già avvenuti. Nessuna autorizzazione implicita a incasso, riconsegna del veicolo o deroghe ai vincoli configurati.
 
 ## 4. Criteri di accettazione proposti
 
