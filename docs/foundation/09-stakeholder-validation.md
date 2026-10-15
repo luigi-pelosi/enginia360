@@ -35,13 +35,13 @@ La prova tecnica e la validazione specialistica sono esiti distinti. Parametri s
 | Controparte | Ragione sociale, identificativo fiscale, sede legale comuni; destinazione aggiuntiva societaria riservata | D36 |
 | Chiusure durante indisponibilità esterna | Tecnica consentita con requisiti locali soddisfatti; amministrativa in attesa della conferma di business | D37 |
 
-## 4. Parametri dimostrativi ancora da chiudere
+## 4. Stato dei parametri dimostrativi
 
 | ID | Decisione richiesta / risposta attesa | Referente | Incrementi interessati | Stato |
 | --- | --- | --- | --- | --- |
 | O01 | Ubicazione dedicata ai particolari sostituiti, separata dal nuovo e non vendibile; nessuna valorizzazione o gestione dello smaltimento introdotta | Proprietario, conferma D38 | B09 | Risolta per il primo scenario |
 | O02 | Prestazione e ricambio nella stessa lavorazione; area abilitata; carcassa del ricambio dimostrativo richiesta prima della chiusura tecnica. Valori di esempio, non regole universali | Proprietario, conferma D39 | B04–B09 | Risolta per questi parametri del primo scenario |
-| O03 | Contratto del simulatore: quale esito di business completa il trattamento amministrativo e quali riferimenti restituisce | Proprietario con evidenze tecniche | B10–B11 | Da dettagliare |
+| O03 | Acquisizione non conclusiva; conferma di elaborazione con riferimento esterno stabile soddisfa il requisito esterno di chiusura. Rifiuto/esito incerto bloccano e richiedono riconciliazione. Nessun effetto fiscale reale | Proprietario, conferma D40 | B10–B11 | Semantica confermata; dettagli tecnici da progettare e verificare |
 
 I referenti operativi non sono stati identificati come disponibili dalla sola conferma sul referente amministrativo/commercialista. Nessun termine di consegna o assegnazione nominale è inventato.
 
@@ -51,7 +51,7 @@ I referenti operativi non sono stati identificati come disponibili dalla sola co
 - [x] Separazione fra decisioni di prodotto e validazioni specialistiche.
 - [x] Destinazione dimostrativa O01 concordata e riportata nella slice/backlog (D38).
 - [x] Parametri del tipo dimostrativo O02 concordati e riportati nella slice/backlog (D39).
-- [ ] Contratto simulato O03 concordato e riportato nella slice/backlog.
+- [x] Semantica di business O03 e riferimento esterno concordati e riportati nella slice/backlog (D40). Schema/protocollo e idempotenza restano progettazione/verifica di B10–B11.
 - [ ] Trasmissione delle domande F01–F04 al referente confermata dal proprietario.
 - [ ] Risposte necessarie acquisite, oppure rinvii espliciti con gate sugli incrementi interessati.
 

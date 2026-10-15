@@ -52,6 +52,8 @@ Commessa → risultato → fattura bozza/confermata → scrittura quadrata. È u
 
 Commessa → risultato → richiesta persistente → tentativo invio → esito visibile.
 
+**D40 — Esito del simulatore amministrativo:** «richiesta ricevuta» indica sola acquisizione e lascia la commessa in attesa. «Elaborazione completata» restituisce una conferma di business e un riferimento esterno stabile, soddisfacendo il requisito esterno per la chiusura amministrativa. Rifiuto o esito incerto mantengono la chiusura bloccata e richiedono riconciliazione. La conferma simulata non rappresenta fattura fiscalmente emessa, incasso o registrazione contabile reale. Restano validi gli altri prerequisiti di chiusura e le autorizzazioni.
+
 Scenari da provare: destinatario disponibile, indisponibile con recupero, rifiuto di business e timeout con esito incerto. Idempotenza dell'operazione e deduplicazione/verifica esito evitano duplicazioni; nessuna promessa exactly-once dalla sola coda. Restart del worker non deve perdere le richieste già salvate.
 
 Default confermato in D27: operazioni accodabili; chiusure definitive subordinate a conferma esterna bloccate in assenza di tale conferma. La chiusura tecnica locale è distinta da quella amministrativa come confermato in D37. Deroghe solo se configurate, autorizzate e tracciate entro invarianti inderogabili.

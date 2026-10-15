@@ -111,7 +111,7 @@ Non trasferire automaticamente tutte le voci in Pronto dopo l'approvazione del b
 ### B10 — Destinazione esterna simulata
 
 - **Risultato:** inviare il risultato al simulatore e mostrare un esito amministrativo coerente senza fattura interna duplicata.
-- **Accettazione:** richiesta salvata durevolmente, identificativo stabile e scope preservato; fatto locale e outbox nella stessa transazione del proprietario quando applicabile. Trasporto riuscito distinto da accettazione di business.
+- **Accettazione:** richiesta salvata durevolmente, identificativo stabile e scope preservato; fatto locale e outbox nella stessa transazione del proprietario quando applicabile. D40: acquisizione della richiesta distinta da elaborazione amministrativa completata; solo conferma di business con riferimento esterno stabile soddisfa il requisito esterno per la chiusura. Rifiuto/esito incerto richiedono riconciliazione e mantengono il blocco. Nessuna emissione fiscale, incasso o scrittura reale impliciti.
 - **Prova:** invio/esito e consultazione autorizzata della richiesta, riferimenti alla commessa e contratto del simulatore. T03, T07, T11.
 
 ### B11 — Continuità e riconciliazione

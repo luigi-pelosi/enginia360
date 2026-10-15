@@ -551,4 +551,12 @@ O01 del documento 09 è risolta. La conferma non introduce un catalogo separato 
 
 **D39 — Configurazione societaria dimostrativa confermata:** prestazione e ricambio sono collegati alla stessa lavorazione; area di preparazione abilitata per esercitare la separazione fra prelievo e installazione; rientro della carcassa richiesto per il ricambio dell'esempio prima della chiusura tecnica. Sono valori del tipo documento dello scenario di prova, non obblighi universali: restano governati dal customizing societario. La chiusura tecnica di D37 richiede quindi anche tale rientro nel caso dimostrativo. Restano separati permessi, invarianti e regola di non retroattività.
 
-O02 del documento 09 è risolta per questi parametri. La conferma non rende obbligatorie area o carcassa in ogni società/tipo e non approva deroghe, valorizzazioni o regole fiscali. Contratto simulato O03 e validazioni specialistiche restano aperti.
+O02 del documento 09 è risolta per questi parametri. La conferma non rende obbligatorie area o carcassa in ogni società/tipo e non approva deroghe, valorizzazioni o regole fiscali. La semantica del contratto simulato O03 è chiarita in D40; dettagli tecnici da progettare in B10–B11. Validazioni specialistiche ancora aperte.
+
+### D40 — Ricezione distinta dall’elaborazione amministrativa completata
+
+**Fonte e conferma:** Luigi Pelosi, proprietario del prodotto, risponde «Confermo» alla proposta di distinguere acquisizione della richiesta, elaborazione completata e rifiuto/esito incerto. **Stato:** DP sul comportamento del simulatore; nessuna autorizzazione implementativa o approvazione complessiva del dossier.
+
+**D40 — Esito del simulatore amministrativo:** «richiesta ricevuta» indica sola acquisizione e lascia la commessa in attesa. «Elaborazione completata» restituisce una conferma di business e un riferimento esterno stabile, soddisfacendo il requisito esterno per la chiusura amministrativa. Rifiuto o esito incerto mantengono la chiusura bloccata e richiedono riconciliazione. La conferma simulata non rappresenta fattura fiscalmente emessa, incasso o registrazione contabile reale. Restano validi gli altri prerequisiti di chiusura e le autorizzazioni.
+
+O03 è risolta sul piano del comportamento di business e dei riferimenti richiesti. Schema del payload, protocollo di risposta, correlazione/idempotenza e verifica degli esiti restano da progettare e testare negli incrementi B10–B11; non sono contratti già implementati.
