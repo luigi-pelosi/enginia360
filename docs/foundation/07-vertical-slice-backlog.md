@@ -76,7 +76,7 @@ Non trasferire automaticamente tutte le voci in Pronto dopo l'approvazione del b
 - **Risultato:** aggiungere una prestazione e un ricambio; esporre imponibile, imposta e totale di prova con regole esplicite.
 - **Accettazione:** default un soggetto a carico per riga, associazione a lavorazione secondo configurazione dimostrativa; nessun doppio conteggio nei raggruppamenti operativi. Decimal/value object e arrotondamenti riproducibili; storico non ricalcolato silenziosamente da cambi anagrafici.
 - **Prova:** test su valori limite e arrotondamenti, payload reali UI/API coerenti; parametri sintetici dichiarati non fiscalmente validati. T05, T12.
-- **Gate:** definire il significato minimo del risultato economico; non equipararlo implicitamente al margine.
+- **Decisione D32:** risultato minimo = riepilogo commerciale (imponibile al netto degli sconti, imposte e totale a carico). Costi e marginalità, anche provvisoria, rinviati. Questo chiarimento non chiude gli altri prerequisiti di B05 o la validazione fiscale.
 
 ### B06 — Prenotazione
 
@@ -153,7 +153,7 @@ Non trasferire automaticamente tutte le voci in Pronto dopo l'approvazione del b
 | Provider identity/ambiente scelti dalla prova | Chiusura B01, poi B02 | Proprietario con evidenze tecniche |
 | Campi comuni/locali minimi e permessi di pubblicazione | B03 | Proprietario/referenti anagrafiche |
 | Configurazione societaria dimostrativa e dati obbligatori | B04–B05 | Proprietario/referente officina |
-| Risultato economico e regole di calcolo di prova | B05 | Proprietario; specialista per significati fiscali |
+| Risultato economico chiarito in D32; parametri e arrotondamenti di prova ancora da definire | B05 | Proprietario; specialista per significati fiscali |
 | Disponibilità, collocazione, consumo e carcassa del caso minimo | B06–B09 | Referenti officina/magazzino |
 | Contratto simulato, stati e chiusure da bloccare | B10–B11 | Proprietario con test tecnici |
 | Valorizzazioni/piano e regole contabili del caso tecnico | B12–B13 | Proprietario/commercialista secondo competenza |

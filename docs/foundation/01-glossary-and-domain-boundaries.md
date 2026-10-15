@@ -61,7 +61,7 @@ I termini inglesi sono proposte per il linguaggio tecnico, non nomi di classi o 
 | Consumo confermato | Confirmed consumption | Utilizzo definitivo che genera una sola movimentazione anche a richiesta ripetuta; non equivale automaticamente alla fatturazione del ricambio. | CH §11; PR |
 | Reso / rettifica / annullamento | Return / Adjustment / Cancellation | Concetti distinti: restituzione fisica, correzione di un fatto registrato, revoca di un impegno. Causali ed effetti da validare. | CH §4, §9–10; PR |
 | Chiusura tecnica | Technical completion | Completamento operativo delle lavorazioni; non implica fattura emessa, incasso avvenuto o veicolo riconsegnato. | CH §4; PR |
-| Risultato economico della commessa | Work-order financial outcome | Esito economico richiesto dalla slice. Non si assume che significhi margine: componenti, costi e metodo da definire. | CH §11; DA |
+| Risultato economico della commessa | Work-order financial outcome | Nella prima slice: riepilogo commerciale con imponibile al netto degli sconti, imposte e totale a carico. Determinazione dei costi e marginalità rinviate; non è un margine né un utile. | CH §11; DP D32 |
 | Fattura / incasso / registrazione contabile | Invoice / Payment receipt / Journal entry | Fatti distinti, con responsabilità e transizioni proprie; le regole fiscali e contabili restano da validare. | CH §4 e §11 |
 | Sistema autorevole | System of record | Unica autorità dichiarata per un insieme di dati o una transizione nel profilo configurato; non equivale a qualsiasi copia locale. | CH §7.3 |
 
@@ -115,7 +115,7 @@ Repository **`luigi-pelosi/smartdata`**, revisione **`c5d2ec85496bc2f5f6f3a41e79
 
 **Q3 — Origine della commessa: chiarita in D10–D11.** Creazione diretta o provenienza obbligatoria dipendono dal customizing del workflow. L'obbligatorietà del veicolo è un requisito distinto ancora aperto, non deducibile dalla libertà di creazione.
 
-Acquisiti i principi su documenti, workflow e rettifiche in D3–D11. Restano aperti: ruoli e più paganti; differenza proprietario/intestatario; risorse da pianificare; disponibilità/stock negativo; significato del risultato economico; condizioni per riconsegna e dettagli dei residui. La sintesi collegata elenca le specifiche progettuali ancora da definire.
+Acquisiti i principi su documenti, workflow e rettifiche in D3–D11. Restano aperti: ruoli e più paganti; differenza proprietario/intestatario; risorse da pianificare; disponibilità/stock negativo; condizioni per riconsegna e dettagli dei residui. La sintesi collegata elenca le specifiche progettuali ancora da definire.
 
 ## 7. Registro delle decisioni
 
@@ -486,3 +486,11 @@ Non richiedere una politica globale di restituzione ignorando la configurabilit�
 Moduli con responsabilità e dati propri, comunicazione mediante API applicative esplicite, nessun accesso diretto alle tabelle altrui. PostgreSQL inizialmente unico non annulla isolamento tenant/società o ownership dei moduli. La struttura dettagliata della solution, il catalogo definitivo dei moduli, i test di architettura e i meccanismi specifici rimangono proposte nel documento 05; non sono già esercitati. Nessuna adozione implicita di microservizi, broker obbligatorio o entità documento universale.
 
 Nessuna modifica al charter, al runtime o al flag di approvazione del dossier.
+
+### D32 — Riepilogo commerciale nella prima slice; marginalità rinviata
+
+**Fonte e conferma:** Luigi Pelosi, proprietario del prodotto: «Procedi con il riepilogo commerciale, la determinazione della marginalità la vediamo in un secondo momento». **Stato:** DP sul significato del risultato economico minimo, non approvazione del dossier completo o autorizzazione a implementare.
+
+Per la prima slice il risultato è il riepilogo commerciale: imponibile delle righe al netto degli sconti, imposte e totale a carico del soggetto previsto nello scenario. Non rappresenta margine, utile o costo del venduto. Determinazione dei costi di ricambi/manodopera, valorizzazioni per marginalità e calcolo del margine sono rinviati a un incremento successivo; non si introduce neppure una marginalità provvisoria in questo perimetro.
+
+D01-Q01 è risolta; il criterio relativo al significato del risultato di B05 è soddisfatto. Restano da concordare i parametri e gli arrotondamenti dello scenario tecnico e da sottoporre allo specialista le regole per uso reale. Nessun obbligo di implementare l'intero ciclo passivo per ottenere il riepilogo commerciale. Le altre domande di D01, i gate implementativi e la validazione fiscale restano aperti.

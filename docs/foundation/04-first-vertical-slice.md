@@ -7,6 +7,8 @@
 
 Dimostrare un unico percorso operativo dalla commessa al risultato economico, con due destinazioni alternative. Stessa logica officina nei due casi, nessun ramo per nome/identificativo cliente.
 
+**Significato confermato in D32:** il risultato della prima slice è il riepilogo commerciale: imponibile al netto degli sconti, imposte e totale a carico. Determinazione dei costi e marginalità, anche provvisoria, sono rinviate; il riepilogo non è un margine né un utile. Parametri e arrotondamenti di prova restano da concordare, senza implicita validazione fiscale.
+
 **Incluso:** contesto tenant/società/sede autorizzato, cliente e veicolo con intestatario distinto dal pagante, creazione diretta della commessa consentita dal tipo, una prestazione e un ricambio, un solo soggetto a carico, prenotazione, prelievo, installazione/consumo e rientro della carcassa in una configurazione esplicita di esempio, valorizzazione esplicita, destinazione interna o connettore simulato con coda/recupero.
 
 **Rinviato:** ripartizioni e garanzia, calendario completo, acquisti completi, workflow editor visuale, raggruppamenti e storni completi, ERP reali, trasmissione SdI e conservazione, contabilità ordinaria completa, GUI definitiva. Il rinvio non elimina tali requisiti di prodotto o autorizza un modello incompatibile.
