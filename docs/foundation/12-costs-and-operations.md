@@ -8,7 +8,11 @@
 
 **D47 — Unica VPS esistente per demo e pilota:** il proprietario conferma che il budget comprende già il VPS attuale, che non sono previsti acquisti di altre macchine e che i carichi della demo e del pilota saranno eseguiti su questa VPS. Nessun preventivo di un secondo host o di alta disponibilità multi-host entra nella baseline. Il costo esistente non è un nuovo acquisto né viene dichiarato nullo. Nessun importo mensile numerico è stato comunicato.
 
-Il vincolo non approva provider identity, nuovi servizi a pagamento, una policy di backup, RPO/RTO o disponibilità contrattuale. La disponibilità di una destinazione di backup fuori dal nodo resta da chiarire: non si presume un acquisto né che una copia sul disco applicativo protegga dalla perdita del nodo. Giurisdizione e idoneità del VPS per il pilota UE restano da verificare rispetto al charter, senza dedurre una deroga.
+Il vincolo non approva provider identity, nuovi servizi a pagamento, una policy di backup, RPO/RTO o disponibilità contrattuale. D48 chiarisce che il proprietario metterà a disposizione risorse esterne per i backup; destinazione e caratteristiche sono ancora da specificare e verificare. Non si presume un acquisto né che una copia sul disco applicativo protegga dalla perdita del nodo. Giurisdizione e idoneità del VPS per il pilota UE restano da verificare rispetto al charter, senza dedurre una deroga.
+
+**D48 — Risorse esterne per i backup fornite dal proprietario:** Luigi Pelosi dichiara che metterà a disposizione risorse esterne alla VPS per i backup. D47 resta invariata per l'esecuzione dei carichi demo/pilota sulla VPS esistente; le risorse esterne sono destinate ai backup, non a nuovi nodi applicativi o alta disponibilità. È un impegno di messa a disposizione, non una destinazione già configurata o verificata.
+
+Restano da definire capacità e accessibilità, indipendenza rispetto ai guasti della VPS, localizzazione e protezione dei dati, cifratura/gestione chiavi, retention, frequenza, monitoraggio e prova di ripristino. Nessun costo esterno è dichiarato nullo o autorizzato implicitamente. Nessuna credenziale è richiesta in chat o salvata nel repository.
 
 ## 1. Baseline verificata e limiti
 
@@ -34,7 +38,7 @@ Obbligatorio indica una capacità necessaria nello scenario, non un abbonamento 
 | --- | --- | --- | --- | --- |
 | Compute e storage applicativo/database | Risorse di sviluppo | Necessari | Necessari | VPS già compreso nel budget, nessun nuovo host; costo contrattuale, quote disponibili, volumi e traffico da verificare |
 | Identity/federazione/MFA | Ambiente di prova quando introdotto | Accesso protetto necessario | Necessari secondo charter | Confrontare self-hosted e gestito dopo requisiti e prova B01, non scegliere dal solo prezzo iniziale |
-| Backup separato dal nodo applicativo | Fixture riproducibili, conservazione del lavoro | Necessario se la demo mantiene stato da recuperare | Necessario | Dimensione, frequenza, retention, cifratura e prova di ripristino |
+| Backup separato dal nodo applicativo | Fixture riproducibili, conservazione del lavoro | Necessario se la demo mantiene stato da recuperare | Necessario; risorse esterne saranno messe a disposizione dal proprietario (D48) | Destinazione/caratteristiche, dimensione, frequenza, retention, cifratura e prova di ripristino da verificare; nessuna configurazione già eseguita |
 | Monitoraggio e notifica | Test e diagnostica | Health/errori pertinenti | Necessari con reperibilità definita | Risorse self-hosted oppure servizio; copertura esterna distinta dai soli health check locali |
 | Canale protetto | Necessario dove transitano credenziali/dati | Necessario per identità e dominio | Necessario | Modalità e costo da scegliere; nessuna modifica automatica all'HTTP tecnico esistente |
 | Dominio/DNS | Non presunto necessario | Da valutare secondo modalità di accesso | Da definire con l'accesso previsto | Registrazione/rinnovo distinti; nessun dominio acquistato |
@@ -55,7 +59,8 @@ Self-hosted: quotare risorse, aggiornamenti, backup e gestione degli incidenti. 
 | --- | --- | --- |
 | Approvazione spesa e provider | Proprietario | Budget e scelte esplicite; nessuna attivazione prima dell'autorizzazione |
 | Patch host/container e dipendenze | Operatore da identificare | Procedura, verifica vulnerabilità e rollback |
-| Backup e recupero database/configurazioni necessarie | Operatore da identificare | Ripristino esercitato su ambiente separato e dati di test |
+| Messa a disposizione risorse esterne di backup | Proprietario, impegno D48 | Destinazione e caratteristiche concordate; accesso sicuro da verificare |
+| Esecuzione backup e recupero database/configurazioni necessarie | Operatore da identificare; non assegnato implicitamente da D48 | Backup e ripristino esercitati su ambiente isolato e dati di test |
 | Gestione identità, recupero account e accessi di emergenza | Referente autorizzato da identificare | Flussi verificati, MFA/federazione e audit pertinenti |
 | Allarmi e incidenti | Referente e copertura da definire | Notifica ricevuta e procedura di intervento provata |
 | Protezione dati e idoneità per uso reale | Proprietario con competenze pertinenti | Giurisdizione/contratti e misure verificate prima del pilota |
@@ -68,7 +73,7 @@ RPO = perdita temporale massima di dati accettata; RTO = tempo obiettivo per il 
 2. Costo effettivo del VPS corrente e cosa include, senza richiedere credenziali o documenti con dati personali.
 3. Budget separato per lavoro operativo se esternalizzato; responsabilità e copertura disponibili.
 4. Volumi iniziali pilota, capacità disponibile sulla VPS e obiettivi RPO/RTO compatibili con il nodo unico da concordare e provare.
-5. Destinazione di backup esterna già disponibile o inclusa nei servizi esistenti: verificare indipendenza dal nodo, capacità, retention e ripristino, senza presumere nuove spese.
+5. Risorse esterne di backup saranno fornite dal proprietario (D48): specificare destinazione e verificarne indipendenza dal nodo, capacità, retention, accesso e ripristino, senza presumere nuove spese o accesso già operativo.
 
 Confrontare eventuali listini primari delle sole voci pertinenti al vincolo D47, senza preventivare nuove macchine, con data di rilevazione, valuta, IVA, cadenza, risorse incluse, rinnovi e costi opzionali. Normalizzare con calcoli eseguiti e dichiarare assunzioni/extra. Non riportare un totale finché i dati necessari sono mancanti.
 

@@ -616,3 +616,11 @@ La matrice G01–G03 nel documento 09 riporta incrementi, prove e referenti per 
 **D47 — Unica VPS esistente per demo e pilota:** il proprietario conferma che il budget comprende già il VPS attuale, che non sono previsti acquisti di altre macchine e che i carichi della demo e del pilota saranno eseguiti su questa VPS. Nessun preventivo di un secondo host o di alta disponibilità multi-host entra nella baseline. Il costo esistente non è un nuovo acquisto né viene dichiarato nullo. Nessun importo mensile numerico è stato comunicato.
 
 Il vincolo non certifica capacità, recupero, giurisdizione UE o compatibilità dei carichi futuri; non autorizza esposizione di dati/credenziali sull’HTTP tecnico pubblico. Separazione logica, risorse, backup fuori nodo e RPO/RTO restano da verificare in D02 e negli incrementi autorizzati. Nessuna deroga al charter, nuova macchina o servizio a pagamento è approvato implicitamente.
+
+### D48 — Messa a disposizione di risorse esterne per i backup
+
+**Fonte e ambito:** Luigi Pelosi dichiara «Metterò a disposizione altre risorse esterne a questa VPS per i backup». **Stato:** impegno del proprietario sulla disponibilità futura della destinazione, non prova di provisioning o recupero.
+
+**D48 — Risorse esterne per i backup fornite dal proprietario:** Luigi Pelosi dichiara che metterà a disposizione risorse esterne alla VPS per i backup. D47 resta invariata per l'esecuzione dei carichi demo/pilota sulla VPS esistente; le risorse esterne sono destinate ai backup, non a nuovi nodi applicativi o alta disponibilità. È un impegno di messa a disposizione, non una destinazione già configurata o verificata.
+
+Non sono scelti protocollo, provider, cifratura, gestione delle chiavi, capacità, frequenza, retention, RPO/RTO o copertura operativa. Messa a disposizione della risorsa e responsabilità di eseguire/controllare backup e ripristino sono distinte. Queste caratteristiche restano gate D02 e delle verifiche prima del pilota; nessun cambiamento al runtime o acquisto è effettuato.
