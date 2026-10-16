@@ -1,6 +1,6 @@
 # Dossier di fondazione — 07. Backlog della prima vertical slice
 
-**Stato:** backlog pubblicato nelle issue del repository e nel Project GitHub privato n. 3, con gate documentali ancora aperti. D01 e D02 sono In verifica dopo D46 e D57. Nessuna autorizzazione a implementare o approvazione complessiva del dossier.
+**Stato:** dossier e B00 approvati in D58; B01 è l'unico incremento implementativo autorizzato, come prova tecnica isolata e reversibile con dati sintetici. B02–B14 restano non autorizzati e soggetti alle proprie dipendenze e gate.
 **Fonti:** `PROJECT_CHARTER.md` §11–14; [slice](04-first-vertical-slice.md), [architettura](05-solution-and-module-boundaries.md), [minacce](06-initial-threat-model.md). Le decisioni acquisite restano nel [registro](01-glossary-and-domain-boundaries.md).
 
 ## 1. Metodo proposto
@@ -47,12 +47,14 @@ Non trasferire automaticamente tutte le voci in Pronto dopo l'approvazione del b
 - **Risultato:** dossier consolidato, approvazioni distinte da proposte, decisioni bloccanti e proprietari registrati; autorizzazione esplicita alla prima implementazione.
 - **Accettazione:** sono presenti backlog, domande agli operatori/commercialista, scenari di costo e rischi; le scelte ancora aperte hanno un gate concreto e non sono spacciate per risolte. Allineare AGENTS.md allo scope approvato quando autorizzato, senza reinterpretare i divieti attuali.
 - **Prova:** checklist e review del dossier; nessun flag runtime cambiato come sostituto dell'approvazione.
+- **Decisione D58:** dossier e B00 approvati dal proprietario; autorizzata esclusivamente B01 nello scope delimitato sotto. L'approvazione non completa né autorizza B02–B14.
 
 ### B01 — Identity e ambiente di prova protetto
 
 - **Risultato:** prova comparabile per scegliere il provider di federation/MFA; ambiente ripetibile per dati sintetici, non pubblicato anonimamente sul bootstrap HTTP.
 - **Accettazione:** autenticazione, rifiuto accesso anonimo, verifica token/sessione e revoca rilevante dimostrati nella prova; scelta motivata con alternativa e oneri operativi. Nessun provider scelto a priori dal backlog.
 - **Candidato confermato D55:** Keycloak community self-hosted per la prova, non adozione definitiva. Confronto documentale con Auth0 nel documento 12; nessuna installazione autorizzata dalla sola candidatura. Restano B00 e scope implementativo esplicito.
+- **Scope autorizzato D58:** prova isolata e reversibile con identità/dati sintetici; niente dominio, acquisti, utenti reali, modifica del servizio HTTP pubblico o implementazione di B02–B14. Versioni/digest bloccati, segreti fuori repository, risorse e trasporto protetto verificati nell'ambiente di prova.
 - **Prova:** test positivi/negativi e istruzioni ripetibili; vincoli dell'ambiente dichiarati. Non è già il sistema IAM completo.
 
 ### B02 — Contesto autorizzato persistito

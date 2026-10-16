@@ -1,6 +1,6 @@
 # Dossier di fondazione — 01. Glossario e confini di dominio
 
-**Stato:** bozza per discussione; non approvata.
+**Stato:** dossier di fondazione approvato dal proprietario in D58; i gate specialistici ed esecutivi registrati restano obbligatori. L'approvazione autorizza esclusivamente B01 nei limiti indicati, non l'intera vertical slice.
 **Ambito:** linguaggio del post-vendita e responsabilità dei contesti. Nessuna autorizzazione a implementare moduli.
 **Fonte normativa di progetto:** `PROJECT_CHARTER.md`, sezioni 3, 4, 7–12 e 15.
 **Validatori richiesti:** proprietario del prodotto e referenti operativi; commercialista per significati e regole amministrative.
@@ -698,3 +698,11 @@ La voce dominio/DNS entra nel confronto economico con registrazione e rinnovo di
 **D57 — Delimitazione D02 confermata per la revisione:** il proprietario approva il passaggio di D02 a «In verifica», mantenendo come gate gli elementi residui: dominio/nome/costi e rinnovi prima dell'acquisto; prove identity, risorse e protezioni prima di completare B01, con prerequisito B00 e scope implementativo esplicito; backup e ripristino misurato, allarmi verificati, responsabilità residue assegnate, costi e idoneità del target effettivo prima del pilota. La matrice OPE01–OPE05 dettaglia referenti ed evidenze. Non è un preventivo definitivo, un acquisto, approvazione complessiva del dossier o autorizzazione a implementare.
 
 D01 e D02 restano issue aperte In verifica; B00 non viene completata o sbloccata automaticamente. Nessun dato di costo sconosciuto è considerato zero, nessun RTO è garantito senza prova e nessuna disponibilità promessa equivale a configurazione operativa. La documentazione è aggiornata localmente, senza commit o pubblicazione delle modifiche correnti.
+
+### D58 — Dossier approvato e B01 autorizzata con scope limitato
+
+**Fonte e conferma:** Luigi Pelosi, proprietario del prodotto, seleziona «Approvo dossier e B00; autorizzo solo B01» dopo la revisione complessiva. **Stato:** approvazione del dossier e gate B00; autorizzazione implementativa circoscritta a B01.
+
+**D58 — Scope autorizzato:** avviare una prova tecnica isolata, reversibile e documentata di Keycloak community self-hosted con soli dati e identità sintetici. La prova deve verificare almeno autenticazione, rifiuto anonimo, token/sessione, revoca pertinente, risorse, trasporto protetto nell'ambiente di prova e istruzioni ripetibili. Può introdurre esclusivamente codice, configurazione, test e container necessari a B01, con versioni/digest bloccati e senza segreti nel repository.
+
+**Esclusioni vincolanti:** nessun dominio o acquisto; nessun utente, cliente o dato reale; nessuna adozione definitiva del provider; nessuna esposizione del login o modifica del servizio HTTP pubblico esistente; nessuna implementazione B02–B14 o modulo di dominio. OPE02 e il threat model governano la prova; gli altri gate G01–G03/OPE01/OPE03–OPE05 restano assegnati alle rispettive scadenze. Ogni ampliamento richiede nuova autorizzazione esplicita.
