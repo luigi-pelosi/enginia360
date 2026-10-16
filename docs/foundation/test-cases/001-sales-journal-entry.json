@@ -1,0 +1,59 @@
+{
+  "caseId": "001",
+  "questionId": "F04",
+  "source": {
+    "fileName": "F04 - scrittura contabile di riferimento.docx",
+    "sha256": "8333a3f49f5e7b2f2921f5069092a43985806ccb68504f96a5880c94a40a8615",
+    "validationStatus": "Product owner confirms adviser validation of the demonstration chart and F04 journal for case 001 (D44); no general accounting-engine validation"
+  },
+  "currency": "EUR",
+  "documentType": "TD01",
+  "invoiceReference": "FV-001/2026",
+  "workshopOrderReference": "001",
+  "referenceScope": "Illustrative references from the source, not implemented identifier formats or numbering policies",
+  "assumptions": [
+    "Domestic customer",
+    "Deferred payment",
+    "Operation completed in the same financial year",
+    "Ordinary VAT regime"
+  ],
+  "entries": [
+    {
+      "accountCode": "120100",
+      "accountDescription": "Crediti verso clienti",
+      "sourceClassification": "Stato patrimoniale C.II.1",
+      "debit": "200.69",
+      "credit": "0.00"
+    },
+    {
+      "accountCode": "700100",
+      "accountDescription": "Ricavi prestazioni officina",
+      "sourceClassification": "Conto economico A.1",
+      "debit": "0.00",
+      "credit": "74.25"
+    },
+    {
+      "accountCode": "700200",
+      "accountDescription": "Ricavi vendita ricambi",
+      "sourceClassification": "Conto economico A.1",
+      "debit": "0.00",
+      "credit": "90.25"
+    },
+    {
+      "accountCode": "220100",
+      "accountDescription": "Erario c/IVA a debito",
+      "sourceClassification": "Stato patrimoniale D.12 (simplified source presentation; actual net VAT position not modeled)",
+      "debit": "0.00",
+      "credit": "36.19"
+    }
+  ],
+  "expected": {
+    "totalDebit": "200.69",
+    "totalCredit": "200.69",
+    "difference": "0.00",
+    "serviceRevenue": "74.25",
+    "partRevenue": "90.25",
+    "vatPayable": "36.19"
+  },
+  "scope": "Demonstration chart and reference sales journal only; no payment, cost of goods sold, inventory valuation or margin posting"
+}

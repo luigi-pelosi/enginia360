@@ -1,0 +1,50 @@
+{
+  "id": "001",
+  "title": "Vendita nazionale con prestazione e ricambio",
+  "source": "Provided by the product owner; owner confirms case and rounding rules validated by the available adviser (D42); exact professional role not specified",
+  "documentType": "TD01",
+  "currency": "EUR",
+  "scenario": "Italian workshop, ordinary VAT regime, domestic taxable sale to a customer resident in Italy",
+  "pricesIncludeVat": false,
+  "exclusions": ["advance payments", "reverse charge", "split payment", "special regimes"],
+  "calculationPolicy": {
+    "unitPriceMaxDecimalPlaces": 6,
+    "quantityMaxDecimalPlaces": 3,
+    "lineTaxableAmountDecimalPlaces": 2,
+    "taxAmountDecimalPlaces": 2,
+    "roundingMode": "ROUND_HALF_UP",
+    "discountBeforeVat": true,
+    "taxCalculationBasis": "Sum of rounded line taxable amounts within the same VAT grouping",
+    "groupingScope": "One group with rate 22% and the same taxable treatment; not a complete definition of future grouping keys"
+  },
+  "lines": [
+    {
+      "description": "Manodopera meccanica",
+      "kind": "Service",
+      "quantity": "1.50",
+      "unit": "hour",
+      "unitPrice": "55.00",
+      "discountPercent": "10",
+      "vatRatePercent": "22",
+      "expectedTaxableAmount": "74.25"
+    },
+    {
+      "description": "Ricambio — filtro olio",
+      "kind": "Part",
+      "quantity": "1",
+      "unit": "piece",
+      "unitPrice": "95.00",
+      "discountPercent": "5",
+      "vatRatePercent": "22",
+      "expectedTaxableAmount": "90.25"
+    }
+  ],
+  "expected": {
+    "taxableAmount": "164.50",
+    "taxAmount": "36.19",
+    "documentTotal": "200.69",
+    "perLineRoundedTaxComparison": ["16.34", "19.86"],
+    "perLineRoundedTaxSumNotToUse": "36.20"
+  },
+  "scope": "Reference data for future functional tests; no running tax engine, FatturaPA XML generation or fiscal emission is implemented by this fixture"
+}
