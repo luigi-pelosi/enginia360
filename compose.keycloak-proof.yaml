@@ -1,0 +1,53 @@
+name: enginia360-keycloak-proof
+services:
+  keycloak:
+    image: enginia360/keycloak-proof:26.8.1
+    build:
+      context: .
+      dockerfile: keycloak-proof.Dockerfile
+    user: "1000:1000"
+    command:
+      - start
+      - --optimized
+      - --db=dev-file
+      - --hostname=https://keycloak:8443
+      - --https-certificate-file=/run/secrets/keycloak.crt
+      - --https-certificate-key-file=/run/secrets/keycloak.key
+      - --http-management-scheme=http
+
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME:?runtime credential required}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?runtime credential required}
+    volumes:
+      - type: bind
+        source: ${KEYCLOAK_CERT_DIR:?runtime certificate directory required}/keycloak.crt
+        target: /run/secrets/keycloak.crt
+        read_only: true
+      - type: bind
+        source: ${KEYCLOAK_CERT_DIR:?runtime certificate directory required}/keycloak.key
+        target: /run/secrets/keycloak.key
+        read_only: true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=32m,uid=1000,gid=1000
+      - /opt/keycloak/data:rw,noexec,nosuid,size=256m,uid=1000,gid=1000
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    expose: ["8443", "9000"]
+    networks: [proof]
+    mem_limit: 1024m
+    cpus: 1.0
+    pids_limit: 256
+    restart: "no"
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "2"}
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000; printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3; grep -q '200 OK' <&3"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 20s
+networks:
+  proof:
+    internal: true
