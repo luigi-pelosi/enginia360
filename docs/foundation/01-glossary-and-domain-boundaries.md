@@ -706,3 +706,13 @@ D01 e D02 restano issue aperte In verifica; B00 non viene completata o sbloccata
 **D58 — Scope autorizzato:** avviare una prova tecnica isolata, reversibile e documentata di Keycloak community self-hosted con soli dati e identità sintetici. La prova deve verificare almeno autenticazione, rifiuto anonimo, token/sessione, revoca pertinente, risorse, trasporto protetto nell'ambiente di prova e istruzioni ripetibili. Può introdurre esclusivamente codice, configurazione, test e container necessari a B01, con versioni/digest bloccati e senza segreti nel repository.
 
 **Esclusioni vincolanti:** nessun dominio o acquisto; nessun utente, cliente o dato reale; nessuna adozione definitiva del provider; nessuna esposizione del login o modifica del servizio HTTP pubblico esistente; nessuna implementazione B02–B14 o modulo di dominio. OPE02 e il threat model governano la prova; gli altri gate G01–G03/OPE01/OPE03–OPE05 restano assegnati alle rispettive scadenze. Ogni ampliamento richiede nuova autorizzazione esplicita.
+
+### D59 — Keycloak baseline iniziale e B02 autorizzata
+
+**Fonte e conferma:** Luigi Pelosi risponde «Confermo» alla proposta esplicita di unire B01, adottare Keycloak come baseline identity iniziale e autorizzare esclusivamente B02. **Stato:** decisione tecnica circoscritta e nuova autorizzazione implementativa; non adozione di produzione né autorizzazione degli incrementi successivi.
+
+**D59 — Decisione:** la prova B01 è accettata come base tecnica iniziale per l'identity; Keycloak community self-hosted diventa la baseline da integrare negli ambienti sintetici autorizzati. Auth0 resta alternativa documentata se i gate operativi o i requisiti futuri rendono insostenibile il self-hosting. B01 può essere completata dopo merge e verifica della PR #21.
+
+**Scope B02 autorizzato:** realizzare il minimo percorso persistito e protetto con due tenant sintetici, più società/sedi/magazzini e scope differenti; autenticare identità sintetiche tramite la baseline Keycloak; validare nel backend il tenant context e i riferimenti organizzativi autorizzati; verificare che manipolazione degli identificativi, capability disabilitate e riuso delle connessioni non amplino l'accesso. PostgreSQL deve restare privato, con migrazioni e ripetibilità verificate; UI/API devono essere il minimo necessario al percorso B02.
+
+**Esclusioni vincolanti:** nessun dato o utente reale, dominio/acquisto o esposizione pubblica del login; nessuna dichiarazione di readiness per produzione; nessuna implementazione B03–B14, controparte, commessa o regola fiscale. B02 non decide cataloghi commerciali, ruoli universali o provisioning reale dei tenant. Ogni ampliamento richiede nuova autorizzazione esplicita.
