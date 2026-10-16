@@ -608,3 +608,11 @@ La conservazione dei dati storici non introduce un congelamento universale del c
 **D46 — Delimitazione dei dettagli residui confermata:** gli ulteriori casi limite di precisione/arrotondamento devono essere definiti e validati prima di completare B05; dettagli esecutivi dei movimenti e della concorrenza di magazzino devono essere definiti e verificati nei rispettivi incrementi B06–B09; contratti tecnici, idempotenza e recupero degli errori restano progettazione e test degli incrementi pertinenti. Sono gate obbligatori, non requisiti eliminati o già soddisfatti. La conferma permette la revisione finale di D01, non chiude automaticamente D01/B00 e non autorizza implementazione o approvazione complessiva del dossier.
 
 La matrice G01–G03 nel documento 09 riporta incrementi, prove e referenti per ruolo. Le validazioni riferite D42/D44 e il perimetro D45 restano circoscritti ai casi descritti. Nessuna superficie di dominio è aggiunta al bootstrap HTTP pubblico.
+
+### D47 — Demo e pilota sul VPS esistente senza nuove macchine
+
+**Fonte e ambito:** Luigi Pelosi dichiara che il budget comprende il VPS attuale, non prevede altre macchine per demo/pilota e che tutto sarà eseguito su questa VPS. **Stato:** vincolo infrastrutturale/economico confermato, non autorizzazione a modificare il deployment.
+
+**D47 — Unica VPS esistente per demo e pilota:** il proprietario conferma che il budget comprende già il VPS attuale, che non sono previsti acquisti di altre macchine e che i carichi della demo e del pilota saranno eseguiti su questa VPS. Nessun preventivo di un secondo host o di alta disponibilità multi-host entra nella baseline. Il costo esistente non è un nuovo acquisto né viene dichiarato nullo. Nessun importo mensile numerico è stato comunicato.
+
+Il vincolo non certifica capacità, recupero, giurisdizione UE o compatibilità dei carichi futuri; non autorizza esposizione di dati/credenziali sull’HTTP tecnico pubblico. Separazione logica, risorse, backup fuori nodo e RPO/RTO restano da verificare in D02 e negli incrementi autorizzati. Nessuna deroga al charter, nuova macchina o servizio a pagamento è approvato implicitamente.
