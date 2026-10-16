@@ -41,7 +41,7 @@ Pagamento differito non significa incasso già avvenuto: nessuna scrittura di ba
 ## 4. Gate ancora aperti
 
 - Validazione del referente su piano e scrittura F04 attestata dal proprietario in D44; questo specifico gate è soddisfatto. Restano i gate seguenti.
-- Completare F03: dati della fattura tecnica e riferimenti da preservare verso commessa e registrazione, distinti dalla fatturazione reale.
+- Perimetro tecnico F03 confermato dal proprietario in D45: dati storici della fattura e tracciabilità verso commessa, righe origine e registrazione; non requisiti completi di emissione reale. Implementazione/verifica dei collegamenti ancora da eseguire in B12–B13.
 - Progettare e verificare nei rispettivi incrementi autorizzati autorizzazioni, idempotenza della registrazione, riferimenti immutati e recupero degli errori intermodulo. La sola quadratura non dimostra questi comportamenti.
 
 Nessuna approvazione complessiva del dossier o autorizzazione a implementare è dedotta dall'allegato. B13 resta backlog dipendente da B12; D01 non è chiusa.

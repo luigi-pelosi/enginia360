@@ -50,6 +50,8 @@ Commessa → risultato → fattura bozza/confermata → scrittura quadrata. È u
 
 **D43 — F04 ricevuta:** allegato del proprietario con piano dimostrativo e scrittura della fattura `FV-001/2026`, commessa 001, pagamento differito. Dare 120100 = 200.69 EUR; Avere 700100 = 74.25, 700200 = 90.25, 220100 = 36.19 EUR. Quadratura e coerenza con il caso fiscale 001 verificate con Decimal; validazione del referente specifica di F04 successivamente attestata dal proprietario in D44. Nessun incasso, costo del venduto, valorizzazione o margine introdotto. Dettagli e cautele nel [riferimento F04](11-f04-reference-journal-entry.md).
 
+**D45 — Perimetro F03 confermato dal proprietario:** la fattura tecnica del primo scenario conserva società emittente e destinatario con i dati anagrafici utilizzati alla conferma; data, valuta, tipo e riferimento del documento; righe, sconti e riepiloghi fiscali; collegamenti alla commessa, alle righe di provenienza e alla registrazione contabile. Modifiche anagrafiche successive non riscrivono i dati storici della fattura confermata. È un documento tecnico di prova, non una fattura fiscalmente emessa o l'elenco completo dei requisiti della fatturazione reale.
+
 ### Esterna simulata
 
 Commessa → risultato → richiesta persistente → tentativo invio → esito visibile.

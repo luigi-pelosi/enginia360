@@ -583,7 +583,7 @@ Il riscontro aritmetico indipendente e la validazione riferita sono evidenze dis
 
 **D43 — F04 ricevuta:** allegato del proprietario con piano dimostrativo e scrittura della fattura `FV-001/2026`, commessa 001, pagamento differito. Dare 120100 = 200.69 EUR; Avere 700100 = 74.25, 700200 = 90.25, 220100 = 36.19 EUR. Quadratura e coerenza con il caso fiscale 001 verificate con Decimal; validazione del referente specifica di F04 successivamente attestata dal proprietario in D44. Nessun incasso, costo del venduto, valorizzazione o margine introdotto. Dettagli e cautele nel [riferimento F04](11-f04-reference-journal-entry.md).
 
-Classificazioni e richiami normativi restano attribuiti alla fonte, con le cautele espresse nel documento. Il piano dimostrativo non diventa un piano universale; i riferimenti illustrativi non fissano numerazioni o contratti persistenti del prodotto. F03 e i gate implementativi rimangono aperti.
+Classificazioni e richiami normativi restano attribuiti alla fonte, con le cautele espresse nel documento. Il piano dimostrativo non diventa un piano universale; i riferimenti illustrativi non fissano numerazioni o contratti persistenti del prodotto. Il perimetro tecnico F03 è successivamente confermato in D45; i gate implementativi rimangono aperti.
 
 ### D44 — Conferma della validazione del piano e della scrittura F04
 
@@ -591,4 +591,12 @@ Classificazioni e richiami normativi restano attribuiti alla fonte, con le caute
 
 **D44 — Validazione F04 riferita dal proprietario:** Luigi Pelosi conferma che anche il piano dei conti dimostrativo e la scrittura F04 del caso 001 sono stati validati dal referente disponibile. L'attestazione è circoscritta a questo riferimento, con le ipotesi e le cautele dell'allegato. Non approva un piano universale, ulteriori scritture, conformità generale o un modulo contabile già implementato. Nessun contatto diretto dell'agente è dichiarato.
 
-F04 è acquisita e validata per il caso 001 secondo attestazione del proprietario. F03 e gli ulteriori casi limite F02 restano da completare o rinviare con gate espliciti; D01 e B00 non vengono chiusi. Nessuna autorizzazione implementativa o approvazione complessiva del dossier.
+F04 è acquisita e validata per il caso 001 secondo attestazione del proprietario. Il perimetro tecnico F03 è successivamente confermato in D45; gli ulteriori casi limite F02 restano da completare o rinviare con gate espliciti. D01 e B00 non vengono chiusi. Nessuna autorizzazione implementativa o approvazione complessiva del dossier.
+
+### D45 — Dati e tracciabilità della fattura tecnica del primo scenario
+
+**Fonte e ambito:** Luigi Pelosi risponde «Confermo» alla proposta F03 di dati, collegamenti e conservazione dello storico della fattura tecnica. **Stato:** decisione di prodotto confermata dal proprietario per il primo scenario, non ulteriore validazione specialistica di emissione reale.
+
+**D45 — Perimetro F03 confermato dal proprietario:** la fattura tecnica del primo scenario conserva società emittente e destinatario con i dati anagrafici utilizzati alla conferma; data, valuta, tipo e riferimento del documento; righe, sconti e riepiloghi fiscali; collegamenti alla commessa, alle righe di provenienza e alla registrazione contabile. Modifiche anagrafiche successive non riscrivono i dati storici della fattura confermata. È un documento tecnico di prova, non una fattura fiscalmente emessa o l'elenco completo dei requisiti della fatturazione reale.
+
+La conservazione dei dati storici non introduce un congelamento universale del customizing e non elimina i percorsi di rettifica tracciata già concordati. I collegamenti sono requisiti di tracciabilità, non transazioni globali: la registrazione può essere successiva e deve rendere visibili attese/errori intermodulo. F03 è risolta per il perimetro tecnico dichiarato. Progettazione di ID, contratti, idempotenza e test restano in B12–B13; ulteriori casi limite F02 e dettagli di stock restano gate da delimitare. Nessuna chiusura automatica di D01 o B00.

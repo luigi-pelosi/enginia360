@@ -125,7 +125,8 @@ Non trasferire automaticamente tutte le voci in Pronto dopo l'approvazione del b
 
 - **Risultato:** nell'alternativa interna generare bozza e confermare una fattura tecnica collegata alla commessa; mantenere dati storici e riferimenti.
 - **Accettazione:** tipo/workflow consentiti dal customizing, nessuna sequenza universale imposta ad altri tipi; idempotenza e capability/permessi verificati. Nessun invio SdI, nessuna affermazione di emissione fiscale reale.
-- **Prova:** valori e riferimenti verificabili, chiamata ripetuta e azione non autorizzata. T01, T05, T12.
+- **Perimetro F03/D45:** conservare emittente/destinatario con dati anagrafici utilizzati alla conferma, data/valuta/tipo/riferimento, righe/sconti/riepiloghi fiscali e collegamenti commessa/righe origine/registrazione. Nessuna riscrittura dello storico per modifiche anagrafiche successive; documento tecnico di prova, non emissione fiscale.
+- **Prova:** valori e riferimenti verificabili, modifica anagrafica successiva senza riscrittura dello storico, chiamata ripetuta e azione non autorizzata. T01, T05, T12.
 - **Gate:** casi e parametri di prova espliciti; regole fiscali per uso reale sottoposte al commercialista.
 
 ### B13 — Scrittura contabile tecnica

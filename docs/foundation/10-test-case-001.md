@@ -58,7 +58,7 @@ Generazione XML, validazione XSD completa, invio SdI, conservazione ed emissione
 
 - F01: esempio funzionale ricevuto; validazione del referente sul caso confermata dal proprietario in D42.
 - F02: politica di base e differenza fra IVA aggregata/per-riga validate dal referente secondo attestazione del proprietario (D42); ulteriori casi limite non coperti dal caso 001 da raccogliere.
-- F03: indicazione di mapping righe/riepiloghi ricevuta; elenco completo dei dati della fattura tecnica e distinzione dall'emissione reale ancora da completare.
+- F03: perimetro della fattura tecnica, collegamenti e conservazione dello storico confermati dal proprietario in D45; non validazione dell’elenco completo dei requisiti di emissione reale.
 - F04: piano e scrittura ricevuti e verificati aritmeticamente; [riferimento F04](11-f04-reference-journal-entry.md), D43. Validazione del referente specifica di F04 attestata dal proprietario in D44.
 
 D01 e il gate B00 restano aperti. Nessuna autorizzazione implementativa o approvazione complessiva del dossier è dedotta dal caso.
