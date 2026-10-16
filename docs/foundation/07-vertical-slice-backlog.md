@@ -1,6 +1,6 @@
 # Dossier di fondazione — 07. Backlog della prima vertical slice
 
-**Stato:** backlog pubblicato nelle issue del repository e nel Project GitHub privato n. 3, con gate documentali ancora aperti. D01 passa alla revisione finale dopo D46. Nessuna autorizzazione a implementare o approvazione complessiva del dossier.
+**Stato:** backlog pubblicato nelle issue del repository e nel Project GitHub privato n. 3, con gate documentali ancora aperti. D01 e D02 sono In verifica dopo D46 e D57. Nessuna autorizzazione a implementare o approvazione complessiva del dossier.
 **Fonti:** `PROJECT_CHARTER.md` §11–14; [slice](04-first-vertical-slice.md), [architettura](05-solution-and-module-boundaries.md), [minacce](06-initial-threat-model.md). Le decisioni acquisite restano nel [registro](01-glossary-and-domain-boundaries.md).
 
 ## 1. Metodo proposto
@@ -52,6 +52,7 @@ Non trasferire automaticamente tutte le voci in Pronto dopo l'approvazione del b
 
 - **Risultato:** prova comparabile per scegliere il provider di federation/MFA; ambiente ripetibile per dati sintetici, non pubblicato anonimamente sul bootstrap HTTP.
 - **Accettazione:** autenticazione, rifiuto accesso anonimo, verifica token/sessione e revoca rilevante dimostrati nella prova; scelta motivata con alternativa e oneri operativi. Nessun provider scelto a priori dal backlog.
+- **Candidato confermato D55:** Keycloak community self-hosted per la prova, non adozione definitiva. Confronto documentale con Auth0 nel documento 12; nessuna installazione autorizzata dalla sola candidatura. Restano B00 e scope implementativo esplicito.
 - **Prova:** test positivi/negativi e istruzioni ripetibili; vincoli dell'ambiente dichiarati. Non è già il sistema IAM completo.
 
 ### B02 — Contesto autorizzato persistito
@@ -154,6 +155,8 @@ Non trasferire automaticamente tutte le voci in Pronto dopo l'approvazione del b
 
 ## 5. Blocchi decisionali da risolvere al momento giusto
 
+I gate economico-operativi OPE01–OPE05 del [documento 12](12-costs-and-operations.md) sono confermati in D57 per portare D02 In verifica; non costituiscono prove già superate o un preventivo definitivo.
+
 Domande ai referenti, disponibilità dichiarata e gate per incremento sono raccolti in [09 — Validazioni dei referenti](09-stakeholder-validation.md). Referente amministrativo/commercialista disponibile secondo il proprietario; caso 001 e F04 validati secondo le attestazioni D42/D44, perimetro tecnico F03 confermato in D45. Dettagli residui assegnati ai gate G01–G03 con D46.
 
 | Gate | Necessario prima di | Chi valida |
@@ -166,7 +169,7 @@ Domande ai referenti, disponibilità dichiarata e gate per incremento sono racco
 | Disponibilità, collocazione, consumo e carcassa del caso minimo | B06–B09 | Referenti officina/magazzino |
 | Contratto simulato, stati e chiusure da bloccare | B10–B11 | Proprietario con test tecnici |
 | Valorizzazioni/piano e regole contabili del caso tecnico | B12–B13 | Proprietario/commercialista secondo competenza |
-| Costi, ripristino, ambiente e limiti operativi | B14 e prima di qualsiasi pilota reale | Proprietario |
+| Costi, ripristino, ambiente e limiti operativi: OPE01–OPE05 confermati in D57; D02 In verifica, totale non definitivo | Acquisti e accesso tramite dominio secondo OPE01; B01 secondo OPE02; B14/messa in servizio/pilota secondo OPE03–OPE05 | Proprietario con responsabili da assegnare e prove tecniche |
 
 Questo backlog non sostituisce costi, review o approvazione complessiva. Project n. 3 e issue sono pubblicati; la pubblicazione non completa gli incrementi. I gate esecutivi G01–G03 sono approvati in D46 e descritti nel documento 09. Nessuna chiusura automatica di D01/B00.
 

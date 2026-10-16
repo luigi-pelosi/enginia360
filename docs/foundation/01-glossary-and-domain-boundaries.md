@@ -623,4 +623,78 @@ Il vincolo non certifica capacità, recupero, giurisdizione UE o compatibilità 
 
 **D48 — Risorse esterne per i backup fornite dal proprietario:** Luigi Pelosi dichiara che metterà a disposizione risorse esterne alla VPS per i backup. D47 resta invariata per l'esecuzione dei carichi demo/pilota sulla VPS esistente; le risorse esterne sono destinate ai backup, non a nuovi nodi applicativi o alta disponibilità. È un impegno di messa a disposizione, non una destinazione già configurata o verificata.
 
-Non sono scelti protocollo, provider, cifratura, gestione delle chiavi, capacità, frequenza, retention, RPO/RTO o copertura operativa. Messa a disposizione della risorsa e responsabilità di eseguire/controllare backup e ripristino sono distinte. Queste caratteristiche restano gate D02 e delle verifiche prima del pilota; nessun cambiamento al runtime o acquisto è effettuato.
+Non sono scelti protocollo, provider, cifratura, gestione delle chiavi, capacità, frequenza o retention; gli obiettivi iniziali RPO/RTO sono successivamente dichiarati in D49, mentre copertura operativa e verifica restano aperte. Messa a disposizione della risorsa e responsabilità di eseguire/controllare backup e ripristino sono distinte. Queste caratteristiche restano gate D02 e delle verifiche prima del pilota; nessun cambiamento al runtime o acquisto è effettuato.
+
+### D49 — Obiettivi iniziali RPO/RTO ed evoluzione infrastrutturale futura
+
+**Fonte e ambito:** Luigi Pelosi indica recupero fino al giorno precedente e ripristino massimo in 1 ora «solo inizialmente»; dichiara una futura evoluzione con ridondanza/replicazione/load balancing, eventualmente AWS, quando il progetto sarà completo. **Stato:** obiettivi iniziali confermati e intenzione futura registrata; non prova di recupero o scelta architetturale cloud definitiva.
+
+**D49 — Obiettivi iniziali di recupero:** il proprietario indica RPO «fino al giorno precedente» e RTO massimo di 1 ora, limitatamente alla fase iniziale. Sono obiettivi da progettare e dimostrare con prove, non garanzie già conseguite o SLA. Per l'RPO vanno precisati orario del punto di recupero giornaliero, completamento del trasferimento esterno e gestione di backup falliti; non si assume automaticamente un limite mobile di 24 ore. Per l'RTO vanno definiti inizio/fine della misurazione, copertura operativa e scenario di guasto.
+
+**Evoluzione futura dichiarata, non baseline attuale:** a progetto completo il proprietario intende valutare ridondanza dei dati, replicazione continua e load balancing, eventualmente su AWS. Non sono approvati provider cloud definitivo, migrazione, servizi, budget o date. D47/D48 restano la baseline iniziale: carichi sulla VPS esistente e risorse esterne per backup messe a disposizione dal proprietario.
+
+Non sono introdotti SLA, failover o replicazione nell’attuale bootstrap. Indisponibilità/perdita completa dell’host, responsabilità di intervento e disponibilità del provider devono essere considerate prima di dichiarare raggiunto l’RTO. Policy, tempi misurati e capacità restano gate D02 e del pilota.
+
+### D50 — Referente operativo per allarmi e ripristino iniziali
+
+**Fonte e ambito:** alla domanda su chi riceverà gli allarmi e gestirà gli interventi di ripristino, Luigi Pelosi risponde «No, sarò io». **Stato:** responsabilità personale confermata per la fase iniziale; non impegno di copertura continua o prova di recupero.
+
+**D50 — Presidio iniziale di allarmi e ripristino:** Luigi Pelosi conferma di occuparsi personalmente della ricezione degli allarmi e della gestione degli interventi di ripristino nella fase iniziale. La conferma non implica reperibilità continuativa, un sostituto, un servizio esternalizzato o tempi già dimostrati. Giorni/fasce sono successivamente definiti in D51; il canale iniziale e-mail è successivamente scelto in D52, mentre configurazione e procedura restano da definire; l'obiettivo RTO di D49 non viene ridefinito come tempo dalla sola presa in carico.
+
+Non si attribuiscono automaticamente al proprietario, con questa sola risposta, tutte le attività di manutenzione, identity o controllo periodico dei backup. Nessun recapito o credenziale è raccolto nel repository. A questo punto della discovery D02 rimaneva In corso; il successivo passaggio In verifica è registrato in D57. Le modifiche sono documentali e non configurano sistemi di notifica o recupero.
+
+### D51 — Presidio iniziale dal lunedì al sabato, 09:00–18:00
+
+**Fonte e ambito:** Luigi Pelosi risponde «Tutti i giorni dalle 09-18 (Lun-Sab)» alla domanda sui giorni e sulle fasce di presidio del pilota. **Stato:** finestra di presidio confermata, non copertura continuativa o SLA.
+
+**D51 — Fascia iniziale di presidio:** Luigi Pelosi indica «09-18 (Lun-Sab)»: presidio dal lunedì al sabato, 09:00–18:00. La specifica Lun–Sab delimita «tutti i giorni»; domenica e altre fasce non hanno presidio dichiarato. Non è una finestra di spegnimento del servizio. Il canale iniziale è successivamente scelto in D52. Fuso orario, festività e trattamento degli incidenti a cavallo della fine fascia restano da precisare prima della configurazione operativa. Non si sospende o riavvia implicitamente il conteggio RTO fuori fascia e non si dichiara garantito il ripristino entro un'ora dove manca presidio.
+
+RPO/RTO iniziali di D49 restano obiettivi da verificare, con la limitazione operativa del presidio esplicita. Nessun monitor, job, calendario o disponibilità pubblica viene modificato. D02 rimane aperta; a questo punto della discovery la documentazione era aggiornata solo localmente. La pubblicazione dell'incremento D49–D57 è tracciata separatamente dalla decisione.
+
+### D52 — E-mail iniziale, Telegram e WhatsApp rinviati
+
+**Fonte e ambito:** Luigi Pelosi dichiara «Per ora solo e-mail; in seguito prevederemo anche Telegram/WhatsApp». **Stato:** canale iniziale confermato e direzione futura registrata, non autorizzazione a installare o configurare integrazioni.
+
+**D52 — Canale iniziale degli allarmi:** il proprietario sceglie la sola e-mail per la fase iniziale; Telegram e WhatsApp sono evoluzioni future, non integrazioni attuali approvate o da implementare subito. D53 conferma successivamente un SMTP già disponibile; la scelta del canale non autorizza acquisti e non dimostra la consegna degli allarmi. Destinatario e parametri di invio saranno configurati fuori dal repository; nessuna credenziale è richiesta in chat.
+
+Responsabile e presidio D50/D51 restano invariati. Monitoraggio, invio e ricezione effettiva dovranno essere verificati nell’incarico operativo pertinente. Non si introducono ora bot, interfacce o servizi per canali futuri, né si cambiano RPO/RTO o copertura. A questo punto della discovery D02 restava In corso; il successivo passaggio In verifica è registrato in D57.
+
+### D53 — Servizio SMTP esistente disponibile per gli allarmi
+
+**Fonte e ambito:** Luigi Pelosi risponde «Si ce l’ho un SMTP disponibile» alla domanda sulla disponibilità di un servizio di invio e-mail. **Stato:** risorsa dichiarata disponibile, non prova tecnica o autorizzazione a usare credenziali/inviare messaggi.
+
+**D53 — SMTP già disponibile:** il proprietario conferma di disporre di un servizio SMTP utilizzabile come risorsa candidata per gli allarmi e-mail iniziali. Non sono ancora specificati provider, limiti di invio, costo contrattuale, modalità di autenticazione o configurazione. La disponibilità dichiarata non è una prova di accesso dalla VPS, protezione del collegamento o consegna effettiva; nessun nuovo servizio di invio è acquistato o attivato.
+
+Resta il canale iniziale e-mail di D52; nessuna implementazione Telegram/WhatsApp o selezione di un nuovo provider. Parametri e segreti non vengono raccolti nel repository o in chat. Configurazione e prova end-to-end degli allarmi saranno esercitate nell’incarico autorizzato pertinente. D02 rimane aperta; modifiche documentali locali, senza commit o deployment.
+
+### D54 — VPS attuale in Germania, target pilota/finale ancora aperto
+
+**Fonte e ambito:** Luigi Pelosi dichiara «Attualmente è in Germania ma non è detto che la versione finale/pilota sia sulla stessa VPS ospitata lì in Germania». **Stato:** localizzazione attuale riferita e precisazione della baseline, non migrazione o nuovo provider approvati.
+
+**D54 — Localizzazione attuale e destinazione del pilota non vincolata:** il proprietario dichiara che la VPS attuale è in Germania e precisa che pilota/versione finale potrebbero non essere sulla stessa VPS né nella stessa localizzazione. La Germania è informazione fornita dal proprietario, non verifica contrattuale indipendente. La VPS attuale resta il riferimento di demo e dimensionamento iniziale, non una destinazione irrevocabile del pilota. Resta il requisito del charter di hosting UE per il target effettivo; nessuna nuova macchina, migrazione, provider, regione o spesa è autorizzata da questa precisazione.
+
+D54 prevale sulla lettura di D47/D48 come obbligo di eseguire qualunque pilota o versione finale sull’host odierno. Il divieto di presumere nuovi acquisti resta: un eventuale cambio richiede scope e costi separatamente approvati. Le verifiche di recupero, accesso protetto, giurisdizione e capacità del pilota dovranno riguardare il target effettivo e le destinazioni dei dati pertinenti. AWS resta soltanto eventualità futura di D49.
+
+### D55 — Keycloak candidato confermato per la prova identity B01
+
+**Fonte e ambito:** Luigi Pelosi risponde «Confermo» alla proposta di Keycloak come candidato da verificare nella prova tecnica, dopo il confronto documentale con Auth0 nel documento 12. **Stato:** candidatura approvata per la valutazione, non scelta di produzione o autorizzazione implementativa.
+
+**D55 — Candidatura Keycloak alla prova B01 confermata:** il proprietario approva Keycloak community self-hosted come candidato da verificare nella prova tecnica. Non è adozione definitiva, autorizzazione a installare/configurare identity o approvazione del dossier complessivo. B01 resta subordinata a B00 e a uno scope implementativo esplicito; nessuna autenticazione viene aggiunta al bootstrap HTTP pubblico.
+
+L’esito di B01 dovrà dimostrare risorse sostenibili, MFA/federazione, verifica token/sessione, revoca e recupero, trasporto protetto e backup/ripristino pertinenti. Versione/digest, configurazioni, modello di amministrazione e responsabilità della manutenzione restano da definire negli scope pertinenti. Il gestito rimane alternativa documentale; rivalutarlo se la prova fallisce richiede decisione e spesa separate. D02 resta aperta; nessun servizio è attivato.
+
+### D56 — Disponibilità ad acquistare un dominio per il progetto
+
+**Fonte e ambito:** Luigi Pelosi dichiara «Non ho ancora un dominio/sottodominio ma non è un problema acquistarlo». **Stato:** assenza della risorsa e disponibilità di spesa dichiarate; non incarico di acquisto.
+
+**D56 — Dominio non disponibile, acquisto valutabile:** il proprietario dichiara di non avere ancora un dominio/sottodominio per il progetto e che acquistarlo non è un problema. È disponibilità a sostenere questa voce di costo, non un ordine di acquisto o una scelta di nome, registrar, estensione, importo o rinnovo. Nessun dominio è stato ricercato per disponibilità, prenotato o registrato dall'agente.
+
+La voce dominio/DNS entra nel confronto economico con registrazione e rinnovo distinti, prezzo e condizioni da verificare sulla proposta effettiva. Nome, provider e controllo DNS restano aperti prima dell’accesso pubblico autenticato tramite dominio; eventuale prova locale protetta non è subordinata all’acquisto. Nessuna modifica al canale HTTP attuale, configurazione identity, DNS o acquisto eseguita. D02 rimane In corso a questo punto della discovery; passaggio alla revisione successivamente confermato in D57.
+
+### D57 — Revisione D02 e gate economico-operativi confermati
+
+**Fonte e ambito:** Luigi Pelosi risponde «Confermo» alla proposta di delimitare i residui per portare D02 In verifica, senza preventivo definitivo o autorizzazione implementativa. **Stato:** delimitazione della discovery approvata, non completamento del lavoro applicativo.
+
+**D57 — Delimitazione D02 confermata per la revisione:** il proprietario approva il passaggio di D02 a «In verifica», mantenendo come gate gli elementi residui: dominio/nome/costi e rinnovi prima dell'acquisto; prove identity, risorse e protezioni prima di completare B01, con prerequisito B00 e scope implementativo esplicito; backup e ripristino misurato, allarmi verificati, responsabilità residue assegnate, costi e idoneità del target effettivo prima del pilota. La matrice OPE01–OPE05 dettaglia referenti ed evidenze. Non è un preventivo definitivo, un acquisto, approvazione complessiva del dossier o autorizzazione a implementare.
+
+D01 e D02 restano issue aperte In verifica; B00 non viene completata o sbloccata automaticamente. Nessun dato di costo sconosciuto è considerato zero, nessun RTO è garantito senza prova e nessuna disponibilità promessa equivale a configurazione operativa. La documentazione è aggiornata localmente, senza commit o pubblicazione delle modifiche correnti.

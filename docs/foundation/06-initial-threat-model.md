@@ -24,7 +24,7 @@ Le priorità sono un ordinamento progettuale qualitativo, non punteggi quantitat
 | T07 — Alta | Risposta/import esterno altera dati non autorevoli o contiene riferimenti fuori perimetro. | Anti-corruption layer, validazione del contratto e delle mappature, autorità unica, scope tenant/società verificato. | Dati malformati, identità esterna di un'altra società e modifiche al nucleo comune da fonte non autorevole. |
 | T08 — Alta | Documento/allegato esposto mediante URL diretto o identificativo indovinabile. | Verifica accesso alla risorsa anche sul download; gestione sicura dei nomi/percorsi, versioni e integrità; niente cartella pubblica di documenti aziendali. | Accesso diretto senza permesso, file di altra società/tenant e riferimenti alterati. Upload/scansione file da progettare prima di attivare allegati. |
 | T09 — Alta | Furto di sessioni/credenziali, abuso di account elevati o supporto permanente. | Federation e MFA come requisiti del charter, trasporto protetto per accessi reali, sessioni/revoche e supporto temporaneo tracciato. | Prova del provider ancora da scegliere, autenticazione/revoca e scadenza dei privilegi. Nessun esito già dimostrato dal bootstrap. |
-| T10 — Alta | Perdite di richieste o stato non recuperabile dopo crash, crescita illimitata della coda o dati persi. | Outbox persistente nei confini transazionali, retry limitati, escalation e monitoraggio; backup e prova di ripristino. | Restart durante elaborazione, richieste scadute/rifiutate, ripristino da backup e riconciliazione. RPO/RTO ancora da concordare. |
+| T10 — Alta | Perdite di richieste o stato non recuperabile dopo crash, crescita illimitata della coda o dati persi. | Outbox persistente nei confini transazionali, retry limitati, escalation e monitoraggio; backup e prova di ripristino. | Restart durante elaborazione, richieste scadute/rifiutate, ripristino da backup e riconciliazione. Obiettivi iniziali D49: recupero fino al giorno precedente e RTO massimo di 1 ora; estremi di misura, scenari e conseguimento ancora da definire/verificare. |
 | T11 — Alta | Segreti o dati personali esposti in log, errori, payload di coda o repository. | Segreti fuori repository, log minimizzati, errori senza dettagli sensibili, accesso e retention di coda/audit espliciti. | Controllo di log e fallimenti del simulatore; nessun token o payload personale superfluo. |
 | T12 — Alta | Regole fiscali/contabili aggirate dal customizing o storico riscritto. | Invarianti del modulo non aggirabili, versione dei dati rilevanti, compensazioni tracciate e validazione specialistica. | Configurazioni incompatibili rifiutate; scritture quadrate e riferimenti preservati. Non equivale a conformità fiscale. |
 
@@ -47,7 +47,7 @@ Per la slice proposta: dati sintetici di test, simulatore esterno deterministico
 - Provider definitivo federation/MFA dopo prova comparabile; ruoli, deleghe e supporto temporaneo.
 - Politiche delle sessioni/revoche e protezione dei canali HTTP/API del futuro ambiente di dominio.
 - Retention e accesso a log/audit/outbox/documenti; regole di trattamento dei dati da validare con competenze pertinenti.
-- Backup, ripristino, obiettivi RPO/RTO e disponibilità, senza promettere SLA dal singolo VPS.
+- Backup e ripristino da progettare e provare contro gli obiettivi iniziali D49 (giorno precedente / massimo 1 ora), senza promettere SLA o failover dal singolo VPS.
 - Contratti reali dei connettori e gestione dei segreti; test della fiducia sulle risposte esterne.
 - Verifiche tecniche e validazione fiscale/contabile prima di uso reale.
 
