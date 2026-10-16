@@ -576,3 +576,11 @@ Il caso fiscale usa un filtro olio e non sostituisce implicitamente il component
 **D42 — Validazione del caso 001 riferita dal proprietario:** Luigi Pelosi conferma che il caso e le regole di arrotondamento sono già stati validati dal referente disponibile. L'attestazione riguarda il caso 001 e la sua politica di calcolo; non è una validazione generale del motore fiscale, di altri trattamenti IVA, della fatturazione elettronica o delle scritture contabili. Il ruolo professionale esatto del referente e un verbale separato non sono stati comunicati; nessun contatto diretto dell'agente è dichiarato.
 
 Il riscontro aritmetico indipendente e la validazione riferita sono evidenze distinte. D01 resta aperta per i punti residui; nessuna approvazione complessiva del dossier, autorizzazione implementativa o abilitazione di emissione fiscale.
+
+### D43 — Piano e scrittura contabile dimostrativi ricevuti
+
+**Fonte:** allegato `F04 - scrittura contabile di riferimento.docx` fornito dal proprietario in risposta alla richiesta F04. **Stato:** riferimento fornito e riscontro aritmetico indipendente; non attestazione aggiuntiva della validazione specialistica.
+
+**D43 — F04 ricevuta:** allegato del proprietario con piano dimostrativo e scrittura della fattura `FV-001/2026`, commessa 001, pagamento differito. Dare 120100 = 200.69 EUR; Avere 700100 = 74.25, 700200 = 90.25, 220100 = 36.19 EUR. Quadratura e coerenza con il caso fiscale 001 verificate con Decimal; validazione del referente specifica di F04 ancora da attestare. Nessun incasso, costo del venduto, valorizzazione o margine introdotto. Dettagli e cautele nel [riferimento F04](11-f04-reference-journal-entry.md).
+
+Classificazioni e richiami normativi restano attribuiti alla fonte, con le cautele espresse nel documento. Il piano dimostrativo non diventa un piano universale; i riferimenti illustrativi non fissano numerazioni o contratti persistenti del prodotto. F03 e i gate implementativi rimangono aperti.
