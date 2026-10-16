@@ -1,11 +1,11 @@
 # Dossier di fondazione — 07. Backlog della prima vertical slice
 
-**Stato:** proposta ordinata per revisione, non autorizzazione a implementare. Nessuna issue o board GitHub creata da questo documento.
+**Stato:** backlog pubblicato nelle issue del repository e nel Project GitHub privato n. 3, con gate documentali ancora aperti. D01 passa alla revisione finale dopo D46. Nessuna autorizzazione a implementare o approvazione complessiva del dossier.
 **Fonti:** `PROJECT_CHARTER.md` §11–14; [slice](04-first-vertical-slice.md), [architettura](05-solution-and-module-boundaries.md), [minacce](06-initial-threat-model.md). Le decisioni acquisite restano nel [registro](01-glossary-and-domain-boundaries.md).
 
 ## 1. Metodo proposto
 
-Ogni voce diventerà una issue con risultato, perimetro escluso, dipendenze, criteri di accettazione e prove. Gli ID Bxx sono identificativi del dossier, non numeri di issue GitHub. Nessuna stima di durata o data di consegna è promessa.
+Ogni voce B00–B14 è pubblicata come issue con risultato, perimetro escluso, dipendenze, criteri di accettazione e prove. Gli ID Bxx sono identificativi del dossier, non numeri di issue GitHub. Nessuna stima di durata o data di consegna è promessa.
 
 Flusso Kanban proposto: **Backlog → Pronto → In corso → In verifica → Completato**. Un solo incremento implementativo in corso; analisi e verifiche indipendenti possono procedere senza avviare altre funzionalità. Le dipendenze non trasformano ogni singola voce in un servizio o modulo.
 
@@ -154,7 +154,7 @@ Non trasferire automaticamente tutte le voci in Pronto dopo l'approvazione del b
 
 ## 5. Blocchi decisionali da risolvere al momento giusto
 
-Domande ai referenti, disponibilità dichiarata e gate per incremento sono raccolti in [09 — Validazioni dei referenti](09-stakeholder-validation.md). Referente amministrativo/commercialista disponibile secondo il proprietario; risposte e validazione ancora da acquisire.
+Domande ai referenti, disponibilità dichiarata e gate per incremento sono raccolti in [09 — Validazioni dei referenti](09-stakeholder-validation.md). Referente amministrativo/commercialista disponibile secondo il proprietario; caso 001 e F04 validati secondo le attestazioni D42/D44, perimetro tecnico F03 confermato in D45. Dettagli residui assegnati ai gate G01–G03 con D46.
 
 | Gate | Necessario prima di | Chi valida |
 | --- | --- | --- |
@@ -168,4 +168,6 @@ Domande ai referenti, disponibilità dichiarata e gate per incremento sono racco
 | Valorizzazioni/piano e regole contabili del caso tecnico | B12–B13 | Proprietario/commercialista secondo competenza |
 | Costi, ripristino, ambiente e limiti operativi | B14 e prima di qualsiasi pilota reale | Proprietario |
 
-Questo backlog non sostituisce domande ai referenti, costi o approvazione complessiva. La creazione futura di Project/issue richiederà discovery dei duplicati e verifica dei record pubblicati; non è dichiarata già avvenuta.
+Questo backlog non sostituisce costi, review o approvazione complessiva. Project n. 3 e issue sono pubblicati; la pubblicazione non completa gli incrementi. I gate esecutivi G01–G03 sono approvati in D46 e descritti nel documento 09. Nessuna chiusura automatica di D01/B00.
+
+**D46 — Delimitazione dei dettagli residui confermata:** gli ulteriori casi limite di precisione/arrotondamento devono essere definiti e validati prima di completare B05; dettagli esecutivi dei movimenti e della concorrenza di magazzino devono essere definiti e verificati nei rispettivi incrementi B06–B09; contratti tecnici, idempotenza e recupero degli errori restano progettazione e test degli incrementi pertinenti. Sono gate obbligatori, non requisiti eliminati o già soddisfatti. La conferma permette la revisione finale di D01, non chiude automaticamente D01/B00 e non autorizza implementazione o approvazione complessiva del dossier.

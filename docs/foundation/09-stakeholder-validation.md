@@ -1,6 +1,6 @@
 # Dossier di fondazione — 09. Validazioni dei referenti (D01)
 
-**Stato:** caso 001 e relativa politica di arrotondamento validati dal referente secondo attestazione del proprietario (D42); ulteriori risposte ancora da acquisire. D01 resta in corso.
+**Stato:** caso 001 e relativa politica di arrotondamento validati dal referente secondo attestazione del proprietario (D42); ulteriori risposte ancora da acquisire. D01 è pronta per la revisione finale, con dettagli residui assegnati agli incrementi in D46.
 **Fonti:** `PROJECT_CHARTER.md` §11–12 e §15; [slice](04-first-vertical-slice.md); [decisioni D32–D37](01-glossary-and-domain-boundaries.md); issue GitHub #3.
 
 ## 1. Disponibilità e responsabilità
@@ -16,7 +16,7 @@ Per ogni risposta registrare ruolo del validatore, versione del caso, risultato 
 | ID | Domanda / risultato richiesto | Validatore richiesto | Prima di | Stato |
 | --- | --- | --- | --- | --- |
 | F01 | Quale caso di vendita domestica usare come riferimento per una prestazione e un ricambio? Fornire trattamento IVA atteso, imponibile, imposte e totale di un esempio sintetico, distinguendo regola validata e parametro tecnico di prova. | Commercialista, tramite referente disponibile se necessario | Validazione dei parametri B05; uso reale | Caso 001 ricevuto; validazione del referente confermata dal proprietario (D42) |
-| F02 | Quali precisioni e arrotondamenti adottare per quantità, prezzi, sconti, righe, imponibile e imposte? Fornire casi limite con esiti attesi e criterio di gestione degli scarti. | Referente amministrativo con validazione del commercialista per gli aspetti fiscali | B05 e B12 | Politica del caso 001 e confronto per-riga validati secondo il proprietario (D42); ulteriori casi limite da completare |
+| F02 | Quali precisioni e arrotondamenti adottare per quantità, prezzi, sconti, righe, imponibile e imposte? Fornire casi limite con esiti attesi e criterio di gestione degli scarti. | Referente amministrativo con validazione del commercialista per gli aspetti fiscali | B05 e B12 | Politica del caso 001 e confronto per-riga validati secondo il proprietario (D42); ulteriori casi limite assegnati a G01/B05 con gate D46 |
 | F03 | Quali dati e riferimenti conservare nella fattura tecnica collegata alla commessa? Quali differenze devono restare esplicite rispetto a una fattura realmente emessa? | Referente amministrativo/commercialista secondo competenza | B12; prima di uso fiscale reale | Perimetro della fattura tecnica e storico confermati dal proprietario (D45); non validazione dei requisiti completi di emissione reale |
 | F04 | Quale piano dei conti dimostrativo e quale scrittura attesa usare per il caso F01, con riferimenti fattura/commessa? Specificare conti, importi attesi e quadratura; l'agente non sceglie il piano. | Commercialista | B13 | Piano e scrittura ricevuti (D43), quadratura verificata; validazione del referente attestata dal proprietario (D44) |
 
@@ -67,7 +67,20 @@ I referenti operativi non sono stati identificati come disponibili dalla sola co
 - [x] Validazione del referente sul caso 001 e sulle regole F01/F02 attestata dal proprietario (D42).
 - [x] Piano e scrittura F04 ricevuti e validazione del referente attestata dal proprietario (D44).
 - [x] Perimetro tecnico F03 e conservazione dei dati storici confermati dal proprietario (D45).
-- [ ] Ulteriori casi limite F02 completati, oppure rinvio esplicito con gate confermato dal proprietario.
-- [ ] Risposte necessarie acquisite, oppure rinvii espliciti con gate sugli incrementi interessati.
+- [x] Ulteriori casi limite F02 assegnati al gate G01/B05, confermato dal proprietario in D46; non sono dichiarati già verificati.
+- [x] Risposte del caso minimo acquisite e dettagli residui delimitati con gate approvati D46.
+- [ ] Revisione finale della documentazione e verifiche della PR concluse; nessun completamento automatico di D01.
 
 Il documento non chiude D01, non approva il dossier completo e non autorizza implementazione, contatti esterni o deployment.
+
+## 6. Dettagli residui assegnati agli incrementi — D46
+
+**D46 — Delimitazione dei dettagli residui confermata:** gli ulteriori casi limite di precisione/arrotondamento devono essere definiti e validati prima di completare B05; dettagli esecutivi dei movimenti e della concorrenza di magazzino devono essere definiti e verificati nei rispettivi incrementi B06–B09; contratti tecnici, idempotenza e recupero degli errori restano progettazione e test degli incrementi pertinenti. Sono gate obbligatori, non requisiti eliminati o già soddisfatti. La conferma permette la revisione finale di D01, non chiude automaticamente D01/B00 e non autorizza implementazione o approvazione complessiva del dossier.
+
+| Gate | Incremento | Evidenza necessaria prima del completamento | Referente |
+| --- | --- | --- | --- |
+| G01 | B05 | Casi limite con esiti attesi, precisioni e limiti applicativi espliciti, validazione pertinente e test decimali; nessuna generalizzazione dal solo caso 001 | Proprietario/referente amministrativo; commercialista per gli aspetti fiscali |
+| G02 | B06–B09, per i rispettivi effetti | Effetti di prenotazione/prelievo/consumo/rientro e concorrenza definiti; test su retry, quantità e assenza di doppi effetti; area facoltativa e nuovo/carcassa distinti | Proprietario con referenti officina/magazzino e prove tecniche |
+| G03 | Incrementi pertinenti, in particolare B10–B13 | Contratti versionati, correlazione/idempotenza, esiti incerti ed errori recuperabili progettati e testati; nessuna transazione globale implicita | Responsabile tecnico con review del proprietario |
+
+**Stato D01:** materiale consolidato per revisione finale; non Completato. Le risposte e le conferme del caso sono acquisite o delimitate con gate approvati. Restano review della documentazione e verifiche della PR; B00 e D02 non sono chiusi da D46.
