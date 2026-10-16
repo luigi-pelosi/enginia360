@@ -2,7 +2,7 @@
 
 ## Scope and outcome
 
-This is an opt-in, isolated and reversible technical proof for decision D58. It uses only generated synthetic identities and ephemeral storage. It does not adopt an identity provider, implement Enginia360 authorization or tenant context, enable MFA/federation, add a domain, or change the public bootstrap in `compose.yaml`.
+This is an opt-in, isolated and reversible technical proof for decision D58. It uses only generated synthetic identities and ephemeral storage. D59 subsequently accepts Keycloak as the initial identity baseline and authorizes its use in the synthetic B02 environment; this proof still does not establish production adoption, implement Enginia360 authorization or tenant context, enable MFA/federation, add a domain, or change the public bootstrap in `compose.yaml`.
 
 The proof builds a health-enabled image from Keycloak Community 26.8.1, the current release shown by the official download page when implemented. Both Dockerfile stages pin the multi-platform OCI digest `sha256:79c623a22abacf3fe6c00a5fb30f5b7843d717b234033b80995891c06116d244`; runtime starts the pre-built image with `--optimized` so its read-only root filesystem is retained. The browserless test runner is also version-and-digest pinned. Authentication endpoints use a one-run self-signed TLS certificate whose trust is explicitly mounted into the runner. No host port is published; the management health endpoint on port 9000 and HTTPS endpoint on 8443 remain inside an internal Docker network.
 

@@ -1,6 +1,6 @@
 # Dossier di fondazione — 07. Backlog della prima vertical slice
 
-**Stato:** dossier e B00 approvati in D58; B01 è l'unico incremento implementativo autorizzato, come prova tecnica isolata e reversibile con dati sintetici. B02–B14 restano non autorizzati e soggetti alle proprie dipendenze e gate.
+**Stato:** B01 completabile dopo merge della PR #21; D59 adotta Keycloak come baseline identity iniziale e autorizza esclusivamente B02 con identità e dati sintetici. B03–B14 restano non autorizzati e soggetti alle proprie dipendenze e gate.
 **Fonti:** `PROJECT_CHARTER.md` §11–14; [slice](04-first-vertical-slice.md), [architettura](05-solution-and-module-boundaries.md), [minacce](06-initial-threat-model.md). Le decisioni acquisite restano nel [registro](01-glossary-and-domain-boundaries.md).
 
 ## 1. Metodo proposto
@@ -62,6 +62,7 @@ Non trasferire automaticamente tutte le voci in Pronto dopo l'approvazione del b
 - **Risultato:** un utente di test sceglie società/sede consentite e accede a una minima risorsa persistita; due tenant di test, più società e scope differenti.
 - **Accettazione:** cambi di ID tenant/società/sede/magazzino non ampliano i permessi; contesto visibile e validato nel backend. Capability disabilitata rifiuta l'azione pertinente. Migrazione locale e health della persistenza ripetibili.
 - **Prova:** API/UI e test negativi di isolamento, incluso riutilizzo connessioni; prime verifiche di dipendenze/visibilità dei soli moduli introdotti. Minacce T01, T03, T09.
+- **Scope autorizzato D59:** due tenant sintetici, più società/sedi/magazzini e scope differenti; Keycloak come baseline iniziale; tenant context e riferimenti autorizzati validati lato backend; PostgreSQL privato con migrazioni ripetibili; UI/API minime. Verificare manipolazione degli ID, capability disabilitata e riuso delle connessioni. Esclusi dati reali, accesso pubblico, provisioning reale e B03–B14.
 
 ### B03 — Controparte comune e destinazioni
 
