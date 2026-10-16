@@ -133,7 +133,7 @@ Non trasferire automaticamente tutte le voci in Pronto dopo l'approvazione del b
 - **Risultato:** produrre una scrittura quadrata riferita a fattura e commessa; mostrare eventuali errori senza cancellare la fattura confermata.
 - **Accettazione:** nessuna doppia registrazione a richiesta ripetuta; transazione locale al modulo, errori recuperabili e piano di prova documentato.
 - **Prova:** quadratura, retry ed errore intermodulo, riferimenti immutati. T05, T10, T12.
-- **Riferimento D43:** [F04](11-f04-reference-journal-entry.md) fornisce piano e scrittura dimostrativi del caso 001; quadratura e corrispondenza ai dati fiscali verificate. Validazione del referente specifica della scrittura da attestare. Nessuna scelta fiscale definitiva dell’agente o implementazione contabile implicita.
+- **Riferimento D43:** [F04](11-f04-reference-journal-entry.md) fornisce piano e scrittura dimostrativi del caso 001; quadratura e corrispondenza ai dati fiscali verificate. Validazione del referente su piano e scrittura attestata dal proprietario in D44, limitata al caso 001. Nessuna scelta fiscale definitiva dell’agente o implementazione contabile implicita.
 
 ### B14 — Verifica finale e recupero operativo
 

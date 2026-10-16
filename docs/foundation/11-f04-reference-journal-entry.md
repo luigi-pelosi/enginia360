@@ -1,6 +1,6 @@
 # F04 — Scrittura contabile di riferimento del caso 001
 
-**Stato:** documento di riferimento ricevuto dal proprietario; quadratura e coerenza con il caso 001 verificate aritmeticamente. La validazione specialistica specifica di F04 non è ancora esplicitamente attestata: D42 riguarda il caso fiscale e le regole di arrotondamento, non questa nuova scrittura.
+**Stato:** documento di riferimento ricevuto dal proprietario; quadratura e coerenza con il caso 001 verificate aritmeticamente. Il proprietario conferma la validazione del referente anche per piano e scrittura F04 (D44), distinta dalla precedente conferma fiscale D42. Attestazione riferita dal proprietario, circoscritta al caso dimostrativo; ruolo professionale esatto non specificato.
 **Fonte:** allegato `F04 - scrittura contabile di riferimento.docx`, sezioni 1–3. Nessun dato identificativo reale riprodotto e nessun metadato personale del file pubblicato. SHA-256: `8333a3f49f5e7b2f2921f5069092a43985806ccb68504f96a5880c94a40a8615`.
 **Collegamenti:** [caso fiscale 001](10-test-case-001.md); [fixture contabile](test-cases/001-sales-journal-entry.json); [domande e gate](09-stakeholder-validation.md).
 
@@ -40,7 +40,7 @@ Pagamento differito non significa incasso già avvenuto: nessuna scrittura di ba
 
 ## 4. Gate ancora aperti
 
-- Attestare la validazione del referente anche per il piano e la scrittura F04; non estendere automaticamente D42.
+- Validazione del referente su piano e scrittura F04 attestata dal proprietario in D44; questo specifico gate è soddisfatto. Restano i gate seguenti.
 - Completare F03: dati della fattura tecnica e riferimenti da preservare verso commessa e registrazione, distinti dalla fatturazione reale.
 - Progettare e verificare nei rispettivi incrementi autorizzati autorizzazioni, idempotenza della registrazione, riferimenti immutati e recupero degli errori intermodulo. La sola quadratura non dimostra questi comportamenti.
 

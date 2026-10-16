@@ -581,6 +581,14 @@ Il riscontro aritmetico indipendente e la validazione riferita sono evidenze dis
 
 **Fonte:** allegato `F04 - scrittura contabile di riferimento.docx` fornito dal proprietario in risposta alla richiesta F04. **Stato:** riferimento fornito e riscontro aritmetico indipendente; non attestazione aggiuntiva della validazione specialistica.
 
-**D43 — F04 ricevuta:** allegato del proprietario con piano dimostrativo e scrittura della fattura `FV-001/2026`, commessa 001, pagamento differito. Dare 120100 = 200.69 EUR; Avere 700100 = 74.25, 700200 = 90.25, 220100 = 36.19 EUR. Quadratura e coerenza con il caso fiscale 001 verificate con Decimal; validazione del referente specifica di F04 ancora da attestare. Nessun incasso, costo del venduto, valorizzazione o margine introdotto. Dettagli e cautele nel [riferimento F04](11-f04-reference-journal-entry.md).
+**D43 — F04 ricevuta:** allegato del proprietario con piano dimostrativo e scrittura della fattura `FV-001/2026`, commessa 001, pagamento differito. Dare 120100 = 200.69 EUR; Avere 700100 = 74.25, 700200 = 90.25, 220100 = 36.19 EUR. Quadratura e coerenza con il caso fiscale 001 verificate con Decimal; validazione del referente specifica di F04 successivamente attestata dal proprietario in D44. Nessun incasso, costo del venduto, valorizzazione o margine introdotto. Dettagli e cautele nel [riferimento F04](11-f04-reference-journal-entry.md).
 
 Classificazioni e richiami normativi restano attribuiti alla fonte, con le cautele espresse nel documento. Il piano dimostrativo non diventa un piano universale; i riferimenti illustrativi non fissano numerazioni o contratti persistenti del prodotto. F03 e i gate implementativi rimangono aperti.
+
+### D44 — Conferma della validazione del piano e della scrittura F04
+
+**Fonte e ambito:** Luigi Pelosi risponde «Confermo» alla domanda se anche il piano dimostrativo e la scrittura F04 siano stati validati dal referente.
+
+**D44 — Validazione F04 riferita dal proprietario:** Luigi Pelosi conferma che anche il piano dei conti dimostrativo e la scrittura F04 del caso 001 sono stati validati dal referente disponibile. L'attestazione è circoscritta a questo riferimento, con le ipotesi e le cautele dell'allegato. Non approva un piano universale, ulteriori scritture, conformità generale o un modulo contabile già implementato. Nessun contatto diretto dell'agente è dichiarato.
+
+F04 è acquisita e validata per il caso 001 secondo attestazione del proprietario. F03 e gli ulteriori casi limite F02 restano da completare o rinviare con gate espliciti; D01 e B00 non vengono chiusi. Nessuna autorizzazione implementativa o approvazione complessiva del dossier.
