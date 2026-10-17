@@ -5,7 +5,9 @@ using Xunit;
 public sealed class BootstrapTests : IClassFixture<WebApplicationFactory<Program>>
 {
     private readonly HttpClient client;
-    public BootstrapTests(WebApplicationFactory<Program> factory) => client = factory.CreateClient();
+
+    public BootstrapTests(WebApplicationFactory<Program> factory) =>
+        client = factory.CreateClient();
 
     [Fact]
     public async Task Status_discloses_bootstrap_scope_without_claiming_product_readiness()
@@ -18,6 +20,7 @@ public sealed class BootstrapTests : IClassFixture<WebApplicationFactory<Program
         Assert.False(body.GetProperty("foundationDossierApproved").GetBoolean());
         Assert.False(body.GetProperty("businessCapabilitiesAvailable").GetBoolean());
     }
+
     [Theory]
     [InlineData("/health/live")]
     [InlineData("/health/ready")]
@@ -27,6 +30,7 @@ public sealed class BootstrapTests : IClassFixture<WebApplicationFactory<Program
         response.EnsureSuccessStatusCode();
         Assert.Equal("Healthy", await response.Content.ReadAsStringAsync());
     }
+
     [Fact]
     public async Task OpenApi_describes_public_status_endpoint()
     {
@@ -35,6 +39,20 @@ public sealed class BootstrapTests : IClassFixture<WebApplicationFactory<Program
         var body = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
         Assert.True(body.GetProperty("paths").TryGetProperty("/api/v1/system/status", out _));
     }
+
+    [Theory]
+    [InlineData("/api/v1/development/login", "POST")]
+    [InlineData("/api/v1/organization/database-session", "GET")]
+    public async Task Development_only_endpoints_are_not_mapped_by_default(
+        string path,
+        string method
+    )
+    {
+        using var request = new HttpRequestMessage(new HttpMethod(method), path);
+        var response = await client.SendAsync(request);
+        Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
+    }
+
     [Theory]
     [InlineData("request-123_ABC", true)]
     [InlineData("bad id", false)]
@@ -47,8 +65,10 @@ public sealed class BootstrapTests : IClassFixture<WebApplicationFactory<Program
         request.Headers.TryAddWithoutValidation("X-Correlation-ID", candidate);
         var response = await client.SendAsync(request);
         var actual = Assert.Single(response.Headers.GetValues("X-Correlation-ID"));
-        if (accepted) Assert.Equal(candidate, actual);
-        else Assert.Matches("^[a-f0-9]{32}$", actual);
+        if (accepted)
+            Assert.Equal(candidate, actual);
+        else
+            Assert.Matches("^[a-f0-9]{32}$", actual);
     }
 
     [Fact]
@@ -59,7 +79,10 @@ public sealed class BootstrapTests : IClassFixture<WebApplicationFactory<Program
             using var request = new HttpRequestMessage(HttpMethod.Get, "/missing");
             request.Headers.TryAddWithoutValidation("X-Correlation-ID", values);
             var response = await client.SendAsync(request);
-            Assert.Matches("^[a-f0-9]{32}$", Assert.Single(response.Headers.GetValues("X-Correlation-ID")));
+            Assert.Matches(
+                "^[a-f0-9]{32}$",
+                Assert.Single(response.Headers.GetValues("X-Correlation-ID"))
+            );
         }
     }
 }

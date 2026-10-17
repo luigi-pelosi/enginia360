@@ -25,3 +25,7 @@ Dependencies are exact-version pinned with npm/NuGet lockfiles; container refere
 ## Acceptance
 
 API status, process health and OpenAPI are executable integration-tested; correlation inputs include safe, malformed, empty, multi-value and oversized tokens. React tests cover a real-client fetch contract using a network boundary stub, malformed responses and failure visibility. Docker build executes UI tests and typecheck. HTTP smoke checks exercise nginx → API on deployment. These tests are not proof of the charter’s tenant isolation, accounting or first vertical slice: none exists yet.
+
+## B02 boundary added after this bootstrap
+
+B02 adds only the separately documented organization-access proof. Its temporary identity decision is intentionally narrower than the charter destination: one identity subject can belong to exactly one tenant, enforced by a database unique index and matching EF model metadata. Tenant switching and multi-tenant memberships are not implemented or implied. The B02 SQL remains a repeatable baseline rather than a production migration system; see `docs/b02-verification.md` for non-convergence and rollback limits.

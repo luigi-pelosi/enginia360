@@ -1,0 +1,107 @@
+name: enginia360-b02-test
+services:
+  keycloak:
+    image: enginia360/keycloak-b02:26.8.1
+    build:
+      context: .
+      dockerfile: keycloak-proof.Dockerfile
+    user: "1000:1000"
+    command: ["start", "--optimized", "--import-realm", "--http-enabled=true", "--hostname-strict=false"]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=32m,uid=1000,gid=1000
+      - /opt/keycloak/data/h2:rw,noexec,nosuid,size=256m,uid=1000,gid=1000
+    expose: ["8080", "9000"]
+    networks: [backend]
+    mem_limit: 768m
+    cpus: 1.0
+    pids_limit: 256
+    logging: {driver: json-file, options: {max-size: "10m", max-file: "2"}}
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000; printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3; grep -q '200 OK' <&3"]
+      interval: 5s
+      timeout: 3s
+      retries: 40
+      start_period: 20s
+  postgres:
+    build:
+      context: .
+      dockerfile: postgres.Dockerfile
+    environment:
+      POSTGRES_DB: ${B02_DB_NAME:?set B02_DB_NAME in the runtime env file}
+      POSTGRES_USER: ${B02_DB_USER:?set B02_DB_USER in the runtime env file}
+      POSTGRES_PASSWORD: ${B02_DB_PASSWORD:?set B02_DB_PASSWORD in the runtime env file}
+      B02_DB_APP_USER: ${B02_DB_APP_USER:?set B02_DB_APP_USER in the runtime env file}
+      B02_DB_APP_PASSWORD: ${B02_DB_APP_PASSWORD:?set B02_DB_APP_PASSWORD in the runtime env file}
+    user: "70:70"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+      - /var/run/postgresql:rw,noexec,nosuid,size=8m,uid=70,gid=70
+    volumes: ["postgres_data:/var/lib/postgresql/data"]
+    expose: ["5432"]
+    networks: [backend]
+    mem_limit: 384m
+    cpus: 1.0
+    pids_limit: 128
+    logging: {driver: json-file, options: {max-size: "10m", max-file: "3"}}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${B02_DB_USER} -d ${B02_DB_NAME}"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+  api:
+    build:
+      context: .
+      dockerfile: src/Enginia360.Api/Dockerfile
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=16m"]
+    expose: ["8080"]
+    environment:
+      ConnectionStrings__OrganizationAccess: Host=postgres;Port=5432;Database=${B02_DB_NAME};Username=${B02_DB_APP_USER};Password=${B02_DB_APP_PASSWORD};Maximum Pool Size=1;Minimum Pool Size=1
+      Authentication__Authority: http://keycloak:8080/realms/enginia360-synthetic
+      Authentication__MetadataAddress: http://keycloak:8080/realms/enginia360-synthetic/.well-known/openid-configuration
+      Authentication__ValidIssuer: http://keycloak:8080/realms/enginia360-synthetic
+      Authentication__Audience: enginia360-api
+      Authentication__RequireHttpsMetadata: "false"
+      DevelopmentTestLogin__Enabled: "true"
+      DevelopmentTestLogin__TokenEndpoint: http://keycloak:8080/realms/enginia360-synthetic/protocol/openid-connect/token
+    depends_on:
+      postgres: {condition: service_healthy}
+      keycloak: {condition: service_healthy}
+    networks: [backend]
+    mem_limit: 256m
+    cpus: 1.0
+    pids_limit: 128
+    logging: {driver: json-file, options: {max-size: "10m", max-file: "3"}}
+  web:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+      args:
+        VITE_B02_TEST_UI: "true"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=16m"]
+    expose: ["8080"]
+    depends_on:
+      api: {condition: service_healthy}
+    networks: [frontend, backend]
+    mem_limit: 128m
+    cpus: 0.5
+    pids_limit: 128
+    logging: {driver: json-file, options: {max-size: "10m", max-file: "3"}}
+networks:
+  frontend:
+  backend:
+    internal: true
+volumes:
+  postgres_data:

@@ -3,6 +3,8 @@ WORKDIR /source
 COPY web/package.json web/package-lock.json ./
 RUN npm ci --no-audit --no-fund
 COPY web/ ./
+ARG VITE_B02_TEST_UI=false
+ENV VITE_B02_TEST_UI=${VITE_B02_TEST_UI}
 RUN npm test && npm run build
 
 FROM nginx:1.30.6-alpine3.24@sha256:750f6c5456af731b47295d124fbed55664eeb1daab4f6bac0b092b7406235091

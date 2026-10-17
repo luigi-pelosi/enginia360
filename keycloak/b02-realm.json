@@ -1,0 +1,112 @@
+{
+  "realm": "enginia360-synthetic",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": false,
+  "duplicateEmailsAllowed": false,
+  "requiredActions": [],
+  "clients": [
+    {
+      "clientId": "enginia360-api",
+      "enabled": true,
+      "publicClient": true,
+      "directAccessGrantsEnabled": false,
+      "standardFlowEnabled": false,
+      "serviceAccountsEnabled": false,
+      "protocol": "openid-connect"
+    },
+    {
+      "clientId": "enginia360-test-runner",
+      "enabled": true,
+      "publicClient": true,
+      "directAccessGrantsEnabled": true,
+      "standardFlowEnabled": false,
+      "serviceAccountsEnabled": false,
+      "protocol": "openid-connect",
+      "protocolMappers": [
+        {
+          "name": "api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "enginia360-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "id": "aaaaaaaa-0000-0000-0000-000000000001",
+      "username": "operatore-alfa-sintetico",
+      "firstName": "Operatore",
+      "lastName": "Alfa",
+      "email": "operatore-alfa@example.invalid",
+      "enabled": true,
+      "emailVerified": false,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "synthetic-alpha-password",
+          "temporary": false
+        }
+      ],
+      "requiredActions": []
+    },
+    {
+      "id": "bbbbbbbb-0000-0000-0000-000000000001",
+      "username": "operatore-beta-sintetico",
+      "firstName": "Operatore",
+      "lastName": "Beta",
+      "email": "operatore-beta@example.invalid",
+      "enabled": true,
+      "emailVerified": false,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "synthetic-beta-password",
+          "temporary": false
+        }
+      ],
+      "requiredActions": []
+    },
+    {
+      "id": "cccccccc-0000-0000-0000-000000000001",
+      "username": "operatore-senza-membership",
+      "firstName": "Operatore",
+      "lastName": "Esterno",
+      "email": "operatore-esterno@example.invalid",
+      "enabled": true,
+      "emailVerified": false,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "synthetic-no-membership",
+          "temporary": false
+        }
+      ],
+      "requiredActions": []
+    },
+    {
+      "id": "dddddddd-0000-0000-0000-000000000001",
+      "username": "operatore-alfa-senza-lettura",
+      "firstName": "Operatore",
+      "lastName": "Alfa",
+      "email": "alfa-no-read@example.invalid",
+      "enabled": true,
+      "emailVerified": false,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "synthetic-no-read",
+          "temporary": false
+        }
+      ],
+      "requiredActions": []
+    }
+  ]
+}

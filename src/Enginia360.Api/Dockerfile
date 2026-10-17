@@ -11,5 +11,5 @@ COPY --from=build /app ./
 USER $APP_UID
 ENV ASPNETCORE_HTTP_PORTS=8080 DOTNET_EnableDiagnostics=0 ASPNETCORE_ENVIRONMENT=Production
 EXPOSE 8080
-HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 CMD wget -q -O /dev/null http://127.0.0.1:8080/health/ready || exit 1
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 CMD wget -q -O /dev/null http://127.0.0.1:8080/health/dependencies || exit 1
 ENTRYPOINT ["dotnet", "Enginia360.Api.dll"]
