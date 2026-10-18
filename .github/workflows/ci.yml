@@ -8,12 +8,11 @@ jobs:
   verify:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
-    env:
-      TMPDIR: ${{ runner.temp }}
     steps:
       - uses: actions/checkout@v4
       - name: Initialize ephemeral B02 configuration
         run: |
+          printf 'TMPDIR=%s\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
           printf 'B02_DB_NAME=enginia360\nB02_DB_USER=enginia360\nB02_DB_APP_USER=enginia360_app\n' >> "$GITHUB_ENV"
           owner_password="$(openssl rand -hex 24)"
           app_password="$(openssl rand -hex 24)"
