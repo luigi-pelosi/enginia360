@@ -1,10 +1,16 @@
 using Enginia360.Api.OrganizationAccess;
+using Enginia360.Counterparties;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders();
 builder.Logging.AddJsonConsole(options => options.IncludeScopes = true);
 builder.Services.AddOpenApi();
 builder.Services.AddOrganizationAccess(builder.Configuration);
+if (builder.Configuration.GetValue<bool>("Counterparties:Enabled"))
+{
+    builder.Services.AddScoped<Enginia360.Counterparties.Contracts.ICounterpartyAccess, CounterpartyAccessAdapter>();
+    builder.Services.AddCounterparties(builder.Configuration.GetConnectionString("OrganizationAccess")!);
+}
 var app = builder.Build();
 
 app.Use(
@@ -63,6 +69,8 @@ app.MapHealthChecks(
     }
 );
 app.MapOrganizationAccess();
+if (app.Configuration.GetValue<bool>("Counterparties:Enabled"))
+    app.MapCounterparties();
 app.MapOpenApi();
 app.Run();
 

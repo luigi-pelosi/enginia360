@@ -41,6 +41,7 @@ public sealed class BootstrapTests : IClassFixture<WebApplicationFactory<Program
     }
 
     [Theory]
+    [InlineData("/api/v1/counterparties", "GET")]
     [InlineData("/api/v1/development/login", "POST")]
     [InlineData("/api/v1/organization/database-session", "GET")]
     public async Task Development_only_endpoints_are_not_mapped_by_default(

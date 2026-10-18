@@ -8,6 +8,14 @@ import unittest
 
 
 class CiRuntimeTests(unittest.TestCase):
+    def test_ci_executes_b03_runtime_acceptance(self):
+        workflow = Path(".github/workflows/ci.yml").read_text()
+        self.assertIn("run: sh scripts/run-b03-tests.sh", workflow)
+
+    def test_ci_provides_runner_scratch_directory(self):
+        workflow = Path(".github/workflows/ci.yml").read_text()
+        self.assertIn("TMPDIR: ${{ runner.temp }}", workflow)
+
     def test_ci_initialization_satisfies_required_compose_configuration(self):
         workflow = Path(".github/workflows/ci.yml").read_text()
         lines = workflow.splitlines()

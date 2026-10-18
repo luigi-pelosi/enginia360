@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
+import B03TestApp from "./B03TestApp";
 
 type ConnectionState = "loading" | "available" | "unavailable";
 type Context = {
@@ -259,6 +260,7 @@ function B02TestApp() {
 }
 
 export default function App() {
+    if (import.meta.env.VITE_B03_TEST_UI === "true") return <B03TestApp />;
     return import.meta.env.VITE_B02_TEST_UI === "true" ? (
         <B02TestApp />
     ) : (

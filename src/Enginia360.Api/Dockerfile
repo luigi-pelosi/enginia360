@@ -2,6 +2,7 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0.402-alpine3.24@sha256:230c3fbae0ceedc70bc
 WORKDIR /source
 COPY Directory.Build.props global.json ./
 COPY src/Enginia360.Api/ src/Enginia360.Api/
+COPY src/Modules/ src/Modules/
 RUN dotnet restore src/Enginia360.Api --locked-mode
 RUN dotnet publish src/Enginia360.Api -c Release --no-restore -o /app /p:UseAppHost=false
 

@@ -27,6 +27,7 @@ const context = {
 };
 
 async function renderApp(b02TestUi = false) {
+    vi.stubEnv("VITE_B03_TEST_UI", "false");
     vi.stubEnv("VITE_B02_TEST_UI", b02TestUi ? "true" : "");
     const { default: App } = await import("./App");
     render(<App />);

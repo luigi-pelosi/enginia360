@@ -138,6 +138,16 @@
           "Microsoft.IdentityModel.JsonWebTokens": "8.19.2",
           "Microsoft.IdentityModel.Tokens": "8.19.2"
         }
+      },
+      "enginia360.counterparties": {
+        "type": "Project",
+        "dependencies": {
+          "Enginia360.Counterparties.Contracts": "[1.0.0, )",
+          "Npgsql.EntityFrameworkCore.PostgreSQL": "[10.0.0, )"
+        }
+      },
+      "enginia360.counterparties.contracts": {
+        "type": "Project"
       }
     }
   }

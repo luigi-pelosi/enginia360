@@ -1,0 +1,12 @@
+# Isolated B03 override; never use against the persistent manual B02 project.
+services:
+  api:
+    environment:
+      Counterparties__Enabled: "true"
+  web:
+    build:
+      args:
+        VITE_B03_TEST_UI: "true"
+  postgres:
+    volumes:
+      - ./database/b03:/b03:ro

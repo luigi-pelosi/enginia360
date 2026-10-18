@@ -1,6 +1,6 @@
 # Dossier di fondazione — 07. Backlog della prima vertical slice
 
-**Stato:** B01 completabile dopo merge della PR #21; D59 adotta Keycloak come baseline identity iniziale e autorizza esclusivamente B02 con identità e dati sintetici. B03–B14 restano non autorizzati e soggetti alle proprie dipendenze e gate.
+**Stato corrente:** B01 e B02 completati; B02 integrata con PR #23 sulla baseline `6a80eecb35c287fb3e68ad782bba926f09f47fea`. D59 resta la baseline identity. D60 autorizza esclusivamente B03 con identità e dati sintetici in ambiente isolato: In corso; D61 risolve il gate dei permessi di pubblicazione. Implementazione locale e prove tecniche nel report `../b03-verification.md`; review indipendente e CI remota pendenti. B04–B14 restano Backlog/bloccati e non autorizzati.
 **Fonti:** `PROJECT_CHARTER.md` §11–14; [slice](04-first-vertical-slice.md), [architettura](05-solution-and-module-boundaries.md), [minacce](06-initial-threat-model.md). Le decisioni acquisite restano nel [registro](01-glossary-and-domain-boundaries.md).
 
 ## 1. Metodo proposto
@@ -69,6 +69,17 @@ Non trasferire automaticamente tutte le voci in Pronto dopo l'approvazione del b
 - **Risultato:** A e B dello stesso tenant usano la stessa identità; B aggiunge una destinazione locale non esposta ad A; pubblicazione comune soltanto esplicita e autorizzata.
 - **Accettazione:** altro tenant escluso; edit anagrafica comune negato senza permesso specifico; dati societari restano distinti. Campi del caso minimo confermati in D36: ragione sociale, identificativo fiscale e sede legale comuni; una destinazione operativa societaria riservata salvo condivisione esplicita autorizzata. Non è l’intera anagrafica ERP o una definizione di obblighi fiscali.
 - **Prova:** letture/ricerche e modifiche con ruoli differenti; audit dell'azione senza payload sensibili superflui. T01, T02, T04, T11.
+- **Autorizzazione D60:** solo B03 sintetica/privata, senza provisioning amministrativo, dati reali, cambi dell'ambiente manuale B02 o B04+. Branch locale `feat/b03-counterparties`; nessun commit/push prima di review indipendente.
+- **Gate risolto D61:** permesso specifico di pubblicazione sulla società proprietaria, distinto dall’edit comune; grant limitati a sede/magazzino o ad altra società non bastano. Visibilità soltanto alle società autorizzate dello stesso tenant, mai cross-tenant.
+
+**Accettazione finita B03 (prove locali nel report `../b03-verification.md`; non completata prima della review):**
+1. A e B autorizzate nello stesso tenant leggono la stessa identità persistita e i tre campi D36; ricerca e lettura diretta rispettano i permessi di risorsa.
+2. B crea una destinazione locale; A non la trova nelle liste/ricerche e non può leggerla o modificarla conoscendone l'ID. Sola appartenenza al tenant o permesso di edit comune non concede automaticamente pubblicazione.
+3. Solo l'azione esplicita con autorizzazione specifica di pubblicazione sulla società proprietaria (D61) rende la stessa destinazione comune; tentativi senza scope o con società proprietaria estranea sono rifiutati e non mutano dati.
+4. Lettore privo del permesso specifico non modifica i campi comuni; modifiche autorizzate sono visibili ad A/B senza duplicare l'identità. Nessun controllo fiscale o deduplicazione inventato.
+5. Altro tenant, ID organizzativi estranei, identità senza membership e riuso di connessioni non ampliano letture o scritture; test applicativi e PostgreSQL RLS negativi distinti.
+6. Audit registra solo identificativi tecnici, azione ed esito pertinenti, senza ragione sociale, identificativo fiscale, indirizzi, token o credenziali.
+7. Percorso UI italiana/API/PostgreSQL reale, migrazione e rollback documentati, regressioni B02, build/test/audit e Compose isolata esercitati. L'ambiente manuale persistente non cambia; CI remota non dichiarata verificata prima dell'esecuzione remota.
 
 ### B04 — Commessa diretta nel tipo societario
 
@@ -166,7 +177,7 @@ Domande ai referenti, disponibilità dichiarata e gate per incremento sono racco
 | --- | --- | --- |
 | Dossier e scope implementativo autorizzati | B01 e codice di dominio | Proprietario |
 | Provider identity/ambiente scelti dalla prova | Chiusura B01, poi B02 | Proprietario con evidenze tecniche |
-| Campi comuni/locali minimi e permessi di pubblicazione | B03 | Proprietario/referenti anagrafiche |
+| Campi comuni/locali minimi D36 e permessi di pubblicazione D61: risolto; prove applicative pendenti | B03 | Proprietario/referenti anagrafiche |
 | Configurazione societaria dimostrativa e dati obbligatori | B04–B05 | Proprietario/referente officina |
 | Risultato economico chiarito in D32; parametri del caso 001 forniti in D41 e validazione del referente attestata dal proprietario in D42; ulteriori casi limite da acquisire | B05 | Proprietario; specialista per significati fiscali |
 | Disponibilità, collocazione, consumo e carcassa del caso minimo | B06–B09 | Referenti officina/magazzino |
