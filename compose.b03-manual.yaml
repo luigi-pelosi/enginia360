@@ -1,0 +1,14 @@
+# Separate persistent synthetic B03 project only. Never apply to B02.
+services:
+  keycloak:
+    restart: unless-stopped
+  postgres:
+    restart: unless-stopped
+  api:
+    restart: unless-stopped
+  web:
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:18083:8080"
+    volumes:
+      - ./web/nginx.b02-manual.conf:/etc/nginx/nginx.conf:ro

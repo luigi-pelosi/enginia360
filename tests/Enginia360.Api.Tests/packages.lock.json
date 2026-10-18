@@ -581,12 +581,23 @@
       "enginia360.api": {
         "type": "Project",
         "dependencies": {
+          "Enginia360.Counterparties": "[1.0.0, )",
           "Microsoft.AspNetCore.Authentication.JwtBearer": "[10.0.13, )",
           "Microsoft.AspNetCore.OpenApi": "[10.0.13, )",
           "Microsoft.EntityFrameworkCore": "[10.0.0, )",
           "Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore": "[10.0.0, )",
           "Npgsql.EntityFrameworkCore.PostgreSQL": "[10.0.0, )"
         }
+      },
+      "enginia360.counterparties": {
+        "type": "Project",
+        "dependencies": {
+          "Enginia360.Counterparties.Contracts": "[1.0.0, )",
+          "Npgsql.EntityFrameworkCore.PostgreSQL": "[10.0.0, )"
+        }
+      },
+      "enginia360.counterparties.contracts": {
+        "type": "Project"
       }
     }
   }

@@ -8,6 +8,15 @@ import unittest
 
 
 class CiRuntimeTests(unittest.TestCase):
+    def test_ci_executes_b03_runtime_acceptance(self):
+        workflow = Path(".github/workflows/ci.yml").read_text()
+        self.assertIn("run: sh scripts/run-b03-tests.sh", workflow)
+
+    def test_ci_provides_runner_scratch_directory(self):
+        workflow = Path(".github/workflows/ci.yml").read_text()
+        self.assertNotIn("TMPDIR: ${{ runner.temp }}", workflow)
+        self.assertIn("printf 'TMPDIR=%s\\n' \"$RUNNER_TEMP\" >> \"$GITHUB_ENV\"", workflow)
+
     def test_ci_initialization_satisfies_required_compose_configuration(self):
         workflow = Path(".github/workflows/ci.yml").read_text()
         lines = workflow.splitlines()
@@ -32,6 +41,7 @@ class CiRuntimeTests(unittest.TestCase):
             github_env = Path(directory) / "github-env"
             github_env.touch(mode=0o600)
             environment["GITHUB_ENV"] = str(github_env)
+            environment["RUNNER_TEMP"] = directory
             if command:
                 subprocess.run(
                     ["sh", "-eu", "-c", "\n".join(command)],
@@ -42,6 +52,7 @@ class CiRuntimeTests(unittest.TestCase):
             for entry in github_env.read_text().splitlines():
                 key, value = entry.split("=", 1)
                 environment[key] = value
+            self.assertEqual(environment.get("TMPDIR"), directory)
             result = subprocess.run(
                 ["docker", "compose", "config", "--quiet"],
                 env=environment,

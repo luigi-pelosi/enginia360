@@ -1,7 +1,7 @@
 # Dossier di fondazione — 01. Glossario e confini di dominio
 
-**Stato:** dossier di fondazione approvato dal proprietario in D58; i gate specialistici ed esecutivi registrati restano obbligatori. L'approvazione autorizza esclusivamente B01 nei limiti indicati, non l'intera vertical slice.
-**Ambito:** linguaggio del post-vendita e responsabilità dei contesti. Nessuna autorizzazione a implementare moduli.
+**Stato corrente:** dossier approvato in D58; B01 e B02 completati (B02: PR #23, baseline `6a80eecb35c287fb3e68ad782bba926f09f47fea`). D60 autorizza esclusivamente B03 in ambiente isolato sintetico; B04–B14 restano bloccati e non autorizzati. Gate specialistici ed esecutivi ancora obbligatori.
+**Ambito:** linguaggio del post-vendita e responsabilità dei contesti; autorizzazioni implementative circoscritte nel registro. D61 risolve il gate di pubblicazione B03; implementazione locale e prove tecniche descritte in `../b03-verification.md`, non ancora committate né approvate dalla review indipendente.
 **Fonte normativa di progetto:** `PROJECT_CHARTER.md`, sezioni 3, 4, 7–12 e 15.
 **Validatori richiesti:** proprietario del prodotto e referenti operativi; commercialista per significati e regole amministrative.
 
@@ -716,3 +716,21 @@ D01 e D02 restano issue aperte In verifica; B00 non viene completata o sbloccata
 **Scope B02 autorizzato:** realizzare il minimo percorso persistito e protetto con due tenant sintetici, più società/sedi/magazzini e scope differenti; autenticare identità sintetiche tramite la baseline Keycloak; validare nel backend il tenant context e i riferimenti organizzativi autorizzati; verificare che manipolazione degli identificativi, capability disabilitate e riuso delle connessioni non amplino l'accesso. PostgreSQL deve restare privato, con migrazioni e ripetibilità verificate; UI/API devono essere il minimo necessario al percorso B02.
 
 **Esclusioni vincolanti:** nessun dato o utente reale, dominio/acquisto o esposizione pubblica del login; nessuna dichiarazione di readiness per produzione; nessuna implementazione B03–B14, controparte, commessa o regola fiscale. B02 non decide cataloghi commerciali, ruoli universali o provisioning reale dei tenant. Ogni ampliamento richiede nuova autorizzazione esplicita.
+
+### D60 — B03 autorizzata, senza estensione agli incrementi successivi
+
+**Fonte e conferma:** Luigi Pelosi risponde «Procediamo» alla comunicazione «Il prossimo incremento è B03 — Controparte comune e destinazioni. È ancora bloccato in backlog: non è stato avviato e richiede la tua autorizzazione circoscritta». La risposta autorizza B03 soltanto, non B04 o l'intera slice. La delega operativa richiede di fermarsi su decisioni di dominio ad alto impatto non risolte dal dossier.
+
+**Scope autorizzato:** minimo percorso reale UI/API/PostgreSQL per la controparte D36, comune a due società del medesimo tenant, con ragione sociale, identificativo fiscale e sede legale; destinazione operativa locale riservata alla società che la registra e pubblicazione comune solo esplicita e autorizzata. Permesso specifico per modificare il nucleo comune; isolamento tenant e scope della risorsa verificati lato server; audit tecnico senza payload sensibili. Preservare sicurezza e prove B02, con test-first e ambiente Compose isolato.
+
+**Esclusioni vincolanti:** soltanto identità e dati sintetici, nessun utente/cliente/dato reale, provisioning reale o UI amministrativa di provisioning; nessuna nuova policy di business o validazione fiscale degli identificativi; niente acquisti, dominio, accesso pubblico o readiness di produzione; nessuna modifica dell'ambiente manuale persistente B02, bootstrap originario o Tailscale. B04–B14 restano bloccati e richiedono autorizzazione distinta. Nessun commit, push o merge prima della review indipendente del parent.
+
+**Gate storico:** il permesso/scope di pubblicazione era da chiarire prima del codice. Risolto dalla conferma esplicita D61; nessuna estensione dello scope D60.
+
+### D61 — Pubblicazione con permesso distinto sulla società proprietaria
+
+**Fonte e conferma:** Luigi Pelosi conferma esplicitamente la proposta «un permesso specifico di pubblicazione, assegnato sulla società proprietaria della destinazione, distinto dal permesso di modificare l’anagrafica comune. Un’autorizzazione limitata a sede o magazzino non basterebbe».
+
+**Decisione:** pubblicare richiede il permesso specifico riferito alla società proprietaria della destinazione. Il solo edit comune, un grant su altra società o un'autorizzazione limitata a sede/magazzino non bastano. La pubblicazione esplicita rende visibile la destinazione alle altre società autorizzate dello stesso tenant, mai ad altri tenant. D36 resta il contratto minimo dei campi comuni; D21 governa separatamente la modifica comune. Non sono approvati ruoli universali, autorità di concessione, revoca, deduplicazione o validazione fiscale.
+
+**Stato corrente:** gate di dominio B03 risolto; implementazione locale entro D60, con prove tecniche nel report `../b03-verification.md`; review indipendente e CI remota ancora da eseguire. B04–B14 restano bloccati e non autorizzati; nessun commit/push/merge prima della review indipendente.

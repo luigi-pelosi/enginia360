@@ -1,0 +1,62 @@
+import { afterEach, expect, test, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+const base=import.meta.env.VITE_B03_HTTP_BASE as string|undefined;
+afterEach(()=>{cleanup();vi.unstubAllGlobals();vi.unstubAllEnvs();vi.resetModules();});
+// No response stubs: DOM actions use the real private nginx/API/Keycloak/PostgreSQL path.
+test.skipIf(!base)('real B03 DOM and HTTP: private destination, publication, common edit and denied publication',async()=>{
+    const realFetch=globalThis.fetch;
+    vi.stubGlobal('fetch',(url:string,init?:RequestInit)=>realFetch(new URL(url,base).href,init));
+    vi.stubEnv('VITE_B03_TEST_UI','true');
+    const {default:App}=await import('./App');
+    async function login(username:string,password:string){
+        render(<App/>);
+        fireEvent.change(screen.getByLabelText('Utente sintetico'),{target:{value:username}});
+        fireEvent.change(screen.getByLabelText('Password sintetica'),{target:{value:password}});
+        fireEvent.click(screen.getByRole('button',{name:'Accedi'}));
+        await screen.findByRole('button',{name:'Alfa Società Due'}, {timeout:15000});
+    }
+    const address='Destinazione DOM '+crypto.randomUUID();
+    await login('operatore-alfa-sintetico','synthetic-alpha-password');
+    fireEvent.click(screen.getByRole('button',{name:'Alfa Società Due'}));
+    fireEvent.click(await screen.findByRole('button',{name:'Destinazioni'}));
+    fireEvent.change(await screen.findByLabelText('Indirizzo operativo'),{target:{value:address}});
+    fireEvent.click(screen.getByRole('button',{name:'Aggiungi destinazione privata'}));
+    await screen.findByText(address);
+    fireEvent.click(screen.getByRole('button',{name:'Alfa Società Uno'}));
+    fireEvent.click(await screen.findByRole('button',{name:'Destinazioni'}));
+    await screen.findByLabelText('Indirizzo operativo');
+    expect(screen.queryByText(address)).toBeNull();
+    fireEvent.click(screen.getByRole('button',{name:'Alfa Società Due'}));
+    fireEvent.click(await screen.findByRole('button',{name:'Destinazioni'}));
+    const row=(await screen.findByText(address)).closest('article')!;
+    fireEvent.click(row.querySelector('button')!);
+    await waitFor(()=>expect(screen.getByText(address).closest('article')?.textContent).toContain('Condivisa nel tenant'));
+    fireEvent.click(screen.getByRole('button',{name:'Alfa Società Uno'}));
+    fireEvent.click(await screen.findByRole('button',{name:'Destinazioni'}));
+    await screen.findByText(address);
+    const unpublished='Non pubblicata DOM '+crypto.randomUUID();
+    fireEvent.click(screen.getByRole('button',{name:'Alfa Società Due'}));
+    fireEvent.click(await screen.findByRole('button',{name:'Destinazioni'}));
+    fireEvent.change(await screen.findByLabelText('Indirizzo operativo'),{target:{value:unpublished}});
+    fireEvent.click(screen.getByRole('button',{name:'Aggiungi destinazione privata'}));
+    await screen.findByText(unpublished);
+    cleanup();
+    await login('operatore-alfa-senza-lettura','synthetic-no-read');
+    expect(screen.queryByRole('button',{name:'Alfa Società Uno'})).toBeNull();
+    fireEvent.click(screen.getByRole('button',{name:'Alfa Società Due'}));
+    fireEvent.click(await screen.findByRole('button',{name:'Modifica campi comuni'}));
+    const name='Controparte DOM sintetica '+crypto.randomUUID();
+    fireEvent.change(screen.getByLabelText('Ragione sociale comune'),{target:{value:name}});
+    fireEvent.click(screen.getByRole('button',{name:'Salva campi comuni'}));
+    await screen.findByText(name);
+    fireEvent.click(screen.getByRole('button',{name:'Destinazioni'}));
+    const deniedRow=(await screen.findByText(unpublished)).closest('article')!;
+    fireEvent.click(deniedRow.querySelector('button')!);
+    expect((await screen.findByRole('alert')).textContent).toContain('Pubblicazione rifiutata');
+    expect(screen.getByText(unpublished).closest('article')?.textContent).toContain('Riservata');
+    const privateAddress='Negazione DOM '+crypto.randomUUID();
+    fireEvent.change(await screen.findByLabelText('Indirizzo operativo'),{target:{value:privateAddress}});
+    // This identity has common-edit/read, not destination-write: the UI must surface the real denial.
+    fireEvent.click(screen.getByRole('button',{name:'Aggiungi destinazione privata'}));
+    expect((await screen.findByRole('alert')).textContent).toContain('Destinazione non salvata');
+},30000);

@@ -27,7 +27,7 @@ Tenant = cliente/gruppo contrattuale (es. Beta Group)
 ## Controparti comuni ed estensioni societarie
 
 - Le società dello stesso tenant condividono l'anagrafica comune delle controparti, con estensioni societarie riservate (D18, D22).
-- Una nuova destinazione è societaria per default; diventa comune al gruppo solo tramite scelta esplicita autorizzata (D20).
+- Una nuova destinazione è societaria per default; diventa comune al gruppo solo tramite scelta esplicita autorizzata (D20). D61: permesso di pubblicazione distinto dall’edit comune e riferito alla società proprietaria; grant limitati a sede/magazzino non bastano. Condivisione solo nello stesso tenant.
 - La creazione della controparte da parte di A non ne determina una proprietà esclusiva di A.
 - La condivisione dell'identità non concede implicitamente accesso a documenti, saldi, condizioni commerciali o customizing delle altre società.
 - Non esiste condivisione automatica tra tenant di clienti estranei.
