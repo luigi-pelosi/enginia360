@@ -1,5 +1,12 @@
 # Dossier di fondazione — 01. Glossario e confini di dominio
 
+## Stato corrente consolidato — D70/D71
+
+B01–B06 consegnati; B06 main `d03b661624b67a9bb41c8ee2d48fde17019246e1` (PR #27). B07–B14 autorizzati in sequenza autonoma, un solo WIP. B07 In corso: prelievo parziale esplicito q6 sul residuo della prenotazione, senza consumo, fisico/impegno invariati; area interna facoltativa societaria, picking list distinta. B08–B14 restano Backlog per dipendenze, non per mancata autorizzazione. G02/G03 e vincoli specialistici ancora pertinenti restano obbligatori al rispettivo incremento, non già soddisfatti. La parzialità del consumo non è decisa da D71.
+
+Accettazione automatica isolata effimera, nessun nuovo ambiente manuale persistente, nessuna review LLM o approvazione manuale di routine. Bootstrap 443, segreti, volumi e backup conservati invariati. Le descrizioni successive di stato/autorizzazione precedente sono **storiche e superate da questo riepilogo e D70/D71**; i requisiti di dominio restano validi. Prove/CI/completamento non sono dedotti dall'autorizzazione.
+
+
 **Stato corrente D69 — 19 ottobre 2026:** B05 completata (PR #26, baseline `605a7d5937b645681eb95cf644e228613b1d4ce8`). Il proprietario approva l’opzione A: prenotazioni parziali esplicite, mai troncamento automatico. B06 privata/sintetica implementata e verificata localmente, candidata alla review indipendente e alla successiva preparazione manuale del parent; non Completata. G02/B06 dispone delle prove tecniche nel [report B06](../b06-verification.md), senza chiudere G02/B07–B09. B07–B14 restano blocked/Backlog e non autorizzati. Nessun commit/push/merge o deployment persistente B06.
 
 ### Stati precedenti — storici, superati dove incompatibili con D69
@@ -848,3 +855,15 @@ D01 e D02 restano issue aperte In verifica; B00 non viene completata o sbloccata
 **Scope ed esclusioni:** esclusivamente B06 privata/sintetica D68. Il retry dopo disponibilità usa una fixture tecnica isolata, non una policy acquisti/ricevimento. Nessun picking, consumo, rilascio/annullamento, costo, fiscalità o B07–B14. Review indipendente, preparazione e accettazione manuale del parent restano prima della consegna; nessun commit/push/merge/deploy persistente autorizzato.
 
 **Evidenza corrente:** modulo Inventory e porta pubblica Workshop, UI italiana con fetch reale, test HTTP/SQL/RLS/audit, migrazioni ripetute/rollback/reapply e concorrenza controllata disponibili localmente. Il precedente test di stock passato senza RED non è evidenza test-first: la nuova barriera SQL ha riprodotto otto successi concorrenti sulla disponibilità di due, prima del lock di riga; cinque interleaving passano dopo il fix. Dettagli, comandi, limiti e regressioni nel [report B06](../b06-verification.md). G02/B06 tecnicamente esercitato, non completamento del backlog o validazione di B07–B09.
+
+### D70 — Consegna autonoma sequenziale B07–B14 autorizzata
+
+**Fonte:** istruzione esplicita corrente di Luigi Pelosi, 19 ottobre 2026, dopo B06 PR #27 incorporata in main `d03b661624b67a9bb41c8ee2d48fde17019246e1`. Autorizzati B07–B14 nell'ordine del backlog, un solo WIP: test/audit → commit → PR → CI remota verde sullo SHA esatto → merge → CI main → chiusura issue/board. Nessuna nuova approvazione del proprietario, review LLM o accettazione manuale di routine per ogni incremento.
+
+**Confini:** esclusivamente dati/identità sintetici e accettazione effimera isolata; nessun nuovo ambiente manuale persistente, deploy pubblico, acquisto, ERP/SdI reale, incasso o conformità fiscale generale. Bootstrap HTTP e Tailscale 443, segreti, backup e volumi conservati non si modificano. Le precedenti frasi di mancata autorizzazione B07–B14 e gate manuali sono storiche e superate, non i gate di dipendenza, sicurezza, dominio o specialistici. Questi si verificano nel rispettivo incremento; una reale scelta non confermata richiede una sola domanda concreta. OPE03 prova restore sintetica in B14; responsabilità/target operativi OPE03–OPE05 restano prima di servizio/pilota, non nuovi blocchi d'avvio.
+
+### D71 — Prelievo parziale esplicito confermato
+
+**Fonte:** «Confermo» riferito alla proposta esatta: su 2 pezzi prenotati è possibile prelevarne esplicitamente 1, lasciando l'altro prenotato da prelevare. Registrazione del 19 ottobre 2026 dopo verifica dell'ultimo ID effettivo D69.
+
+**Decisione:** quantità positiva q6, non superiore al residuo non prelevato della specifica prenotazione nel magazzino autorizzato della sede di testata. Nessun troncamento o aumento implicito; provenienza, lista di prelievo, assegnazione commessa/lavorazione e collocazione persistite. Il prelievo interno lascia fisico e impegno invariati: il materiale prelevato non torna disponibile. Area facoltativa societaria D33; disabilitata significa nessun transito fittizio, non consumo. G02/B07 è risolto quanto alla parzialità; prove di concorrenza, retry, autorizzazione e stock restano richieste. Nessuna decisione sulla parzialità di installazione/consumo B08, rilascio/annullamento o reso nuovo.

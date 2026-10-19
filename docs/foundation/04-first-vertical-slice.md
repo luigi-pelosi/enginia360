@@ -1,5 +1,12 @@
 # Dossier di fondazione — 04. Prima vertical slice
 
+## Stato corrente consolidato — D70/D71
+
+B01–B06 consegnati; B06 main `d03b661624b67a9bb41c8ee2d48fde17019246e1` (PR #27). B07–B14 autorizzati in sequenza autonoma, un solo WIP. B07 In corso: prelievo parziale esplicito q6 sul residuo della prenotazione, senza consumo, fisico/impegno invariati; area interna facoltativa societaria, picking list distinta. B08–B14 restano Backlog per dipendenze, non per mancata autorizzazione. G02/G03 e vincoli specialistici ancora pertinenti restano obbligatori al rispettivo incremento, non già soddisfatti. La parzialità del consumo non è decisa da D71.
+
+Accettazione automatica isolata effimera, nessun nuovo ambiente manuale persistente, nessuna review LLM o approvazione manuale di routine. Bootstrap 443, segreti, volumi e backup conservati invariati. Le descrizioni successive di stato/autorizzazione precedente sono **storiche e superate da questo riepilogo e D70/D71**; i requisiti di dominio restano validi. Prove/CI/completamento non sono dedotti dall'autorizzazione.
+
+
 **Stato corrente D69 — 19 ottobre 2026:** il proprietario approva esplicitamente l’opzione A: prenotazioni parziali richieste dall’operatore, mai troncamento automatico. B06 privata/sintetica è implementata e verificata localmente; candidata alla review indipendente, non Completata. G02/B06 dispone delle prove tecniche nel [report B06](../b06-verification.md); G02/B07–B09 resta aperto. B07–B14 restano blocked/Backlog e non autorizzati. Nessun commit/push/merge o deployment persistente prima della parent review.
 
 **Stato:** perimetro minimo confermato in D28; flusso e contratti seguenti sono proposte per revisione. Nessuna autorizzazione a implementare prima dell'approvazione del dossier.

@@ -29,6 +29,7 @@ public static class InventoryModule
         });
         routes.MapGet("/orders/{orderId:guid}/lines/{lineId:guid}", Read);
         routes.MapPost("/orders/{orderId:guid}/lines/{lineId:guid}/reservations", Reserve);
+        PickingEndpoints.Map(routes);
         return app;
     }
     private static string Subject(ClaimsPrincipal user) => user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
@@ -123,12 +124,19 @@ internal sealed class InventoryDbContext(DbContextOptions<InventoryDbContext> op
 {
     internal DbSet<Stock> Stock => Set<Stock>();
     internal DbSet<Reservation> Reservations => Set<Reservation>();
+    internal DbSet<PickedPart> Picks => Set<PickedPart>();
+    internal DbSet<PickingPolicy> PickingPolicies => Set<PickingPolicy>();
+    internal DbSet<PickingLocation> PickingLocations => Set<PickingLocation>();
     protected override void OnModelCreating(ModelBuilder b)
     {
         b.Entity<Stock>().ToTable("stock", "inventory").HasKey(x => new { x.TenantId, x.LegalEntityId, x.SiteId, x.WarehouseId, x.CatalogItemId });
         b.Entity<Stock>().Property(x => x.Physical).HasPrecision(12, 6);
         b.Entity<Reservation>().ToTable("reservations", "inventory").HasKey(x => x.Id);
         b.Entity<Reservation>().Property(x => x.Quantity).HasPrecision(12, 6);
+        b.Entity<PickedPart>().ToTable("picks", "inventory").HasKey(x => x.Id);
+        b.Entity<PickedPart>().Property(x => x.Quantity).HasPrecision(12, 6);
+        b.Entity<PickingPolicy>().ToTable("picking_policies", "inventory").HasKey(x => new { x.TenantId, x.LegalEntityId });
+        b.Entity<PickingLocation>().ToTable("picking_locations", "inventory").HasKey(x => new { x.TenantId, x.LegalEntityId, x.SiteId, x.WarehouseId });
     }
 }
 internal sealed class Stock

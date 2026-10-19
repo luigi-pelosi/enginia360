@@ -1,5 +1,12 @@
 # Dossier di fondazione — 09. Validazioni dei referenti (D01)
 
+## Stato corrente consolidato — D70/D71
+
+B01–B06 consegnati; B06 main `d03b661624b67a9bb41c8ee2d48fde17019246e1` (PR #27). B07–B14 autorizzati in sequenza autonoma, un solo WIP. B07 In corso: prelievo parziale esplicito q6 sul residuo della prenotazione, senza consumo, fisico/impegno invariati; area interna facoltativa societaria, picking list distinta. B08–B14 restano Backlog per dipendenze, non per mancata autorizzazione. G02/G03 e vincoli specialistici ancora pertinenti restano obbligatori al rispettivo incremento, non già soddisfatti. La parzialità del consumo non è decisa da D71.
+
+Accettazione automatica isolata effimera, nessun nuovo ambiente manuale persistente, nessuna review LLM o approvazione manuale di routine. Bootstrap 443, segreti, volumi e backup conservati invariati. Le descrizioni successive di stato/autorizzazione precedente sono **storiche e superate da questo riepilogo e D70/D71**; i requisiti di dominio restano validi. Prove/CI/completamento non sono dedotti dall'autorizzazione.
+
+
 **Aggiornamento consegna B06:** accettazione privata positiva del proprietario «Funziona. Procediamo» e autorizzazione alla consegna Git/PR/CI/merge della sola B06. Review indipendenti core/lifecycle e artefatti manuali PASS sul candidato esatto; prove finali rieseguite nel [report B06](../b06-verification.md). G02/B06 soddisfatto per prenotazioni parziali esplicite q6 D69, insufficienza senza autotrim, concorrenza/retry e fisico invariato. G02/B07–B09 resta aperto; B07–B14 non autorizzati/blocked/Backlog. I paragrafi precedenti alla consegna restano storici; CI remota e chiusura sono da verificare sui riferimenti effettivi della PR/issue #12, non assunte dalla prova locale.
 
 **Stato corrente D69 — 19 ottobre 2026:** il proprietario approva esplicitamente l’opzione A: prenotazioni parziali richieste dall’operatore, mai troncamento automatico. B06 privata/sintetica è implementata e verificata localmente; candidata alla review indipendente, non Completata. G02/B06 dispone delle prove tecniche nel [report B06](../b06-verification.md); G02/B07–B09 resta aperto. B07–B14 restano blocked/Backlog e non autorizzati. Nessun commit/push/merge o deployment persistente prima della parent review.
