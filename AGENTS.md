@@ -1,6 +1,6 @@
 # Engineering standards
 
-Read all of PROJECT_CHARTER.md before editing. This repository is Enginia360, not SmartData. Do not modify or depend on SmartData. See docs/bootstrap.md for the explicitly limited bootstrap authorization; the foundation dossier remains unapproved.
+Read all of PROJECT_CHARTER.md before editing. This repository is Enginia360, not SmartData. Do not modify or depend on SmartData. See docs/bootstrap.md for the limited bootstrap authorization and foundation decisions D58, D70–D71 for the approved dossier and current sequential B07–B14 synthetic/ephemeral delivery scope. No new persistent manual environment or public deployment is authorized.
 
 - Implement only the authorized behavior, with a failing executable test before production code (RED → GREEN → REFACTOR). Report exact commands and outcomes.
 - Use English identifiers, immutable contracts, nullable reference types and warnings as errors. Italian is the initial UI language. No speculative abstractions or domain modules.

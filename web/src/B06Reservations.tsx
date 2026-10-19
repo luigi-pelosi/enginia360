@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import B07Picking from './B07Picking';
 
 type State = { physical: string; available: string; reserved: string; remaining: string; reservations: { id: string }[] };
 type Warehouse = { id: string; name: string };
@@ -83,6 +84,8 @@ export default function B06Reservations({ order, line, token }: Props) {
     <button disabled={busy || !state || !warehouse} onClick={() => void reserve()}>Prenota quantità esplicita</button>
     <button disabled={busy} onClick={() => void reload()}>Rileggi prenotazioni</button>
     {state && <div aria-live="polite"><p>Fisico: {state.physical}</p><p>Disponibile: {state.available}</p><p>Prenotato sulla riga: {state.reserved}</p><p>Residuo da prenotare: {state.remaining}</p></div>}
+    {import.meta.env.VITE_B07_TEST_UI === 'true' && state?.reservations.map(x =>
+      <B07Picking key={x.id} url={url} reservationId={x.id} token={token}/>)}
     {error && <p role="alert">{error}</p>}
   </section>;
 }
