@@ -1,6 +1,8 @@
 # Dossier di fondazione — 01. Glossario e confini di dominio
 
-**Stato corrente:** dossier approvato in D58; B01–B03 completati. B03 integrata con PR #24, merge `584784812dc8086c3c313e32d2b91adfdfe98bc0`, issue #9 chiusa. D62 autorizza solo B04 sintetica e privata; D63 risolve il gate veicoli distinguendo gestione anagrafica e selezione per commessa. B04 pronta per implementazione test-first sul branch `feat/b04-direct-workshop-order`, non ancora implementata o verificata. B05–B14 restano Backlog/bloccati e non autorizzati.
+**Consegna B05 — 19 ottobre 2026:** accettazione manuale positiva del proprietario «Ok funziona tutto. Procediamo»; review core e quattro artefatti manuali acquisite, discrepanza documentale risolta. Autorizzata la sola consegna Git/PR/CI/merge/chiusura B05, non nuovi deploy o B06. Stato al congelamento: In verifica; esito finale remoto nella PR e issue #11. Limiti e perimetro nel report B05. Le indicazioni precedenti di accettazione/review pendenti sono storiche e superate da questa registrazione. B06–B14 restano bloccati/Backlog e non autorizzati.
+
+**Stato corrente:** dossier approvato in D58; B01–B04 completati. B04 integrata con PR #25, merge `0f9cc50fcf685d2e8ffab2686947124fb3189293`, issue #10 chiusa e Project Completato, verificati sul remoto. D64 autorizza soltanto B05 sintetica e privata; D65 risolve il gate catalogo con visibilità anagrafica nel tenant, senza ampliare permessi gestionali o dati societari. B06–B14 restano Backlog/bloccati e non autorizzati. Le dichiarazioni pre-consegna nelle decisioni precedenti sono storiche.
 **Ambito:** linguaggio del post-vendita e responsabilità dei contesti; autorizzazioni implementative circoscritte nel registro. D60/D61 restano la fonte storica dello scope B03 e del permesso di pubblicazione; il loro stato pre-consegna non descrive più la baseline corrente.
 **Fonte normativa di progetto:** `PROJECT_CHARTER.md`, sezioni 3, 4, 7–12 e 15.
 **Validatori richiesti:** proprietario del prodotto e referenti operativi; commercialista per significati e regole amministrative.
@@ -760,3 +762,61 @@ D01 e D02 restano issue aperte In verifica; B00 non viene completata o sbloccata
 **Limite implementativo:** B03 non ha implementato add/remove dell'identità comune della controparte; D63 non autorizza a inventarne la policy o a completarli incidentalmente. Per B04 sono sufficienti fixture sintetiche e un selettore minimo del veicolo; nessun editor amministrativo o CRUD completo veicoli/controparti. Policy di gestione futura non necessaria al selettore resta rinviata, non impedimento fittizio a B04.
 
 **Stato corrente:** gate D62 risolto; soltanto B04 è sbloccata per il percorso finito D62 con test-first e review indipendente. B05–B14 restano Backlog/bloccati e non autorizzati. Nessun commit/push/deployment persistente; B02/B03 manuali e Tailscale invariati. La decisione non costituisce prova applicativa né completamento B04.
+
+### D64 — B05 autorizzata; gate catalogo prima del codice
+
+**Nota di lettura corrente:** il gate catalogo e la raccomandazione societaria sotto sono storici, risolti da D65. Scope ed esclusioni D64 restano validi.
+
+**Fonte e ambito:** Luigi Pelosi risponde «procedi» dopo la chiusura di B04; la delega del parent identifica esclusivamente il prossimo incremento B05. Registrazione del 19 ottobre 2026, non approvazione implicita delle decisioni ancora aperte.
+
+**Scope positivo e finito:** aggiungere una prestazione e un ricambio alla commessa persistita mediante minimo percorso privato UI italiana/API/PostgreSQL, contratti e ownership espliciti. Quantità, prezzi unitari, sconti e arrotondamenti con decimal/value object; backend autorevole sui calcoli, senza fiducia nei totali client. Riepilogo commerciale, imponibile netto, imposte e totale attribuiti al soggetto a carico, default uno per riga; associazione alla stessa lavorazione secondo configurazione societaria dimostrativa D39, senza duplicare importi nei raggruppamenti operativi. Storico non riscritto da cambi anagrafici/listini/configurazioni. Caso 001: 164.50 / 36.19 / 200.69, precisioni 6/3, righe a due decimali e IVA aggregata ROUND_HALF_UP secondo D41/D42, senza generalizzazione fiscale. Test-first verticali; isolamento tenant/società/sede, capability/permessi, input e riferimenti obsoleti, concorrenza/retry, trasporto decimale invariante e limiti anti-overflow; migrazioni/rollback/audit/RLS/pooling, DOM/HTTP e selezione CI, regressioni isolate B02–B04.
+
+**Esclusioni:** costi e marginalità anche provvisori (D32), prenotazioni/movimenti e B06–B14; ripartizioni/garanzia, ERP reale, fiscalità reale/SdI, catalogo amministrativo completo, provisioning, dati o identità reali, acquisti o accesso pubblico. Nessun commit/push/merge o deployment manuale persistente prima della review del parent e della preparazione manuale. Conservare ambienti B02/B03/B04, storage esplicito e backup, bootstrap e Tailscale 443/8443/8444/8445; nessun accesso ai segreti.
+
+**Gate prima del codice:** documento 03 §3/limiti dichiara ancora non deciso il nucleo condiviso del catalogo. D63 riguarda soltanto i veicoli e non può essere estesa ad articoli/prestazioni. Catalog non esiste nella baseline; Workshop.Contracts espone soltanto testata/tipo, non righe o prezzi. Issue #11 e discussione (vuota) non risolvono il confine. Un selettore o riferimento di catalogo tenant-wide oppure societario fisserebbe una nuova policy di accesso. Domanda unica al proprietario tramite parent: **per B05, prestazioni e ricambi selezionabili sono comuni nel tenant oppure riservati alla società della commessa?** Raccomandazione prudente: riservati alla società per questa prova finita, senza decidere il catalogo generale; proposta non ancora approvata.
+
+**Altri limiti da non inventare:** il soggetto unico e l'associazione dimostrativa sono già confermati in D28/D39; non richiedono una nuova scelta universale. Non sono invece approvate derivazioni automatiche di prezzo/pagante dal catalogo o regole generali di modifica dei listini. G01/D46 resta gate prima del completamento: ulteriori casi limite con limiti applicativi ed esiti attesi/validazione pertinente, inclusa precisione degli sconti non specificata dal solo caso 001.
+
+**Stato:** avvio documentale su `feat/b05-service-part-values`, baseline `0f9cc50fcf685d2e8ffab2686947124fb3189293`; implementazione ferma al gate catalogo. Issue #11 aperta/blocked, Project Backlog finché mancano requisiti sufficienti; autorizzazione non significa Pronto. Nessuna prova RED/GREEN applicativa o CI B05 eseguita; nessuna implementazione iniziata. B06–B14 restano non autorizzati/bloccati/Backlog.
+
+### D65 — Visibilità delle anagrafiche a livello tenant
+
+**Nota corrente:** precisioni B05 ulteriormente definite da D66; la frase storica sotto sugli sconti non più approvati è superata da D66.
+
+**Fonte e conferma:** risposta diretta di Luigi Pelosi al gate catalogo D64, verbatim: «Il catalogo, l’anagrafica dell’articolo fisico e delle prestazioni, è visibile a livello di tenant. Come regola generale, tutto ciò che è anagrafico è sempre a livello di tenant.»
+
+**Decisione corrente:** la visibilità dell'identità anagrafica comune è tenant-wide, inclusi articoli fisici e prestazioni. Non occorre richiedere nuovamente questa policy per ogni anagrafica. Il tenant verificato resta il confine di isolamento: nessuna condivisione fra tenant. Per B05 il Catalogo possiede l'identità e la proiezione minima usata dalla commessa attraverso contratti pubblici; un articolo registrato da un'altra società del medesimo tenant è selezionabile senza concedere accesso a quella società.
+
+**Distinzioni vincolanti:** visibilità/uso non concedono automaticamente add/edit/remove, amministrazione o facoltà di concedere permessi. D21/D23 e i controlli server sull'azione/risorsa restano validi. Identità comune e sue estensioni sono distinte: condizioni e prezzi societari, documenti, stock/disponibilità, customizing societario versionato D9/D14 e destinazioni riservate D20/D36 non diventano comuni. Pubblicazione esplicita con permesso specifico sulla società proprietaria resta D61. D63 conserva la distinzione selezione veicolo/gestione e non riceve nuovi grant impliciti.
+
+**Perimetro B05:** gate catalogo risolto; proseguire soltanto con il percorso finito D64. Il caso 001 fornisce valori espliciti sintetici, non un listino o una derivazione automatica prezzo/pagante dal master. Precisione generale degli sconti e politiche fiscali ulteriori non sono approvate. G01/D46 richiede evidenze e limiti dichiarati prima del completamento, non riapertura della visibilità già decisa. B06–B14 restano bloccati/Backlog e non autorizzati. Nessun commit/push/merge o deployment persistente prima della review/preparazione manuale.
+
+### D66 — Estensione B05 a valori variabili; precisioni approvate
+
+**Nota corrente:** il solo gate sugli stadi sotto è storico e risolto da D67. Non richiedere altre conferme della medesima sequenza.
+
+**Fonte:** Luigi Pelosi richiede «Estendiamola» e precisa, verbatim:
+
+> Quantità fino a 6 decimali
+> Prezzo unitario fino a 6 decimali
+> Sconto %: 2 decimali 0-100
+> Importi monetari: fino a 6 decimali
+> Imposta: calcolata sull’imponibile aggregato per raggruppamento fiscale
+
+**Decisione corrente:** estensione autorizzata solo per B05 privata/sintetica; superata la restrizione ai valori esatti del caso 001 e la precedente scala quantità 3/sconto intero. Le precisioni sopra non vanno riconfermate. La precisione monetaria del calcolo aziendale è distinta da visualizzazione o regolamento in valuta: nessuna riduzione automatica a due decimali di imposta/totale è autorizzata da D66. ROUND_HALF_UP è documentato in D41/D42 per gli stadi del caso 001, non prova sufficiente degli stadi della nuova politica a sei decimali.
+
+**Unico gate matematico residuo G01/D46:** a quale stadio ridurre a sei decimali i risultati intermedi? Esempio verificato con Python Decimal: due righe (prestazione e ricambio), ciascuna quantità `1`, prezzo `0.000001`, sconto `50.00`, hanno netto esatto `0.0000005`. Arrotondando HALF_UP ciascuna riga a sei decimali prima della somma, base `0.000002`; mantenendo gli intermedi fino all’aggregazione, base `0.000001`. Chiedere se adottare la prima sequenza (netto riga HALF_UP a 6 → somma per gruppo → imposta HALF_UP a 6 → totale somma), oppure conservare gli intermedi fino al gruppo. La prima è una proposta, non una scelta approvata. Nessuna scelta implicita di arrotondamento fiscale a due decimali.
+
+**Stato storico D66:** registrazione documentale del 19 ottobre 2026; estensione runtime allora ferma prima della scelta degli stadi. Nessun RED/GREEN nuovo in quel passaggio. Stato corrente ed evidenze: D67 e report B05.
+
+### D67 — Sequenza numerica B05 confermata; implementazione a valori variabili
+
+**Fonte e ambito:** le ripetute risposte «Confermo» di Luigi Pelosi si riferiscono alla prima sequenza esatta proposta in D66; l'istruzione successiva «Riprendi ultima attività» e la richiesta esplicita di implementare non riaprono tale scelta. Registrazione del 19 ottobre 2026. Nessuna approvazione estesa a politiche adiacenti.
+
+**Decisione:** quantità/prezzo unitario fino a 6 decimali; sconto fino a 2 decimali, estremi 0 e 100 inclusi. Calcolare il netto di **ciascuna riga**, arrotondarlo ROUND_HALF_UP a **6 decimali**, sommare i netti arrotondati nel raggruppamento fiscale, calcolare l'imposta del gruppo e arrotondarla ROUND_HALF_UP a **6 decimali**; totale somma delle basi e imposte. Trasporto e visualizzazione monetaria conservano 6 decimali, senza riduzione implicita a 2. Due righe da netto esatto `0.0000005` danno quindi base `0.000002`.
+
+**G01/D46:** chiusa la scelta delle politiche numeriche di questa estensione finita, non certificazione fiscale/legale generale. Evidenza eseguibile e limiti tecnici nel report B05: HTTP→SQL→GET, casi limite, DOM con fetch reale, retry/concorrenza e regressioni. D42 mantiene il solo ambito del caso 001 storico; altri trattamenti IVA, emissione reale e B12 richiedono le rispettive validazioni.
+
+**Confini tecnici:** ancora una prestazione e un ricambio, IVA sintetica 22%, stessa lavorazione e pagante approvati, prezzi espliciti non derivati dal catalogo. Quantità positiva; prezzo zero e sconto 100 ammessi. Bound di rappresentazione/anti-overflow `numeric(12,6)` per quantità/prezzo (massimo `999999.999999`), non massimo commerciale o nuova regola di dominio; netto `numeric(18,6)`, sconto `numeric(5,2)`. Lessico invariante senza segno, esponente o separatore locale; valori equivalenti come `10.0` normalizzati.
+
+**Stato:** B05 In corso, implementazione locale non committata. Review indipendente del candidato e accettazione manuale restano il prossimo gate. Nessun commit/push/merge/deployment persistente; B06–B14 restano bloccati/Backlog e non autorizzati. Esclusioni D64 invariate.

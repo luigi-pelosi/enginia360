@@ -139,6 +139,16 @@
           "Microsoft.IdentityModel.Tokens": "8.19.2"
         }
       },
+      "enginia360.catalog": {
+        "type": "Project",
+        "dependencies": {
+          "Enginia360.Catalog.Contracts": "[1.0.0, )",
+          "Npgsql.EntityFrameworkCore.PostgreSQL": "[10.0.0, )"
+        }
+      },
+      "enginia360.catalog.contracts": {
+        "type": "Project"
+      },
       "enginia360.counterparties": {
         "type": "Project",
         "dependencies": {
@@ -162,6 +172,7 @@
       "enginia360.workshop": {
         "type": "Project",
         "dependencies": {
+          "Enginia360.Catalog.Contracts": "[1.0.0, )",
           "Enginia360.Counterparties.Contracts": "[1.0.0, )",
           "Enginia360.Vehicles.Contracts": "[1.0.0, )",
           "Enginia360.Workshop.Contracts": "[1.0.0, )",

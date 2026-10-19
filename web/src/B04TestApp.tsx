@@ -1,4 +1,4 @@
-import { FormEvent, useRef, useState } from "react";
+import { FormEvent, ReactNode, useRef, useState } from "react";
 
 type Context = {
   legalEntityId: string;
@@ -59,7 +59,7 @@ function order(value: unknown): Order {
     throw new Error("Invalid order");
   return value as Order;
 }
-export default function B04TestApp() {
+export default function B04TestApp({ commercial }: { commercial?: (order: Order, token: string) => ReactNode } = {}) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [token, setToken] = useState("");
@@ -215,10 +215,9 @@ export default function B04TestApp() {
   }
   return (
     <main>
-      <h1>Commessa diretta · prova privata B04</h1>
+      <h1>Commessa diretta · prova privata {commercial ? "B05" : "B04"}</h1>
       <p>
-        Solo dati e identità sintetici. Commessa già ordine cliente, nessuna
-        riga o fiscalità.
+        Solo dati e identità sintetici. Commessa già ordine cliente. {commercial ? "Valori del solo caso 001, nessuna emissione fiscale." : "Nessuna riga o fiscalità."}
       </p>
       {!token ? (
         <form onSubmit={login}>
@@ -333,6 +332,7 @@ export default function B04TestApp() {
               <p>Soggetto a carico: {saved.payerId}</p>
               <p>Intestatario veicolo: {saved.vehicleHolderId}</p>
               <p>Configurazione: versione {saved.configurationVersion}</p>
+              {commercial?.(saved, token)}
             </section>
           )}
         </>

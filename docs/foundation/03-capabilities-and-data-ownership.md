@@ -8,6 +8,7 @@
 
 - Le società di uno stesso tenant possono usare capability e sistemi autorevoli differenti (D24–D25).
 - Il nucleo anagrafico comune ha una sola autorità designata per il tenant, Enginia360 o un sistema esterno; i dati societari possono avere autorità proprie (D26).
+- D65 conferma come regola generale la visibilità anagrafica nel tenant, inclusi articoli fisici e prestazioni. Non concede mutazioni o accessi societari; prezzi, condizioni, customizing, stock e destinazioni riservate sono distinti dal nucleo comune. D61 e D63 restano validi.
 - Le copie sincronizzate non sono una seconda autorità. Ownership di un dato e possibilità di inoltrare un comando al sistema autorevole non sono sinonimi.
 - Customizing societario, entitlement, feature flag e permessi restano distinti. Le capability di un'altra società non conferiscono accesso o attivazione impliciti.
 - Gli sviluppi documentali sono configurabili; gli scenari sotto non impongono una sequenza universale né un predecessore obbligatorio per le fatture.
@@ -36,7 +37,8 @@ Sono composizioni esemplificative, non pacchetti indivisibili. La contabilità i
 | Appuntamenti e pianificazione officina | Società/sede | E | E | E |
 | Accettazione, commessa/ordine cliente officina | Società/sede | E | E | E |
 | Lavorazioni, assegnazioni e tempi effettivi | Società/sede | E | E | E |
-| Catalogo articoli/prestazioni e condizioni applicabili | Società; eventuale nucleo condiviso ancora aperto | X | E | E |
+| Identità anagrafica articoli fisici/prestazioni | Tenant, visibilità D65; autorità comune T | T | T | T |
+| Condizioni/prezzi ed estensioni del catalogo | Società, distinti dall'identità comune; nessuna derivazione automatica approvata in B05 | X | E | E |
 | Prenotazioni di stock e disponibilità impegnabile | Società/sede/magazzino | X | E | E |
 | Movimenti confermati, consumi e giacenze | Società/sede/magazzino | X | E | E |
 | Ordini di acquisto e ricevimento logistico | Società/sede/magazzino | X | E | E |
@@ -52,7 +54,7 @@ Sono composizioni esemplificative, non pacchetti indivisibili. La contabilità i
 - Una fattura emessa esternamente può essere rappresentata in Enginia360 tramite riferimento/copia controllata, senza una seconda emissione interna.
 - La commessa resta ordine cliente operativo in Enginia360 anche se l'ERP richiede una propria rappresentazione commerciale: eventuale replica è mappata, non una seconda autorità sullo stesso processo operativo. Il contratto deve distinguere i fatti di ciascun sistema.
 - Per P2, incassi/scadenze esterni possono essere visibili tramite proiezioni; eventuale raccolta pagamenti in Enginia360 richiede una composizione ulteriore da definire, non è approvata qui.
-- D63 risolve il perimetro veicoli: lettura/add/edit/remove seguono le regole approvate delle corrispondenti operazioni sulle controparti, senza inventare add/remove dell'identità comune non implementati in B03. La selezione per commessa è invece ammessa nell'intero tenant verificato mediante una proiezione minima dedicata: non concede accesso gestionale al veicolo, all'intestatario o ai dati riservati delle altre società. Per B04 bastano fixture sintetiche e selettore, non CRUD completo. Il perimetro condiviso del catalogo resta non deciso.
+- D63 separa gestione veicoli e selezione per commessa mediante proiezione minima nel tenant verificato. D65 risolve il nucleo condiviso del catalogo e la regola generale di visibilità anagrafica, senza add/edit/remove impliciti o accesso ai dati societari riservati. Per B04/B05 bastano fixture e selettori; nessun CRUD completo o nuova policy di cancellazione.
 - La destinazione societaria resta locale per default; una promozione al nucleo comune deve essere governata dal proprietario di quest'ultimo, non una scrittura concorrente da ERP diversi.
 - Le prove pilota possono portare ad altre composizioni valide. L'elenco non certifica che i relativi ERP espongano tutti i contratti necessari.
 

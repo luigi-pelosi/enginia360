@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Enginia360.Catalog.Contracts;
 using Enginia360.Counterparties.Contracts;
 using Enginia360.Vehicles.Contracts;
 using Enginia360.Workshop.Contracts;
@@ -41,7 +42,14 @@ public static class WorkshopModule
             return grant is null ? Results.StatusCode(403) : Results.Ok(await vehicles.List(grant.TenantId, ct));
         });
         routes.MapPost("/orders", Create);
+        routes.MapGet("/catalog", async (Guid legalEntityId, Guid siteId, ClaimsPrincipal user,
+            IWorkshopAccess access, IWorkshopCatalog catalog, CancellationToken ct) =>
+        {
+            var grant = await access.Authorize(Subject(user), legalEntityId, siteId, "workshop.orders.create", true, ct);
+            return grant is null ? Results.StatusCode(403) : Results.Ok(await catalog.List(grant.TenantId, ct));
+        });
         routes.MapGet("/orders/{id:guid}", Get);
+        CommercialEndpoints.Map(routes);
         return app;
     }
     private static string Subject(ClaimsPrincipal user) => user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
