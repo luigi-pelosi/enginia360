@@ -4,6 +4,10 @@ services:
     restart: unless-stopped
   postgres:
     restart: unless-stopped
+    environment:
+      PGDATA: /var/lib/postgresql/18/docker
+    volumes: !override
+      - postgres_storage_v4:/var/lib/postgresql
   api:
     restart: unless-stopped
   web:
@@ -12,3 +16,7 @@ services:
       - "127.0.0.1:18082:8080"
     volumes:
       - ./web/nginx.b02-manual.conf:/etc/nginx/nginx.conf:ro
+volumes:
+  postgres_storage_v4:
+    external: true
+    name: enginia360-b02-manual_postgres_storage_v4

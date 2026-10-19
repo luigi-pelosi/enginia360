@@ -14,6 +14,7 @@ public static class CounterpartiesModule
     public static IServiceCollection AddCounterparties(this IServiceCollection services, string connection)
     {
         services.AddDbContext<CounterpartiesDbContext>(o => o.UseNpgsql(connection));
+        services.AddScoped<IWorkshopCounterparties, WorkshopCounterparties>();
         return services;
     }
     public static WebApplication MapCounterparties(this WebApplication app)
