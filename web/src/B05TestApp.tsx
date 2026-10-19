@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import B04TestApp from "./B04TestApp";
+import B06Reservations from "./B06Reservations";
 type Item = { id: string; kind: "Service" | "Part"; label: string; version: number };
-type Line = { id: string; catalogItemId: string; catalogLabel: string; kind: string; quantity: string; unitPrice: string; discountPercent: string; netAmount: string; workingGroupId: string; payerId: string };
+type Line = { id: string; catalogVersion: number; catalogItemId: string; catalogLabel: string; kind: string; quantity: string; unitPrice: string; discountPercent: string; netAmount: string; workingGroupId: string; payerId: string };
 type Summary = { orderId: string; payerId: string; revision: number; lines: Line[]; netAmount: string; taxAmount: string; total: string; currency: "EUR"; policy: "Case001" };
 const uuid=(x:unknown):x is string=>typeof x==="string" && /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(x);
 const record=(x:unknown):x is Record<string,unknown>=>typeof x==="object" && x!==null;
@@ -87,6 +88,8 @@ function CommercialLines({order,token}:{order:{id:string;legalEntityId:string;si
     <button disabled={busy} onClick={()=>void reload()}>Rileggi valori salvati</button>
     {saved && <div aria-live="polite">
       {saved.lines.map(x=><p key={x.id}>{x.catalogLabel} · {x.quantity} × {x.unitPrice} EUR · sconto {x.discountPercent}% · netto {x.netAmount} EUR</p>)}
+      {import.meta.env.VITE_B06_TEST_UI === 'true' && saved.lines.filter(x => x.kind === 'Part').map(line =>
+        <B06Reservations key={line.id} order={order} line={line} token={token}/>)}
       <p>Soggetto unico a carico: {saved.payerId}</p>
       <p>Imponibile: {saved.netAmount} EUR</p><p>Imposta aggregata: {saved.taxAmount} EUR</p><p>Totale: {saved.total} EUR</p>
     </div>}

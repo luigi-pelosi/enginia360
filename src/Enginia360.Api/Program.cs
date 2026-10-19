@@ -20,6 +20,13 @@ if (builder.Configuration.GetValue<bool>("Workshop:Enabled"))
     Enginia360.Vehicles.VehiclesModule.AddWorkshopVehicles(builder.Services, builder.Configuration.GetConnectionString("OrganizationAccess")!);
     Enginia360.Workshop.WorkshopModule.AddWorkshop(builder.Services, builder.Configuration.GetConnectionString("OrganizationAccess")!);
 }
+if (builder.Configuration.GetValue<bool>("Inventory:Enabled"))
+{
+    if (!builder.Configuration.GetValue<bool>("Workshop:Enabled"))
+        throw new InvalidOperationException("Inventory reservation requires Workshop.");
+    builder.Services.AddScoped<Enginia360.Inventory.Contracts.IInventoryAccess, InventoryAccessAdapter>();
+    Enginia360.Inventory.InventoryModule.AddInventory(builder.Services, builder.Configuration.GetConnectionString("OrganizationAccess")!);
+}
 var app = builder.Build();
 
 app.Use(
@@ -82,6 +89,8 @@ if (app.Configuration.GetValue<bool>("Counterparties:Enabled"))
     app.MapCounterparties();
 if (app.Configuration.GetValue<bool>("Workshop:Enabled"))
     Enginia360.Workshop.WorkshopModule.MapWorkshop(app);
+if (app.Configuration.GetValue<bool>("Inventory:Enabled"))
+    Enginia360.Inventory.InventoryModule.MapInventory(app);
 app.MapOpenApi();
 app.Run();
 

@@ -1,0 +1,13 @@
+{
+  "module": "Inventory",
+  "increment": "B06",
+  "capability": "inventory",
+  "providedActions": ["inventory.reservations.read", "inventory.reservations.create"],
+  "requiredCapabilitiesForWrites": ["workshop", "inventory"],
+  "contracts": "Enginia360.Inventory.Contracts",
+  "contractDependencies": ["Enginia360.Workshop.Contracts"],
+  "ownedTables": ["inventory.stock", "inventory.reservations"],
+  "publishedEvents": [],
+  "historicalReadsRequireActiveCapability": false,
+  "scope": "private-synthetic-only"
+}

@@ -583,6 +583,7 @@
         "dependencies": {
           "Enginia360.Catalog": "[1.0.0, )",
           "Enginia360.Counterparties": "[1.0.0, )",
+          "Enginia360.Inventory": "[1.0.0, )",
           "Enginia360.Vehicles": "[1.0.0, )",
           "Enginia360.Workshop": "[1.0.0, )",
           "Microsoft.AspNetCore.Authentication.JwtBearer": "[10.0.13, )",
@@ -610,6 +611,17 @@
         }
       },
       "enginia360.counterparties.contracts": {
+        "type": "Project"
+      },
+      "enginia360.inventory": {
+        "type": "Project",
+        "dependencies": {
+          "Enginia360.Inventory.Contracts": "[1.0.0, )",
+          "Enginia360.Workshop.Contracts": "[1.0.0, )",
+          "Npgsql.EntityFrameworkCore.PostgreSQL": "[10.0.0, )"
+        }
+      },
+      "enginia360.inventory.contracts": {
         "type": "Project"
       },
       "enginia360.vehicles": {

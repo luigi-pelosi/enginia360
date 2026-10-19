@@ -1,5 +1,9 @@
 # Dossier di fondazione — 09. Validazioni dei referenti (D01)
 
+**Aggiornamento consegna B06:** accettazione privata positiva del proprietario «Funziona. Procediamo» e autorizzazione alla consegna Git/PR/CI/merge della sola B06. Review indipendenti core/lifecycle e artefatti manuali PASS sul candidato esatto; prove finali rieseguite nel [report B06](../b06-verification.md). G02/B06 soddisfatto per prenotazioni parziali esplicite q6 D69, insufficienza senza autotrim, concorrenza/retry e fisico invariato. G02/B07–B09 resta aperto; B07–B14 non autorizzati/blocked/Backlog. I paragrafi precedenti alla consegna restano storici; CI remota e chiusura sono da verificare sui riferimenti effettivi della PR/issue #12, non assunte dalla prova locale.
+
+**Stato corrente D69 — 19 ottobre 2026:** il proprietario approva esplicitamente l’opzione A: prenotazioni parziali richieste dall’operatore, mai troncamento automatico. B06 privata/sintetica è implementata e verificata localmente; candidata alla review indipendente, non Completata. G02/B06 dispone delle prove tecniche nel [report B06](../b06-verification.md); G02/B07–B09 resta aperto. B07–B14 restano blocked/Backlog e non autorizzati. Nessun commit/push/merge o deployment persistente prima della parent review.
+
 **Stato:** caso 001 e relativa politica di arrotondamento validati dal referente secondo attestazione del proprietario (D42); ulteriori risposte ancora da acquisire. D01 è pronta per la revisione finale, con dettagli residui assegnati agli incrementi in D46.
 **Fonti:** `PROJECT_CHARTER.md` §11–12 e §15; [slice](04-first-vertical-slice.md); [decisioni D32–D37](01-glossary-and-domain-boundaries.md); issue GitHub #3.
 
@@ -82,6 +86,10 @@ Il documento non chiude D01, non approva il dossier completo e non autorizza imp
 | G01 | B05 | Casi limite con esiti attesi, precisioni e limiti applicativi espliciti, validazione pertinente e test decimali; nessuna generalizzazione dal solo caso 001 | Proprietario/referente amministrativo; commercialista per gli aspetti fiscali |
 | G02 | B06–B09, per i rispettivi effetti | Effetti di prenotazione/prelievo/consumo/rientro e concorrenza definiti; test su retry, quantità e assenza di doppi effetti; area facoltativa e nuovo/carcassa distinti | Proprietario con referenti officina/magazzino e prove tecniche |
 | G03 | Incrementi pertinenti, in particolare B10–B13 | Contratti versionati, correlazione/idempotenza, esiti incerti ed errori recuperabili progettati e testati; nessuna transazione globale implicita | Responsabile tecnico con review del proprietario |
+
+## G02/B06 — parzialità risolta D69; prove tecniche locali disponibili
+
+**D69 — Prenotazione parziale esplicita:** su riga di 3 filtri con 2 disponibili, l’operatore richiede esplicitamente 2: vengono prenotati 2 e resta 1 da prenotare successivamente quando disponibile. Ogni quantità richiesta deve essere positiva, non superiore al residuo non prenotato della riga né alla disponibilità del magazzino autorizzato della sede di testata. Una richiesta di 3 con disponibilità 2 è rifiutata integralmente, senza effetti e senza bloccare la commessa; non viene ridotta a 2. I successivi comandi, anche su magazzini diversi validi, non possono superare cumulativamente la quantità della riga. La giacenza fisica non cambia; disponibilità = fisico − impegni attivi. D69 risolve soltanto la parzialità della prenotazione, non prelievo, consumo, annullamento o rilascio. La quota G02/B06 è esercitata dal runner isolato: quantità/residuo, stock condiviso con barriera SQL, retry, insufficienza/replenishment tecnico, autorizzazione e storico. Report B06 con log/comandi ed esiti. Review indipendente e accettazione manuale restano necessarie; G02/B07–B09 non è chiuso. Non occorre nuova approvazione della parzialità.
 
 ## 7. G01/B05 — politiche numeriche risolte da D67
 

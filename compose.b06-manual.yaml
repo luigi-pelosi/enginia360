@@ -1,0 +1,27 @@
+# Persistent private synthetic B06; apply last, only to enginia360-b06-manual.
+services:
+  keycloak:
+    restart: unless-stopped
+  postgres:
+    restart: unless-stopped
+    environment:
+      PGDATA: /var/lib/postgresql/18/docker
+    tmpfs: !override
+      - /tmp:rw,noexec,nosuid,size=16m
+      - /var/run/postgresql:rw,noexec,nosuid,size=8m,uid=70,gid=70
+    volumes: !override
+      - postgres_b06_storage:/var/lib/postgresql
+      - ./database/b03:/b03:ro
+      - ./database/b04:/b04:ro
+      - ./database/b05:/b05:ro
+      - ./database/b06:/b06:ro
+  api:
+    restart: unless-stopped
+  web:
+    restart: unless-stopped
+    ports: !override
+      - "127.0.0.1:18086:8080"
+    volumes:
+      - ./web/nginx.b02-manual.conf:/etc/nginx/nginx.conf:ro
+volumes:
+  postgres_b06_storage:

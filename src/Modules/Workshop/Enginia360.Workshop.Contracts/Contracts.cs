@@ -1,6 +1,13 @@
 namespace Enginia360.Workshop.Contracts;
 
 public sealed record WorkshopGrant(Guid TenantId, Guid MembershipId);
+// Persisted immutable projection: Inventory never accesses Workshop tables or DbContext.
+public sealed record ReservationLine(Guid OrderId, Guid LineId, Guid LegalEntityId, Guid SiteId,
+    Guid CatalogItemId, int CatalogVersion, string Kind, decimal Quantity);
+public interface IWorkshopReservationLines
+{
+    Task<ReservationLine?> Find(Guid verifiedTenantId, Guid orderId, Guid lineId, CancellationToken ct);
+}
 public sealed record WorkshopContext(Guid LegalEntityId, string LegalEntityName, Guid SiteId, string SiteName);
 public interface IWorkshopAccess
 {

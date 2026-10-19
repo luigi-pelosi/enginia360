@@ -20,13 +20,16 @@ jobs:
           printf '::add-mask::%s\n' "$app_password"
           printf 'B02_DB_PASSWORD=%s\nB02_DB_APP_PASSWORD=%s\n' "$owner_password" "$app_password" >> "$GITHUB_ENV"
       - name: Verify CI runtime configuration
-        run: python3 scripts/test-ci-runtime.py && python3 scripts/test-b04-ci.py && python3 scripts/test-b05-ci.py
+        run: python3 scripts/test-ci-runtime.py && python3 scripts/test-b04-ci.py && python3 scripts/test-b05-ci.py && python3 scripts/test-b06-ci.py
+      - name: Offline B06 race controller lifecycle
+        timeout-minutes: 2
+        run: timeout 60 python3 scripts/test-b06-stock-race-lifecycle.py
       - name: Integration tests in pinned SDK
-        run: docker run --rm -v "$PWD:/source" -w /source mcr.microsoft.com/dotnet/sdk:10.0.402-alpine3.24 sh -c 'dotnet restore tests/Enginia360.Api.Tests --locked-mode && dotnet test tests/Enginia360.Api.Tests -c Release --no-restore'
+        run: docker run --rm -v "$PWD:/source" -w /source mcr.microsoft.com/dotnet/sdk:10.0.402-alpine3.24@sha256:230c3fbae0ceedc70bca04eed2bfb5694e8b248cadbb81010f41b7a993601f55 sh -c 'dotnet restore tests/Enginia360.Api.Tests --locked-mode && dotnet test tests/Enginia360.Api.Tests -c Release --no-restore'
       - name: UI tests, both builds and dependency audit
-        run: docker run --rm -v "$PWD:/source" -w /source/web node:24.22.0-alpine3.24 sh -c 'npm ci --no-audit --no-fund && npm test && npm run build && VITE_B02_TEST_UI=true npm run build && VITE_B03_TEST_UI=true npm run build && VITE_B04_TEST_UI=true npm run build && VITE_B05_TEST_UI=true npm run build && npm audit --audit-level=high'
+        run: docker run --rm -v "$PWD:/source" -w /source/web node:24.22.0-alpine3.24@sha256:44fce696f38ba8c987c4db89954051000bbd05ffd8d8659ba15ed4a8602e937f sh -c 'npm ci --no-audit --no-fund && npm test && npm run build && VITE_B02_TEST_UI=true npm run build && VITE_B03_TEST_UI=true npm run build && VITE_B04_TEST_UI=true npm run build && VITE_B05_TEST_UI=true npm run build && VITE_B06_TEST_UI=true npm run build && npm audit --audit-level=high'
       - name: NuGet dependency audits
-        run: docker run --rm -v "$PWD:/source" -w /source mcr.microsoft.com/dotnet/sdk:10.0.402-alpine3.24 sh -c 'dotnet restore tests/Enginia360.Api.Tests --locked-mode && dotnet list src/Enginia360.Api package --vulnerable --include-transitive && dotnet list tests/Enginia360.Api.Tests package --vulnerable --include-transitive'
+        run: docker run --rm -v "$PWD:/source" -w /source mcr.microsoft.com/dotnet/sdk:10.0.402-alpine3.24@sha256:230c3fbae0ceedc70bca04eed2bfb5694e8b248cadbb81010f41b7a993601f55 sh -c 'dotnet restore tests/Enginia360.Api.Tests --locked-mode && dotnet list src/Enginia360.Api package --vulnerable --include-transitive && dotnet list tests/Enginia360.Api.Tests package --vulnerable --include-transitive'
       - name: Isolated B02 integration and hardening
         run: sh scripts/run-b02-tests.sh
       - name: Isolated B03 authorization, persistence and UI runtime
@@ -35,6 +38,8 @@ jobs:
         run: sh scripts/run-b04-tests.sh
       - name: Isolated B05 commercial line and catalog acceptance
         run: sh scripts/run-b05-tests.sh
+      - name: Isolated B06 explicit stock reservation acceptance
+        run: sh scripts/run-b06-tests.sh
       - name: Build and start hardened containers
         run: docker compose up -d --build --wait --wait-timeout 120
       - name: HTTP smoke tests
