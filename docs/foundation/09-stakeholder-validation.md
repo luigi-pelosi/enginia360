@@ -83,4 +83,10 @@ Il documento non chiude D01, non approva il dossier completo e non autorizza imp
 | G02 | B06–B09, per i rispettivi effetti | Effetti di prenotazione/prelievo/consumo/rientro e concorrenza definiti; test su retry, quantità e assenza di doppi effetti; area facoltativa e nuovo/carcassa distinti | Proprietario con referenti officina/magazzino e prove tecniche |
 | G03 | Incrementi pertinenti, in particolare B10–B13 | Contratti versionati, correlazione/idempotenza, esiti incerti ed errori recuperabili progettati e testati; nessuna transazione globale implicita | Responsabile tecnico con review del proprietario |
 
+## 7. G01/B05 — politiche numeriche risolte da D67
+
+**Stato corrente:** conferme ripetute del proprietario acquisite senza nuova domanda. Netto di ogni riga HALF_UP a 6 → somma delle righe arrotondate per raggruppamento fiscale → imposta del gruppo HALF_UP a 6 → totale somma basi+imposte, senza riduzione a 2 nel trasporto/display. Quantità/prezzo 6 decimali, sconto 2 e 0–100 inclusi. G01/D46 chiuso per queste scelte numeriche finite; test eseguibili e limiti tecnici nel [report B05](../b05-verification.md). Non è certificazione fiscale/legale generale né completamento B05: review indipendente e accettazione manuale pendenti, B06–B14 bloccati. D42 resta circoscritta al caso storico.
+
+D66 conserva verbatim le precisioni e il confronto tra le alternative; D67 registra la scelta confermata. Il runtime ora accetta valori variabili e le rappresentazioni invarianti equivalenti, senza uguaglianza con fixture. Il test HTTP delle due righe half-micro verifica base `0.000002`; il caso 001 completo resta regressione separata. Nessuna richiesta di ulteriore conferma è necessaria per queste politiche.
+
 **Stato D01:** materiale consolidato per revisione finale; non Completato. Le risposte e le conferme del caso sono acquisite o delimitate con gate approvati. Restano review della documentazione e verifiche della PR; B00 e D02 non sono chiusi da D46.

@@ -16,6 +16,7 @@ if (builder.Configuration.GetValue<bool>("Workshop:Enabled"))
     if (!builder.Configuration.GetValue<bool>("Counterparties:Enabled"))
         throw new InvalidOperationException("Workshop requires Counterparties.");
     builder.Services.AddScoped<Enginia360.Workshop.Contracts.IWorkshopAccess, WorkshopAccessAdapter>();
+    Enginia360.Catalog.CatalogModule.AddWorkshopCatalog(builder.Services, builder.Configuration.GetConnectionString("OrganizationAccess")!);
     Enginia360.Vehicles.VehiclesModule.AddWorkshopVehicles(builder.Services, builder.Configuration.GetConnectionString("OrganizationAccess")!);
     Enginia360.Workshop.WorkshopModule.AddWorkshop(builder.Services, builder.Configuration.GetConnectionString("OrganizationAccess")!);
 }

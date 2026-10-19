@@ -45,6 +45,9 @@
         "resolved": "10.0.0",
         "contentHash": "xZAYhPOU2rUIFpV48xsqhCx9vXs6Y+0jX2LCoSEfDFYMw9jtAOUk3iQsCnDLrFIv9NT3JGMihn7nnuZsPKqJmA=="
       },
+      "enginia360.catalog.contracts": {
+        "type": "Project"
+      },
       "enginia360.counterparties.contracts": {
         "type": "Project"
       },

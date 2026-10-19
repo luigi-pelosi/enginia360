@@ -1,6 +1,6 @@
 # Caso di test 001 — Vendita nazionale con prestazione e ricambio
 
-**Stato:** specifica funzionale fornita dal proprietario; calcoli verificati indipendentemente con aritmetica decimale. Non è un test eseguito sul motore fiscale Enginia360, che non è stato implementato in questa fase.
+**Stato:** specifica storica fornita dal proprietario; calcoli verificati indipendentemente con aritmetica decimale. La verifica originaria del §4 precede il motore applicativo. L'estensione locale B05 D67 accetta valori variabili e preserva questo caso completo come regressione: prove UI/API/HTTP/PostgreSQL nel [report B05](../b05-verification.md). G01/D46 risolto per le scelte numeriche finite, non validazione di un motore fiscale generale.
 **Provenienza:** messaggio di Luigi Pelosi nella discovery D01; il proprietario conferma successivamente che il caso e le regole di arrotondamento sono stati validati dal referente disponibile (D42). Attestazione riferita dal proprietario, non contatto diretto dell’agente; ruolo professionale esatto non specificato.
 **Dati strutturati:** [fixture 001](test-cases/001-domestic-service-and-part.json). I valori decimali sono stringhe per evitare conversioni implicite in floating-point durante la lettura.
 
@@ -22,6 +22,8 @@ Esclusi acconti, reverse charge, split payment e regimi speciali. Non si deduce 
 | Imponibile | 164,50 EUR |
 | IVA, raggruppamento al 22% | 36,19 EUR |
 | Totale documento | 200,69 EUR |
+
+**Distinzione corrente D67:** la politica qui sotto è la versione storica validata del caso 001, non la politica generale dell’estensione a valori variabili. D66/D67 approvano quantità/prezzi/importi 6 decimali, sconto 2 decimali 0–100; netto riga HALF_UP6 prima della base gruppo e imposta gruppo HALF_UP6. Fixture e attestazione D42 restano immutate. Il caso completo mantiene i risultati numerici 164.50/36.19/200.69, ora serializzati 164.500000/36.190000/200.690000; la sola prestazione produce invece imposta 16.335000 e totale 90.585000, non 16.34/90.59 della politica storica.
 
 ## 3. Politica di calcolo del caso
 

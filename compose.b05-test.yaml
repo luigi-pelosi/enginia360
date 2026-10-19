@@ -1,0 +1,9 @@
+# Ephemeral acceptance only, never overlay a persistent/manual project.
+services:
+  web:
+    build:
+      args:
+        VITE_B05_TEST_UI: "true"
+  postgres:
+    volumes:
+      - ./database/b05:/b05:ro

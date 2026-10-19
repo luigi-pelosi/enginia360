@@ -1,6 +1,10 @@
 # Dossier di fondazione — 07. Backlog della prima vertical slice
 
-**Stato corrente:** B01–B03 completati; B03 integrata con PR #24 sulla baseline `584784812dc8086c3c313e32d2b91adfdfe98bc0`, issue #9 chiusa. D59 resta la baseline identity. D62 autorizza esclusivamente B04 sintetica/privata; D63 chiude il gate veicoli distinguendo gestione anagrafica e selezione commessa tenant-wide. B04 implementata localmente e verificata tecnicamente nel runner isolato (`../b04-verification.md`); Project In corso, in attesa della review indipendente del parent e della CI remota. Non completata o distribuita. B05–B14 restano Backlog/bloccati e non autorizzati. Gli stati locali pre-consegna B03 sotto sono storici, non lo stato della baseline integrata.
+**Consegna B05 — 19 ottobre 2026:** accettazione manuale positiva del proprietario «Ok funziona tutto. Procediamo»; review core e quattro artefatti manuali acquisite, discrepanza documentale risolta. Autorizzata la sola consegna Git/PR/CI/merge/chiusura B05, non nuovi deploy o B06. Stato al congelamento: In verifica; esito finale remoto nella PR e issue #11. Limiti e perimetro nel report B05. Le indicazioni precedenti di accettazione/review pendenti sono storiche e superate da questa registrazione. B06–B14 restano bloccati/Backlog e non autorizzati.
+
+**Aggiornamento D67:** estensione a valori variabili implementata localmente; quantità/prezzo 6, sconto 2 (0–100), netto di ciascuna riga HALF_UP6 → base gruppo → imposta gruppo HALF_UP6 → somma totale. Conferme del proprietario acquisite; G01/D46 risolto per queste politiche numeriche, non certificazione fiscale generale. Stato B05 **In corso**, non completata: review indipendente e accettazione manuale ancora necessarie. Evidenze correnti nel report B05; le descrizioni del precedente runtime limitato al caso 001 sotto sono storiche. B06–B14 restano bloccati/Backlog.
+
+**Stato corrente:** B01–B04 completati; baseline B04 `0f9cc50fcf685d2e8ffab2686947124fb3189293`. D64–D67 autorizzano soltanto B05 sintetica/privata; catalogo e politiche numeriche risolti. B05 **In corso**, locale non committata: report con prove API/UI/HTTP/PostgreSQL, review indipendente e accettazione manuale pendenti. Nessuna CI B05 remota né consegna persistente. B06–B14 restano Backlog/bloccati e non autorizzati.
 **Fonti:** `PROJECT_CHARTER.md` §11–14; [slice](04-first-vertical-slice.md), [architettura](05-solution-and-module-boundaries.md), [minacce](06-initial-threat-model.md). Le decisioni acquisite restano nel [registro](01-glossary-and-domain-boundaries.md).
 
 ## 1. Metodo proposto
@@ -94,11 +98,16 @@ Non trasferire automaticamente tutte le voci in Pronto dopo l'approvazione del b
 
 ### B05 — Prestazione, ricambio e valori riproducibili
 
+- **Autorizzazione D64:** solo B05 sintetica e privata; scope positivo/esclusioni nel registro D64. Nessun codice prima del chiarimento sul catalogo; nessun commit/push/merge o deployment persistente prima della review/preparazione del parent. B02/B03/B04 e Tailscale invariati; B06–B14 non autorizzati.
+- **Gate catalogo risolto D65:** identità anagrafiche di articoli fisici e prestazioni visibili nel tenant, come regola generale anagrafica. Nessun grant implicito add/edit/remove; prezzi, customizing, stock, estensioni e destinazioni riservate restano separati. D61/D63 invariati; nessuna nuova domanda sulla policy già acquisita.
+- **Già acquisito:** soggetto unico D28, default per riga D13 e associazione alla stessa lavorazione D39. Nessuna nuova policy prezzo/pagante da master approvata. G01/D46 risolto da D67 per le politiche numeriche finite; nessuna certificazione fiscale generale o riapertura D42.
+- **Stato:** In corso, non Completato; implementazione locale e RED/GREEN applicativo, HTTP/DOM/PostgreSQL e suite tecniche nel report [B05](../b05-verification.md). Review indipendente e accettazione manuale pendenti; issue #11 aperta senza blocked e Project In corso, riletti. Nessuna CI B05 remota o deployment persistente. Baseline `0f9cc50fcf685d2e8ffab2686947124fb3189293`.
+
 - **Risultato:** aggiungere una prestazione e un ricambio; esporre imponibile, imposta e totale di prova con regole esplicite.
 - **Accettazione:** default un soggetto a carico per riga, associazione a lavorazione secondo configurazione dimostrativa; nessun doppio conteggio nei raggruppamenti operativi. Decimal/value object e arrotondamenti riproducibili; storico non ricalcolato silenziosamente da cambi anagrafici.
-- **Prova:** test su valori limite e arrotondamenti, payload reali UI/API coerenti; parametri sintetici dichiarati non fiscalmente validati. T05, T12.
+- **Prova:** test su valori limite e arrotondamenti, payload reali UI/API coerenti; caso 001 e relativa politica validati secondo attestazione D42, non validazione fiscale generale. T05, T12.
 - **Decisione D32:** risultato minimo = riepilogo commerciale (imponibile al netto degli sconti, imposte e totale a carico). Costi e marginalità, anche provvisoria, rinviati. Questo chiarimento non chiude gli altri prerequisiti di B05 o la validazione fiscale.
-- **Caso di riferimento D41:** [001](10-test-case-001.md), imponibile 164.50 / IVA 36.19 / totale 200.69; IVA calcolata sull’imponibile aggregato del raggruppamento, non somma delle imposte arrotondate per riga. Precisioni e ROUND_HALF_UP espliciti nel caso; aritmetica verificata indipendentemente e validazione del referente sul caso attestata dal proprietario in D42; nessun motore applicativo già testato.
+- **Caso di riferimento D41:** [001](10-test-case-001.md), imponibile 164.50 / IVA 36.19 / totale 200.69; IVA calcolata sull’imponibile aggregato del raggruppamento, non somma delle imposte arrotondate per riga. Precisioni e ROUND_HALF_UP espliciti nel caso; aritmetica verificata indipendentemente e validazione del referente sul caso attestata dal proprietario in D42. Implementazione locale limitata al caso e prove applicative ora disponibili nel report B05; G01/D46 non soddisfatto dai soli test.
 
 ### B06 — Prenotazione
 

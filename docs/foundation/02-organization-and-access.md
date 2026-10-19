@@ -26,6 +26,8 @@ Tenant = cliente/gruppo contrattuale (es. Beta Group)
 
 ## Controparti comuni ed estensioni societarie
 
+**Regola generale corrente D65:** ogni identità anagrafica è visibile a livello tenant, inclusi catalogo articoli fisici e prestazioni. Visibilità non significa add/edit/remove o accesso a tutte le società: permessi gestionali specifici e selezione veicolo D63 restano distinti. Identità comune non include automaticamente estensioni societarie, prezzi/condizioni, customizing, stock o destinazioni riservate; D20/D36/D61 restano invariati. Nessuna condivisione fra tenant. Questa regola non va ridiscussa per ogni nuova anagrafica.
+
 - Le società dello stesso tenant condividono l'anagrafica comune delle controparti, con estensioni societarie riservate (D18, D22).
 - Una nuova destinazione è societaria per default; diventa comune al gruppo solo tramite scelta esplicita autorizzata (D20). D61: permesso di pubblicazione distinto dall’edit comune e riferito alla società proprietaria; grant limitati a sede/magazzino non bastano. Condivisione solo nello stesso tenant.
 - La creazione della controparte da parte di A non ne determina una proprietà esclusiva di A.

@@ -14,3 +14,12 @@ public sealed record OrderContract(Guid Id, Guid LegalEntityId, Guid SiteId,
     Guid DocumentTypeId, int ConfigurationVersion, Guid PayerId, Guid VehicleId,
     Guid VehicleHolderId, bool IsCustomerOrder);
 public sealed record DocumentTypeContract(Guid Id, string Name, int Version, bool DirectCreationEnabled);
+
+[System.Text.Json.Serialization.JsonUnmappedMemberHandling(System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow)]
+public sealed record AddCaseLineRequest(Guid Id, Guid CatalogItemId, int CatalogVersion,
+    int ConfigurationVersion, int ExpectedRevision, string Quantity, string UnitPrice, string DiscountPercent);
+public sealed record LineContract(Guid Id, Guid OrderId, Guid CatalogItemId, int CatalogVersion,
+    string CatalogLabel, string Kind, string Quantity, string UnitPrice, string DiscountPercent, string NetAmount,
+    string TaxRate, Guid PayerId, Guid WorkingGroupId, int ConfigurationVersion);
+public sealed record CommercialSummary(Guid OrderId, Guid PayerId, int Revision, IReadOnlyList<LineContract> Lines,
+    string NetAmount, string TaxAmount, string Total, string Currency, string Policy);
