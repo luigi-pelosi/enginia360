@@ -3,6 +3,8 @@ WORKDIR /source
 COPY web/package.json web/package-lock.json ./
 RUN npm ci --no-audit --no-fund
 COPY web/ ./
+ARG VITE_B04_TEST_UI=false
+ENV VITE_B04_TEST_UI=${VITE_B04_TEST_UI}
 ARG VITE_B03_TEST_UI=false
 ENV VITE_B03_TEST_UI=${VITE_B03_TEST_UI}
 ARG VITE_B02_TEST_UI=false

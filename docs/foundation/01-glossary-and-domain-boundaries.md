@@ -1,7 +1,7 @@
 # Dossier di fondazione — 01. Glossario e confini di dominio
 
-**Stato corrente:** dossier approvato in D58; B01 e B02 completati (B02: PR #23, baseline `6a80eecb35c287fb3e68ad782bba926f09f47fea`). D60 autorizza esclusivamente B03 in ambiente isolato sintetico; B04–B14 restano bloccati e non autorizzati. Gate specialistici ed esecutivi ancora obbligatori.
-**Ambito:** linguaggio del post-vendita e responsabilità dei contesti; autorizzazioni implementative circoscritte nel registro. D61 risolve il gate di pubblicazione B03; implementazione locale e prove tecniche descritte in `../b03-verification.md`, non ancora committate né approvate dalla review indipendente.
+**Stato corrente:** dossier approvato in D58; B01–B03 completati. B03 integrata con PR #24, merge `584784812dc8086c3c313e32d2b91adfdfe98bc0`, issue #9 chiusa. D62 autorizza solo B04 sintetica e privata; D63 risolve il gate veicoli distinguendo gestione anagrafica e selezione per commessa. B04 pronta per implementazione test-first sul branch `feat/b04-direct-workshop-order`, non ancora implementata o verificata. B05–B14 restano Backlog/bloccati e non autorizzati.
+**Ambito:** linguaggio del post-vendita e responsabilità dei contesti; autorizzazioni implementative circoscritte nel registro. D60/D61 restano la fonte storica dello scope B03 e del permesso di pubblicazione; il loro stato pre-consegna non descrive più la baseline corrente.
 **Fonte normativa di progetto:** `PROJECT_CHARTER.md`, sezioni 3, 4, 7–12 e 15.
 **Validatori richiesti:** proprietario del prodotto e referenti operativi; commercialista per significati e regole amministrative.
 
@@ -733,4 +733,30 @@ D01 e D02 restano issue aperte In verifica; B00 non viene completata o sbloccata
 
 **Decisione:** pubblicare richiede il permesso specifico riferito alla società proprietaria della destinazione. Il solo edit comune, un grant su altra società o un'autorizzazione limitata a sede/magazzino non bastano. La pubblicazione esplicita rende visibile la destinazione alle altre società autorizzate dello stesso tenant, mai ad altri tenant. D36 resta il contratto minimo dei campi comuni; D21 governa separatamente la modifica comune. Non sono approvati ruoli universali, autorità di concessione, revoca, deduplicazione o validazione fiscale.
 
-**Stato corrente:** gate di dominio B03 risolto; implementazione locale entro D60, con prove tecniche nel report `../b03-verification.md`; review indipendente e CI remota ancora da eseguire. B04–B14 restano bloccati e non autorizzati; nessun commit/push/merge prima della review indipendente.
+**Stato storico alla registrazione D61:** gate di dominio B03 risolto; implementazione locale entro D60, con prove tecniche nel report `../b03-verification.md`; review indipendente e CI remota allora ancora da eseguire. B03 è successivamente integrata con PR #24; prevale lo stato corrente in apertura.
+
+### D62 — B04 autorizzata, con gate di dominio veicoli ancora aperto
+
+**Fonte e conferma:** Luigi Pelosi risponde «Procedi» alla proposta esplicita del prossimo incremento B04 — Commessa diretta nel tipo societario, ancora bloccato e non avviato. La delega autorizza solo B04; non risolve implicitamente decisioni di dominio aperte.
+
+**Scope positivo e finito:** minimo percorso reale UI italiana/API/PostgreSQL per creare direttamente una commessa già ordine cliente, di tipo configurato esclusivamente nella società e con una sola sede di testata; selezione del veicolo con intestatario distinto dal singolo soggetto a carico, senza sovrascrivere il pagante; integrazione dei contratti B03 e delle autorizzazioni esistenti, versione della configurazione pertinente tracciata, isolamento e rifiuto dei riferimenti non autorizzati, persistenza/migrazione/rollback e audit tecnico minimizzato. Test-first per comportamento e runner CI di accettazione, verifica isolata e review indipendente prima della consegna.
+
+**Esclusioni vincolanti:** soli dati/identità sintetici; nessun provisioning o editor amministrativo, workflow universale, congelamento universale del documento, catalogo generale dei tipi, ripartizioni/garanzia, righe, ricambi, prezzi, fiscalità o B05–B14. Nessun dato reale, acquisto, accesso pubblico, commit/push/merge o deployment persistente prima della review indipendente e della preparazione manuale del parent. Ambienti manuali B02/B03, bootstrap e Tailscale immutati.
+
+**Gate prima del codice:** il documento 03 §4 dichiara non deciso il perimetro condiviso dei veicoli e vieta di estendere automaticamente le regole delle controparti; il documento 05 assegna Vehicles con scope di condivisione da definire. B04 richiede lettura/selezione del veicolo e rifiuto dei riferimenti estranei: adottare tenant-sharing o riservatezza societaria senza conferma fisserebbe una policy di accesso non approvata. Issue #10 non contiene risposte (discussione vuota alla verifica). Domanda al proprietario: nel solo scenario B04, il veicolo è comune alle società autorizzate dello stesso tenant oppure riservato alla società che lo registra? Raccomandazione prudente: riservato alla società, senza anticipare il catalogo generale. Nessuna alternativa è approvata dalla presente registrazione.
+
+**Stato storico D62:** B04 autorizzata ma allora bloccata sul gate veicoli; avvio esclusivamente documentale su `feat/b04-direct-workshop-order`, baseline `584784812dc8086c3c313e32d2b91adfdfe98bc0`. Gate successivamente risolto in D63. B05–B14 restano non autorizzati e bloccati.
+
+### D63 — Gestione veicoli secondo le controparti; selezione commessa nel tenant
+
+**Fonte e conferma:** risposta diretta del proprietario Luigi Pelosi al gate D62, riportata verbatim: «La lettura, add, edit e remove seguono le stesse regole delle controparti mentre la selezione del veicolo per una commessa di lavorazione può essere effettuata a livello di tenant».
+
+**Decisione:** separare due usi, senza trasformare la selezione in un permesso anagrafico generale:
+
+- **Gestione anagrafica (read/add/edit/remove):** stesse regole approvate delle corrispondenti operazioni sulle controparti (D18/D20/D21/D23/D26/D61): contesto tenant verificato, accessi societari espliciti per la consultazione, modifica comune con permesso specifico distinto dall'uso, dati societari riservati e pubblicazione esplicita ove pertinente. Nessun accesso tra tenant. La frase non approva nuove semantiche di cancellazione o una gestione CRUD completa.
+- **Selezione per commessa:** ammessa nell'intero tenant verificato, anche per un veicolo registrato tramite un'altra società alla quale l'operatore non ha accesso gestionale. La proiezione minima dedicata alla selezione, autorizzata nel contesto commessa/società/sede/capability, non concede accesso alla gestione del veicolo, ai dati riservati dell'altra società o alla gestione dell'intestatario. Il backend ricontrolla il riferimento alla creazione; il client non sceglie il tenant.
+- **Intestatario e soggetto a carico:** restano riferimenti distinti; selezionare un veicolo non sovrascrive il soggetto a carico scelto. Nessuna equivalenza legale tra intestatario e proprietario viene introdotta.
+
+**Limite implementativo:** B03 non ha implementato add/remove dell'identità comune della controparte; D63 non autorizza a inventarne la policy o a completarli incidentalmente. Per B04 sono sufficienti fixture sintetiche e un selettore minimo del veicolo; nessun editor amministrativo o CRUD completo veicoli/controparti. Policy di gestione futura non necessaria al selettore resta rinviata, non impedimento fittizio a B04.
+
+**Stato corrente:** gate D62 risolto; soltanto B04 è sbloccata per il percorso finito D62 con test-first e review indipendente. B05–B14 restano Backlog/bloccati e non autorizzati. Nessun commit/push/deployment persistente; B02/B03 manuali e Tailscale invariati. La decisione non costituisce prova applicativa né completamento B04.

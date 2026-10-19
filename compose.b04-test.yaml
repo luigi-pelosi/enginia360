@@ -1,0 +1,13 @@
+# Isolated acceptance only; never apply to manual projects.
+services:
+  api:
+    environment:
+      Workshop__Enabled: "true"
+      ConnectionStrings__OrganizationAccess: Host=postgres;Port=5432;Database=${B02_DB_NAME};Username=${B02_DB_APP_USER};Password=${B02_DB_APP_PASSWORD};Maximum Pool Size=${B04_POOL_SIZE:-1};Minimum Pool Size=1
+  web:
+    build:
+      args:
+        VITE_B04_TEST_UI: "true"
+  postgres:
+    volumes:
+      - ./database/b04:/b04:ro

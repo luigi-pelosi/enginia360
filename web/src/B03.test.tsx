@@ -1,4 +1,5 @@
-import { afterEach, expect, test, vi } from 'vitest';
+import { beforeEach, afterEach, expect, test, vi } from 'vitest';
+beforeEach(() => vi.stubEnv('VITE_B04_TEST_UI','false'));
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.resetModules(); });
 async function openCounterparty(extra: unknown[]) {

@@ -11,6 +11,14 @@ if (builder.Configuration.GetValue<bool>("Counterparties:Enabled"))
     builder.Services.AddScoped<Enginia360.Counterparties.Contracts.ICounterpartyAccess, CounterpartyAccessAdapter>();
     builder.Services.AddCounterparties(builder.Configuration.GetConnectionString("OrganizationAccess")!);
 }
+if (builder.Configuration.GetValue<bool>("Workshop:Enabled"))
+{
+    if (!builder.Configuration.GetValue<bool>("Counterparties:Enabled"))
+        throw new InvalidOperationException("Workshop requires Counterparties.");
+    builder.Services.AddScoped<Enginia360.Workshop.Contracts.IWorkshopAccess, WorkshopAccessAdapter>();
+    Enginia360.Vehicles.VehiclesModule.AddWorkshopVehicles(builder.Services, builder.Configuration.GetConnectionString("OrganizationAccess")!);
+    Enginia360.Workshop.WorkshopModule.AddWorkshop(builder.Services, builder.Configuration.GetConnectionString("OrganizationAccess")!);
+}
 var app = builder.Build();
 
 app.Use(
@@ -71,6 +79,8 @@ app.MapHealthChecks(
 app.MapOrganizationAccess();
 if (app.Configuration.GetValue<bool>("Counterparties:Enabled"))
     app.MapCounterparties();
+if (app.Configuration.GetValue<bool>("Workshop:Enabled"))
+    Enginia360.Workshop.WorkshopModule.MapWorkshop(app);
 app.MapOpenApi();
 app.Run();
 

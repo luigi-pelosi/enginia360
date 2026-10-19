@@ -148,6 +148,28 @@
       },
       "enginia360.counterparties.contracts": {
         "type": "Project"
+      },
+      "enginia360.vehicles": {
+        "type": "Project",
+        "dependencies": {
+          "Enginia360.Vehicles.Contracts": "[1.0.0, )",
+          "Npgsql.EntityFrameworkCore.PostgreSQL": "[10.0.0, )"
+        }
+      },
+      "enginia360.vehicles.contracts": {
+        "type": "Project"
+      },
+      "enginia360.workshop": {
+        "type": "Project",
+        "dependencies": {
+          "Enginia360.Counterparties.Contracts": "[1.0.0, )",
+          "Enginia360.Vehicles.Contracts": "[1.0.0, )",
+          "Enginia360.Workshop.Contracts": "[1.0.0, )",
+          "Npgsql.EntityFrameworkCore.PostgreSQL": "[10.0.0, )"
+        }
+      },
+      "enginia360.workshop.contracts": {
+        "type": "Project"
       }
     }
   }

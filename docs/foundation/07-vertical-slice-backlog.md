@@ -1,6 +1,6 @@
 # Dossier di fondazione — 07. Backlog della prima vertical slice
 
-**Stato corrente:** B01 e B02 completati; B02 integrata con PR #23 sulla baseline `6a80eecb35c287fb3e68ad782bba926f09f47fea`. D59 resta la baseline identity. D60 autorizza esclusivamente B03 con identità e dati sintetici in ambiente isolato: In corso; D61 risolve il gate dei permessi di pubblicazione. Implementazione locale e prove tecniche nel report `../b03-verification.md`; review indipendente e CI remota pendenti. B04–B14 restano Backlog/bloccati e non autorizzati.
+**Stato corrente:** B01–B03 completati; B03 integrata con PR #24 sulla baseline `584784812dc8086c3c313e32d2b91adfdfe98bc0`, issue #9 chiusa. D59 resta la baseline identity. D62 autorizza esclusivamente B04 sintetica/privata; D63 chiude il gate veicoli distinguendo gestione anagrafica e selezione commessa tenant-wide. B04 implementata localmente e verificata tecnicamente nel runner isolato (`../b04-verification.md`); Project In corso, in attesa della review indipendente del parent e della CI remota. Non completata o distribuita. B05–B14 restano Backlog/bloccati e non autorizzati. Gli stati locali pre-consegna B03 sotto sono storici, non lo stato della baseline integrata.
 **Fonti:** `PROJECT_CHARTER.md` §11–14; [slice](04-first-vertical-slice.md), [architettura](05-solution-and-module-boundaries.md), [minacce](06-initial-threat-model.md). Le decisioni acquisite restano nel [registro](01-glossary-and-domain-boundaries.md).
 
 ## 1. Metodo proposto
@@ -82,6 +82,10 @@ Non trasferire automaticamente tutte le voci in Pronto dopo l'approvazione del b
 7. Percorso UI italiana/API/PostgreSQL reale, migrazione e rollback documentati, regressioni B02, build/test/audit e Compose isolata esercitati. L'ambiente manuale persistente non cambia; CI remota non dichiarata verificata prima dell'esecuzione remota.
 
 ### B04 — Commessa diretta nel tipo societario
+
+- **Autorizzazione D62/D63:** solo B04 sintetica e privata, con gate veicoli risolto; nessun commit/push/merge o deployment persistente prima della review indipendente e preparazione del parent. Ambienti manuali B02/B03 e Tailscale invariati; B05–B14 non autorizzati.
+- **Gate risolto D63:** «La lettura, add, edit e remove seguono le stesse regole delle controparti mentre la selezione del veicolo per una commessa di lavorazione può essere effettuata a livello di tenant». Gestione anagrafica e selezione per commessa sono autorizzazioni/usi distinti: proiezione minima di selezione nel tenant verificato, anche tra società, senza ampliare lettura gestionale o accesso ai dati societari riservati. Riferimenti e permessi ricontrollati alla creazione; mai accesso inter-tenant. B03 non ha implementato add/remove dell'identità comune: non introdurre nuove policy di cancellazione o CRUD amministrativo. Fixture sintetiche e selettore minimo bastano al percorso B04.
+- **Stato:** implementazione locale B04 e accettazione isolata disponibili; In corso fino alla review indipendente del parent. CI remota e qualunque ambiente manuale B04 non eseguiti. B05–B14 restano Backlog/bloccati.
 
 - **Risultato:** creare una commessa che è già ordine cliente, usando un tipo configurato della società e una sede unica; selezionare un veicolo con intestatario diverso dal soggetto a carico.
 - **Accettazione:** nessun preventivo/appuntamento obbligatorio se il tipo consente creazione diretta; singolo soggetto a carico nello scenario. Versione della configurazione rilevante tracciata senza inventare il congelamento universale del documento.

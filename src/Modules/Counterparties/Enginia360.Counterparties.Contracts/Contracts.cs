@@ -8,6 +8,10 @@ public sealed record DestinationContract(Guid Id, Guid CounterpartyId, Guid Owne
 public sealed record CounterpartyAccess(Guid TenantId, Guid MembershipId);
 // Host adapter resolves verified membership and resource permissions; no ORM crosses this port.
 public sealed record CounterpartyCompany(Guid LegalEntityId, string LegalEntityName);
+public interface IWorkshopCounterparties
+{
+    Task<bool> CanUsePayer(string subject, Guid verifiedTenantId, Guid companyId, Guid counterpartyId, CancellationToken ct);
+}
 public interface ICounterpartyAccess
 {
     Task<IReadOnlyList<CounterpartyCompany>> ListCompanies(string subject, CancellationToken cancellationToken);

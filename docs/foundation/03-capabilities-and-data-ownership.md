@@ -32,7 +32,7 @@ Sono composizioni esemplificative, non pacchetti indivisibili. La contabilità i
 | Relazione cliente/fornitore, codici e condizioni societarie | Società | X | E | E |
 | Destinazioni comuni della controparte | Tenant | T, con dettaglio delle responsabilità da definire | Come P1 | Come P1 |
 | Destinazioni riservate | Società | X, salvo composizione specifica diversa | E | E |
-| Identità veicolo e relazioni anagrafiche | Da dettagliare | X | E | E |
+| Identità veicolo e relazioni anagrafiche | D63: gestione come controparti; selezione commessa nel tenant verificato, senza permessi gestionali impliciti | X | E | E |
 | Appuntamenti e pianificazione officina | Società/sede | E | E | E |
 | Accettazione, commessa/ordine cliente officina | Società/sede | E | E | E |
 | Lavorazioni, assegnazioni e tempi effettivi | Società/sede | E | E | E |
@@ -52,7 +52,7 @@ Sono composizioni esemplificative, non pacchetti indivisibili. La contabilità i
 - Una fattura emessa esternamente può essere rappresentata in Enginia360 tramite riferimento/copia controllata, senza una seconda emissione interna.
 - La commessa resta ordine cliente operativo in Enginia360 anche se l'ERP richiede una propria rappresentazione commerciale: eventuale replica è mappata, non una seconda autorità sullo stesso processo operativo. Il contratto deve distinguere i fatti di ciascun sistema.
 - Per P2, incassi/scadenze esterni possono essere visibili tramite proiezioni; eventuale raccolta pagamenti in Enginia360 richiede una composizione ulteriore da definire, non è approvata qui.
-- Il perimetro condiviso di veicoli e catalogo non è ancora deciso. Non estendere loro automaticamente le regole delle controparti.
+- D63 risolve il perimetro veicoli: lettura/add/edit/remove seguono le regole approvate delle corrispondenti operazioni sulle controparti, senza inventare add/remove dell'identità comune non implementati in B03. La selezione per commessa è invece ammessa nell'intero tenant verificato mediante una proiezione minima dedicata: non concede accesso gestionale al veicolo, all'intestatario o ai dati riservati delle altre società. Per B04 bastano fixture sintetiche e selettore, non CRUD completo. Il perimetro condiviso del catalogo resta non deciso.
 - La destinazione societaria resta locale per default; una promozione al nucleo comune deve essere governata dal proprietario di quest'ultimo, non una scrittura concorrente da ERP diversi.
 - Le prove pilota possono portare ad altre composizioni valide. L'elenco non certifica che i relativi ERP espongano tutti i contratti necessari.
 

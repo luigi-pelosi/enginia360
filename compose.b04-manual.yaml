@@ -1,0 +1,17 @@
+# Persistent synthetic B04 only; never apply to earlier manual projects.
+services:
+  keycloak:
+    restart: unless-stopped
+  postgres:
+    restart: unless-stopped
+    # PostgreSQL 18 defaults outside the inherited data mount: bind PGDATA explicitly.
+    environment:
+      PGDATA: /var/lib/postgresql/data/18/docker
+  api:
+    restart: unless-stopped
+  web:
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:18084:8080"
+    volumes:
+      - ./web/nginx.b02-manual.conf:/etc/nginx/nginx.conf:ro
