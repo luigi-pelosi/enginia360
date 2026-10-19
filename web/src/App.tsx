@@ -262,7 +262,7 @@ function B02TestApp() {
 }
 
 export default function App() {
-    if (import.meta.env.VITE_B05_TEST_UI === "true") return <B05TestApp />;
+    if (import.meta.env.VITE_B06_TEST_UI === "true" || import.meta.env.VITE_B05_TEST_UI === "true") return <B05TestApp />;
     if (import.meta.env.VITE_B04_TEST_UI === "true") return <B04TestApp />;
     if (import.meta.env.VITE_B03_TEST_UI === "true") return <B03TestApp />;
     return import.meta.env.VITE_B02_TEST_UI === "true" ? (

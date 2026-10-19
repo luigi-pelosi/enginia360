@@ -15,6 +15,7 @@ public static class WorkshopModule
     public static IServiceCollection AddWorkshop(this IServiceCollection services, string connection)
     {
         services.AddDbContext<WorkshopDbContext>(o => o.UseNpgsql(connection));
+        services.AddScoped<IWorkshopReservationLines, WorkshopReservationLines>();
         return services;
     }
     public static WebApplication MapWorkshop(this WebApplication app)

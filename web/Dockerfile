@@ -4,6 +4,8 @@ COPY web/package.json web/package-lock.json ./
 RUN npm ci --no-audit --no-fund
 COPY web/ ./
 ARG VITE_B04_TEST_UI=false
+ARG VITE_B06_TEST_UI=false
+ENV VITE_B06_TEST_UI=${VITE_B06_TEST_UI}
 ARG VITE_B05_TEST_UI=false
 ENV VITE_B05_TEST_UI=${VITE_B05_TEST_UI}
 ENV VITE_B04_TEST_UI=${VITE_B04_TEST_UI}
@@ -11,7 +13,7 @@ ARG VITE_B03_TEST_UI=false
 ENV VITE_B03_TEST_UI=${VITE_B03_TEST_UI}
 ARG VITE_B02_TEST_UI=false
 ENV VITE_B02_TEST_UI=${VITE_B02_TEST_UI}
-RUN VITE_B05_TEST_UI=false npm test && npm run build
+RUN VITE_B06_TEST_UI=false VITE_B05_TEST_UI=false npm test && npm run build
 
 FROM nginx:1.30.6-alpine3.24@sha256:750f6c5456af731b47295d124fbed55664eeb1daab4f6bac0b092b7406235091
 COPY web/nginx.conf /etc/nginx/nginx.conf

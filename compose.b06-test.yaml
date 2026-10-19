@@ -1,0 +1,19 @@
+# Ephemeral private B06 acceptance only. Never overlay persistent/manual projects.
+services:
+  web:
+    build:
+      args:
+        VITE_B06_TEST_UI: "true"
+  api:
+    environment:
+      Inventory__Enabled: "true"
+  postgres:
+    # PG18 stores data below /var/lib/postgresql, not the obsolete /data mount.
+    # Override all inherited volumes so no retained or anonymous data volume exists.
+    volumes: !override
+      - ./database/b03:/b03:ro
+      - ./database/b04:/b04:ro
+      - ./database/b05:/b05:ro
+      - ./database/b06:/b06:ro
+    tmpfs:
+      - /var/lib/postgresql:rw,nosuid,size=256m,uid=70,gid=70

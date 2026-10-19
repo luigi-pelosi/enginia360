@@ -1,5 +1,7 @@
 # Dossier di fondazione — 04. Prima vertical slice
 
+**Stato corrente D69 — 19 ottobre 2026:** il proprietario approva esplicitamente l’opzione A: prenotazioni parziali richieste dall’operatore, mai troncamento automatico. B06 privata/sintetica è implementata e verificata localmente; candidata alla review indipendente, non Completata. G02/B06 dispone delle prove tecniche nel [report B06](../b06-verification.md); G02/B07–B09 resta aperto. B07–B14 restano blocked/Backlog e non autorizzati. Nessun commit/push/merge o deployment persistente prima della parent review.
+
 **Stato:** perimetro minimo confermato in D28; flusso e contratti seguenti sono proposte per revisione. Nessuna autorizzazione a implementare prima dell'approvazione del dossier.
 **Fonti:** `PROJECT_CHARTER.md` §11–14; [decisioni D3–D28](01-glossary-and-domain-boundaries.md); [capability e data ownership](03-capabilities-and-data-ownership.md).
 
@@ -85,6 +87,8 @@ Matrice di gate, incrementi e prove: [validazioni dei referenti, G01–G03](09-s
 - Errori diagnosticabili tramite correlation ID e audit pertinente senza dati sensibili non necessari.
 
 Questi criteri derivano dal charter e dai chiarimenti, non sono dichiarazioni di test già eseguiti. Test, autorizzazione a implementare, piano di migrazione/rollback e approvazione specialistica restano fasi successive.
+
+**D69 — Prenotazione parziale esplicita:** su riga di 3 filtri con 2 disponibili, l’operatore richiede esplicitamente 2: vengono prenotati 2 e resta 1 da prenotare successivamente quando disponibile. Ogni quantità richiesta deve essere positiva, non superiore al residuo non prenotato della riga né alla disponibilità del magazzino autorizzato della sede di testata. Una richiesta di 3 con disponibilità 2 è rifiutata integralmente, senza effetti e senza bloccare la commessa; non viene ridotta a 2. I successivi comandi, anche su magazzini diversi validi, non possono superare cumulativamente la quantità della riga. La giacenza fisica non cambia; disponibilità = fisico − impegni attivi. D69 risolve soltanto la parzialità della prenotazione, non prelievo, consumo, annullamento o rilascio.
 
 ## 5. Prelievo e installazione distinti — chiarimento D29
 
