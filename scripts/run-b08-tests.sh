@@ -146,6 +146,14 @@ for item in items:
 print("PASS B08 four healthy hardened containers, no published ports")'
 file /b08/990_rollback.sql
 file /b08/990_rollback.sql
+# Earlier B06 SELECT FOR UPDATE requires its pre-existing column privilege after rollback.
+sql <<'SQL'
+BEGIN;
+SET LOCAL ROLE :"app_user";
+SELECT set_config('app.tenant_id','11111111-1111-1111-1111-111111111111',true);
+SELECT "Physical" FROM inventory.stock FOR UPDATE;
+ROLLBACK;
+SQL
 sql <<'SQL'
 DO $$ BEGIN
  ASSERT (SELECT count(*) FROM organization_access.tenants)=2;

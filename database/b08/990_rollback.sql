@@ -12,5 +12,5 @@ DO $$ BEGIN
 END $$;
 DROP TABLE IF EXISTS inventory.consumptions;
 DROP TABLE IF EXISTS workshop.installations;
-REVOKE UPDATE ("Physical") ON inventory.stock FROM :"app_user";
+-- Preserve B06's pre-existing UPDATE ("Physical") grant: SELECT FOR UPDATE depends on it.
 COMMIT;
