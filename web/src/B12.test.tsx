@@ -39,3 +39,16 @@ test('malformed responses are rejected and never shown as success', async () => 
   expect(screen.queryByText('Bozza tecnica creata')).toBeNull();
 });
 function UNCONFIRMED_TEXT(){ return 'Operazione non confermata. Rileggi oppure riprova lo stesso tentativo.'; }
+
+test.each([
+  {...draft,summary:{...summary,total:'NaN'}},
+  {...draft,summary:{...summary,lines:[null]}},
+  {...confirmed,issuer:null},
+])('rejects invalid numeric, line and confirmed-party contracts', async (value) => {
+  vi.stubGlobal('fetch', () => json(value));
+  render(<B12Invoice {...props}/>);
+  fireEvent.click(screen.getByRole('button',{name:'Crea bozza tecnica'}));
+  await screen.findByText(UNCONFIRMED_TEXT());
+  expect(screen.queryByText('Bozza tecnica creata')).toBeNull();
+  expect(screen.queryByText('Documento interno confermato')).toBeNull();
+});

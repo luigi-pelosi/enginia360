@@ -48,7 +48,7 @@ public static partial class BillingModule
     {
         if (request.Id == Guid.Empty || request.OrderId == Guid.Empty || request.DocumentTypeId == Guid.Empty
             || request.ConfigurationVersion <= 0 || request.DocumentDate == default || request.Currency != "EUR"
-            || !Reference().IsMatch(request.Reference))
+            || request.Reference is null || !Reference().IsMatch(request.Reference))
             return Results.BadRequest();
         var subject = Subject(user);
         var member = await access.ResolveMembership(subject, ct);
@@ -94,7 +94,13 @@ public static partial class BillingModule
               {row.ConfigurationVersion},{row.DestinationVersion},{row.SourceRevision},{row.DocumentDate},{row.Currency},{row.Reference},
               CAST({row.Summary} AS jsonb),{row.CreatedAt},{row.CreatedBy}) ON CONFLICT DO NOTHING
             """, ct);
-        if (inserted == 0) return Results.Conflict();
+        if (inserted == 0)
+        {
+            var concurrent = await db.Invoices.AsNoTracking().SingleOrDefaultAsync(x => x.Id == request.Id, ct);
+            if (concurrent is null || !Same(concurrent, row)) return Results.Conflict();
+            await tx.CommitAsync(ct);
+            return Results.Ok(await Contract(concurrent, member.TenantId, db, ct));
+        }
         await tx.CommitAsync(ct);
         return Results.Created($"/api/v1/billing/workshop-invoices/{row.Id}", await Contract(row, member.TenantId, db, ct));
     }

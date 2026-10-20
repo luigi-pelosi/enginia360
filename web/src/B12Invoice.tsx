@@ -9,10 +9,17 @@ type Props = { orderId: string; token: string; documentTypeId: string; configura
 const record = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null;
 const uuid = (x: unknown): x is string => typeof x === 'string' && /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(x);
 const UNCONFIRMED = 'Operazione non confermata. Rileggi oppure riprova lo stesso tentativo.';
+const decimal = (x: unknown): x is string => typeof x === 'string' && /^\d{1,16}(\.\d{1,6})?$/.test(x);
+const party = (x: unknown): x is Party => record(x) && typeof x.legalName === 'string' && x.legalName.length > 0 && x.legalName.length <= 200;
 function parse(x: unknown, orderId: string): Invoice {
   if (!record(x) || !uuid(x.id) || x.orderId !== orderId || !['Draft','Confirmed'].includes(x.status as string)
+    || typeof x.reference !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9/.-]{0,63}$/.test(x.reference)
     || !record(x.summary) || x.summary.orderId !== orderId || x.summary.currency !== 'EUR'
-    || !Array.isArray(x.summary.lines) || typeof x.summary.total !== 'string') throw new Error();
+    || ![x.summary.netAmount,x.summary.taxAmount,x.summary.total].every(decimal)
+    || !Array.isArray(x.summary.lines) || !x.summary.lines.every(line => record(line) && uuid(line.id)
+      && typeof line.catalogLabel === 'string' && line.catalogLabel.length <= 100 && decimal(line.quantity) && decimal(line.netAmount))
+    || (x.status === 'Confirmed' && (!party(x.issuer) || !party(x.recipient) || typeof x.confirmedAt !== 'string'))
+    || (x.status === 'Draft' && (x.issuer !== null || x.recipient !== null || x.confirmedAt !== null))) throw new Error();
   return x as Invoice;
 }
 export default function B12Invoice({orderId, token, documentTypeId, configurationVersion, documentDate}: Props) {

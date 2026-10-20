@@ -1,5 +1,9 @@
 # Synthetic ephemeral B12 acceptance; no published ports or retained volumes.
 services:
+  web:
+    build:
+      args:
+        VITE_B12_TEST_UI: "true"
   api:
     environment:
       InternalBilling__Enabled: "true"

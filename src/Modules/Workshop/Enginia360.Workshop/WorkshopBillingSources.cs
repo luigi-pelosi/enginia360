@@ -26,7 +26,8 @@ internal sealed class WorkshopBillingSources(WorkshopDbContext db) : IWorkshopBi
         if (source is null || source.Revision != expectedRevision) return null;
         var replay = await db.InternalBillingClaims.AsNoTracking().SingleOrDefaultAsync(x => x.InvoiceId == invoiceId, ct);
         if (replay is not null)
-            return replay.OrderId == orderId && replay.Revision == expectedRevision ? source : null;
+            return replay.OrderId == orderId && replay.Revision == expectedRevision
+                ? source with { DestinationVersion = replay.DestinationVersion } : null;
         if (await db.InternalBillingClaims.AnyAsync(x => x.OrderId == orderId, ct)
             || await db.AdministrativeRequests.AnyAsync(x => x.OrderId == orderId, ct)) return null;
         var destination = await db.AdministrativeDestinations.AsNoTracking()

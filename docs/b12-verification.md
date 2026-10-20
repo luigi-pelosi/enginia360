@@ -22,14 +22,20 @@ I log sono in scratch e non nel repository.
 | `npm test -- --run src/B12.test.tsx` | risposta malformata non mostrava errore (`b12-ui-unit-attempt1.log`) | due test UI PASS e build PASS (`b12-ui-unit-green.log`) |
 | `python3 scripts/test-b12-ci.py` | selezione B12 assente dalla CI (`b12-ci-selection-red.log`) | runner reale selezionato (`b12-ci-selection-green.log`) |
 | B10 regression | reset non includeva il nuovo FK, poi rollback B10 precedeva B12 (`b12-regression-b10*.log`) | B12 rollback prima di B11/B10, reset completo; suite B10 PASS |
+| `scripts/test-b12-security.py` ritentativo concorrente con lock reale su `billing.invoices` | quattro retry dello stesso ID: `[201,500,500,500]` per snapshot di destinazione perduto, poi `[201,409,409,409]` (`b12-controlled-retry-red2.log`, `b12-controlled-retry-red4.log`) | `[200,200,200,201]` con un solo documento identico; claim riletto e inserimento concorrente risolto in replay (`b12-full-security-rls-green.log`) |
+| Input non fidato della creazione | `reference: null` provocava 500 reale (`b12-full-security-rls-input.log`) | 400 per ID vuoto, riferimento nullo, valuta non EUR e campo estraneo |
+| `database/b12/950_rls_test.sql` con ruolo applicativo reale | file assente: RLS/privilegi B12 non esercitati dal ruolo reale | PASS: nessun dato senza contesto, nessuna lettura/scrittura cross-tenant, UPDATE/DELETE negati, FORCE RLS su sei tabelle, reset di contesto |
+| `scripts/test-b12-audit.py` | la suite verificava solo la presenza della stringa `Billing audit` | PASS su 200/201/403/404/409/500 reali con soli ID tecnici |
+| UI `src/B12.test.tsx` contratti aggiuntivi | totale non numerico, riga malformata e confermata senza emittente accettati (`b12-ui-contract-red.log`, 3 test falliti) | rifiutati e nessun falso successo (`b12-ui-contract-green.log`) |
+| `python3 scripts/test-b12-ci.py` host UI | `VITE_B12_TEST_UI` assente: la UI non era raggiungibile dall'host dell'ordine | flag Dockerfile/compose/host e selezione CI PASS |
 
 ## Verifiche finali effettive
 
-- `timeout 350 sh scripts/run-b12-tests.sh`: PASS (`b12-full-green-attempt1.log` e rerun successivi). HTTP reale con identità reale sintetica, q6 immutabile, replay, cross-tenant 404, conferma e snapshot, seconda conferma 409, due creazioni simultanee 201/409; DOM con login/fetch reali; conteggi SQL; audit strutturato; rollback rifiutato con fatture vive, poi riuscito dopo rimozione esclusiva dei dati effimeri. Trap verifica assenza container/reti/volumi del progetto.
-- `timeout 350 sh scripts/run-b10-tests.sh`: PASS (`b12-regression-b10-attempt3.log`), inclusi DOM, RLS, hardening e rollback/reapply B10–B12.
-- `timeout 350 sh scripts/run-b11-tests.sh`: PASS (`b12-regression-b11.log`), inclusi fault, kill/recreate, lease, riconciliazione, DOM e audit.
-- SDK pinned: restore locked e API test: 65 PASS (`b12-dotnet-full.log`). Audit NuGet API/test: nessun package vulnerabile (`b12-nuget-audit.log`).
-- Node pinned: 24 unit PASS, 10 runtime skip fuori stack; B12 runtime eseguito separatamente e PASS nello stack. Typecheck/build PASS; npm audit zero vulnerabilità (`b12-ui-full-audit.log`).
+- `timeout 350 sh scripts/run-b12-tests.sh`: **PASS** (`b12-full-audit-green.log`). Nove marker reali: tracer HTTP, ritentativo concorrente controllato, scope esatti separati, storico immutabile dopo modifica anagrafica reale, guasto intermodulo con recupero, RLS con ruolo applicativo, audit strutturato, DOM reale e rollback guardato con cleanup verificato dal trap.
+- `timeout 560 sh scripts/run-b10-tests.sh`: **PASS** (`b12-regression-b10-final2.log`); include DOM, RLS, hardening, audit e rollback/reapply B10–B12. Una precedente esecuzione con budget 350 s è stata interrotta dal timeout (`b12-regression-b10-final.log`, exit 124): la sua assenza di audit è artefatto del cleanup anticipato, non un fallimento della suite.
+- `timeout 350 sh scripts/run-b11-tests.sh`: **PASS** (`b12-regression-b11-final.log`), inclusi fault, kill/restart, lease, riconciliazione, DOM e audit.
+- SDK pinned: restore locked, API test **65 PASS**, audit NuGet API/test nessun package vulnerabile (`b12-dotnet-final2.log`).
+- Node pinned: **27 unit PASS, 10 runtime skip** fuori stack; tre build private (default, B10, B12) e `npm audit` **zero vulnerabilità** (`b12-ui-full-audit2.log`). Il runtime B12 è eseguito e PASS nello stack, non confuso con gli skip.
 - Compose renderizzato con configurazione sintetica: container nonroot/read-only, capability drop, no-new-privileges e nessuna porta pubblicata. `git diff --check` e selezione CI PASS.
 - Risorse host protette: 25 volumi invariati; hash nativo nomi/newline `18be04807d27c1f30683770dd421da191f0346e87aa8ebdb5fac2fe02d08390e`. Nessun prune, deploy pubblico, lettura segreti o modifica backup/configurazioni manuali.
 
