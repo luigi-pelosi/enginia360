@@ -44,11 +44,23 @@ public interface IWorkshopPickedParts
 public sealed record InstallationContract(Guid Id, Guid TenantId, Guid PickId, Guid ReservationId, Guid OrderId,
     Guid WorkingGroupId, Guid LineId, Guid LegalEntityId, Guid SiteId, Guid WarehouseId, Guid CatalogItemId,
     int CatalogVersion, string Quantity, int PickingConfigurationVersion, Guid DocumentTypeId,
-    int ConfigurationVersion, DateTimeOffset InstalledAt, Guid OperatorId);
+    int ConfigurationVersion, DateTimeOffset InstalledAt, Guid OperatorId, int? CarcassPolicyVersion, bool CarcassReturnRequired);
+// Immutable D9 snapshot of an installation whose carcass return is required (D39/D73).
+public sealed record CarcassInstallation(Guid InstallationId, Guid LineId, Guid CatalogItemId, decimal Quantity,
+    int CarcassPolicyVersion, DateTimeOffset InstalledAt);
 public interface IWorkshopInstallations
 {
     Task<InstallationContract?> Find(string subject, Guid installationId, bool write, CancellationToken ct);
+    // Tenant-verified projection; the caller authorizes the order/action before using it.
+    Task<IReadOnlyList<CarcassInstallation>> RequiredCarcass(Guid verifiedTenantId, Guid orderId, CancellationToken ct);
 }
+// Implemented by Inventory, owner of carcass receipts: installation IDs covered by accepted returns.
+public interface IReplacedPartReturns
+{
+    Task<IReadOnlyDictionary<Guid, decimal>> Covered(Guid verifiedTenantId, Guid orderId, CancellationToken ct);
+}
+public sealed record CarcassRequirement(Guid LineId, Guid CatalogItemId, string RequiredInstalled, string Returned, string Outstanding);
+public sealed record TechnicalClosureGate(Guid OrderId, string Status, IReadOnlyList<CarcassRequirement> Requirements);
 public sealed record ConsumptionContract(Guid InstallationId, string Quantity, DateTimeOffset ConsumedAt);
 public interface IInstallationStockEffects
 {

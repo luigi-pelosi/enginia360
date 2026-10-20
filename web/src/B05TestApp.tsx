@@ -17,6 +17,7 @@ export default function B05TestApp() {
 }
 function CommercialLines({order,token}:{order:{id:string;legalEntityId:string;siteId:string};token:string}) {
   const [items,setItems]=useState<Item[]>([]);
+  const [partId,setPartId]=useState('');
   const [saved,setSaved]=useState<Summary>();
   const [error,setError]=useState("");
   const [busy,setBusy]=useState(true);
@@ -48,7 +49,7 @@ function CommercialLines({order,token}:{order:{id:string;legalEntityId:string;si
     return ()=>{alive.current=false;};
   },[order.id,token]);
   async function add(kind:'Service'|'Part') {
-    const item=items.find(x=>x.kind===kind);
+    const item=items.find(x=>x.kind===kind && (kind==='Service' || !partId || x.id===partId));
     if(busy)return;
     if(!item || !saved){setError('Catalogo o valori non disponibili. Rileggi oppure riseleziona il contesto.');return;}
     const values={catalogItemId:item.id,catalogVersion:item.version,configurationVersion:1,expectedRevision:saved.revision,
@@ -76,6 +77,9 @@ function CommercialLines({order,token}:{order:{id:string;legalEntityId:string;si
       const name = kind === 'Service' ? 'prestazione' : 'ricambio';
       return <fieldset key={kind} disabled={busy || saved?.lines.some(line => line.kind === kind)}>
         <legend>{name}</legend>
+        {kind === 'Part' && <label>Articolo ricambio<select value={partId} onChange={event => setPartId(event.target.value)}>
+          <option value="">Primo articolo disponibile</option>
+          {items.filter(x => x.kind === 'Part').map(x => <option key={x.id} value={x.id}>{x.label}</option>)}</select></label>}
         {([['quantity', 'Quantità'], ['unitPrice', 'Prezzo unitario'], ['discountPercent', 'Sconto %']] as const).map(([field, label]) =>
           <label key={field}>{label} {name}<input inputMode="decimal" value={valuesByKind[kind][field]}
             onChange={event => setValuesByKind(current => ({...current, [kind]: {...current[kind], [field]: event.target.value}}))}/></label>)}

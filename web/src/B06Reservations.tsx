@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import B07Picking from './B07Picking';
+import B09CarcassReturn from './B09CarcassReturn';
 
 type State = { physical: string; available: string; reserved: string; remaining: string; reservations: { id: string }[] };
 type Warehouse = { id: string; name: string };
@@ -17,6 +18,7 @@ export default function B06Reservations({ order, line, token }: Props) {
   const [error, setError] = useState('');
   const pending = useRef<{ key: string; id: string } | undefined>(undefined);
   const generation = useRef(0);
+  const [installed, setInstalled] = useState(0);
   const url = `/api/v1/inventory/orders/${order.id}/lines/${line.id}`;
   async function api(path: string, payload?: unknown) {
     const response = await fetch(path, {
@@ -85,7 +87,9 @@ export default function B06Reservations({ order, line, token }: Props) {
     <button disabled={busy} onClick={() => void reload()}>Rileggi prenotazioni</button>
     {state && <div aria-live="polite"><p>Fisico: {state.physical}</p><p>Disponibile: {state.available}</p><p>Prenotato sulla riga: {state.reserved}</p><p>Residuo da prenotare: {state.remaining}</p></div>}
     {import.meta.env.VITE_B07_TEST_UI === 'true' && state?.reservations.map(x =>
-      <B07Picking key={x.id} url={url} reservationId={x.id} token={token} onChanged={() => { const current = generation.current; void read(warehouse).then(saved => { if (current === generation.current) setState(saved); }).catch(() => { if (current === generation.current) { setState(undefined); setError('Stato stock non disponibile. Rileggi prenotazioni.'); } }); }}/>) }
+      <B07Picking key={x.id} url={url} reservationId={x.id} token={token} onChanged={() => { setInstalled(value => value + 1); const current = generation.current; void read(warehouse).then(saved => { if (current === generation.current) setState(saved); }).catch(() => { if (current === generation.current) { setState(undefined); setError('Stato stock non disponibile. Rileggi prenotazioni.'); } }); }}/>) }
+    {import.meta.env.VITE_B09_TEST_UI === 'true' && state && warehouse &&
+      <B09CarcassReturn url={url} orderId={order.id} warehouse={warehouse} token={token} refresh={installed}/>}
     {error && <p role="alert">{error}</p>}
   </section>;
 }

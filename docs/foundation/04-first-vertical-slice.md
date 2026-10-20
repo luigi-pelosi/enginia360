@@ -1,10 +1,10 @@
 # Dossier di fondazione — 04. Prima vertical slice
 
-## Stato corrente consolidato — D70–D72
+## Stato corrente consolidato — D70–D73
 
-B01–B07 consegnati; B07 main `fcc62ca8aefbca4e7bf66e413f063d97f85bf9df` (PR #28, CI main 39337260806 success). D70 autorizza B08–B14 in sequenza autonoma, un solo WIP. B08 In corso: D72 conferma installazione parziale esplicita q6 entro il prelevato non installato; il residuo resta prelevato non installato. Officina possiede il fatto tecnico, Inventory il consumo idempotente; nessuna transazione globale. B09–B14 restano Backlog per dipendenze/gate pertinenti, non per mancata autorizzazione. Nessuna nuova policy fiscale o di reso dedotta.
+B01–B08 consegnati; B08 main `67bec45f116c85658098ce62232aafccd365ce10` (PR #29, CI main 39395112487 success). D70 autorizza B08–B14 in sequenza autonoma, un solo WIP. B09 In corso: D73 — ogni rientro carcassa copre esattamente tutto il residuo con un unico comando (su 2 installati, 2); parziali/eccedenti rifiutati integralmente; gate di chiusura tecnica bloccato finché il residuo è maggiore di zero. Inventory possiede il rientro fuori giacenza nell'ubicazione dedicata D38, Officina il requisito fotografato sull'installazione e il gate; nessuna transazione globale. Report [B09](../b09-verification.md). B10–B14 restano Backlog. Nessuna policy fiscale, di costo, smaltimento o proprietà della carcassa dedotta.
 
-Accettazione automatica isolata effimera, nessun nuovo ambiente manuale persistente, nessuna review LLM o approvazione manuale di routine. Bootstrap 443, segreti, volumi e backup conservati invariati. Le descrizioni successive di stato/autorizzazione precedente sono **storiche e superate da questo riepilogo e D70–D72**; i requisiti di dominio restano validi. Prove/CI/completamento non sono dedotti dall'autorizzazione.
+Accettazione automatica isolata effimera, nessun nuovo ambiente manuale persistente, nessuna review LLM o approvazione manuale di routine. Bootstrap 443, segreti, volumi e backup conservati invariati. Le descrizioni successive di stato/autorizzazione precedente sono **storiche e superate da questo riepilogo e D70–D73**; i requisiti di dominio restano validi. Prove/CI/completamento non sono dedotti dall'autorizzazione.
 
 
 **Stato corrente D69 — 19 ottobre 2026:** il proprietario approva esplicitamente l’opzione A: prenotazioni parziali richieste dall’operatore, mai troncamento automatico. B06 privata/sintetica è implementata e verificata localmente; candidata alla review indipendente, non Completata. G02/B06 dispone delle prove tecniche nel [report B06](../b06-verification.md); G02/B07–B09 resta aperto. B07–B14 restano blocked/Backlog e non autorizzati. Nessun commit/push/merge o deployment persistente prima della parent review.

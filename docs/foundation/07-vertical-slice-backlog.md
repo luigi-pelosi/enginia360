@@ -1,10 +1,10 @@
 # Dossier di fondazione — 07. Backlog della prima vertical slice
 
-## Stato corrente consolidato — D70–D72
+## Stato corrente consolidato — D70–D73
 
-B01–B07 consegnati; B07 main `fcc62ca8aefbca4e7bf66e413f063d97f85bf9df` (PR #28, CI main 39337260806 success). D70 autorizza B08–B14 in sequenza autonoma, un solo WIP. B08 In corso: D72 conferma installazione parziale esplicita q6 entro il prelevato non installato; il residuo resta prelevato non installato. Officina possiede il fatto tecnico, Inventory il consumo idempotente; nessuna transazione globale. B09–B14 restano Backlog per dipendenze/gate pertinenti, non per mancata autorizzazione. Nessuna nuova policy fiscale o di reso dedotta.
+B01–B08 consegnati; B08 main `67bec45f116c85658098ce62232aafccd365ce10` (PR #29, CI main 39395112487 success). D70 autorizza B08–B14 in sequenza autonoma, un solo WIP. B09 In corso: D73 — ogni rientro carcassa copre esattamente tutto il residuo con un unico comando (su 2 installati, 2); parziali/eccedenti rifiutati integralmente; gate di chiusura tecnica bloccato finché il residuo è maggiore di zero. Inventory possiede il rientro fuori giacenza nell'ubicazione dedicata D38, Officina il requisito fotografato sull'installazione e il gate; nessuna transazione globale. Report [B09](../b09-verification.md). B10–B14 restano Backlog. Nessuna policy fiscale, di costo, smaltimento o proprietà della carcassa dedotta.
 
-Accettazione automatica isolata effimera, nessun nuovo ambiente manuale persistente, nessuna review LLM o approvazione manuale di routine. Bootstrap 443, segreti, volumi e backup conservati invariati. Le descrizioni successive di stato/autorizzazione precedente sono **storiche e superate da questo riepilogo e D70–D72**; i requisiti di dominio restano validi. Prove/CI/completamento non sono dedotti dall'autorizzazione.
+Accettazione automatica isolata effimera, nessun nuovo ambiente manuale persistente, nessuna review LLM o approvazione manuale di routine. Bootstrap 443, segreti, volumi e backup conservati invariati. Le descrizioni successive di stato/autorizzazione precedente sono **storiche e superate da questo riepilogo e D70–D73**; i requisiti di dominio restano validi. Prove/CI/completamento non sono dedotti dall'autorizzazione.
 
 
 **Aggiornamento consegna B06:** il proprietario ha accettato la prova privata («Funziona. Procediamo») e autorizzato commit/push/PR/CI/merge della sola B06. Review indipendenti core/lifecycle e cinque artefatti manuali PASS; riesecuzioni finali nel [report B06](../b06-verification.md). G02/B06 soddisfatto nel solo perimetro D69; completamento remoto subordinato agli esiti reali della PR e issue #12. B07–B14 restano non autorizzati, aperti/blocked/Backlog; nessun avanzamento downstream. Le precedenti indicazioni di review/accettazione pendenti sono storiche.
@@ -149,6 +149,7 @@ Non trasferire automaticamente tutte le voci in Pronto dopo l'approvazione del b
 - **Accettazione:** carcassa e nuovo inutilizzato non confusi; nessun ripristino improprio della disponibilità del nuovo. Vincoli di chiusura derivano dalla configurazione, non da un obbligo universale hardcoded.
 - **Identificazione confermata D35:** commessa/lavorazione, riga del ricambio installato, descrizione e quantità della carcassa, data e operatore di ricezione. Nessun catalogo separato o matricola obbligatoria nel caso iniziale.
 - **Destinazione D38:** ubicazione dedicata ai particolari sostituiti, separata dai ricambi nuovi e non vendibile nel primo scenario; valorizzazione e smaltimento non introdotti. Non è un vincolo universale.
+- **Decisione D73:** ogni rientro copre esattamente tutto il residuo con un unico comando; su 2 installati si rientrano tutti i 2. Parziali, eccedenti o a residuo zero rifiutati integralmente, mai troncati; installazione successiva crea un nuovo residuo. Gate di chiusura tecnica bloccato finché il residuo è maggiore di zero.
 - **Prova:** rientro idempotente, dati D35 e destinazione D38 verificati. D39: verificare che la chiusura tecnica del caso dimostrativo sia rifiutata prima del rientro richiesto e consentita dopo il suo completamento, a parità degli altri requisiti. T05, T12.
 
 ### B10 — Destinazione esterna simulata

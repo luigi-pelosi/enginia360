@@ -1,12 +1,14 @@
 {
   "module": "Inventory",
-  "increment": "B06",
+  "increment": "B09",
   "capability": "inventory",
-  "providedActions": ["inventory.reservations.read", "inventory.reservations.create"],
+  "providedActions": ["inventory.reservations.read", "inventory.reservations.create", "inventory.picks.read", "inventory.picks.create",
+    "inventory.consumptions.read", "inventory.consumptions.create", "inventory.carcass-returns.read", "inventory.carcass-returns.create"],
   "requiredCapabilitiesForWrites": ["workshop", "inventory"],
   "contracts": "Enginia360.Inventory.Contracts",
   "contractDependencies": ["Enginia360.Workshop.Contracts"],
-  "ownedTables": ["inventory.stock", "inventory.reservations"],
+  "ownedTables": ["inventory.stock", "inventory.reservations", "inventory.picking_policies", "inventory.picking_locations", "inventory.picks",
+    "inventory.consumptions", "inventory.carcass_locations", "inventory.carcass_returns", "inventory.carcass_return_installations"],
   "publishedEvents": [],
   "historicalReadsRequireActiveCapability": false,
   "scope": "private-synthetic-only"
