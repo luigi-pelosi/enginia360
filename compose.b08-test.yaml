@@ -13,3 +13,4 @@ services:
       - ./database/b07:/b07:ro
       - ./database/b08:/b08:ro
       - ./database/b09:/b09:ro
+      - ./database/b10:/b10:ro

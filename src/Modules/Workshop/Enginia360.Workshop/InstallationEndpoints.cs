@@ -50,6 +50,10 @@ internal static class InstallationEndpoints
             {
                 var key = $"workshop:installation:{pick.TenantId}:{pickId}";
                 await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({key}, 0))", ct);
+                // Lock order command -> pick -> order. The order lock serializes with technical closure (B10):
+                // an installation committed first is seen by the closure; a later one sees the closure.
+                await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({orderId.ToString()}, 0))", ct);
+                if (await db.TechnicalClosures.AnyAsync(x => x.OrderId == orderId, ct)) return CommercialEndpoints.Closed();
                 var installed = await db.Installations.Where(x => x.TenantId == pick.TenantId && x.PickId == pickId).SumAsync(x => x.Quantity, ct);
                 if (quantity > pick.Quantity - installed)
                     return Results.Conflict(new { code = "exceeds_uninstalled", message = "Quantità superiore al prelevato non installato. Nessuna installazione registrata." });
@@ -114,6 +118,10 @@ internal static class InstallationEndpoints
             return Results.NotFound();
         var required = await installations.RequiredCarcass(member.TenantId, id, ct);
         var covered = await returns.Covered(member.TenantId, id, ct);
+        return Results.Ok(Gate(id, required, covered));
+    }
+    internal static TechnicalClosureGate Gate(Guid orderId, IReadOnlyList<CarcassInstallation> required, IReadOnlyDictionary<Guid, decimal> covered)
+    {
         var requirements = required.GroupBy(x => new { x.LineId, x.CatalogItemId }).OrderBy(x => x.Key.LineId).Select(group =>
         {
             var total = group.Sum(x => x.Quantity);
@@ -121,7 +129,7 @@ internal static class InstallationEndpoints
             return new CarcassRequirement(group.Key.LineId, group.Key.CatalogItemId, Value(total), Value(returned), Value(total - returned));
         }).ToArray();
         var clear = required.All(x => covered.ContainsKey(x.InstallationId));
-        return Results.Ok(new TechnicalClosureGate(id, clear ? "Clear" : "Blocked", requirements));
+        return new TechnicalClosureGate(orderId, clear ? "Clear" : "Blocked", requirements);
     }
     private static string Value(decimal value) => value.ToString("0.######", CultureInfo.InvariantCulture);
     private static async Task<IResult> Read(Guid orderId, Guid lineId, Guid pickId, ClaimsPrincipal user,

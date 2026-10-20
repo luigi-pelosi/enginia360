@@ -159,6 +159,13 @@
       "enginia360.counterparties.contracts": {
         "type": "Project"
       },
+      "enginia360.integrations": {
+        "type": "Project",
+        "dependencies": {
+          "Enginia360.Workshop.Contracts": "[1.0.0, )",
+          "Npgsql.EntityFrameworkCore.PostgreSQL": "[10.0.0, )"
+        }
+      },
       "enginia360.inventory": {
         "type": "Project",
         "dependencies": {

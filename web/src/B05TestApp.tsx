@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import B04TestApp from "./B04TestApp";
 import B06Reservations from "./B06Reservations";
+import B10Administration from "./B10Administration";
 type Item = { id: string; kind: "Service" | "Part"; label: string; version: number };
 type Line = { id: string; catalogVersion: number; catalogItemId: string; catalogLabel: string; kind: string; quantity: string; unitPrice: string; discountPercent: string; netAmount: string; workingGroupId: string; payerId: string };
 type Summary = { orderId: string; payerId: string; revision: number; lines: Line[]; netAmount: string; taxAmount: string; total: string; currency: "EUR"; policy: "Case001" };
@@ -96,6 +97,7 @@ function CommercialLines({order,token}:{order:{id:string;legalEntityId:string;si
         <B06Reservations key={line.id} order={order} line={line} token={token}/>)}
       <p>Soggetto unico a carico: {saved.payerId}</p>
       <p>Imponibile: {saved.netAmount} EUR</p><p>Imposta aggregata: {saved.taxAmount} EUR</p><p>Totale: {saved.total} EUR</p>
+      {import.meta.env.VITE_B10_TEST_UI === 'true' && <B10Administration orderId={order.id} revision={saved.revision} token={token}/>}
     </div>}
     {error && <p role="alert">{error}</p>}
   </section>;

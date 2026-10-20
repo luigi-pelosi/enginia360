@@ -11,8 +11,22 @@ internal sealed class WorkshopDbContext(DbContextOptions<WorkshopDbContext> opti
     internal DbSet<CommercialLine> Lines => Set<CommercialLine>();
     internal DbSet<LinePolicy> LinePolicies => Set<LinePolicy>();
     internal DbSet<DocumentTypeConfiguration> Configurations => Set<DocumentTypeConfiguration>();
+    internal DbSet<TechnicalClosure> TechnicalClosures => Set<TechnicalClosure>();
+    internal DbSet<AdministrativeDestination> AdministrativeDestinations => Set<AdministrativeDestination>();
+    internal DbSet<AdministrativeRequest> AdministrativeRequests => Set<AdministrativeRequest>();
+    internal DbSet<AdministrativeOutcomeRow> AdministrativeOutcomes => Set<AdministrativeOutcomeRow>();
+    internal DbSet<AdministrativeClosure> AdministrativeClosures => Set<AdministrativeClosure>();
     protected override void OnModelCreating(ModelBuilder b)
     {
+        b.Entity<TechnicalClosure>().ToTable("technical_closures", "workshop").HasKey(x => x.OrderId);
+        b.Entity<AdministrativeDestination>().ToTable("administrative_destinations", "workshop").HasKey(x => new { x.TenantId, x.LegalEntityId, x.Version });
+        b.Entity<AdministrativeRequest>().ToTable("administrative_requests", "workshop").HasKey(x => x.Id);
+        b.Entity<AdministrativeRequest>().Property(x => x.Summary).HasColumnType("jsonb");
+        b.Entity<AdministrativeRequest>().Property(x => x.NetAmount).HasPrecision(18, 6);
+        b.Entity<AdministrativeRequest>().Property(x => x.TaxAmount).HasPrecision(18, 6);
+        b.Entity<AdministrativeRequest>().Property(x => x.Total).HasPrecision(18, 6);
+        b.Entity<AdministrativeOutcomeRow>().ToTable("administrative_outcomes", "workshop").HasKey(x => x.RequestId);
+        b.Entity<AdministrativeClosure>().ToTable("administrative_closures", "workshop").HasKey(x => x.OrderId);
         b.Entity<InstalledPart>().ToTable("installations", "workshop").HasKey(x => x.Id);
         b.Entity<InstalledPart>().Property(x => x.Quantity).HasPrecision(12, 6);
         b.Entity<CarcassPolicy>().ToTable("carcass_policies", "workshop")

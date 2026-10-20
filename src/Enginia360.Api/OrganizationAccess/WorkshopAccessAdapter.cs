@@ -59,4 +59,13 @@ internal sealed class WorkshopAccessAdapter(OrganizationAccessDbContext db) : IW
         await tx.CommitAsync(ct);
         return new(member.TenantId, member.Id);
     }
+
+    public async Task<bool> CapabilityEnabled(Guid verifiedTenantId, Guid companyId, string capability, CancellationToken ct)
+    {
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.tenant_id', {verifiedTenantId.ToString()}, true)", ct);
+        var enabled = await db.CapabilityActivations.AnyAsync(x => x.LegalEntityId == companyId && x.Capability == capability && x.Enabled, ct);
+        await tx.CommitAsync(ct);
+        return enabled;
+    }
 }

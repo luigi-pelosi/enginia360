@@ -27,6 +27,14 @@ if (builder.Configuration.GetValue<bool>("Inventory:Enabled"))
     builder.Services.AddScoped<Enginia360.Inventory.Contracts.IInventoryAccess, InventoryAccessAdapter>();
     Enginia360.Inventory.InventoryModule.AddInventory(builder.Services, builder.Configuration.GetConnectionString("OrganizationAccess")!);
 }
+var externalAdministration = builder.Configuration.GetValue<bool>("ExternalAdministration:Enabled");
+if (externalAdministration)
+{
+    if (!builder.Configuration.GetValue<bool>("Inventory:Enabled"))
+        throw new InvalidOperationException("External administration requires Workshop and Inventory.");
+    Enginia360.Integrations.IntegrationsModule.AddExternalAdministration(builder.Services,
+        builder.Configuration.GetConnectionString("OrganizationAccess")!, builder.Configuration.GetSection("ExternalAdministration"));
+}
 var app = builder.Build();
 
 app.Use(
@@ -88,7 +96,7 @@ app.MapOrganizationAccess();
 if (app.Configuration.GetValue<bool>("Counterparties:Enabled"))
     app.MapCounterparties();
 if (app.Configuration.GetValue<bool>("Workshop:Enabled"))
-    Enginia360.Workshop.WorkshopModule.MapWorkshop(app, app.Configuration.GetValue<bool>("Inventory:Enabled"));
+    Enginia360.Workshop.WorkshopModule.MapWorkshop(app, app.Configuration.GetValue<bool>("Inventory:Enabled"), externalAdministration);
 if (app.Configuration.GetValue<bool>("Inventory:Enabled"))
     Enginia360.Inventory.InventoryModule.MapInventory(app);
 app.MapOpenApi();
