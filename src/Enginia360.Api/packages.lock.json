@@ -139,6 +139,18 @@
           "Microsoft.IdentityModel.Tokens": "8.19.2"
         }
       },
+      "enginia360.billing": {
+        "type": "Project",
+        "dependencies": {
+          "Enginia360.Billing.Contracts": "[1.0.0, )",
+          "Enginia360.Counterparties.Contracts": "[1.0.0, )",
+          "Enginia360.Workshop.Contracts": "[1.0.0, )",
+          "Npgsql.EntityFrameworkCore.PostgreSQL": "[10.0.0, )"
+        }
+      },
+      "enginia360.billing.contracts": {
+        "type": "Project"
+      },
       "enginia360.catalog": {
         "type": "Project",
         "dependencies": {

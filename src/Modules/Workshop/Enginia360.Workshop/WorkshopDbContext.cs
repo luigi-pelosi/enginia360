@@ -16,6 +16,7 @@ internal sealed class WorkshopDbContext(DbContextOptions<WorkshopDbContext> opti
     internal DbSet<AdministrativeRequest> AdministrativeRequests => Set<AdministrativeRequest>();
     internal DbSet<AdministrativeOutcomeRow> AdministrativeOutcomes => Set<AdministrativeOutcomeRow>();
     internal DbSet<AdministrativeClosure> AdministrativeClosures => Set<AdministrativeClosure>();
+    internal DbSet<InternalBillingClaim> InternalBillingClaims => Set<InternalBillingClaim>();
     protected override void OnModelCreating(ModelBuilder b)
     {
         b.Entity<TechnicalClosure>().ToTable("technical_closures", "workshop").HasKey(x => x.OrderId);
@@ -27,6 +28,7 @@ internal sealed class WorkshopDbContext(DbContextOptions<WorkshopDbContext> opti
         b.Entity<AdministrativeRequest>().Property(x => x.Total).HasPrecision(18, 6);
         b.Entity<AdministrativeOutcomeRow>().ToTable("administrative_outcomes", "workshop").HasKey(x => x.RequestId);
         b.Entity<AdministrativeClosure>().ToTable("administrative_closures", "workshop").HasKey(x => x.OrderId);
+        b.Entity<InternalBillingClaim>().ToTable("internal_billing_claims", "workshop").HasKey(x => x.InvoiceId);
         b.Entity<InstalledPart>().ToTable("installations", "workshop").HasKey(x => x.Id);
         b.Entity<InstalledPart>().Property(x => x.Quantity).HasPrecision(12, 6);
         b.Entity<CarcassPolicy>().ToTable("carcass_policies", "workshop")

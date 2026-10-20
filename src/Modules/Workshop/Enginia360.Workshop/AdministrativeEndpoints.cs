@@ -131,6 +131,8 @@ internal static partial class AdministrativeEndpoints
                     return Results.Conflict(new { code = "revision_changed", revision = closure.Revision, message = "Valori della commessa cambiati: rileggi." });
                 if (await db.AdministrativeRequests.AnyAsync(x => x.OrderId == id, ct))
                     return Results.Conflict(new { code = "already_requested", message = "Richiesta amministrativa già registrata per la commessa." });
+                if (await db.InternalBillingClaims.AnyAsync(x => x.OrderId == id, ct))
+                    return Results.Conflict(new { code = "internal_invoice_already_allocated", message = "La commessa è già assegnata alla fatturazione interna." });
                 var destination = await db.AdministrativeDestinations.AsNoTracking().Where(x => x.TenantId == member.TenantId
                     && x.LegalEntityId == order.LegalEntityId).OrderByDescending(x => x.Version).FirstOrDefaultAsync(ct);
                 if (destination is not { Destination: "External" })

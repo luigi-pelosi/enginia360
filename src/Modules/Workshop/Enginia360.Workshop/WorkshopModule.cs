@@ -18,6 +18,7 @@ public static class WorkshopModule
         services.AddScoped<IWorkshopReservationLines, WorkshopReservationLines>();
         services.AddScoped<IWorkshopInstallations, WorkshopInstallations>();
         services.AddScoped<IWorkshopAdministrativeOutbox, WorkshopAdministrativeOutbox>();
+        services.AddScoped<IWorkshopBillingSources, WorkshopBillingSources>();
         return services;
     }
     public static WebApplication MapWorkshop(this WebApplication app, bool inventoryEnabled = false, bool externalAdministrationEnabled = false)

@@ -27,6 +27,15 @@ if (builder.Configuration.GetValue<bool>("Inventory:Enabled"))
     builder.Services.AddScoped<Enginia360.Inventory.Contracts.IInventoryAccess, InventoryAccessAdapter>();
     Enginia360.Inventory.InventoryModule.AddInventory(builder.Services, builder.Configuration.GetConnectionString("OrganizationAccess")!);
 }
+var internalBilling = builder.Configuration.GetValue<bool>("InternalBilling:Enabled");
+if (internalBilling)
+{
+    if (!builder.Configuration.GetValue<bool>("Workshop:Enabled"))
+        throw new InvalidOperationException("Internal billing requires Workshop.");
+    builder.Services.AddScoped<Enginia360.Billing.Contracts.IBillingAccess, BillingAccessAdapter>();
+    Enginia360.Billing.BillingModule.AddInternalBilling(builder.Services,
+        builder.Configuration.GetConnectionString("OrganizationAccess")!);
+}
 var externalAdministration = builder.Configuration.GetValue<bool>("ExternalAdministration:Enabled");
 if (externalAdministration)
 {
@@ -99,6 +108,8 @@ if (app.Configuration.GetValue<bool>("Workshop:Enabled"))
     Enginia360.Workshop.WorkshopModule.MapWorkshop(app, app.Configuration.GetValue<bool>("Inventory:Enabled"), externalAdministration);
 if (app.Configuration.GetValue<bool>("Inventory:Enabled"))
     Enginia360.Inventory.InventoryModule.MapInventory(app);
+if (internalBilling)
+    Enginia360.Billing.BillingModule.MapInternalBilling(app);
 app.MapOpenApi();
 app.Run();
 

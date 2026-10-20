@@ -12,6 +12,11 @@ public interface IWorkshopCounterparties
 {
     Task<bool> CanUsePayer(string subject, Guid verifiedTenantId, Guid companyId, Guid counterpartyId, CancellationToken ct);
 }
+public sealed record InvoiceCounterparty(Guid Id, string LegalName, string FiscalIdentifier, string RegisteredOffice);
+public interface IInvoiceCounterparties
+{
+    Task<InvoiceCounterparty?> Find(Guid verifiedTenantId, Guid counterpartyId, CancellationToken ct);
+}
 public interface ICounterpartyAccess
 {
     Task<IReadOnlyList<CounterpartyCompany>> ListCompanies(string subject, CancellationToken cancellationToken);
