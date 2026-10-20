@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Enginia360.Counterparties;
 
-internal sealed class WorkshopCounterparties(ICounterpartyAccess access, CounterpartiesDbContext db) : IWorkshopCounterparties
+internal sealed class WorkshopCounterparties(ICounterpartyAccess access, CounterpartiesDbContext db) : IWorkshopCounterparties, IInvoiceCounterparties
 {
     public async Task<bool> CanUsePayer(string subject, Guid verifiedTenantId, Guid companyId, Guid counterpartyId, CancellationToken ct)
     {
@@ -15,5 +15,14 @@ internal sealed class WorkshopCounterparties(ICounterpartyAccess access, Counter
         var exists = await db.Counterparties.AnyAsync(x => x.Id == counterpartyId && x.TenantId == grant.TenantId, ct);
         await tx.CommitAsync(ct);
         return exists;
+    }
+
+    public async Task<InvoiceCounterparty?> Find(Guid verifiedTenantId, Guid counterpartyId, CancellationToken ct)
+    {
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.tenant_id', {verifiedTenantId.ToString()}, true)", ct);
+        var row = await db.Counterparties.AsNoTracking().SingleOrDefaultAsync(x => x.Id == counterpartyId && x.TenantId == verifiedTenantId, ct);
+        await tx.CommitAsync(ct);
+        return row is null ? null : new(row.Id, row.LegalName, row.FiscalIdentifier, row.RegisteredOffice);
     }
 }

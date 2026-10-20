@@ -32,10 +32,11 @@ compose exec -T postgres sh -c 'for f in /b03/00*.sql /b03/90*.sql /b04/010*.sql
 file /b10/070_administration.sql
 file /b10/070_administration.sql
 file /b11/080_continuity.sql
+file /b12/090_billing.sql
 file /b10/900_synthetic_fixtures.sql
 file /b11/900_synthetic_fixtures.sql
 reset(){
- printf 'TRUNCATE integrations.administrative_reconciliations, workshop.administrative_closures, workshop.administrative_outcomes, workshop.administrative_outbox, workshop.administrative_requests, workshop.technical_closures, integrations.administrative_dispatches, inventory.carcass_return_installations, inventory.carcass_returns, inventory.consumptions, workshop.installations, inventory.picks, inventory.reservations; UPDATE inventory.stock SET "Physical"=20; DELETE FROM workshop.administrative_destinations WHERE "Version">1; UPDATE organization_access.capability_activations SET "Enabled"=true WHERE "Capability" IN (%s);\n' "'workshop','inventory','external-administration'" | sql
+ printf 'TRUNCATE billing.invoice_journal_links, billing.invoice_confirmations, billing.invoices, workshop.internal_billing_claims, integrations.administrative_reconciliations, workshop.administrative_closures, workshop.administrative_outcomes, workshop.administrative_outbox, workshop.administrative_requests, workshop.technical_closures, integrations.administrative_dispatches, inventory.carcass_return_installations, inventory.carcass_returns, inventory.consumptions, workshop.installations, inventory.picks, inventory.reservations; UPDATE inventory.stock SET "Physical"=20; DELETE FROM workshop.administrative_destinations WHERE "Version">1; UPDATE organization_access.capability_activations SET "Enabled"=true WHERE "Capability" IN (%s);\n' "'workshop','inventory','external-administration'" | sql
  file /b09/900_synthetic_fixtures.sql >/dev/null
  file /b10/900_synthetic_fixtures.sql
 file /b11/900_synthetic_fixtures.sql >/dev/null
@@ -220,6 +221,7 @@ for item in items:
  assert item["State"]["Health"]["Status"]=="healthy"
  assert not any(m["Type"]=="volume" for m in item["Mounts"])
 print("PASS B10 five healthy hardened containers incl. simulator, no published ports or volumes")'
+file /b12/990_rollback.sql
 file /b11/990_rollback.sql
 file /b11/990_rollback.sql
 file /b10/990_rollback.sql
@@ -245,6 +247,7 @@ ROLLBACK;
 SQL
 file /b10/070_administration.sql
 file /b11/080_continuity.sql
+file /b12/090_billing.sql
 file /b10/900_synthetic_fixtures.sql
 file /b11/900_synthetic_fixtures.sql
 reset
