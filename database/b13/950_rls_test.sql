@@ -1,4 +1,9 @@
 -- Run only against the isolated synthetic B13 stack, with the real application role.
+-- Expected visibility is derived from the actually stored rows of this tenant, not a fixture-specific count.
+CREATE TEMP TABLE b13_expected AS
+SELECT (SELECT count(*) FROM accounting.journal_entries WHERE "TenantId"='11111111-1111-1111-1111-111111111111') AS entries,
+       (SELECT count(*) FROM accounting.journal_entries) AS total;
+GRANT SELECT ON b13_expected TO :"app_user";
 BEGIN;
 SET LOCAL ROLE :"app_user";
 DO $$ DECLARE n integer; t text; BEGIN
@@ -19,10 +24,12 @@ DO $$ BEGIN
   RAISE EXCEPTION 'B13 cross-tenant RLS leak'; END IF;
 END $$;
 SELECT set_config('app.tenant_id','11111111-1111-1111-1111-111111111111',true);
-DO $$ DECLARE debit numeric; credit numeric; BEGIN
- IF (SELECT count(*) FROM accounting.journal_entries)<>1 THEN RAISE EXCEPTION 'B13 alpha entry visibility incorrect'; END IF;
+DO $$ DECLARE debit numeric; credit numeric; visible integer; expected integer; BEGIN
+ SELECT count(*) INTO visible FROM accounting.journal_entries;
+ SELECT entries INTO expected FROM b13_expected;
+ IF visible <> expected OR visible = 0 THEN RAISE EXCEPTION 'B13 alpha entry visibility incorrect: % expected %',visible,expected; END IF;
  SELECT sum("Debit"),sum("Credit") INTO debit,credit FROM accounting.journal_entry_lines;
- IF debit<>credit OR debit<>200.69 THEN RAISE EXCEPTION 'B13 persisted journal is not the balanced F04 reference: % %',debit,credit; END IF;
+ IF debit<>credit OR debit<>200.69*visible THEN RAISE EXCEPTION 'B13 persisted journal is not the balanced F04 reference: % %',debit,credit; END IF;
  BEGIN
   UPDATE accounting.journal_entry_lines SET "Debit"=0;
   RAISE EXCEPTION 'B13 application can rewrite posted journal lines';

@@ -1,0 +1,24 @@
+# Synthetic ephemeral B14 final verification; no published ports or retained volumes.
+services:
+  web:
+    build:
+      args:
+        VITE_B13_TEST_UI: "true"
+        VITE_B10_TEST_UI: "true"
+  api:
+    environment:
+      InternalBilling__Enabled: "true"
+      TechnicalAccounting__Enabled: "true"
+  postgres:
+    volumes: !override
+      - ./database/b03:/b03:ro
+      - ./database/b04:/b04:ro
+      - ./database/b05:/b05:ro
+      - ./database/b06:/b06:ro
+      - ./database/b07:/b07:ro
+      - ./database/b08:/b08:ro
+      - ./database/b09:/b09:ro
+      - ./database/b10:/b10:ro
+      - ./database/b11:/b11:ro
+      - ./database/b12:/b12:ro
+      - ./database/b13:/b13:ro

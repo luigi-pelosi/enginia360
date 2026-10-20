@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Diagnostics.Metrics;
 using Enginia360.Api.OrganizationAccess;
 using Enginia360.Counterparties;
 
@@ -54,6 +56,8 @@ if (externalAdministration)
         builder.Configuration.GetConnectionString("OrganizationAccess")!, builder.Configuration.GetSection("ExternalAdministration"));
 }
 var app = builder.Build();
+using var requestMeter = new Meter("Enginia360.Api", "1.0.0");
+var requestDuration = requestMeter.CreateHistogram<double>("enginia360.http.duration", "s");
 
 app.Use(
     async (context, next) =>
@@ -70,14 +74,30 @@ app.Use(
         context.TraceIdentifier = correlationId;
         context.Response.Headers["X-Correlation-ID"] = correlationId;
         using var scope = app.Logger.BeginScope(
-            new Dictionary<string, object> { ["CorrelationId"] = correlationId }
+            new Dictionary<string, object>
+            {
+                ["CorrelationId"] = correlationId,
+                ["TraceId"] = Activity.Current?.TraceId.ToString() ?? string.Empty,
+                ["SpanId"] = Activity.Current?.SpanId.ToString() ?? string.Empty,
+            }
         );
-        await next(context);
-        app.Logger.LogInformation(
-            "HTTP {Method} completed with {StatusCode}",
-            context.Request.Method,
-            context.Response.StatusCode
-        );
+        var started = Stopwatch.GetTimestamp();
+        try
+        {
+            await next(context);
+        }
+        finally
+        {
+            var statusCode = context.Response.StatusCode;
+            var seconds = Stopwatch.GetElapsedTime(started).TotalSeconds;
+            requestDuration.Record(seconds,
+                new KeyValuePair<string, object?>("http.request.method", context.Request.Method),
+                new KeyValuePair<string, object?>("http.response.status_code", statusCode));
+            app.Logger.LogInformation(
+                new EventId(314, "HttpDiagnostics"),
+                "HTTP {Method} completed with {StatusCode} in {DurationSeconds} seconds",
+                context.Request.Method, statusCode, seconds);
+        }
     }
 );
 

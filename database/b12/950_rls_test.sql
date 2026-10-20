@@ -1,4 +1,9 @@
 -- Run only against the isolated synthetic B12 stack, with real application role.
+-- Expected visibility is derived from the actually stored rows of this tenant, not a fixture-specific count.
+CREATE TEMP TABLE b12_expected AS
+SELECT (SELECT count(*) FROM billing.invoices WHERE "TenantId"='11111111-1111-1111-1111-111111111111') AS invoices,
+       (SELECT count(*) FROM billing.invoices) AS total;
+GRANT SELECT ON b12_expected TO :"app_user";
 BEGIN;
 SET LOCAL ROLE :"app_user";
 DO $$ DECLARE n integer; t text; BEGIN
@@ -16,8 +21,10 @@ DO $$ BEGIN
   RAISE EXCEPTION 'B12 cross-tenant RLS leak'; END IF;
 END $$;
 SELECT set_config('app.tenant_id','11111111-1111-1111-1111-111111111111',true);
-DO $$ BEGIN
- IF (SELECT count(*) FROM billing.invoices)<>3 THEN RAISE EXCEPTION 'B12 alpha invoice visibility incorrect'; END IF;
+DO $$ DECLARE visible integer; expected integer; stored integer; BEGIN
+ SELECT count(*) INTO visible FROM billing.invoices;
+ SELECT invoices, total INTO expected, stored FROM b12_expected;
+ IF visible <> expected OR visible = 0 THEN RAISE EXCEPTION 'B12 alpha invoice visibility incorrect: % of % expected %',visible,stored,expected; END IF;
  BEGIN
   UPDATE billing.invoices SET "Reference"='tampered';
   RAISE EXCEPTION 'B12 application can rewrite invoice history';
