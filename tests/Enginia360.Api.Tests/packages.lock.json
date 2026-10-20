@@ -578,9 +578,21 @@
           "xunit.extensibility.core": "[2.9.3]"
         }
       },
+      "enginia360.accounting": {
+        "type": "Project",
+        "dependencies": {
+          "Enginia360.Accounting.Contracts": "[1.0.0, )",
+          "Enginia360.Billing.Contracts": "[1.0.0, )",
+          "Npgsql.EntityFrameworkCore.PostgreSQL": "[10.0.0, )"
+        }
+      },
+      "enginia360.accounting.contracts": {
+        "type": "Project"
+      },
       "enginia360.api": {
         "type": "Project",
         "dependencies": {
+          "Enginia360.Accounting": "[1.0.0, )",
           "Enginia360.Billing": "[1.0.0, )",
           "Enginia360.Catalog": "[1.0.0, )",
           "Enginia360.Counterparties": "[1.0.0, )",

@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
+    <ProjectReference Include="../Enginia360.Accounting.Contracts/Enginia360.Accounting.Contracts.csproj" />
+    <ProjectReference Include="../../Billing/Enginia360.Billing.Contracts/Enginia360.Billing.Contracts.csproj" />
+  </ItemGroup>
+</Project>

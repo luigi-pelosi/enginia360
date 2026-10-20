@@ -20,6 +20,7 @@ public static partial class BillingModule
     public static IServiceCollection AddInternalBilling(this IServiceCollection services, string connection)
     {
         services.AddDbContext<BillingDbContext>(o => o.UseNpgsql(connection));
+        services.AddScoped<IConfirmedInvoices, ConfirmedInvoices>();
         return services;
     }
 
