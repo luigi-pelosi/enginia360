@@ -20,6 +20,14 @@ public sealed record InvoiceSummarySnapshot(Guid OrderId, Guid PayerId, int Revi
     IReadOnlyList<InvoiceLineSnapshot> Lines, string NetAmount, string TaxAmount, string Total, string Currency,
     string Policy);
 public sealed record InvoicePartySnapshot(Guid Id, string LegalName, string FiscalIdentifier, string RegisteredOffice);
+public sealed record ConfirmedInvoiceSnapshot(Guid Id, Guid TenantId, Guid OrderId, Guid LegalEntityId, Guid SiteId,
+    Guid PayerId, DateOnly DocumentDate, string Currency, string Reference, InvoiceSummarySnapshot Summary,
+    Guid? JournalEntryId);
+public interface IConfirmedInvoices
+{
+    Task<ConfirmedInvoiceSnapshot?> Find(Guid verifiedTenantId, Guid invoiceId, CancellationToken ct);
+    Task<Guid?> Link(Guid verifiedTenantId, Guid invoiceId, Guid journalEntryId, CancellationToken ct);
+}
 public sealed record TechnicalInvoiceContract(Guid Id, Guid OrderId, Guid LegalEntityId, Guid SiteId, Guid PayerId,
     Guid DocumentTypeId, int ConfigurationVersion, int DestinationVersion, int SourceRevision, DateOnly DocumentDate,
     string Currency, string Reference, InvoiceSummarySnapshot Summary, string Status,

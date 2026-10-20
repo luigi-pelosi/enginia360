@@ -36,6 +36,15 @@ if (internalBilling)
     Enginia360.Billing.BillingModule.AddInternalBilling(builder.Services,
         builder.Configuration.GetConnectionString("OrganizationAccess")!);
 }
+var technicalAccounting = builder.Configuration.GetValue<bool>("TechnicalAccounting:Enabled");
+if (technicalAccounting)
+{
+    if (!internalBilling)
+        throw new InvalidOperationException("Technical accounting requires internal billing.");
+    builder.Services.AddScoped<Enginia360.Accounting.Contracts.IAccountingAccess, AccountingAccessAdapter>();
+    Enginia360.Accounting.AccountingModule.AddTechnicalAccounting(builder.Services,
+        builder.Configuration.GetConnectionString("OrganizationAccess")!);
+}
 var externalAdministration = builder.Configuration.GetValue<bool>("ExternalAdministration:Enabled");
 if (externalAdministration)
 {
@@ -110,6 +119,8 @@ if (app.Configuration.GetValue<bool>("Inventory:Enabled"))
     Enginia360.Inventory.InventoryModule.MapInventory(app);
 if (internalBilling)
     Enginia360.Billing.BillingModule.MapInternalBilling(app);
+if (technicalAccounting)
+    Enginia360.Accounting.AccountingModule.MapTechnicalAccounting(app);
 app.MapOpenApi();
 app.Run();
 

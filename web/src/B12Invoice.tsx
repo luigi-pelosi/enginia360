@@ -5,7 +5,8 @@ type Summary = { orderId: string; revision: number; lines: Line[]; netAmount: st
 type Party = { legalName: string };
 type Invoice = { id: string; orderId: string; reference: string; status: 'Draft' | 'Confirmed'; summary: Summary;
   issuer: Party | null; recipient: Party | null; confirmedAt: string | null };
-type Props = { orderId: string; token: string; documentTypeId: string; configurationVersion: number; documentDate: string };
+type Props = { orderId: string; token: string; documentTypeId: string; configurationVersion: number; documentDate: string;
+  onInvoice?: (invoiceId: string) => void };
 const record = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null;
 const uuid = (x: unknown): x is string => typeof x === 'string' && /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(x);
 const UNCONFIRMED = 'Operazione non confermata. Rileggi oppure riprova lo stesso tentativo.';
@@ -22,7 +23,7 @@ function parse(x: unknown, orderId: string): Invoice {
     || (x.status === 'Draft' && (x.issuer !== null || x.recipient !== null || x.confirmedAt !== null))) throw new Error();
   return x as Invoice;
 }
-export default function B12Invoice({orderId, token, documentTypeId, configurationVersion, documentDate}: Props) {
+export default function B12Invoice({orderId, token, documentTypeId, configurationVersion, documentDate, onInvoice}: Props) {
   const [invoice, setInvoice] = useState<Invoice>();
   const [reference, setReference] = useState('FV-001/2026');
   const [error, setError] = useState('');
@@ -39,7 +40,8 @@ export default function B12Invoice({orderId, token, documentTypeId, configuratio
   }
   async function run(action: () => Promise<Invoice>) {
     if (busy) return; setBusy(true); setError('');
-    try { setInvoice(await action()); } catch (failure) { setError(failure instanceof Error ? failure.message : UNCONFIRMED); }
+    try { const value = await action(); setInvoice(value); onInvoice?.(value.id); }
+    catch (failure) { setError(failure instanceof Error ? failure.message : UNCONFIRMED); }
     finally { setBusy(false); }
   }
   return <section aria-label="Fattura tecnica interna">

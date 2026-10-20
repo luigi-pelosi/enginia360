@@ -3,6 +3,7 @@ import B04TestApp from "./B04TestApp";
 import B06Reservations from "./B06Reservations";
 import B10Administration from "./B10Administration";
 import B12Invoice from "./B12Invoice";
+import B13JournalEntry from "./B13JournalEntry";
 type Item = { id: string; kind: "Service" | "Part"; label: string; version: number };
 type Line = { id: string; catalogVersion: number; catalogItemId: string; catalogLabel: string; kind: string; quantity: string; unitPrice: string; discountPercent: string; netAmount: string; workingGroupId: string; payerId: string };
 type Summary = { orderId: string; payerId: string; revision: number; lines: Line[]; netAmount: string; taxAmount: string; total: string; currency: "EUR"; policy: "Case001" };
@@ -21,6 +22,7 @@ function CommercialLines({order,token}:{order:{id:string;legalEntityId:string;si
   const [items,setItems]=useState<Item[]>([]);
   const [partId,setPartId]=useState('');
   const [saved,setSaved]=useState<Summary>();
+  const [invoiceId,setInvoiceId]=useState<string>();
   const [error,setError]=useState("");
   const [busy,setBusy]=useState(true);
   const [valuesByKind, setValuesByKind] = useState({
@@ -99,8 +101,10 @@ function CommercialLines({order,token}:{order:{id:string;legalEntityId:string;si
       <p>Soggetto unico a carico: {saved.payerId}</p>
       <p>Imponibile: {saved.netAmount} EUR</p><p>Imposta aggregata: {saved.taxAmount} EUR</p><p>Totale: {saved.total} EUR</p>
       {(import.meta.env.VITE_B10_TEST_UI === 'true' || import.meta.env.VITE_B12_TEST_UI === 'true') && <B10Administration orderId={order.id} revision={saved.revision} token={token}/>}
-      {import.meta.env.VITE_B12_TEST_UI === 'true' && <B12Invoice orderId={order.id} token={token}
-        documentTypeId="11111111-7777-0000-0000-000000000010" configurationVersion={1} documentDate={new Date().toISOString().slice(0,10)}/>}
+      {(import.meta.env.VITE_B12_TEST_UI === 'true' || import.meta.env.VITE_B13_TEST_UI === 'true') && <B12Invoice orderId={order.id} token={token}
+        documentTypeId="11111111-7777-0000-0000-000000000010" configurationVersion={1} documentDate={new Date().toISOString().slice(0,10)}
+        onInvoice={setInvoiceId}/>}
+      {import.meta.env.VITE_B13_TEST_UI === 'true' && invoiceId !== undefined && <B13JournalEntry invoiceId={invoiceId} token={token} chartVersion={1}/>}
     </div>}
     {error && <p role="alert">{error}</p>}
   </section>;
