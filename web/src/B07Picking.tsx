@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import B08Installation from './B08Installation';
 
 type Pick = { id: string; quantity: string; originLocation: string; placementLocation: string | null; pickingListId: string };
 type State = { reservationId: string; reserved: string; picked: string; remainingToPick: string; picks: Pick[] };
@@ -6,7 +7,7 @@ const record = (x: unknown): x is Record<string, unknown> => typeof x === 'objec
 const decimal = (x: unknown): x is string => typeof x === 'string' && /^\d{1,6}(\.\d{1,6})?$/.test(x);
 const uuid = (x: unknown): x is string => typeof x === 'string' && /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(x);
 
-export default function B07Picking({url, reservationId, token}: {url: string; reservationId: string; token: string}) {
+export default function B07Picking({url, reservationId, token, onChanged}: {url: string; reservationId: string; token: string; onChanged?: () => void}) {
   const [state, setState] = useState<State>();
   const [quantity, setQuantity] = useState('');
   const [error, setError] = useState('');
@@ -74,6 +75,8 @@ export default function B07Picking({url, reservationId, token}: {url: string; re
     <button disabled={busy} onClick={() => void reload()}>Rileggi prelievi</button>
     {state && <div aria-live="polite"><p>Prelevato: {state.picked}</p><p>Ancora prenotato da prelevare: {state.remainingToPick}</p>
       {state.picks.map(x => <p key={x.id}>Lista prelievo {x.pickingListId} · {x.quantity} · Origine: {x.originLocation} · {x.placementLocation === null ? 'Senza area di preparazione; nessun transito' : `Collocazione interna: ${x.placementLocation}`}</p>)}</div>}
+    {import.meta.env.VITE_B08_TEST_UI === 'true' && state?.picks.map(x => <B08Installation key={x.id}
+      url={url.replace('/inventory/','/workshop/') + `/picks/${x.id}/installations`} token={token} onChanged={onChanged}/>)}
     {error && <p role="alert">{error}</p>}
   </section>;
 }

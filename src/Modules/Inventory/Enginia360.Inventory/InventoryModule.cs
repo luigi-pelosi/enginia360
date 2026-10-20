@@ -15,6 +15,8 @@ public static class InventoryModule
     public static IServiceCollection AddInventory(this IServiceCollection services, string connection)
     {
         services.AddDbContext<InventoryDbContext>(o => o.UseNpgsql(connection));
+        services.AddScoped<IWorkshopPickedParts, WorkshopPickedParts>();
+        services.AddScoped<IInstallationStockEffects, InstallationStockEffects>();
         return services;
     }
     public static WebApplication MapInventory(this WebApplication app)
@@ -55,10 +57,12 @@ public static class InventoryModule
         var reservations = await db.Reservations.AsNoTracking().Where(x => x.LineId == lineId && x.TenantId == member.TenantId).OrderBy(x => x.Id).ToListAsync(ct);
         var committed = await db.Reservations.Where(x => x.TenantId == member.TenantId && x.LegalEntityId == line.LegalEntityId
             && x.SiteId == line.SiteId && x.WarehouseId == warehouseId && x.CatalogItemId == line.CatalogItemId).SumAsync(x => x.Quantity, ct);
+        var consumed = await db.Consumptions.Where(x => x.TenantId == member.TenantId && x.LegalEntityId == line.LegalEntityId
+            && x.SiteId == line.SiteId && x.WarehouseId == warehouseId && x.CatalogItemId == line.CatalogItemId).SumAsync(x => x.Quantity, ct);
         var reserved = reservations.Sum(x => x.Quantity);
         await tx.CommitAsync(ct);
-        return Results.Ok(new ReservationState(orderId, lineId, warehouseId, Value(physical), Value(physical - committed),
-            Value(reserved), Value(line.Quantity - reserved), reservations.Where(x => x.WarehouseId == warehouseId).Select(x => x.Contract()).ToArray()));
+        return Results.Ok(new ReservationState(orderId, lineId, warehouseId, Value(physical), Value(physical - (committed-consumed)),
+            Value(reserved), Value(line.Quantity - reserved), reservations.Where(x => x.WarehouseId == warehouseId).Select(x => x.Contract()).ToArray(), Value(committed-consumed), Value(consumed)));
     }
     private static async Task<IResult> Reserve(Guid orderId, Guid lineId, ReserveRequest request, ClaimsPrincipal user,
         IWorkshopAccess workshop, IInventoryAccess access, IWorkshopReservationLines lines, InventoryDbContext db, CancellationToken ct)
@@ -105,7 +109,9 @@ public static class InventoryModule
         var physical = stock.SingleOrDefault();
         var committed = await db.Reservations.Where(x => x.TenantId == member.TenantId && x.LegalEntityId == line.LegalEntityId
             && x.SiteId == line.SiteId && x.WarehouseId == request.WarehouseId && x.CatalogItemId == line.CatalogItemId).SumAsync(x => x.Quantity, ct);
-        if (quantity > physical - committed)
+        var consumed = await db.Consumptions.Where(x => x.TenantId == member.TenantId && x.LegalEntityId == line.LegalEntityId
+            && x.SiteId == line.SiteId && x.WarehouseId == request.WarehouseId && x.CatalogItemId == line.CatalogItemId).SumAsync(x => x.Quantity, ct);
+        if (quantity > physical - (committed-consumed))
             return Results.Conflict(new { code = "insufficient_available", message = "Disponibilità insufficiente per la quantità richiesta. Nessuna prenotazione eseguita." });
         var row = new Reservation { Id = request.Id, TenantId = member.TenantId, OrderId = orderId, LineId = lineId,
             LegalEntityId = line.LegalEntityId, SiteId = line.SiteId, WarehouseId = request.WarehouseId,
@@ -122,6 +128,7 @@ public static class InventoryModule
 }
 internal sealed class InventoryDbContext(DbContextOptions<InventoryDbContext> options) : DbContext(options)
 {
+    internal DbSet<ConsumedPart> Consumptions => Set<ConsumedPart>();
     internal DbSet<Stock> Stock => Set<Stock>();
     internal DbSet<Reservation> Reservations => Set<Reservation>();
     internal DbSet<PickedPart> Picks => Set<PickedPart>();
@@ -129,6 +136,8 @@ internal sealed class InventoryDbContext(DbContextOptions<InventoryDbContext> op
     internal DbSet<PickingLocation> PickingLocations => Set<PickingLocation>();
     protected override void OnModelCreating(ModelBuilder b)
     {
+        b.Entity<ConsumedPart>().ToTable("consumptions", "inventory").HasKey(x => x.InstallationId);
+        b.Entity<ConsumedPart>().Property(x => x.Quantity).HasPrecision(12, 6);
         b.Entity<Stock>().ToTable("stock", "inventory").HasKey(x => new { x.TenantId, x.LegalEntityId, x.SiteId, x.WarehouseId, x.CatalogItemId });
         b.Entity<Stock>().Property(x => x.Physical).HasPrecision(12, 6);
         b.Entity<Reservation>().ToTable("reservations", "inventory").HasKey(x => x.Id);

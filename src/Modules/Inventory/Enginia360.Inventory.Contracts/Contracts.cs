@@ -10,7 +10,7 @@ public interface IInventoryAccess
 public sealed record ReserveRequest(Guid Id, Guid WarehouseId, string Quantity, int CatalogVersion);
 public sealed record ReservationContract(Guid Id, Guid OrderId, Guid LineId, Guid WarehouseId, string Quantity, int CatalogVersion);
 public sealed record ReservationState(Guid OrderId, Guid LineId, Guid WarehouseId, string Physical, string Available,
-    string Reserved, string Remaining, IReadOnlyList<ReservationContract> Reservations);
+    string Reserved, string Remaining, IReadOnlyList<ReservationContract> Reservations, string ActiveCommitted, string Consumed);
 
 [System.Text.Json.Serialization.JsonUnmappedMemberHandling(System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow)]
 public sealed record PickRequest(Guid Id, string Quantity);

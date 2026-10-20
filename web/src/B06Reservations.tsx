@@ -85,7 +85,7 @@ export default function B06Reservations({ order, line, token }: Props) {
     <button disabled={busy} onClick={() => void reload()}>Rileggi prenotazioni</button>
     {state && <div aria-live="polite"><p>Fisico: {state.physical}</p><p>Disponibile: {state.available}</p><p>Prenotato sulla riga: {state.reserved}</p><p>Residuo da prenotare: {state.remaining}</p></div>}
     {import.meta.env.VITE_B07_TEST_UI === 'true' && state?.reservations.map(x =>
-      <B07Picking key={x.id} url={url} reservationId={x.id} token={token}/>)}
+      <B07Picking key={x.id} url={url} reservationId={x.id} token={token} onChanged={() => { const current = generation.current; void read(warehouse).then(saved => { if (current === generation.current) setState(saved); }).catch(() => { if (current === generation.current) { setState(undefined); setError('Stato stock non disponibile. Rileggi prenotazioni.'); } }); }}/>) }
     {error && <p role="alert">{error}</p>}
   </section>;
 }

@@ -88,7 +88,7 @@ app.MapOrganizationAccess();
 if (app.Configuration.GetValue<bool>("Counterparties:Enabled"))
     app.MapCounterparties();
 if (app.Configuration.GetValue<bool>("Workshop:Enabled"))
-    Enginia360.Workshop.WorkshopModule.MapWorkshop(app);
+    Enginia360.Workshop.WorkshopModule.MapWorkshop(app, app.Configuration.GetValue<bool>("Inventory:Enabled"));
 if (app.Configuration.GetValue<bool>("Inventory:Enabled"))
     Enginia360.Inventory.InventoryModule.MapInventory(app);
 app.MapOpenApi();
