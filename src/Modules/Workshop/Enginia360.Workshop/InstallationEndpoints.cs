@@ -15,6 +15,7 @@ internal static class InstallationEndpoints
     {
         routes.MapPost("/orders/{orderId:guid}/lines/{lineId:guid}/picks/{pickId:guid}/installations", Install);
         routes.MapGet("/orders/{orderId:guid}/lines/{lineId:guid}/picks/{pickId:guid}/installations", Read);
+        routes.MapGet("/orders/{id:guid}/technical-closure-gate", ClosureGate);
     }
     private static string Subject(ClaimsPrincipal user) => user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
     internal static async Task SetTenant(WorkshopDbContext db, Guid tenant, CancellationToken ct) =>
@@ -55,6 +56,10 @@ internal static class InstallationEndpoints
                 var order = await db.Orders.AsNoTracking().SingleOrDefaultAsync(x => x.TenantId == pick.TenantId && x.Id == orderId
                     && x.LegalEntityId == pick.LegalEntityId && x.SiteId == pick.SiteId, ct);
                 if (order is null) return Results.NotFound();
+                // D9/D39: snapshot the company document-type carcass policy in force for this installation.
+                var carcass = await db.CarcassPolicies.AsNoTracking().Where(x => x.TenantId == pick.TenantId
+                    && x.LegalEntityId == order.LegalEntityId && x.DocumentTypeId == order.DocumentTypeId
+                    && x.CatalogItemId == pick.CatalogItemId).OrderByDescending(x => x.Version).FirstOrDefaultAsync(ct);
                 var now = DateTimeOffset.UtcNow;
                 now = new DateTimeOffset(now.Ticks - now.Ticks % 10, TimeSpan.Zero);
                 var row = new InstalledPart {
@@ -63,15 +68,17 @@ internal static class InstallationEndpoints
                     SiteId = pick.SiteId, WarehouseId = pick.WarehouseId, CatalogItemId = pick.CatalogItemId,
                     CatalogVersion = pick.CatalogVersion, Quantity = quantity, PickingConfigurationVersion = pick.PickingConfigurationVersion,
                     DocumentTypeId = order.DocumentTypeId, ConfigurationVersion = order.ConfigurationVersion,
-                    InstalledAt = now, OperatorId = Guid.Parse(subject)
+                    InstalledAt = now, OperatorId = Guid.Parse(subject),
+                    CarcassPolicyVersion = carcass?.Version, CarcassReturnRequired = carcass?.ReturnRequired == true
                 };
                 var inserted = await db.Database.ExecuteSqlInterpolatedAsync($"""
                     INSERT INTO workshop.installations ("Id","TenantId","PickId","ReservationId","OrderId","WorkingGroupId","LineId",
                         "LegalEntityId","SiteId","WarehouseId","CatalogItemId","CatalogVersion","Quantity","PickingConfigurationVersion",
-                        "DocumentTypeId","ConfigurationVersion","InstalledAt","OperatorId")
+                        "DocumentTypeId","ConfigurationVersion","InstalledAt","OperatorId","CarcassPolicyVersion","CarcassReturnRequired")
                     VALUES ({row.Id},{row.TenantId},{row.PickId},{row.ReservationId},{row.OrderId},{row.WorkingGroupId},{row.LineId},
                         {row.LegalEntityId},{row.SiteId},{row.WarehouseId},{row.CatalogItemId},{row.CatalogVersion},{row.Quantity},
-                        {row.PickingConfigurationVersion},{row.DocumentTypeId},{row.ConfigurationVersion},{row.InstalledAt},{row.OperatorId})
+                        {row.PickingConfigurationVersion},{row.DocumentTypeId},{row.ConfigurationVersion},{row.InstalledAt},{row.OperatorId},
+                        {row.CarcassPolicyVersion},{row.CarcassReturnRequired})
                     ON CONFLICT ("Id") DO NOTHING
                     """, ct);
                 if (inserted == 0) return Results.Conflict();
@@ -89,6 +96,34 @@ internal static class InstallationEndpoints
         if (consumption is null) return Results.Json(result, statusCode: 202);
         return created ? Results.Created($"/api/v1/workshop/orders/{orderId}/lines/{lineId}/picks/{pickId}/installations", result) : Results.Ok(result);
     }
+    // D39/D73 carcass requirement of technical closure. Read-only: no closure state or transition is recorded here.
+    private static async Task<IResult> ClosureGate(Guid id, ClaimsPrincipal user, IWorkshopAccess access,
+        IWorkshopInstallations installations, IReplacedPartReturns returns, WorkshopDbContext db, CancellationToken ct)
+    {
+        var subject = Subject(user);
+        var member = await access.ResolveMembership(subject, ct);
+        if (member is null) return Results.NotFound();
+        WorkOrder? order;
+        await using (var tx = await db.Database.BeginTransactionAsync(ct))
+        {
+            await SetTenant(db, member.TenantId, ct);
+            order = await db.Orders.AsNoTracking().SingleOrDefaultAsync(x => x.TenantId == member.TenantId && x.Id == id, ct);
+            await tx.CommitAsync(ct);
+        }
+        if (order is null || await access.Authorize(subject, order.LegalEntityId, order.SiteId, "workshop.orders.read", false, ct) is null)
+            return Results.NotFound();
+        var required = await installations.RequiredCarcass(member.TenantId, id, ct);
+        var covered = await returns.Covered(member.TenantId, id, ct);
+        var requirements = required.GroupBy(x => new { x.LineId, x.CatalogItemId }).OrderBy(x => x.Key.LineId).Select(group =>
+        {
+            var total = group.Sum(x => x.Quantity);
+            var returned = group.Where(x => covered.ContainsKey(x.InstallationId)).Sum(x => x.Quantity);
+            return new CarcassRequirement(group.Key.LineId, group.Key.CatalogItemId, Value(total), Value(returned), Value(total - returned));
+        }).ToArray();
+        var clear = required.All(x => covered.ContainsKey(x.InstallationId));
+        return Results.Ok(new TechnicalClosureGate(id, clear ? "Clear" : "Blocked", requirements));
+    }
+    private static string Value(decimal value) => value.ToString("0.######", CultureInfo.InvariantCulture);
     private static async Task<IResult> Read(Guid orderId, Guid lineId, Guid pickId, ClaimsPrincipal user,
         IWorkshopAccess access, IWorkshopPickedParts picks, IInstallationStockEffects effects, WorkshopDbContext db, CancellationToken ct)
     {
@@ -130,6 +165,17 @@ internal sealed class WorkshopInstallations(WorkshopDbContext db, IWorkshopAcces
         return row is not null && await access.Authorize(subject, row.LegalEntityId, row.SiteId,
             write ? "workshop.installations.create" : "workshop.installations.read", write, ct) is not null ? row.Contract() : null;
     }
+    public async Task<IReadOnlyList<CarcassInstallation>> RequiredCarcass(Guid verifiedTenantId, Guid orderId, CancellationToken ct)
+    {
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await InstallationEndpoints.SetTenant(db, verifiedTenantId, ct);
+        var rows = await db.Installations.AsNoTracking().Where(x => x.TenantId == verifiedTenantId && x.OrderId == orderId
+            && x.CarcassReturnRequired && x.CarcassPolicyVersion != null).OrderBy(x => x.Id)
+            .Select(x => new CarcassInstallation(x.Id, x.LineId, x.CatalogItemId, x.Quantity, x.CarcassPolicyVersion!.Value, x.InstalledAt))
+            .ToListAsync(ct);
+        await tx.CommitAsync(ct);
+        return rows;
+    }
 }
 internal sealed class InstalledPart
 {
@@ -151,7 +197,9 @@ internal sealed class InstalledPart
     public int ConfigurationVersion { get; set; }
     public DateTimeOffset InstalledAt { get; set; }
     public Guid OperatorId { get; set; }
+    public int? CarcassPolicyVersion { get; set; }
+    public bool CarcassReturnRequired { get; set; }
     internal InstallationContract Contract() => new(Id,TenantId,PickId,ReservationId,OrderId,WorkingGroupId,LineId,
         LegalEntityId,SiteId,WarehouseId,CatalogItemId,CatalogVersion,Quantity.ToString("0.######", CultureInfo.InvariantCulture),
-        PickingConfigurationVersion,DocumentTypeId,ConfigurationVersion,InstalledAt,OperatorId);
+        PickingConfigurationVersion,DocumentTypeId,ConfigurationVersion,InstalledAt,OperatorId,CarcassPolicyVersion,CarcassReturnRequired);
 }

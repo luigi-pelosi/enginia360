@@ -1,0 +1,80 @@
+import { afterEach, expect, test, vi } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+const base = import.meta.env.VITE_B09_HTTP_BASE as string | undefined;
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.resetModules(); });
+test.skipIf(!base)("B09 real DOM/HTTP full-residual carcass return, closure gate and lost-response retry", async () => {
+  const realFetch = globalThis.fetch;
+  const returnWrites: Record<string, unknown>[] = [];
+  let loseReturnResponse = true;
+  vi.stubGlobal("fetch", (url: string, init?: RequestInit) => {
+    if (url.endsWith('/carcass-returns') && init?.method === 'POST') {
+      const body = JSON.parse(init.body as string) as Record<string, unknown>;
+      returnWrites.push(body);
+      return realFetch(new URL(url, base).href, init).then(response => {
+        if (response.ok && loseReturnResponse) { loseReturnResponse = false; throw new Error('Injected lost committed carcass return response'); }
+        return response;
+      });
+    }
+    return realFetch(new URL(url, base).href, init);
+  });
+  for (const flag of ['VITE_B05_TEST_UI','VITE_B06_TEST_UI','VITE_B07_TEST_UI','VITE_B08_TEST_UI','VITE_B09_TEST_UI']) vi.stubEnv(flag, 'true');
+  const {default: App} = await import('./App');
+  render(<App/>);
+  fireEvent.change(screen.getByLabelText('Utente sintetico'), {target: {value: 'operatore-alfa-sintetico'}});
+  fireEvent.change(screen.getByLabelText('Password sintetica'), {target: {value: 'synthetic-alpha-password'}});
+  fireEvent.click(screen.getByRole('button', {name: 'Accedi'}));
+  fireEvent.click(await screen.findByRole('button', {name: 'Alfa Società Uno · Alfa Sede Nord'}, {timeout:15000}));
+  await screen.findByRole('option', {name: 'Veicolo sintetico altra società'});
+  for (const [label,value] of [['Soggetto a carico','11111111-3333-0000-0000-000000000001'],['Tipo commessa','11111111-5555-0000-0000-000000000001'],['Veicolo','11111111-4444-0000-0000-000000000001']])
+    fireEvent.change(screen.getByLabelText(label), {target:{value}});
+  fireEvent.click(screen.getByRole('button', {name:'Apri commessa'}));
+  const add = await screen.findByRole('button', {name:'Aggiungi ricambio'});
+  await waitFor(() => expect((add as HTMLButtonElement).disabled).toBe(false));
+  fireEvent.change(screen.getByLabelText('Articolo ricambio'), {target:{value:'11111111-7777-0000-0000-000000000003'}});
+  fireEvent.change(screen.getByLabelText('Quantità ricambio'), {target:{value:'3'}});
+  fireEvent.click(add);
+  await screen.findByText(/Componente sintetico con carcassa · 3/);
+  const warehouse = await screen.findByLabelText('Magazzino prenotazione');
+  await screen.findByRole('option', {name:'Alfa Nord Magazzino A'});
+  fireEvent.change(warehouse, {target:{value:'11111111-1111-1111-1111-111111100101'}});
+  await screen.findByText('Disponibile: 2');
+  fireEvent.change(screen.getByLabelText('Quantità da prenotare'), {target:{value:'2'}});
+  fireEvent.click(screen.getByRole('button', {name:'Prenota quantità esplicita'}));
+  await screen.findByText('Prenotato sulla riga: 2');
+  const pick = await screen.findByRole('button', {name:'Preleva quantità esplicita'});
+  await waitFor(() => expect((pick as HTMLButtonElement).disabled).toBe(false));
+  fireEvent.change(screen.getByLabelText('Quantità da prelevare'), {target:{value:'2'}});
+  fireEvent.click(pick);
+  await screen.findByText('Prelevato: 2');
+  await screen.findByRole('heading', {name:'Rientro carcassa'});
+  await screen.findByText('Chiusura tecnica: nessun requisito carcassa in sospeso');
+  const install = screen.getByRole('button', {name:'Installa quantità esplicita'});
+  await waitFor(() => expect((install as HTMLButtonElement).disabled).toBe(false));
+  fireEvent.change(screen.getByLabelText('Quantità da installare'), {target:{value:'1'}});
+  fireEvent.click(install);
+  await screen.findByText('Installato: 1');
+  await screen.findByText('Residuo carcassa da rientrare: 1');
+  fireEvent.click(install);
+  await screen.findByText('Installato: 2');
+  await screen.findByText('Residuo carcassa da rientrare: 2');
+  expect(screen.getByText('Chiusura tecnica bloccata: carcassa da rientrare 2')).toBeTruthy();
+  const receive = screen.getByRole('button', {name:'Registra rientro carcassa'});
+  fireEvent.change(screen.getByLabelText('Descrizione carcassa'), {target:{value:'Carcassa sostituita sintetica'}});
+  fireEvent.change(screen.getByLabelText('Quantità carcassa'), {target:{value:'1'}});
+  fireEvent.click(receive);
+  await screen.findByText('Il rientro deve coprire esattamente tutto il residuo (2). Nessun rientro registrato.');
+  expect(screen.getByText('Rientrato: 0')).toBeTruthy();
+  fireEvent.change(screen.getByLabelText('Quantità carcassa'), {target:{value:'2'}});
+  fireEvent.click(receive);
+  await screen.findByText(/Rientro non confermato/);
+  fireEvent.click(receive);
+  await screen.findByText('Rientrato: 2');
+  await screen.findByText('Residuo carcassa da rientrare: 0');
+  await screen.findByText('Chiusura tecnica: requisito carcassa soddisfatto');
+  await screen.findByText(/2 · Carcassa sostituita sintetica · Ubicazione carcasse: Carcasse A/);
+  expect(screen.getByText('Fisico: 0')).toBeTruthy();
+  expect(screen.getByText('Disponibile: 0')).toBeTruthy();
+  expect(returnWrites.map(x => x.quantity)).toEqual(['1','2','2']);
+  expect(returnWrites[1].id).toBe(returnWrites[2].id);
+  expect(returnWrites[1].warehouseId).toBe('11111111-1111-1111-1111-111111100101');
+}, 40000);

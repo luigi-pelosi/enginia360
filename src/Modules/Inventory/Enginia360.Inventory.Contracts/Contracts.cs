@@ -19,3 +19,12 @@ public sealed record PickContract(Guid Id, Guid ReservationId, Guid OrderId, Gui
     string OriginLocation, string? PlacementLocation, Guid PickingListId, DateTimeOffset PickedAt, Guid OperatorId);
 public sealed record PickingState(Guid ReservationId, string Reserved, string Picked, string RemainingToPick,
     IReadOnlyList<PickContract> Picks);
+
+[System.Text.Json.Serialization.JsonUnmappedMemberHandling(System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow)]
+public sealed record CarcassReturnRequest(Guid Id, Guid WarehouseId, string Quantity, string Description);
+public sealed record CoveredInstallation(Guid InstallationId, string Quantity, int CarcassPolicyVersion);
+public sealed record CarcassReturnContract(Guid Id, Guid OrderId, Guid WorkingGroupId, Guid LineId, Guid WarehouseId,
+    Guid CatalogItemId, string Location, int LocationConfigurationVersion, string Description, string Quantity,
+    IReadOnlyList<CoveredInstallation> Installations, DateTimeOffset ReceivedAt, Guid OperatorId);
+public sealed record CarcassReturnState(Guid OrderId, Guid LineId, Guid WarehouseId, string RequiredInstalled, string Returned,
+    string Outstanding, IReadOnlyList<CarcassReturnContract> Returns);

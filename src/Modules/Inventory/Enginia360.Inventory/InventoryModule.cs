@@ -17,6 +17,7 @@ public static class InventoryModule
         services.AddDbContext<InventoryDbContext>(o => o.UseNpgsql(connection));
         services.AddScoped<IWorkshopPickedParts, WorkshopPickedParts>();
         services.AddScoped<IInstallationStockEffects, InstallationStockEffects>();
+        services.AddScoped<IReplacedPartReturns, ReplacedPartReturns>();
         return services;
     }
     public static WebApplication MapInventory(this WebApplication app)
@@ -32,6 +33,7 @@ public static class InventoryModule
         routes.MapGet("/orders/{orderId:guid}/lines/{lineId:guid}", Read);
         routes.MapPost("/orders/{orderId:guid}/lines/{lineId:guid}/reservations", Reserve);
         PickingEndpoints.Map(routes);
+        CarcassReturnEndpoints.Map(routes);
         return app;
     }
     private static string Subject(ClaimsPrincipal user) => user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
@@ -134,6 +136,9 @@ internal sealed class InventoryDbContext(DbContextOptions<InventoryDbContext> op
     internal DbSet<PickedPart> Picks => Set<PickedPart>();
     internal DbSet<PickingPolicy> PickingPolicies => Set<PickingPolicy>();
     internal DbSet<PickingLocation> PickingLocations => Set<PickingLocation>();
+    internal DbSet<CarcassLocation> CarcassLocations => Set<CarcassLocation>();
+    internal DbSet<CarcassReturn> CarcassReturns => Set<CarcassReturn>();
+    internal DbSet<CarcassReturnInstallation> CarcassReturnInstallations => Set<CarcassReturnInstallation>();
     protected override void OnModelCreating(ModelBuilder b)
     {
         b.Entity<ConsumedPart>().ToTable("consumptions", "inventory").HasKey(x => x.InstallationId);
@@ -145,6 +150,11 @@ internal sealed class InventoryDbContext(DbContextOptions<InventoryDbContext> op
         b.Entity<PickedPart>().ToTable("picks", "inventory").HasKey(x => x.Id);
         b.Entity<PickedPart>().Property(x => x.Quantity).HasPrecision(12, 6);
         b.Entity<PickingPolicy>().ToTable("picking_policies", "inventory").HasKey(x => new { x.TenantId, x.LegalEntityId });
+        b.Entity<CarcassLocation>().ToTable("carcass_locations", "inventory").HasKey(x => new { x.TenantId, x.LegalEntityId, x.SiteId, x.WarehouseId, x.Version });
+        b.Entity<CarcassReturn>().ToTable("carcass_returns", "inventory").HasKey(x => x.Id);
+        b.Entity<CarcassReturn>().Property(x => x.Quantity).HasPrecision(12, 6);
+        b.Entity<CarcassReturnInstallation>().ToTable("carcass_return_installations", "inventory").HasKey(x => x.InstallationId);
+        b.Entity<CarcassReturnInstallation>().Property(x => x.Quantity).HasPrecision(12, 6);
         b.Entity<PickingLocation>().ToTable("picking_locations", "inventory").HasKey(x => new { x.TenantId, x.LegalEntityId, x.SiteId, x.WarehouseId });
     }
 }

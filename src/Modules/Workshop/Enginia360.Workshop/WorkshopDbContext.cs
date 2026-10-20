@@ -7,6 +7,7 @@ internal sealed class WorkshopDbContext(DbContextOptions<WorkshopDbContext> opti
 {
     internal DbSet<InstalledPart> Installations => Set<InstalledPart>();
     internal DbSet<WorkOrder> Orders => Set<WorkOrder>();
+    internal DbSet<CarcassPolicy> CarcassPolicies => Set<CarcassPolicy>();
     internal DbSet<CommercialLine> Lines => Set<CommercialLine>();
     internal DbSet<LinePolicy> LinePolicies => Set<LinePolicy>();
     internal DbSet<DocumentTypeConfiguration> Configurations => Set<DocumentTypeConfiguration>();
@@ -14,6 +15,8 @@ internal sealed class WorkshopDbContext(DbContextOptions<WorkshopDbContext> opti
     {
         b.Entity<InstalledPart>().ToTable("installations", "workshop").HasKey(x => x.Id);
         b.Entity<InstalledPart>().Property(x => x.Quantity).HasPrecision(12, 6);
+        b.Entity<CarcassPolicy>().ToTable("carcass_policies", "workshop")
+            .HasKey(x => new { x.TenantId, x.LegalEntityId, x.DocumentTypeId, x.CatalogItemId, x.Version });
         b.Entity<WorkOrder>().ToTable("orders", "workshop").HasKey(x => x.Id);
         b.Entity<CommercialLine>().ToTable("commercial_lines", "workshop").HasKey(x => x.Id);
         b.Entity<CommercialLine>().Property(x => x.Quantity).HasPrecision(12, 6);
@@ -48,4 +51,13 @@ internal sealed class DocumentTypeConfiguration
     public int Version { get; set; }
     public required string Name { get; set; }
     public bool DirectCreationEnabled { get; set; }
+}
+internal sealed class CarcassPolicy
+{
+    public Guid TenantId { get; set; }
+    public Guid LegalEntityId { get; set; }
+    public Guid DocumentTypeId { get; set; }
+    public Guid CatalogItemId { get; set; }
+    public int Version { get; set; }
+    public bool ReturnRequired { get; set; }
 }

@@ -38,6 +38,7 @@ file /b07/040_picking.sql
 file /b07/900_synthetic_fixtures.sql
 
 file /b08/050_installation.sql
+file /b09/060_carcass.sql
 file /b08/900_synthetic_fixtures.sql
 reset(){ printf 'TRUNCATE inventory.consumptions, workshop.installations, inventory.picks, inventory.reservations; UPDATE inventory.stock SET "Physical"=2;\n' | sql; }
 ui(){ docker run --rm --network "${project}_backend" -e VITE_B08_HTTP_BASE=http://web:8080 -e VITE_B08_STOCK_FAULT="${B08_UI_STOCK_FAULT:-false}" -v "$PWD/web:/source" -w /source node:24.22.0-alpine3.24@sha256:44fce696f38ba8c987c4db89954051000bbd05ffd8d8659ba15ed4a8602e937f npm test -- --run src/B08.runtime.test.tsx; }
@@ -144,6 +145,7 @@ for item in items:
  assert all(v is None for v in (item["NetworkSettings"]["Ports"] or {}).values())
  assert item["State"]["Health"]["Status"]=="healthy"
 print("PASS B08 four healthy hardened containers, no published ports")'
+file /b09/990_rollback.sql
 file /b08/990_rollback.sql
 file /b08/990_rollback.sql
 # Earlier B06 SELECT FOR UPDATE requires its pre-existing column privilege after rollback.
@@ -165,6 +167,7 @@ DO $$ BEGIN
 END $$;
 SQL
 file /b08/050_installation.sql
+file /b09/060_carcass.sql
 reset
 probe partial
 compose logs --no-log-prefix api | python3 scripts/test-b08-audit.py
