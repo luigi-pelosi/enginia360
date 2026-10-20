@@ -14,6 +14,7 @@ public static class IntegrationsModule
         services.AddSingleton(options);
         services.AddDbContext<IntegrationsDbContext>(o => o.UseNpgsql(connection));
         services.AddScoped<IAdministrativeDeliveries, AdministrativeDeliveries>();
+        services.AddScoped<IAdministrativeRecovery, AdministrativeRecovery>();
         services.AddScoped<AdministrativeDispatcher>();
         services.AddHttpClient<SimulatorConnector>(client => { client.BaseAddress = options.BaseAddress; client.Timeout = options.Timeout; });
         services.AddHostedService<AdministrativeDispatchWorker>();

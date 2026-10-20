@@ -10,7 +10,8 @@ const reference = (x: unknown): x is string => typeof x === 'string' && /^[A-Za-
 const code = (x: unknown): x is string => typeof x === 'string' && /^[a-z0-9_]{1,64}$/.test(x);
 const STATUSES = ['Open', 'TechnicallyClosed', 'AwaitingAdministrativeConfirmation', 'AdministrativelyConfirmed', 'AdministrativeRejected', 'AdministrativelyClosed'];
 const DELIVERY: Record<string, string> = { Queued: 'in coda', Received: 'ricevuta (sola acquisizione)', Retrying: 'nuovo tentativo programmato',
-  Completed: 'elaborazione completata', Rejected: 'rifiutata' };
+  Completed: 'elaborazione completata', Rejected: 'rifiutata', Uncertain: 'esito incerto — verifica prima di reinviare',
+  NeedsReconciliation: 'tentativi automatici esauriti — riconciliazione autorizzata richiesta' };
 const REFUSALS: Record<string, string> = {
   technical_requirements_pending: 'Chiusura tecnica rifiutata: carcassa da rientrare. Nessuna chiusura registrata.',
   revision_changed: 'Valori della commessa cambiati: rileggi prima di continuare.',
@@ -93,6 +94,7 @@ export default function B10Administration({orderId, revision, token}: Props) {
     <button disabled={busy || !state || state.status !== 'Open'} onClick={() => void command('technical', '/technical-closure', {expectedRevision: revision})}>Chiudi tecnicamente</button>
     <button disabled={busy || !state || state.status !== 'TechnicallyClosed'} onClick={() => void command('request', '/administrative-requests', {expectedRevision: revision})}>Invia al gestionale amministrativo</button>
     <button disabled={busy || !state || state.status !== 'AdministrativelyConfirmed'} onClick={() => void command('administrative', '/administrative-closure', {})}>Chiudi amministrativamente</button>
+    <button disabled={busy || !request || request.delivery.state !== 'NeedsReconciliation'} onClick={() => void command('reconcile', `/administrative-requests/${request!.id}/reconciliation`, {})}>Verifica e riprendi richiesta</button>
     <button disabled={busy} onClick={() => void reload()}>Rileggi stato amministrativo</button>
     {state && <div aria-live="polite"><p>{text}</p>
       {request && <p>Consegna al gestionale: {DELIVERY[request.delivery.state]} · tentativi {request.delivery.attempts}</p>}</div>}

@@ -26,6 +26,7 @@ internal static partial class AdministrativeEndpoints
         routes.MapGet("/orders/{id:guid}/administrative-requests", History);
         routes.MapGet("/orders/{id:guid}/closure-state", State);
         routes.MapPost("/orders/{id:guid}/administrative-closure", CloseAdministratively);
+        routes.MapPost("/orders/{id:guid}/administrative-requests/{requestId:guid}/reconciliation", Reconcile);
     }
     [GeneratedRegex(@"^[A-Za-z0-9][A-Za-z0-9-]{0,63}$", RegexOptions.CultureInvariant)]
     internal static partial Regex Reference();
@@ -247,6 +248,28 @@ internal static partial class AdministrativeEndpoints
         return Results.Created($"/api/v1/workshop/orders/{id}/closure-state", row.Contract());
     }
 
+    private static async Task<IResult> Reconcile(Guid id, Guid requestId, AdministrativeClosureCommand command,
+        ClaimsPrincipal user, IWorkshopAccess access, IAdministrativeRecovery recovery, WorkshopDbContext db, CancellationToken ct)
+    {
+        if (command.Id == Guid.Empty || requestId == Guid.Empty) return Results.BadRequest();
+        var subject = Subject(user);
+        var found = await Find(id, subject, access, db, ct);
+        if (found is null) return Results.NotFound();
+        var (member, order) = found.Value;
+        if (await access.Authorize(subject, order.LegalEntityId, order.SiteId, "workshop.administrative-requests.reconcile", true, ct) is null
+            || !await access.CapabilityEnabled(member.TenantId, order.LegalEntityId, "external-administration", ct)) return Results.StatusCode(403);
+        await using (var tx = await db.Database.BeginTransactionAsync(ct))
+        {
+            await InstallationEndpoints.SetTenant(db, member.TenantId, ct);
+            if (!await db.AdministrativeRequests.AnyAsync(x => x.Id == requestId && x.TenantId == member.TenantId && x.OrderId == id, ct))
+                return Results.NotFound();
+            await tx.CommitAsync(ct);
+        }
+        var result = await recovery.Reconcile(member.TenantId, requestId, command.Id, Guid.Parse(subject), ct);
+        if (result is null) return Results.Conflict(new { code = "reconciliation_not_available", message = "Riconciliazione non disponibile: rileggi lo stato. Nessun esito di business modificato." });
+        return result.Replayed ? Results.Ok(result) : Results.Json(result, statusCode: 202);
+    }
+
     private static decimal Amount(string value) => decimal.Parse(value, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture);
 
     private static async Task<List<AdministrativeRequestContract>> View(Guid tenant, IReadOnlyList<AdministrativeRequest> rows,
@@ -269,9 +292,9 @@ internal static partial class AdministrativeEndpoints
 
 internal sealed class WorkshopAdministrativeOutbox(WorkshopDbContext db, IWorkshopAccess access) : IWorkshopAdministrativeOutbox
 {
-    public async Task<IReadOnlyList<AdministrativeOutboxEnvelope>> Pending(int limit, CancellationToken ct) =>
+    public async Task<IReadOnlyList<AdministrativeOutboxEnvelope>> Pending(int limit, int offset, CancellationToken ct) =>
         await db.Database.SqlQuery<AdministrativeOutboxEnvelope>($"""
-            SELECT "TenantId", "RequestId" FROM workshop.pending_administrative_outbox({limit})
+            SELECT "TenantId", "RequestId" FROM workshop.pending_administrative_outbox({limit}, {offset})
             """).ToListAsync(ct);
 
     public async Task<AdministrativeDispatchMessage?> Read(AdministrativeOutboxEnvelope envelope, CancellationToken ct)
