@@ -11,7 +11,7 @@ import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 UUID = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
-MODES = {'complete', 'receive', 'reject', 'unavailable'}
+MODES = {'complete', 'receive', 'reject', 'unavailable', 'lost-response', 'hold-response'}
 lock = threading.Lock()
 state = {'mode': 'complete', 'sequence': 0, 'requests': {}, 'rejected_posts': 0}
 
@@ -51,6 +51,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         if self.path == '/health': return reply(self, 200, {'status': 'ok'})
+        if self.path == '/control/inflight': return reply(self, 200, {'requestId': state.get('inflight')})
         if self.path == '/control/requests':
             with lock: return reply(self, 200, {'mode': state['mode'], 'requests': list(state['requests'].values())})
         match = re.fullmatch(r'/v1/administrative-requests/([0-9a-f-]{36})', self.path)
@@ -92,8 +93,19 @@ class Handler(BaseHTTPRequestHandler):
                 return reply(self, *outcome(entry))
             entry = {'requestId': payload['requestId'], 'payload': payload, 'posts': 1, 'statusQueries': 0, 'status': 'Received'}
             state['requests'][payload['requestId']] = entry
-            if state['mode'] == 'complete': complete(entry)
+            if state['mode'] in {'complete', 'lost-response', 'hold-response'}: complete(entry)
             elif state['mode'] == 'reject': entry['status'], entry['code'] = 'Rejected', 'synthetic_refusal'
+            if state['mode'] == 'hold-response':
+                state['inflight'] = entry['requestId']
+                threading.Event().wait(12)  # Fault boundary: receiver committed, sender can be killed before response.
+                self.close_connection = True
+                return
+            if state['mode'] == 'lost-response':
+                # Deterministic T06 fault: business effect committed, response lost before any bytes.
+                import socket
+                self.close_connection = True
+                self.connection.shutdown(socket.SHUT_RDWR)
+                return
             return reply(self, *outcome(entry))
 
 

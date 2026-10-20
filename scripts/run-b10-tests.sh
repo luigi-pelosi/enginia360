@@ -9,7 +9,7 @@ env_file="$state/runtime.env"
 compose(){ docker compose --env-file "$env_file" -p "$project" -f compose.b02-test.yaml -f compose.b03-test.yaml -f compose.b04-test.yaml -f compose.b05-test.yaml -f compose.b06-test.yaml -f compose.b07-test.yaml -f compose.b08-test.yaml -f compose.b09-test.yaml -f compose.b10-test.yaml "$@"; }
 cleanup(){
     compose down --volumes --remove-orphans >/dev/null 2>&1 || true
-    rm -f "$env_file" "$state/b10-history.json"
+    rm -f "$env_file" "$state/b10-history.json" "$state/b11-audit.jsonl"
     rmdir "$state" 2>/dev/null || true
     test -z "$(docker ps -aq --filter "label=com.docker.compose.project=$project")"
     test -z "$(docker network ls -q --filter "label=com.docker.compose.project=$project")"
@@ -31,11 +31,14 @@ probe(){ docker run --rm --network "${project}_backend" -e B06_STATE_DIR=/eviden
 compose exec -T postgres sh -c 'for f in /b03/00*.sql /b03/90*.sql /b04/010*.sql /b04/900*.sql /b05/020*.sql /b05/021*.sql /b05/900*.sql /b05/901*.sql /b06/030*.sql /b06/900*.sql /b07/040*.sql /b07/900*.sql /b08/050*.sql /b08/900*.sql /b09/060*.sql /b09/900*.sql; do psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 -v app_user="$B02_DB_APP_USER" -f "$f" || exit; done'
 file /b10/070_administration.sql
 file /b10/070_administration.sql
+file /b11/080_continuity.sql
 file /b10/900_synthetic_fixtures.sql
+file /b11/900_synthetic_fixtures.sql
 reset(){
- printf 'TRUNCATE workshop.administrative_closures, workshop.administrative_outcomes, workshop.administrative_outbox, workshop.administrative_requests, workshop.technical_closures, integrations.administrative_dispatches, inventory.carcass_return_installations, inventory.carcass_returns, inventory.consumptions, workshop.installations, inventory.picks, inventory.reservations; UPDATE inventory.stock SET "Physical"=20; DELETE FROM workshop.administrative_destinations WHERE "Version">1; UPDATE organization_access.capability_activations SET "Enabled"=true WHERE "Capability" IN (%s);\n' "'workshop','inventory','external-administration'" | sql
+ printf 'TRUNCATE integrations.administrative_reconciliations, workshop.administrative_closures, workshop.administrative_outcomes, workshop.administrative_outbox, workshop.administrative_requests, workshop.technical_closures, integrations.administrative_dispatches, inventory.carcass_return_installations, inventory.carcass_returns, inventory.consumptions, workshop.installations, inventory.picks, inventory.reservations; UPDATE inventory.stock SET "Physical"=20; DELETE FROM workshop.administrative_destinations WHERE "Version">1; UPDATE organization_access.capability_activations SET "Enabled"=true WHERE "Capability" IN (%s);\n' "'workshop','inventory','external-administration'" | sql
  file /b09/900_synthetic_fixtures.sql >/dev/null
- file /b10/900_synthetic_fixtures.sql >/dev/null
+ file /b10/900_synthetic_fixtures.sql
+file /b11/900_synthetic_fixtures.sql >/dev/null
 }
 ui(){ docker run --rm --network "${project}_backend" -e VITE_B10_HTTP_BASE=http://web:8080 -e VITE_B10_SIMULATOR=http://admin-simulator:8080 -v "$PWD/web:/source" -w /source node:24.22.0-alpine3.24@sha256:44fce696f38ba8c987c4db89954051000bbd05ffd8d8659ba15ed4a8602e937f npm test -- --run src/B10.runtime.test.tsx; }
 grants(){
@@ -54,7 +57,8 @@ restore_grants(){
  sql <<'SQL'
 DELETE FROM organization_access.company_permissions WHERE "MembershipId"='aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1' AND "Permission" IN ('workshop.orders.complete-technical','workshop.administrative-requests.create','workshop.administrative-requests.read','workshop.orders.complete-administrative','counterparties.edit');
 SQL
- file /b10/900_synthetic_fixtures.sql >/dev/null
+ file /b10/900_synthetic_fixtures.sql
+file /b11/900_synthetic_fixtures.sql >/dev/null
 }
 paused(){
  reset
@@ -64,10 +68,105 @@ paused(){
  printf "UPDATE organization_access.capability_activations SET \"Enabled\"=true WHERE \"Capability\"='external-administration';\n" | sql
  probe paused_resume
 }
+b11probe(){ docker run --rm --network "${project}_backend" -e B06_STATE_DIR=/evidence -v "$state:/evidence" -v "$PWD:/source:ro" -w /source python:3.14.0-alpine3.22@sha256:8373231e1e906ddfb457748bfc032c4c06ada8c759b7b62d9c73ec2a3c56e710 python3 scripts/test-b11.py http://web:8080 "$1"; }
+restart_api(){
+ if [ "${B11_FORCE_API_RECREATE:-false}" = true ]; then
+  compose up -d --no-deps --force-recreate --wait --wait-timeout 90 api
+ else
+  compose up -d --no-deps --wait --wait-timeout 90 api
+ fi
+}
+lease_test(){
+ reset
+ b11probe restart_prepare
+ request_id=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["saved"]["id"])' "$state/b10-history.json")
+ sql <<SQL
+UPDATE integrations.administrative_dispatches SET "State"='NeedsReconciliation', "Failures"=4, "LeaseUntil"=now()+interval '20 minutes'
+WHERE "TenantId"='11111111-1111-1111-1111-111111111111' AND "RequestId"='$request_id';
+SQL
+ b11probe lease_verify
+}
+fairness_test(){
+ reset
+ printf 'UPDATE inventory.stock SET "Physical"=200;\n' | sql
+ b11probe fairness
+}
+if [ "${B10_BEHAVIOR:-all}" = b11 ] && [ "${B11_BEHAVIOR:-all}" = fairness ]; then fairness_test; exit; fi
+if [ "${B10_BEHAVIOR:-all}" = b11 ] && [ "${B11_BEHAVIOR:-all}" = lease ]; then lease_test; exit; fi
+if [ "${B10_BEHAVIOR:-all}" = b11 ] && [ "${B11_BEHAVIOR:-all}" = all ]; then
+ file /b11/080_continuity.sql
+ lease_test
+ fairness_test
+ reset; b11probe uncertain
+ reset; b11probe reconcile
+ reset; b11probe recovery_prepare
+ if file /b11/990_rollback.sql > "$state/rollback-block.log" 2>&1; then
+  printf 'FAIL unsafe B11 rollback accepted unresolved uncertainty\n'; exit 1
+ fi
+ rm -f "$state/rollback-block.log"
+ printf 'PASS B11 rollback refuses unresolved uncertainty rather than enabling blind resubmission\n'
+ for scope in no-action other-site warehouse-only; do
+  sql <<SQL
+DELETE FROM organization_access.company_permissions WHERE "MembershipId"='aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1' AND "Permission"='workshop.administrative-requests.reconcile';
+INSERT INTO organization_access.company_permissions
+SELECT gen_random_uuid(),'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1','11111111-1111-1111-1111-111111111111','11111111-1111-1111-1111-111111111101',
+ 'workshop.administrative-requests.reconcile',
+ CASE WHEN '$scope'='other-site' THEN '11111111-1111-1111-1111-111111110201'::uuid ELSE '11111111-1111-1111-1111-111111110101'::uuid END,
+ CASE WHEN '$scope'='warehouse-only' THEN '11111111-1111-1111-1111-111111100101'::uuid ELSE NULL END
+WHERE '$scope'<>'no-action';
+SQL
+  b11probe recovery_denied
+  printf 'PASS B11 independent insufficient reconciliation scope %s\n' "$scope"
+ done
+ sql <<'SQL'
+DELETE FROM organization_access.company_permissions WHERE "MembershipId"='aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1' AND "Permission"='workshop.administrative-requests.reconcile';
+SQL
+ file /b11/900_synthetic_fixtures.sql
+ printf "UPDATE organization_access.capability_activations SET \"Enabled\"=false WHERE \"Capability\"='external-administration';\n" | sql
+ b11probe recovery_denied
+ printf "UPDATE organization_access.capability_activations SET \"Enabled\"=true WHERE \"Capability\"='external-administration';\n" | sql
+ b11probe recovery_negatives
+ file /b11/950_rls_test.sql
+ reset; b11probe restart_prepare
+ # Preserve real audit records before Compose is allowed to replace this API container.
+ compose logs --no-log-prefix api | python3 scripts/test-b11-audit.py --capture > "$state/b11-audit.jsonl"
+ compose kill -s SIGKILL api
+ restart_api
+ b11probe restart_verify
+ reset
+ printf 'REVOKE INSERT ON workshop.administrative_outcomes FROM :"app_user";\n' | sql
+ b11probe completion_prepare
+ compose logs --no-log-prefix api | python3 scripts/test-b11-audit.py --capture >> "$state/b11-audit.jsonl"
+ printf 'GRANT INSERT ON workshop.administrative_outcomes TO :"app_user";\n' | sql
+ compose kill -s SIGKILL api
+ restart_api
+ b11probe completion_verify
+ reset; b11probe recovery_prepare
+ order_id=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["order"]["id"])' "$state/b10-history.json")
+ docker run --rm --network "${project}_backend" -e VITE_B10_HTTP_BASE=http://web:8080 -e VITE_B10_SIMULATOR=http://admin-simulator:8080 -e VITE_B11_ORDER="$order_id" -v "$PWD/web:/source" -w /source node:24.22.0-alpine3.24@sha256:44fce696f38ba8c987c4db89954051000bbd05ffd8d8659ba15ed4a8602e937f npm test -- --run src/B11.runtime.test.tsx
+ compose logs --no-log-prefix api | python3 scripts/test-b11-audit.py --capture >> "$state/b11-audit.jsonl"
+ python3 scripts/test-b11-audit.py < "$state/b11-audit.jsonl"
+ reset
+ file /b11/990_rollback.sql
+ file /b11/990_rollback.sql
+ file /b11/080_continuity.sql
+ file /b11/080_continuity.sql
+ b11probe uncertain
+ printf 'PASS B11 complete ephemeral continuity/reconciliation acceptance; cleanup checked by EXIT trap\n'
+ exit
+fi
+if [ "${B10_BEHAVIOR:-all}" = b11 ] && [ "${B11_BEHAVIOR:-all}" = restart ]; then
+ reset
+ b11probe restart_prepare
+ compose kill -s SIGKILL api
+ restart_api
+ b11probe restart_verify
+ exit
+fi
 if [ "${B10_BEHAVIOR:-all}" = paused ]; then paused; exit; fi
 if [ "${B10_BEHAVIOR:-all}" != all ]; then
  reset
- case "$B10_BEHAVIOR" in ui) ui ;; race) for first in close install; do reset; python3 scripts/test-b10-closure-race.py "$project" "$state" "$first"; done ;; *) probe "$B10_BEHAVIOR" ;; esac
+ case "$B10_BEHAVIOR" in b11) docker run --rm --network "${project}_backend" -e B06_STATE_DIR=/evidence -v "$state:/evidence" -v "$PWD:/source:ro" -w /source python:3.14.0-alpine3.22@sha256:8373231e1e906ddfb457748bfc032c4c06ada8c759b7b62d9c73ec2a3c56e710 python3 scripts/test-b11.py http://web:8080 "${B11_BEHAVIOR:-uncertain}" ;; ui) ui ;; race) for first in close install; do reset; python3 scripts/test-b10-closure-race.py "$project" "$state" "$first"; done ;; *) probe "$B10_BEHAVIOR" ;; esac
  exit
 fi
 probe smoke
@@ -121,6 +220,8 @@ for item in items:
  assert item["State"]["Health"]["Status"]=="healthy"
  assert not any(m["Type"]=="volume" for m in item["Mounts"])
 print("PASS B10 five healthy hardened containers incl. simulator, no published ports or volumes")'
+file /b11/990_rollback.sql
+file /b11/990_rollback.sql
 file /b10/990_rollback.sql
 file /b10/990_rollback.sql
 sql <<'SQL'
@@ -143,7 +244,9 @@ SELECT count(*) FROM workshop.installations;
 ROLLBACK;
 SQL
 file /b10/070_administration.sql
+file /b11/080_continuity.sql
 file /b10/900_synthetic_fixtures.sql
+file /b11/900_synthetic_fixtures.sql
 reset
 probe request
 compose logs --no-log-prefix api | python3 scripts/test-b10-audit.py

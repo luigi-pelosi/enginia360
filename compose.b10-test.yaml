@@ -44,3 +44,4 @@ services:
       - ./database/b08:/b08:ro
       - ./database/b09:/b09:ro
       - ./database/b10:/b10:ro
+      - ./database/b11:/b11:ro

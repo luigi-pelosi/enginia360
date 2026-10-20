@@ -21,7 +21,7 @@ jobs:
           printf 'B02_DB_PASSWORD=%s\nB02_DB_APP_PASSWORD=%s\n' "$owner_password" "$app_password" >> "$GITHUB_ENV"
       - name: Verify CI runtime configuration
         timeout-minutes: 10
-        run: python3 scripts/test-ci-runtime.py && python3 scripts/test-b04-ci.py && python3 scripts/test-b05-ci.py && python3 scripts/test-b06-ci.py && python3 scripts/test-b07-ci.py && python3 scripts/test-b08-ci.py && python3 scripts/test-b09-ci.py && python3 scripts/test-b10-ci.py
+        run: python3 scripts/test-ci-runtime.py && python3 scripts/test-b04-ci.py && python3 scripts/test-b05-ci.py && python3 scripts/test-b06-ci.py && python3 scripts/test-b07-ci.py && python3 scripts/test-b08-ci.py && python3 scripts/test-b09-ci.py && python3 scripts/test-b10-ci.py && python3 scripts/test-b11-ci.py
       - name: Offline B09 carcass return race controller lifecycle
         timeout-minutes: 2
         run: timeout 60 python3 scripts/test-b09-return-race-lifecycle.py
@@ -79,6 +79,9 @@ jobs:
       - name: Isolated B10 technical closure, external administrative request and simulator
         timeout-minutes: 10
         run: sh scripts/run-b10-tests.sh
+      - name: Isolated B11 continuity, uncertainty, process restart and reconciliation
+        timeout-minutes: 10
+        run: sh scripts/run-b11-tests.sh
       - name: Build and start hardened containers
         timeout-minutes: 10
         run: docker compose up -d --build --wait --wait-timeout 120

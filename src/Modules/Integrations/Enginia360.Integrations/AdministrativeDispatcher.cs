@@ -17,13 +17,17 @@ internal sealed class AdministrativeDispatcher(IWorkshopAdministrativeOutbox out
         return new DateTimeOffset(now.Ticks - now.Ticks % 10, TimeSpan.Zero);
     }
 
-    internal async Task RunOnce(CancellationToken ct)
+    internal async Task<int> RunOnce(int offset, CancellationToken ct)
     {
-        foreach (var envelope in await outbox.Pending(20, ct))
+        var batch = await outbox.Pending(20, offset, ct);
+        foreach (var envelope in batch)
         {
             var dispatch = await Claim(envelope, ct);
             if (dispatch is not null) await Process(envelope, dispatch, ct);
         }
+        // A blocked old batch must not monopolize discovery. This is only a scan position, not business state;
+        // a restart begins at zero, and every completed pass wraps back to cover rows removed during the scan.
+        return batch.Count < 20 || offset > int.MaxValue - 20 ? 0 : offset + 20;
     }
 
     private async Task SetTenant(Guid tenant, CancellationToken ct) =>
@@ -43,6 +47,7 @@ internal sealed class AdministrativeDispatcher(IWorkshopAdministrativeOutbox out
         var claimed = await db.Dispatches.FromSql($"""
             UPDATE integrations.administrative_dispatches SET "LeaseUntil"={lease}, "UpdatedAt"={now}
             WHERE "RequestId"={envelope.RequestId} AND "TenantId"={envelope.TenantId} AND "NextAttemptAt"<={now}
+                AND "State" <> 'NeedsReconciliation'
                 AND ("LeaseUntil" IS NULL OR "LeaseUntil"<{now})
             RETURNING *
             """).AsNoTracking().ToListAsync(ct);
@@ -64,23 +69,34 @@ internal sealed class AdministrativeDispatcher(IWorkshopAdministrativeOutbox out
             await Save(dispatch, dispatch.State, dispatch.Attempts, Now() + options.RetryDelay, "source_unavailable", ct);
             return;
         }
-        var submitting = dispatch.State is not "Received";
-        var result = submitting ? await connector.Submit(message, ct) : await connector.Status(message, ct);
+        var submitting = dispatch.State is not ("Received" or "Uncertain");
         var attempts = dispatch.Attempts + (submitting ? 1 : 0);
+        if (submitting)
+        {
+            // Persist uncertainty BEFORE crossing the process boundary. A crash after remote commit but
+            // before its response must restart with a status lookup, never a blind second submission.
+            await using var intent = await db.Database.BeginTransactionAsync(ct);
+            await SetTenant(envelope.TenantId, ct);
+            var marked = await db.Database.ExecuteSqlInterpolatedAsync($"""
+                UPDATE integrations.administrative_dispatches SET "State"='Uncertain', "Attempts"={attempts}, "LastAttemptAt"={Now()}
+                WHERE "TenantId"={envelope.TenantId} AND "RequestId"={envelope.RequestId} AND "LeaseUntil"={dispatch.LeaseUntil}
+                """, ct);
+            if (marked != 1) return;
+            await intent.CommitAsync(ct);
+        }
+        var result = submitting ? await connector.Submit(message, ct) : await connector.Status(message, ct);
         var now = Now();
         dispatch.LastAttemptAt = now;
         switch (result.Outcome)
         {
             case ConnectorOutcome.Completed:
                 dispatch.ExternalReference = result.ExternalReference;
-                await Save(dispatch, "Completed", attempts, now, null, ct);
-                await Finish(envelope, dispatch, ct);
+                if (await Save(dispatch, "Completed", attempts, now, null, ct)) await Finish(envelope, dispatch, ct);
                 break;
             case ConnectorOutcome.Rejected:
                 // Business refusal: final, visible, never retried.
                 dispatch.RejectionCode = result.Code;
-                await Save(dispatch, "Rejected", attempts, now, null, ct);
-                await Finish(envelope, dispatch, ct);
+                if (await Save(dispatch, "Rejected", attempts, now, null, ct)) await Finish(envelope, dispatch, ct);
                 break;
             case ConnectorOutcome.Received:
                 await Save(dispatch, "Received", attempts, now + options.PollInterval, null, ct);
@@ -89,7 +105,11 @@ internal sealed class AdministrativeDispatcher(IWorkshopAdministrativeOutbox out
                 await Save(dispatch, "Queued", attempts, now, "not_found", ct);
                 break;
             default:
-                await Save(dispatch, submitting ? "Retrying" : dispatch.State, attempts, now + options.RetryDelay, result.Code, ct);
+                // A failed response does not establish whether the receiver applied the request (T06).
+                // Reconcile with GET; resubmit the stable ID only after an explicit matching NotFound.
+                dispatch.Failures++;
+                var next = now + TimeSpan.FromMilliseconds(Math.Min(300000, options.RetryDelay.TotalMilliseconds * Math.Pow(2, Math.Min(dispatch.Failures - 1, 16))));
+                await Save(dispatch, dispatch.Failures >= 4 ? "NeedsReconciliation" : "Uncertain", attempts, next, result.Code, ct);
                 break;
         }
     }
@@ -106,21 +126,23 @@ internal sealed class AdministrativeDispatcher(IWorkshopAdministrativeOutbox out
         }
     }
 
-    private async Task Save(Dispatch dispatch, string state, int attempts, DateTimeOffset next, string? error, CancellationToken ct)
+    private async Task<bool> Save(Dispatch dispatch, string state, int attempts, DateTimeOffset next, string? error, CancellationToken ct)
     {
         dispatch.State = state;
         dispatch.Attempts = attempts;
         var now = Now();
         await using var tx = await db.Database.BeginTransactionAsync(ct);
         await SetTenant(dispatch.TenantId, ct);
-        await db.Database.ExecuteSqlInterpolatedAsync($"""
-            UPDATE integrations.administrative_dispatches SET "State"={state}, "Attempts"={attempts}, "LastAttemptAt"={dispatch.LastAttemptAt},
+        var updated = await db.Database.ExecuteSqlInterpolatedAsync($"""
+            UPDATE integrations.administrative_dispatches SET "State"={state}, "Attempts"={attempts}, "Failures"={dispatch.Failures}, "LastAttemptAt"={dispatch.LastAttemptAt},
                 "NextAttemptAt"={next}, "LeaseUntil"=NULL, "ExternalReference"={dispatch.ExternalReference},
                 "RejectionCode"={dispatch.RejectionCode}, "LastError"={error}, "UpdatedAt"={now}
-            WHERE "RequestId"={dispatch.RequestId} AND "TenantId"={dispatch.TenantId}
+            WHERE "RequestId"={dispatch.RequestId} AND "TenantId"={dispatch.TenantId} AND "LeaseUntil"={dispatch.LeaseUntil}
             """, ct);
         await tx.CommitAsync(ct);
+        if (updated != 1) return false; // Fencing: a stale worker cannot clear or overwrite a newer lease.
         logger.LogInformation(new EventId(610), "Administrative dispatch {RequestId} {State} {Attempts} {Error}", dispatch.RequestId, state, attempts, error);
+        return true;
     }
 }
 
@@ -129,12 +151,14 @@ internal sealed class AdministrativeDispatchWorker(IServiceScopeFactory scopes, 
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        var offset = 0;
         while (!stoppingToken.IsCancellationRequested)
         {
+            var nextOffset = offset > int.MaxValue - 20 ? 0 : offset + 20;
             try
             {
                 await using var scope = scopes.CreateAsyncScope();
-                await scope.ServiceProvider.GetRequiredService<AdministrativeDispatcher>().RunOnce(stoppingToken);
+                nextOffset = await scope.ServiceProvider.GetRequiredService<AdministrativeDispatcher>().RunOnce(offset, stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { return; }
             catch (Exception error)
@@ -142,6 +166,7 @@ internal sealed class AdministrativeDispatchWorker(IServiceScopeFactory scopes, 
                 // Nothing is lost: the outbox entry stays pending and any lease expires.
                 logger.LogWarning(new EventId(612), "Administrative dispatch cycle failed {ErrorType}", error.GetType().Name);
             }
+            offset = nextOffset;
             try { await Task.Delay(options.PollInterval, stoppingToken); }
             catch (OperationCanceledException) { return; }
         }

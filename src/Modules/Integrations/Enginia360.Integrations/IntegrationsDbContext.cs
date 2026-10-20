@@ -6,8 +6,12 @@ namespace Enginia360.Integrations;
 internal sealed class IntegrationsDbContext(DbContextOptions<IntegrationsDbContext> options) : DbContext(options)
 {
     internal DbSet<Dispatch> Dispatches => Set<Dispatch>();
-    protected override void OnModelCreating(ModelBuilder b) =>
+    internal DbSet<Reconciliation> Reconciliations => Set<Reconciliation>();
+    protected override void OnModelCreating(ModelBuilder b)
+    {
         b.Entity<Dispatch>().ToTable("administrative_dispatches", "integrations").HasKey(x => x.RequestId);
+        b.Entity<Reconciliation>().ToTable("administrative_reconciliations", "integrations").HasKey(x => x.Id);
+    }
 }
 // Technical delivery state of one request; never a business outcome by itself.
 internal sealed class Dispatch
@@ -16,6 +20,7 @@ internal sealed class Dispatch
     public Guid TenantId { get; set; }
     public required string State { get; set; }
     public int Attempts { get; set; }
+    public int Failures { get; set; }
     public DateTimeOffset? LastAttemptAt { get; set; }
     public DateTimeOffset NextAttemptAt { get; set; }
     public DateTimeOffset? LeaseUntil { get; set; }
@@ -33,6 +38,6 @@ internal sealed class AdministrativeDeliveries(IntegrationsDbContext db) : IAdmi
         var rows = await db.Dispatches.AsNoTracking().Where(x => x.TenantId == verifiedTenantId && requestIds.Contains(x.RequestId)).ToListAsync(ct);
         await tx.CommitAsync(ct);
         return rows.ToDictionary(x => x.RequestId, x => new AdministrativeDelivery(x.State, x.Attempts, x.LastAttemptAt,
-            x.State is "Completed" or "Rejected" ? null : x.NextAttemptAt, x.LastError));
+            x.State is "Completed" or "Rejected" or "NeedsReconciliation" ? null : x.NextAttemptAt, x.LastError, x.Failures));
     }
 }

@@ -9,7 +9,7 @@ public sealed record TechnicalClosureContract(Guid Id, Guid OrderId, int Revisio
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow), JsonNumberHandling(JsonNumberHandling.Strict)]
 public sealed record AdministrativeRequestCommand(Guid Id, int ExpectedRevision);
 // Connector-owned transport state. Never a business outcome by itself (D40).
-public sealed record AdministrativeDelivery(string State, int Attempts, DateTimeOffset? LastAttemptAt, DateTimeOffset? NextAttemptAt, string? LastError);
+public sealed record AdministrativeDelivery(string State, int Attempts, DateTimeOffset? LastAttemptAt, DateTimeOffset? NextAttemptAt, string? LastError, int Failures = 0);
 // Immutable owner-local request with its q6 commercial snapshot; Status changes once, only from a business outcome.
 public sealed record AdministrativeRequestContract(Guid Id, Guid OrderId, Guid LegalEntityId, Guid SiteId,
     string Destination, int DestinationVersion, int ContractVersion, CommercialSummary Summary, DateTimeOffset RequestedAt,
@@ -29,12 +29,18 @@ public sealed record AdministrativeOutcome(string Status, string? ExternalRefere
 // Implemented by Workshop, owner of requests and outcome consequences; used by the connector worker.
 public interface IWorkshopAdministrativeOutbox
 {
-    Task<IReadOnlyList<AdministrativeOutboxEnvelope>> Pending(int limit, CancellationToken ct);
+    Task<IReadOnlyList<AdministrativeOutboxEnvelope>> Pending(int limit, int offset, CancellationToken ct);
     Task<AdministrativeDispatchMessage?> Read(AdministrativeOutboxEnvelope envelope, CancellationToken ct);
     // Insert-only and idempotent: an identical outcome is accepted again, a different one is refused.
     Task<bool> Record(AdministrativeOutboxEnvelope envelope, AdministrativeOutcome outcome, CancellationToken ct);
 }
 // Implemented by the connector, owner of delivery attempts.
+public sealed record AdministrativeReconciliation(bool Replayed);
+public interface IAdministrativeRecovery
+{
+    Task<AdministrativeReconciliation?> Reconcile(Guid verifiedTenantId, Guid requestId, Guid commandId, Guid operatorId, CancellationToken ct);
+}
+
 public interface IAdministrativeDeliveries
 {
     Task<IReadOnlyDictionary<Guid, AdministrativeDelivery>> Read(Guid verifiedTenantId, IReadOnlyCollection<Guid> requestIds, CancellationToken ct);
