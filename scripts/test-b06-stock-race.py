@@ -82,7 +82,7 @@ def cleanup(label, action):
 
 
 try:
-    sql('''TRUNCATE inventory.reservations;
+    sql('''TRUNCATE inventory.consumptions, inventory.picks, inventory.reservations;
 CREATE OR REPLACE FUNCTION inventory.test_insert_gate() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN PERFORM pg_advisory_xact_lock_shared(60969); RETURN NEW; END $$;
 DROP TRIGGER IF EXISTS test_insert_gate ON inventory.reservations;

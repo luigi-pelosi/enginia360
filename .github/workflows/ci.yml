@@ -20,7 +20,11 @@ jobs:
           printf '::add-mask::%s\n' "$app_password"
           printf 'B02_DB_PASSWORD=%s\nB02_DB_APP_PASSWORD=%s\n' "$owner_password" "$app_password" >> "$GITHUB_ENV"
       - name: Verify CI runtime configuration
-        run: python3 scripts/test-ci-runtime.py && python3 scripts/test-b04-ci.py && python3 scripts/test-b05-ci.py && python3 scripts/test-b06-ci.py && python3 scripts/test-b07-ci.py
+        timeout-minutes: 10
+        run: python3 scripts/test-ci-runtime.py && python3 scripts/test-b04-ci.py && python3 scripts/test-b05-ci.py && python3 scripts/test-b06-ci.py && python3 scripts/test-b07-ci.py && python3 scripts/test-b08-ci.py
+      - name: Offline B08 installation race controller lifecycle
+        timeout-minutes: 2
+        run: timeout 60 python3 scripts/test-b08-installation-race-lifecycle.py
       - name: Offline B07 picking race controller lifecycle
         timeout-minutes: 2
         run: timeout 60 python3 scripts/test-b07-picking-race-lifecycle.py
@@ -28,30 +32,49 @@ jobs:
         timeout-minutes: 2
         run: timeout 60 python3 scripts/test-b06-stock-race-lifecycle.py
       - name: Integration tests in pinned SDK
+        timeout-minutes: 10
         run: docker run --rm -v "$PWD:/source" -w /source mcr.microsoft.com/dotnet/sdk:10.0.402-alpine3.24@sha256:230c3fbae0ceedc70bca04eed2bfb5694e8b248cadbb81010f41b7a993601f55 sh -c 'dotnet restore tests/Enginia360.Api.Tests --locked-mode && dotnet test tests/Enginia360.Api.Tests -c Release --no-restore'
       - name: UI tests, both builds and dependency audit
+        timeout-minutes: 10
         run: docker run --rm -v "$PWD:/source" -w /source/web node:24.22.0-alpine3.24@sha256:44fce696f38ba8c987c4db89954051000bbd05ffd8d8659ba15ed4a8602e937f sh -c 'npm ci --no-audit --no-fund && npm test && npm run build && VITE_B02_TEST_UI=true npm run build && VITE_B03_TEST_UI=true npm run build && VITE_B04_TEST_UI=true npm run build && VITE_B05_TEST_UI=true npm run build && VITE_B06_TEST_UI=true npm run build && VITE_B06_TEST_UI=true VITE_B07_TEST_UI=true npm run build && npm audit --audit-level=high'
+      - name: Private B08 UI build
+        timeout-minutes: 10
+        run: docker run --rm -v "$PWD:/source" -w /source/web node:24.22.0-alpine3.24@sha256:44fce696f38ba8c987c4db89954051000bbd05ffd8d8659ba15ed4a8602e937f sh -c 'VITE_B06_TEST_UI=true VITE_B07_TEST_UI=true VITE_B08_TEST_UI=true npm run build'
       - name: NuGet dependency audits
+        timeout-minutes: 10
         run: docker run --rm -v "$PWD:/source" -w /source mcr.microsoft.com/dotnet/sdk:10.0.402-alpine3.24@sha256:230c3fbae0ceedc70bca04eed2bfb5694e8b248cadbb81010f41b7a993601f55 sh -c 'dotnet restore tests/Enginia360.Api.Tests --locked-mode && dotnet list src/Enginia360.Api package --vulnerable --include-transitive && dotnet list tests/Enginia360.Api.Tests package --vulnerable --include-transitive'
       - name: Isolated B02 integration and hardening
+        timeout-minutes: 10
         run: sh scripts/run-b02-tests.sh
       - name: Isolated B03 authorization, persistence and UI runtime
+        timeout-minutes: 10
         run: sh scripts/run-b03-tests.sh
       - name: Isolated B04 direct order and authorization acceptance
+        timeout-minutes: 10
         run: sh scripts/run-b04-tests.sh
       - name: Isolated B05 commercial line and catalog acceptance
+        timeout-minutes: 10
         run: sh scripts/run-b05-tests.sh
       - name: Isolated B06 explicit stock reservation acceptance
+        timeout-minutes: 10
         run: sh scripts/run-b06-tests.sh
       - name: Isolated B07 explicit partial picking acceptance
+        timeout-minutes: 10
         run: sh scripts/run-b07-tests.sh
+      - name: Isolated B08 explicit partial installation and recovery
+        timeout-minutes: 10
+        run: sh scripts/run-b08-tests.sh
       - name: Build and start hardened containers
+        timeout-minutes: 10
         run: docker compose up -d --build --wait --wait-timeout 120
       - name: HTTP smoke tests
+        timeout-minutes: 10
         run: sh scripts/smoke.sh
       - name: Container diagnostics
+        timeout-minutes: 10
         if: always()
         run: docker compose ps && docker compose logs --tail=100
       - name: Stop containers
+        timeout-minutes: 10
         if: always()
         run: docker compose down

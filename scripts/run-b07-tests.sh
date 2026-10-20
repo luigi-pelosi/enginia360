@@ -29,14 +29,14 @@ sql(){ compose exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB
 file(){ compose exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 -v app_user="$B02_DB_APP_USER" -f "$1"' sh "$1"; }
 probe(){ docker run --rm --network "${project}_backend" -e B06_STATE_DIR=/evidence -v "$state:/evidence" -v "$PWD:/source:ro" -w /source python:3.14.0-alpine3.22@sha256:8373231e1e906ddfb457748bfc032c4c06ada8c759b7b62d9c73ec2a3c56e710 python3 scripts/test-b07.py http://web:8080 "$1"; }
 reset(){ printf 'TRUNCATE inventory.reservations;\n' | sql; }
-migrate(){ file /b06/030_inventory.sql; file /b06/900_synthetic_fixtures.sql; }
+migrate(){ file /b06/030_inventory.sql; file /b06/900_synthetic_fixtures.sql; file /b07/040_picking.sql; file /b08/050_installation.sql; }
 compose exec -T postgres sh -c 'for f in /b03/00*.sql /b03/90*.sql /b04/010*.sql /b04/900*.sql /b05/020*.sql /b05/021*.sql /b05/900*.sql /b05/901*.sql; do psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 -v app_user="$B02_DB_APP_USER" -f "$f" || exit; done'
 migrate
 migrate
 file /b07/040_picking.sql
 file /b07/040_picking.sql
 file /b07/900_synthetic_fixtures.sql
-reset(){ printf 'TRUNCATE inventory.picks, inventory.reservations;\n' | sql; }
+reset(){ printf 'TRUNCATE inventory.consumptions, inventory.picks, inventory.reservations;\n' | sql; }
 probe smoke
 for iteration in 1 2 3; do python3 scripts/test-b07-picking-race.py "$project"; done
 for behavior in partial invalid references idempotency concurrent; do reset; probe "$behavior"; done
@@ -114,6 +114,7 @@ for item in items:
  assert all(v is None for v in (item["NetworkSettings"]["Ports"] or {}).values())
  assert item["State"]["Health"]["Status"]=="healthy"
 print("PASS B07 four healthy hardened containers, no published ports")'
+file /b08/990_rollback.sql
 file /b07/990_rollback.sql
 file /b07/990_rollback.sql
 sql <<'SQL'
@@ -126,6 +127,7 @@ DO $$ BEGIN
 END $$;
 SQL
 file /b07/040_picking.sql
+file /b08/050_installation.sql
 file /b07/900_synthetic_fixtures.sql
 reset
 probe partial

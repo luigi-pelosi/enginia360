@@ -30,3 +30,30 @@ public sealed record LineContract(Guid Id, Guid OrderId, Guid CatalogItemId, int
     string TaxRate, Guid PayerId, Guid WorkingGroupId, int ConfigurationVersion);
 public sealed record CommercialSummary(Guid OrderId, Guid PayerId, int Revision, IReadOnlyList<LineContract> Lines,
     string NetAmount, string TaxAmount, string Total, string Currency, string Policy);
+
+[System.Text.Json.Serialization.JsonUnmappedMemberHandling(System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow)]
+public sealed record InstallRequest(Guid Id, string Quantity);
+// Immutable cross-module projections, never ORM contexts or shared transactions.
+public sealed record PickedInstallationSource(Guid PickId, Guid TenantId, Guid ReservationId, Guid OrderId,
+    Guid WorkingGroupId, Guid LineId, Guid LegalEntityId, Guid SiteId, Guid WarehouseId,
+    Guid CatalogItemId, int CatalogVersion, decimal Quantity, int PickingConfigurationVersion, DateTimeOffset PickedAt);
+public interface IWorkshopPickedParts
+{
+    Task<PickedInstallationSource?> Find(string subject, Guid orderId, Guid lineId, Guid pickId, bool write, CancellationToken ct);
+}
+public sealed record InstallationContract(Guid Id, Guid TenantId, Guid PickId, Guid ReservationId, Guid OrderId,
+    Guid WorkingGroupId, Guid LineId, Guid LegalEntityId, Guid SiteId, Guid WarehouseId, Guid CatalogItemId,
+    int CatalogVersion, string Quantity, int PickingConfigurationVersion, Guid DocumentTypeId,
+    int ConfigurationVersion, DateTimeOffset InstalledAt, Guid OperatorId);
+public interface IWorkshopInstallations
+{
+    Task<InstallationContract?> Find(string subject, Guid installationId, bool write, CancellationToken ct);
+}
+public sealed record ConsumptionContract(Guid InstallationId, string Quantity, DateTimeOffset ConsumedAt);
+public interface IInstallationStockEffects
+{
+    Task<ConsumptionContract?> Read(string subject, Guid installationId, CancellationToken ct);
+    Task<ConsumptionContract?> Consume(string subject, Guid installationId, CancellationToken ct);
+}
+public sealed record InstallationResult(InstallationContract Installation, string StockEffect, ConsumptionContract? Consumption);
+public sealed record InstallationState(string Picked, string Installed, string RemainingToInstall, IReadOnlyList<InstallationResult> Installations);

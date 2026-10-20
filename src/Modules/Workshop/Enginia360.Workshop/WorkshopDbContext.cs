@@ -5,12 +5,15 @@ namespace Enginia360.Workshop;
 
 internal sealed class WorkshopDbContext(DbContextOptions<WorkshopDbContext> options) : DbContext(options)
 {
+    internal DbSet<InstalledPart> Installations => Set<InstalledPart>();
     internal DbSet<WorkOrder> Orders => Set<WorkOrder>();
     internal DbSet<CommercialLine> Lines => Set<CommercialLine>();
     internal DbSet<LinePolicy> LinePolicies => Set<LinePolicy>();
     internal DbSet<DocumentTypeConfiguration> Configurations => Set<DocumentTypeConfiguration>();
     protected override void OnModelCreating(ModelBuilder b)
     {
+        b.Entity<InstalledPart>().ToTable("installations", "workshop").HasKey(x => x.Id);
+        b.Entity<InstalledPart>().Property(x => x.Quantity).HasPrecision(12, 6);
         b.Entity<WorkOrder>().ToTable("orders", "workshop").HasKey(x => x.Id);
         b.Entity<CommercialLine>().ToTable("commercial_lines", "workshop").HasKey(x => x.Id);
         b.Entity<CommercialLine>().Property(x => x.Quantity).HasPrecision(12, 6);
