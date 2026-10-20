@@ -4,6 +4,11 @@ rows=[]
 for line in sys.stdin:
  try: rows.append(json.loads(line))
  except ValueError: pass
+if '--capture' in sys.argv:
+ for row in rows:
+  if row.get('EventId')==610 or (row.get('EventId')==404 and '/reconciliation' in str(row.get('State',{}))):
+   print(json.dumps(row))
+ sys.exit(0)
 recovery=[r for r in rows if r.get('EventId')==404 and '/reconciliation' in str(r.get('State',{}))]
 assert {r['State'].get('Outcome') for r in recovery}>={202,200,403,409},'missing scoped recovery acceptance/replay/refusal audit'
 dispatch=[r for r in rows if r.get('EventId')==610]

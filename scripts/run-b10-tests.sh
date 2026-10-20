@@ -9,7 +9,7 @@ env_file="$state/runtime.env"
 compose(){ docker compose --env-file "$env_file" -p "$project" -f compose.b02-test.yaml -f compose.b03-test.yaml -f compose.b04-test.yaml -f compose.b05-test.yaml -f compose.b06-test.yaml -f compose.b07-test.yaml -f compose.b08-test.yaml -f compose.b09-test.yaml -f compose.b10-test.yaml "$@"; }
 cleanup(){
     compose down --volumes --remove-orphans >/dev/null 2>&1 || true
-    rm -f "$env_file" "$state/b10-history.json"
+    rm -f "$env_file" "$state/b10-history.json" "$state/b11-audit.jsonl"
     rmdir "$state" 2>/dev/null || true
     test -z "$(docker ps -aq --filter "label=com.docker.compose.project=$project")"
     test -z "$(docker network ls -q --filter "label=com.docker.compose.project=$project")"
@@ -69,6 +69,13 @@ paused(){
  probe paused_resume
 }
 b11probe(){ docker run --rm --network "${project}_backend" -e B06_STATE_DIR=/evidence -v "$state:/evidence" -v "$PWD:/source:ro" -w /source python:3.14.0-alpine3.22@sha256:8373231e1e906ddfb457748bfc032c4c06ada8c759b7b62d9c73ec2a3c56e710 python3 scripts/test-b11.py http://web:8080 "$1"; }
+restart_api(){
+ if [ "${B11_FORCE_API_RECREATE:-false}" = true ]; then
+  compose up -d --no-deps --force-recreate --wait --wait-timeout 90 api
+ else
+  compose up -d --no-deps --wait --wait-timeout 90 api
+ fi
+}
 lease_test(){
  reset
  b11probe restart_prepare
@@ -121,20 +128,24 @@ SQL
  b11probe recovery_negatives
  file /b11/950_rls_test.sql
  reset; b11probe restart_prepare
+ # Preserve real audit records before Compose is allowed to replace this API container.
+ compose logs --no-log-prefix api | python3 scripts/test-b11-audit.py --capture > "$state/b11-audit.jsonl"
  compose kill -s SIGKILL api
- compose up -d --no-deps --wait --wait-timeout 90 api
+ restart_api
  b11probe restart_verify
  reset
  printf 'REVOKE INSERT ON workshop.administrative_outcomes FROM :"app_user";\n' | sql
  b11probe completion_prepare
+ compose logs --no-log-prefix api | python3 scripts/test-b11-audit.py --capture >> "$state/b11-audit.jsonl"
  printf 'GRANT INSERT ON workshop.administrative_outcomes TO :"app_user";\n' | sql
  compose kill -s SIGKILL api
- compose up -d --no-deps --wait --wait-timeout 90 api
+ restart_api
  b11probe completion_verify
  reset; b11probe recovery_prepare
  order_id=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["order"]["id"])' "$state/b10-history.json")
  docker run --rm --network "${project}_backend" -e VITE_B10_HTTP_BASE=http://web:8080 -e VITE_B10_SIMULATOR=http://admin-simulator:8080 -e VITE_B11_ORDER="$order_id" -v "$PWD/web:/source" -w /source node:24.22.0-alpine3.24@sha256:44fce696f38ba8c987c4db89954051000bbd05ffd8d8659ba15ed4a8602e937f npm test -- --run src/B11.runtime.test.tsx
- compose logs --no-log-prefix api | python3 scripts/test-b11-audit.py
+ compose logs --no-log-prefix api | python3 scripts/test-b11-audit.py --capture >> "$state/b11-audit.jsonl"
+ python3 scripts/test-b11-audit.py < "$state/b11-audit.jsonl"
  reset
  file /b11/990_rollback.sql
  file /b11/990_rollback.sql
@@ -148,7 +159,7 @@ if [ "${B10_BEHAVIOR:-all}" = b11 ] && [ "${B11_BEHAVIOR:-all}" = restart ]; the
  reset
  b11probe restart_prepare
  compose kill -s SIGKILL api
- compose up -d --no-deps --wait --wait-timeout 90 api
+ restart_api
  b11probe restart_verify
  exit
 fi
