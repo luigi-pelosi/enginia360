@@ -23,6 +23,9 @@ internal sealed class TechnicalAuditFilter(ILogger<TechnicalAuditFilter> logger)
             if (result is IValueHttpResult { Value: OrderContract order }) resource = order.Id;
             if (result is IValueHttpResult { Value: LineContract line }) resource = line.Id;
             if (result is IValueHttpResult { Value: InstallationResult installation }) resource = installation.Installation.Id;
+            if (result is IValueHttpResult { Value: TechnicalClosureContract closure }) resource = closure.Id;
+            if (result is IValueHttpResult { Value: AdministrativeRequestContract request }) resource = request.Id;
+            if (result is IValueHttpResult { Value: AdministrativeClosureContract administrative }) resource = administrative.Id;
             return result;
         }
         finally

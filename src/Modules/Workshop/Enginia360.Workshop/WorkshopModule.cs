@@ -17,9 +17,10 @@ public static class WorkshopModule
         services.AddDbContext<WorkshopDbContext>(o => o.UseNpgsql(connection));
         services.AddScoped<IWorkshopReservationLines, WorkshopReservationLines>();
         services.AddScoped<IWorkshopInstallations, WorkshopInstallations>();
+        services.AddScoped<IWorkshopAdministrativeOutbox, WorkshopAdministrativeOutbox>();
         return services;
     }
-    public static WebApplication MapWorkshop(this WebApplication app, bool inventoryEnabled = false)
+    public static WebApplication MapWorkshop(this WebApplication app, bool inventoryEnabled = false, bool externalAdministrationEnabled = false)
     {
         var routes = app.MapGroup("/api/v1/workshop").RequireAuthorization().AddEndpointFilter<TechnicalAuditFilter>();
         routes.MapGet("/contexts", async (ClaimsPrincipal user, IWorkshopAccess access, CancellationToken ct) =>
@@ -53,6 +54,9 @@ public static class WorkshopModule
         routes.MapGet("/orders/{id:guid}", Get);
         CommercialEndpoints.Map(routes);
         if (inventoryEnabled) InstallationEndpoints.Map(routes);
+        // The carcass requirement of technical closure is evaluated with Inventory receipts.
+        if (inventoryEnabled) AdministrativeEndpoints.MapClosure(routes);
+        if (inventoryEnabled && externalAdministrationEnabled) AdministrativeEndpoints.MapExternal(routes);
         return app;
     }
     private static string Subject(ClaimsPrincipal user) => user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";

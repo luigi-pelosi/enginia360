@@ -14,6 +14,8 @@ public interface IWorkshopAccess
     Task<WorkshopGrant?> ResolveMembership(string subject, CancellationToken ct);
     Task<IReadOnlyList<WorkshopContext>> ListContexts(string subject, CancellationToken ct);
     Task<WorkshopGrant?> Authorize(string subject, Guid companyId, Guid siteId, string permission, bool requireCapability, CancellationToken ct);
+    // Entitlement of a further company capability, e.g. the external administrative destination.
+    Task<bool> CapabilityEnabled(Guid verifiedTenantId, Guid companyId, string capability, CancellationToken ct);
 }
 public sealed record CreateOrderRequest(Guid Id, Guid LegalEntityId, Guid SiteId,
     Guid DocumentTypeId, int ConfigurationVersion, Guid PayerId, Guid VehicleId);

@@ -14,7 +14,7 @@ file(){ compose exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_D
 probe(){ docker run --rm --network "${project}_backend" -v "$PWD:/source:ro" -w /source python:3.14.0-alpine3.22@sha256:8373231e1e906ddfb457748bfc032c4c06ada8c759b7b62d9c73ec2a3c56e710 python3 "$@"; }
 b05(){ probe scripts/test-b05.py http://web:8080 "$1"; }
 compose exec -T postgres sh -c 'for f in /b03/00*.sql /b03/90*.sql /b04/010*.sql /b04/900*.sql; do psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 -v app_user="$B02_DB_APP_USER" -f "$f" || exit; done'
-migrate(){ for f in /b05/020_catalog.sql /b05/021_commercial_lines.sql /b05/900_catalog_fixtures.sql /b05/901_commercial_fixtures.sql; do file "$f"; done; }
+migrate(){ for f in /b05/020_catalog.sql /b05/021_commercial_lines.sql /b05/900_catalog_fixtures.sql /b05/901_commercial_fixtures.sql /b10/070_administration.sql; do file "$f"; done; }
 migrate
 migrate
 probe scripts/test-b04.py http://web:8080 direct_order

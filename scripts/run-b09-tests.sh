@@ -29,7 +29,9 @@ file(){ compose exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_D
 probe(){ docker run --rm --network "${project}_backend" -e B06_STATE_DIR=/evidence -v "$state:/evidence" -v "$PWD:/source:ro" -w /source python:3.14.0-alpine3.22@sha256:8373231e1e906ddfb457748bfc032c4c06ada8c759b7b62d9c73ec2a3c56e710 python3 scripts/test-b09.py http://web:8080 "$1"; }
 compose exec -T postgres sh -c 'for f in /b03/00*.sql /b03/90*.sql /b04/010*.sql /b04/900*.sql /b05/020*.sql /b05/021*.sql /b05/900*.sql /b05/901*.sql /b06/030*.sql /b06/900*.sql /b07/040*.sql /b07/900*.sql /b08/050*.sql /b08/900*.sql; do psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 -v app_user="$B02_DB_APP_USER" -f "$f" || exit; done'
 file /b09/060_carcass.sql
+file /b10/070_administration.sql
 file /b09/060_carcass.sql
+file /b10/070_administration.sql
 file /b09/900_synthetic_fixtures.sql
 reset(){
  printf 'TRUNCATE inventory.carcass_return_installations, inventory.carcass_returns, inventory.consumptions, workshop.installations, inventory.picks, inventory.reservations; UPDATE inventory.stock SET "Physical"=2; DELETE FROM workshop.carcass_policies WHERE "Version">1; DELETE FROM inventory.carcass_locations WHERE "Version">1;\n' | sql
@@ -156,6 +158,7 @@ SELECT "Physical" FROM inventory.stock FOR UPDATE;
 ROLLBACK;
 SQL
 file /b09/060_carcass.sql
+file /b10/070_administration.sql
 file /b09/900_synthetic_fixtures.sql
 reset
 probe full

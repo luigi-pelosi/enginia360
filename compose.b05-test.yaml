@@ -7,3 +7,4 @@ services:
   postgres:
     volumes:
       - ./database/b05:/b05:ro
+      - ./database/b10:/b10:ro

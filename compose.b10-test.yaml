@@ -1,0 +1,46 @@
+# Synthetic ephemeral B10 acceptance; no published ports or retained volumes.
+services:
+  admin-simulator:
+    # Deterministic external-system stand-in; in-memory by design, private backend network only.
+    image: python:3.14.0-alpine3.22@sha256:8373231e1e906ddfb457748bfc032c4c06ada8c759b7b62d9c73ec2a3c56e710
+    user: "65534:65534"
+    command: ["python3", "-I", "/simulator/administrative-simulator.py"]
+    volumes: ["./simulator:/simulator:ro"]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=8m"]
+    expose: ["8080"]
+    networks: [backend]
+    mem_limit: 64m
+    cpus: 0.5
+    pids_limit: 32
+    logging: {driver: json-file, options: {max-size: "5m", max-file: "2"}}
+    healthcheck:
+      test: ["CMD", "python3", "-I", "-S", "-c", "import socket; s=socket.create_connection(('127.0.0.1',8080),2); s.sendall(b'GET /health HTTP/1.0\\r\\n\\r\\n'); assert b' 200 ' in s.recv(64)"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+  api:
+    environment:
+      ExternalAdministration__Enabled: "true"
+      ExternalAdministration__SimulatorBaseUrl: http://admin-simulator:8080/
+      ExternalAdministration__PollMilliseconds: "200"
+      ExternalAdministration__RetryMilliseconds: "500"
+    depends_on:
+      admin-simulator: {condition: service_healthy}
+  web:
+    build:
+      args:
+        VITE_B10_TEST_UI: "true"
+  postgres:
+    volumes: !override
+      - ./database/b03:/b03:ro
+      - ./database/b04:/b04:ro
+      - ./database/b05:/b05:ro
+      - ./database/b06:/b06:ro
+      - ./database/b07:/b07:ro
+      - ./database/b08:/b08:ro
+      - ./database/b09:/b09:ro
+      - ./database/b10:/b10:ro

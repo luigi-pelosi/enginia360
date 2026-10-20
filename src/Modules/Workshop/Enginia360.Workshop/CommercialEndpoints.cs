@@ -68,6 +68,8 @@ internal static partial class CommercialEndpoints
                 && existing.ConfigurationVersion == request.ConfigurationVersion && existing.ExpectedRevision == request.ExpectedRevision
                 && existing.Quantity == quantity && existing.UnitPrice == price && existing.DiscountPercent == discount
                 ? Results.Ok(existing.ToContract()) : Results.Conflict();
+        // A technical closure freezes the commercial source of the administrative request (no reopening implemented).
+        if (await db.TechnicalClosures.AnyAsync(x => x.OrderId == id, ct)) return Closed();
         if (item is null) return Results.NotFound();
         if (item.Version != request.CatalogVersion) return Results.Conflict();
         // Explicit caller values; never derive price or payer from catalog policy.
@@ -116,11 +118,17 @@ internal static partial class CommercialEndpoints
         }
         if (order is null || await access.Authorize(Subject(user), order.LegalEntityId, order.SiteId, "workshop.orders.read", false, ct) is null)
             return Results.NotFound();
+        return Results.Ok(Summarize(order, lines));
+    }
+    internal static IResult Closed() => Results.Conflict(new { code = "order_technically_closed",
+        message = "Commessa chiusa tecnicamente: nessuna modifica registrata." });
+    internal static CommercialSummary Summarize(WorkOrder order, IReadOnlyList<CommercialLine> lines)
+    {
         var net = lines.Sum(x => x.NetAmount);
         var tax = lines.GroupBy(x => new { x.PayerId, x.TaxRate })
             .Sum(group => RoundMoney(group.Sum(x => x.NetAmount) * group.Key.TaxRate / 100m));
-        return Results.Ok(new CommercialSummary(id, order.PayerId, lines.Count, lines.Select(x => x.ToContract()).ToArray(),
-            Money(net), Money(tax), Money(net + tax), "EUR", "Case001"));
+        return new CommercialSummary(order.Id, order.PayerId, lines.Count, lines.Select(x => x.ToContract()).ToArray(),
+            Money(net), Money(tax), Money(net + tax), "EUR", "Case001");
     }
     internal static LineContract Contract(CommercialLine x) => new(x.Id, x.OrderId, x.CatalogItemId, x.CatalogVersion,
         x.CatalogLabel, x.Kind, Value(x.Quantity), Value(x.UnitPrice), Value(x.DiscountPercent), Money(x.NetAmount),
