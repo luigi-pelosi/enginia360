@@ -8,6 +8,15 @@ import unittest
 
 
 class CiRuntimeTests(unittest.TestCase):
+    def test_ci_avoids_duplicate_feature_branch_runs(self):
+        workflow = Path(".github/workflows/ci.yml").read_text()
+        self.assertIn("    branches: [main]", workflow)
+
+    def test_ci_cancels_superseded_runs(self):
+        workflow = Path(".github/workflows/ci.yml").read_text()
+        self.assertIn("concurrency:", workflow)
+        self.assertIn("cancel-in-progress: true", workflow)
+
     def test_ci_executes_b03_runtime_acceptance(self):
         workflow = Path(".github/workflows/ci.yml").read_text()
         self.assertIn("run: sh scripts/run-b03-tests.sh", workflow)
