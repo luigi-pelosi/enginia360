@@ -71,6 +71,7 @@ services:
       Authentication__ValidIssuer: http://keycloak:8080/realms/enginia360-synthetic
       Authentication__Audience: enginia360-api
       Authentication__RequireHttpsMetadata: "false"
+      Authentication__Profile: SyntheticLegacy
       DevelopmentTestLogin__Enabled: "true"
       DevelopmentTestLogin__TokenEndpoint: http://keycloak:8080/realms/enginia360-synthetic/protocol/openid-connect/token
     depends_on:

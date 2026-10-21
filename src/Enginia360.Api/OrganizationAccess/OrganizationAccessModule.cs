@@ -1,5 +1,7 @@
+using System.Data.Common;
 using System.Net.Http.Json;
 using System.Security.Claims;
+using Enginia360.Api.BrowserAuthentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -30,6 +32,9 @@ public static class OrganizationAccessModule
             ?? throw new InvalidOperationException("Authentication:Audience is required.");
         services.AddDbContext<OrganizationAccessDbContext>(o => o.UseNpgsql(connection));
         services.AddScoped<OrganizationContextService>();
+        services.AddScoped<ExternalIdentityResolver>();
+        var syntheticLegacy = configuration["Authentication:Profile"] == "SyntheticLegacy"
+            && !configuration.GetValue<bool>("BrowserSessions:Enabled");
         services.AddHttpClient();
         services
             .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -46,6 +51,47 @@ public static class OrganizationAccessModule
                     "Authentication:RequireHttpsMetadata",
                     true
                 );
+                o.MapInboundClaims = syntheticLegacy;
+                o.Events = new JwtBearerEvents
+                {
+                    OnTokenValidated = async context =>
+                    {
+                        if (syntheticLegacy)
+                            return;
+                        var subjects = context.Principal?.FindAll("sub").ToArray() ?? [];
+                        if (context.SecurityToken.Issuer != context.Options.TokenValidationParameters.ValidIssuer
+                            || subjects.Length != 1)
+                        {
+                            context.Fail("identity_not_assigned");
+                            return;
+                        }
+                        try
+                        {
+                            var principal = await context.HttpContext.RequestServices
+                                .GetRequiredService<ExternalIdentityResolver>()
+                                .Resolve(context.SecurityToken.Issuer, subjects[0].Value,
+                                    JwtBearerDefaults.AuthenticationScheme, context.HttpContext.RequestAborted);
+                            if (principal is null)
+                                context.Fail("identity_not_assigned");
+                            else
+                                context.Principal = principal;
+                        }
+                        catch (Exception error) when (error is DbException or TimeoutException)
+                        {
+                            context.HttpContext.Items["IdentityStoreUnavailable"] = true;
+                            context.Fail("identity_store_unavailable");
+                        }
+                    },
+                    OnChallenge = context =>
+                    {
+                        if (context.HttpContext.Items.ContainsKey("IdentityStoreUnavailable"))
+                        {
+                            context.HandleResponse();
+                            context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+                        }
+                        return Task.CompletedTask;
+                    },
+                };
                 o.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,
@@ -67,7 +113,9 @@ public static class OrganizationAccessModule
 
     public static WebApplication MapOrganizationAccess(this WebApplication app)
     {
-        if (app.Configuration.GetValue<bool>("DevelopmentTestLogin:Enabled"))
+        if (app.Configuration["Authentication:Profile"] == "SyntheticLegacy"
+            && !app.Configuration.GetValue<bool>("BrowserSessions:Enabled")
+            && app.Configuration.GetValue<bool>("DevelopmentTestLogin:Enabled"))
             app.MapPost("/api/v1/development/login", DevelopmentLogin);
         var g = app.MapGroup("/api/v1/organization").RequireAuthorization();
         g.MapGet(
@@ -96,7 +144,9 @@ public static class OrganizationAccessModule
                     ? Results.Unauthorized()
                     : (await s.GetNote(sub, id, c) is { } n ? Results.Ok(n) : Results.NotFound())
         );
-        if (app.Configuration.GetValue<bool>("DevelopmentTestLogin:Enabled"))
+        if (app.Configuration["Authentication:Profile"] == "SyntheticLegacy"
+            && !app.Configuration.GetValue<bool>("BrowserSessions:Enabled")
+            && app.Configuration.GetValue<bool>("DevelopmentTestLogin:Enabled"))
             g.MapGet(
                 "/database-session",
                 async (ClaimsPrincipal u, OrganizationContextService s, CancellationToken c) =>
