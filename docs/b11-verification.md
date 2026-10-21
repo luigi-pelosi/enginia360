@@ -1,6 +1,6 @@
 # B11 — Continuità e riconciliazione
 
-Stato: implementata/verificata localmente, consegna remota da verificare nella PR della issue #17. Baseline B10 main `a2e3604046650602aa87447ccc126b4d6cffc842`, PR #31, CI main 39429274945 success; issue #16 chiusa e Project Completato riletti prima di avviare B11. D70: un solo WIP, nessun nuovo ambiente manuale o gate di routine.
+**Consegna verificata:** PR #32, CI exact-head 39454873760 success, merge `79db88ce2eb3df6f16b73c8daef82bb8d6731945`; issue #17 chiusa/Completato. Il risultato è incluso nella baseline finale main `fa972837684e67b9e5094025acdd54848a46c62a`, CI main 39518931794 success. Nessun nuovo ambiente manuale, ERP reale, fiscalità o promessa exactly-once.
 
 ## Contratto e invarianti
 

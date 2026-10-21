@@ -1,6 +1,6 @@
 # B13 — Scrittura contabile tecnica
 
-Stato: implementata e verificata localmente; consegna remota da verificare nella PR della issue #19. Baseline B12 main `703590533baab8f557df71b2c3f67c40ed4bd9ce` (PR #33, CI exact head push 39487596772 e PR 39487605553 success). D70–D73: un solo WIP, accettazione effimera isolata, nessun ambiente manuale persistente o gate di review di routine.
+**Consegna verificata:** PR #34, CI exact-head 39498640111 success, merge `20b7ae867c96e6007baf31635705e32e145e7b66`; issue #19 chiusa/Completato. Il risultato è incluso nella baseline finale main `fa972837684e67b9e5094025acdd54848a46c62a`, CI main 39518931794 success. Scrittura tecnica limitata a F04: nessun piano universale, conformità generale o produzione.
 
 ## Contratto e invarianti
 

@@ -1,6 +1,6 @@
 # B14 — Verifica finale e recupero operativo
 
-Stato al congelamento: implementata e verificata localmente, consegna remota nella PR collegata alla issue #20; completamento solo dopo CI exact-head e main verdi. Baseline B13 PR #34/main `20b7ae867c96e6007baf31635705e32e145e7b66`, CI main 39505265906 success. B12 PR #33/main `703590533baab8f557df71b2c3f67c40ed4bd9ce`, CI main 39493071636 success. Issue #18/#19 chiuse e Project Completato riletti. D70–D73: unico WIP, solo dati sintetici e risorse effimere; nessun nuovo ambiente persistente, gate manuale, deployment pubblico o policy fiscale.
+**Consegna verificata:** PR #35, CI exact-head 39513412208 success, squash merge/main `fa972837684e67b9e5094025acdd54848a46c62a`; issue #20 chiusa/Completato e CI main 39518931794 success. B01–B14 sono quindi conclusi nel solo perimetro sintetico/effimero. Nessun nuovo ambiente persistente, deployment pubblico, policy fiscale, RPO/RTO contrattuale o readiness di produzione.
 
 ## Accettazione eseguita
 

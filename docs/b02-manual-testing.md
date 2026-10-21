@@ -1,5 +1,7 @@
 # Private B02 manual testing
 
+> **STORICO — ambiente rimosso.** Il runtime privato descritto sotto non è in esecuzione e l'URL citato non è un endpoint attivo. Il documento resta come evidenza/runbook; non ripristinare o creare un ambiente persistente senza nuova autorizzazione. Il bootstrap e Tailscale 443 → 9119 restano invariati.
+
 The persistent synthetic environment uses Compose project `enginia360-b02-manual` with `compose.b02-test.yaml` and `compose.b02-manual.yaml`. It is separate from the existing bootstrap project, volumes and networks.
 
 Access: https://vmi3659251.tailfcced0.ts.net:8443/ through Tailscale Serve, tailnet only. Existing HTTPS port 443 continues to proxy port 9119. Funnel is not enabled. Only the manual web container binds host loopback, `127.0.0.1:18082`; API, Keycloak and PostgreSQL have no host bindings. The database-session diagnostic route returns 404 at the manual nginx edge.

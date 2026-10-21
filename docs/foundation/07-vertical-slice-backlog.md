@@ -1,15 +1,16 @@
 # Dossier di fondazione — 07. Backlog della prima vertical slice
 
-## Stato corrente consolidato — D70–D73
+## Stato corrente attivo — C00
 
-B01–B10 consegnati; B10 PR #31, main `a2e3604046650602aa87447ccc126b4d6cffc842`, CI main 39429274945 success. D70 autorizza consegna autonoma sequenziale, un solo WIP. B11 In corso: richiesta/outbox e chiusure B10 preservate; incertezza persistita prima del POST, verifica stato prima di reinviare, backoff tecnico esponenziale limitato con escalation, riconciliazione esplicita autorizzata/idempotente, lease con fencing e scansione equa degli envelope. Prove HTTP/DOM/PostgreSQL/RLS/audit/rollback, risposta persa e vero kill/restart nel [report B11](../b11-verification.md); CI e consegna remota da verificare. B12–B14 restano Backlog. Nessuna nuova policy fiscale, fattura interna duplicata, incasso o effetto contabile reale.
+Al 21 ottobre 2026 **B01–B14 sono consegnati**: PR #21–#35, issue #8–#20 chiuse e Project Completato. B02 è documentata nella PR #22 e implementata nella #23. La baseline finale è main `fa972837684e67b9e5094025acdd54848a46c62a`; workflow main 39518931794 success. D01 (issue #3) e B00 (issue #6) sono chiusi/Completato in base alla revisione pubblicata e D58.
 
-Accettazione automatica isolata effimera, nessun nuovo ambiente manuale persistente, nessuna review LLM o approvazione manuale di routine. Bootstrap 443, segreti, volumi e backup conservati invariati. Le descrizioni successive di stato/autorizzazione precedente sono **storiche e superate da questo riepilogo e D70–D73**; i requisiti di dominio restano validi. Prove/CI/completamento non sono dedotti dall'autorizzazione.
+La chiusura tecnica della slice non è approvazione fiscale/contabile generale, SdI, produzione, pilota, budget definitivo o disponibilità/RPO/RTO contrattuali. I gate OPE01–OPE05 e le validazioni specialistiche oltre D42/D44/D45 restano aperti quando applicabili.
 
+Non esiste un runtime manuale persistente B02–B06 attivo; bootstrap web/API, Tailscale 443 → 9119 e 25 volumi/backups/configurazioni conservati restano protetti. C00 è il solo WIP post-slice autorizzato. UI01 #5 è Ready ma non autorizzata da questo stato.
 
-**Aggiornamento consegna B06:** il proprietario ha accettato la prova privata («Funziona. Procediamo») e autorizzato commit/push/PR/CI/merge della sola B06. Review indipendenti core/lifecycle e cinque artefatti manuali PASS; riesecuzioni finali nel [report B06](../b06-verification.md). G02/B06 soddisfatto nel solo perimetro D69; completamento remoto subordinato agli esiti reali della PR e issue #12. B07–B14 restano non autorizzati, aperti/blocked/Backlog; nessun avanzamento downstream. Le precedenti indicazioni di review/accettazione pendenti sono storiche.
+## Archivio storico — backlog e autorizzazioni incrementali
 
-**Stato corrente D69 — 19 ottobre 2026:** il proprietario approva esplicitamente l’opzione A: prenotazioni parziali richieste dall’operatore, mai troncamento automatico. B06 privata/sintetica è implementata e verificata localmente; candidata alla review indipendente, non Completata. G02/B06 dispone delle prove tecniche nel [report B06](../b06-verification.md); G02/B07–B09 resta aperto. B07–B14 restano blocked/Backlog e non autorizzati. Nessun commit/push/merge o deployment persistente prima della parent review.
+Le schede seguenti restano il record dei risultati, dipendenze, decisioni e prove. Stati come Backlog/In corso/blocked descrivono il momento della registrazione e sono superati, per B01–B14, dal riepilogo C00.
 
 ### Stati precedenti — storici, superati dove incompatibili con D69
 

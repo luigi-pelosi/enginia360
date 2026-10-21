@@ -1,5 +1,7 @@
 # B06 persistent private manual operations
 
+> **STORICO — ambiente rimosso.** Il runtime privato descritto sotto non è in esecuzione e l'URL citato non è un endpoint attivo. Il documento resta come evidenza/runbook; non ripristinare o creare un ambiente persistente senza nuova autorizzazione. Il bootstrap e Tailscale 443 → 9119 restano invariati.
+
 ## Status and scope
 
 **Current delivery update:** the owner reported “Funziona. Procediamo” after private B06 manual acceptance and authorized B06-only commit/push/PR/remote CI/merge. The parent reported independent PASS for the exact core/lifecycle candidate and separately for all five manual artifacts. Pending statements below describe preparation-time history, not a new approval requirement. Acceptance is the owner's report, not an agent-run authenticated browser journey. UI recovery/label, synthetic identity, retained storage and production limitations remain unchanged; no B07 authorization. Actual remote delivery results belong to the linked PR/issue #12. No persistent service, SQL, storage, backup or Tailscale changes are needed for Git finalization.

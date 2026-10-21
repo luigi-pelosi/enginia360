@@ -1,5 +1,7 @@
 # Private persistent B03 manual acceptance
 
+> **STORICO — ambiente rimosso.** Il runtime privato descritto sotto non è in esecuzione e l'URL citato non è un endpoint attivo. Il documento resta come evidenza/runbook; non ripristinare o creare un ambiente persistente senza nuova autorizzazione. Il bootstrap e Tailscale 443 → 9119 restano invariati.
+
 ## Scope and access
 
 Owner-authorized synthetic B03 only. On 18 October 2026 the owner reported «Ho fatto la prova privata: funziona tutto. Possiamo procedere»: positive private manual acceptance and authorization for B03 final delivery (commit/push/PR/remote CI/merge), subject to independent review and green remote checks. No commit/push/merge has yet occurred. B04+, real accounts/data, purchases and public exposure remain unauthorized. URL: https://vmi3659251.tailfcced0.ts.net:8444/ (tailnet only). Existing 443 → 9119 and B02 8443 → 18082 remain unchanged; Funnel is not enabled. Original port-80 bootstrap remains unchanged. Default frontend build is still bootstrap; the new project's build explicitly enables the private B03 UI.

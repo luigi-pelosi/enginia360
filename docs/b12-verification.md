@@ -1,6 +1,6 @@
 # B12 — Fattura tecnica interna
 
-Stato: implementata e verificata localmente; consegna remota da verificare nella PR della issue #18. Baseline B11 main `79db88ce2eb3df6f16b73c8daef82bb8d6731945`, PR #32 e CI main 39460723295 success. D70–D73: un solo WIP, accettazione effimera, nessun ambiente manuale persistente o gate di review di routine.
+**Consegna verificata:** PR #33, CI exact-head 39487605553 success, merge `703590533baab8f557df71b2c3f67c40ed4bd9ce`; issue #18 chiusa/Completato. Il risultato è incluso nella baseline finale main `fa972837684e67b9e5094025acdd54848a46c62a`, CI main 39518931794 success. Documento tecnico sintetico: nessuna emissione fiscale, SdI, incasso o produzione.
 
 ## Contratto e invarianti
 

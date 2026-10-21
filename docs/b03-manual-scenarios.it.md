@@ -1,5 +1,7 @@
 # B03 — guida alla verifica manuale privata
 
+> **STORICO — ambiente rimosso.** Il runtime privato descritto sotto non è in esecuzione e l'URL citato non è un endpoint attivo. Il documento resta come evidenza/runbook; non ripristinare o creare un ambiente persistente senza nuova autorizzazione. Il bootstrap e Tailscale 443 → 9119 restano invariati.
+
 Aprire https://vmi3659251.tailfcced0.ts.net:8444/ con Tailscale connesso. Solo dati inventati, nessun dato personale o fiscale reale. La porta 8443 resta B02: non usarla per questa prova.
 
 ## Identità sacrificabili di fixture

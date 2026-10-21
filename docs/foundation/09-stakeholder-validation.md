@@ -1,17 +1,16 @@
 # Dossier di fondazione — 09. Validazioni dei referenti (D01)
 
-## Stato corrente consolidato — D70–D73
+## Stato corrente attivo — C00
 
-B01–B10 consegnati; B10 PR #31, main `a2e3604046650602aa87447ccc126b4d6cffc842`, CI main 39429274945 success. D70 autorizza consegna autonoma sequenziale, un solo WIP. B11 In corso: richiesta/outbox e chiusure B10 preservate; incertezza persistita prima del POST, verifica stato prima di reinviare, backoff tecnico esponenziale limitato con escalation, riconciliazione esplicita autorizzata/idempotente, lease con fencing e scansione equa degli envelope. Prove HTTP/DOM/PostgreSQL/RLS/audit/rollback, risposta persa e vero kill/restart nel [report B11](../b11-verification.md); CI e consegna remota da verificare. B12–B14 restano Backlog. Nessuna nuova policy fiscale, fattura interna duplicata, incasso o effetto contabile reale.
+Al 21 ottobre 2026 **B01–B14 sono consegnati** tramite PR #21–#35; le issue #8–#20 sono chiuse/Completato. Main finale `fa972837684e67b9e5094025acdd54848a46c62a` e workflow main 39518931794 sono verificati verdi. D01 (issue #3) e B00 (issue #6) sono chiusi/Completato sulla base della revisione pubblicata, della PR #2 e di D58.
 
-Accettazione automatica isolata effimera, nessun nuovo ambiente manuale persistente, nessuna review LLM o approvazione manuale di routine. Bootstrap 443, segreti, volumi e backup conservati invariati. Le descrizioni successive di stato/autorizzazione precedente sono **storiche e superate da questo riepilogo e D70–D73**; i requisiti di dominio restano validi. Prove/CI/completamento non sono dedotti dall'autorizzazione.
+D42 valida, secondo attestazione del proprietario, soltanto il caso 001 e la relativa politica; D44 soltanto il piano/scrittura F04; D45 soltanto il perimetro tecnico della fattura. Queste evidenze non approvano fiscalità o contabilità generale, emissione reale, SdI, produzione o pilota. OPE01–OPE05 e le decisioni specialistiche future restano gate reali.
 
+Non esiste un ambiente manuale persistente B02–B06 attivo; bootstrap web/API, Tailscale 443 → 9119 e 25 volumi/backups/configurazioni conservati restano protetti. C00 è il solo lavoro post-slice autorizzato; UI01 richiede un incarico separato.
 
-**Aggiornamento consegna B06:** accettazione privata positiva del proprietario «Funziona. Procediamo» e autorizzazione alla consegna Git/PR/CI/merge della sola B06. Review indipendenti core/lifecycle e artefatti manuali PASS sul candidato esatto; prove finali rieseguite nel [report B06](../b06-verification.md). G02/B06 soddisfatto per prenotazioni parziali esplicite q6 D69, insufficienza senza autotrim, concorrenza/retry e fisico invariato. G02/B07–B09 resta aperto; B07–B14 non autorizzati/blocked/Backlog. I paragrafi precedenti alla consegna restano storici; CI remota e chiusura sono da verificare sui riferimenti effettivi della PR/issue #12, non assunte dalla prova locale.
+## Archivio storico — raccolta delle validazioni e chiusura D01
 
-**Stato corrente D69 — 19 ottobre 2026:** il proprietario approva esplicitamente l’opzione A: prenotazioni parziali richieste dall’operatore, mai troncamento automatico. B06 privata/sintetica è implementata e verificata localmente; candidata alla review indipendente, non Completata. G02/B06 dispone delle prove tecniche nel [report B06](../b06-verification.md); G02/B07–B09 resta aperto. B07–B14 restano blocked/Backlog e non autorizzati. Nessun commit/push/merge o deployment persistente prima della parent review.
-
-**Stato:** caso 001 e relativa politica di arrotondamento validati dal referente secondo attestazione del proprietario (D42); ulteriori risposte ancora da acquisire. D01 è pronta per la revisione finale, con dettagli residui assegnati agli incrementi in D46.
+Le sezioni seguenti conservano domande, attestazioni, gate e cronologia. Le frasi «da acquisire», «in corso» o «D01 non chiusa» sono storiche dove le evidenze pubblicate hanno chiuso il gate; i limiti di competenza e perimetro non sono superati.
 **Fonti:** `PROJECT_CHARTER.md` §11–12 e §15; [slice](04-first-vertical-slice.md); [decisioni D32–D37](01-glossary-and-domain-boundaries.md); issue GitHub #3.
 
 ## 1. Disponibilità e responsabilità
