@@ -1,5 +1,7 @@
 # Prova privata B06 — guida del proprietario
 
+> **STORICO — ambiente rimosso.** Il runtime privato descritto sotto non è in esecuzione e l'URL citato non è un endpoint attivo. Il documento resta come evidenza/runbook; non ripristinare o creare un ambiente persistente senza nuova autorizzazione. Il bootstrap e Tailscale 443 → 9119 restano invariati.
+
 **Esito corrente:** il proprietario ha risposto «Funziona. Procediamo»: accettazione manuale positiva e consegna Git/PR/CI/merge autorizzata per la sola B06. Review indipendenti core/lifecycle e artefatti manuali PASS comunicate dal parent. I riferimenti sotto ad accettazione/review pendenti sono storici della preparazione. Non è una nuova prova browser autenticata dell’agente; limiti UI e perimetro D69 restano quelli descritti. Non ripetere il caso assumendo disponibilità iniziale ancora 2 dopo le scritture del proprietario; nessun reset autorizzato. B07–B14 restano bloccati.
 
 19 ottobre 2026. Ambiente preparato e verificato tecnicamente; accettazione manuale e review indipendente degli artefatti manuali ancora pendenti. Nessun commit, push o merge autorizzato da questa preparazione. B07 e successivi invariati.

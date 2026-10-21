@@ -1,5 +1,7 @@
 # B04 private persistent manual operations
 
+> **STORICO — ambiente rimosso.** Il runtime privato descritto sotto non è in esecuzione e l'URL citato non è un endpoint attivo. Il documento resta come evidenza/runbook; non ripristinare o creare un ambiente persistente senza nuova autorizzazione. Il bootstrap e Tailscale 443 → 9119 restano invariati.
+
 ## Boundary
 
 Authorized D62/D63 synthetic acceptance only. URL https://vmi3659251.tailfcced0.ts.net:8445/ (tailnet only, trusted TLS verified). Fixed project `enginia360-b04-manual`; web only `127.0.0.1:18084:8080`. Background Tailscale Serve 8445 proxies that loopback endpoint; no Funnel. Existing 443/8443/8444 handlers unchanged. Default bootstrap UI remains default; B04 test layer explicitly selects private UI.

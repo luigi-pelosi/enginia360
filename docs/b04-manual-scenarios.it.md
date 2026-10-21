@@ -1,5 +1,7 @@
 # B04 — prova manuale privata
 
+> **STORICO — ambiente rimosso.** Il runtime privato descritto sotto non è in esecuzione e l'URL citato non è un endpoint attivo. Il documento resta come evidenza/runbook; non ripristinare o creare un ambiente persistente senza nuova autorizzazione. Il bootstrap e Tailscale 443 → 9119 restano invariati.
+
 URL: https://vmi3659251.tailfcced0.ts.net:8445/ — collegarsi alla tailnet con Tailscale. Le porte 8443 e 8444 sono ambienti precedenti: non usarle per questa prova. Nessun dato reale/personale/fiscale.
 
 ## Account sacrificabili delle fixture

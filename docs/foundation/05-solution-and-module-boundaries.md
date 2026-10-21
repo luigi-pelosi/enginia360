@@ -1,8 +1,14 @@
 # Dossier di fondazione — 05. Solution e confini dei moduli
 
-**Stato corrente D70–D73:** B09 consegnata PR #30. B10 implementata/verificata localmente: Workshop possiede chiusura tecnica, richiesta amministrativa immutabile, outbox, esiti di business e chiusura amministrativa; il nuovo modulo Integrations (solo `Enginia360.Workshop.Contracts`) possiede stato di consegna, worker e anti-corruption layer del simulatore. Report [B10](../b10-verification.md); consegna remota da verificare. Nessun ambiente persistente o deploy pubblico. I precedenti stati sotto sono storici dove incompatibili con D70–D73.
+## Stato corrente attivo — C00
 
-**Stato corrente D69 — 19 ottobre 2026:** B02–B05 sono nella baseline; B06 è implementata/verificata localmente e attende review indipendente, non consegnata. Inventory possiede soltanto stock e prenotazioni sintetiche, schema `inventory`, mediante propri contratti e una porta pubblica `IWorkshopReservationLines` per le righe persistite; l’adattatore autorizzativo rimane nel composition root API. Nessun accesso Inventory a tabelle Workshop/Organizations. Il layout target sotto e le frasi «solo bootstrap» sono storia/proposte, non inventario corrente. Dettagli e limiti nel [report B06](../b06-verification.md). B07–B14 non autorizzati.
+Al 21 ottobre 2026 la prima vertical slice sintetica/effimera **B01–B14 è consegnata** tramite PR #21–#35; le issue #8–#20 sono chiuse/Completato. Main finale `fa972837684e67b9e5094025acdd54848a46c62a` e workflow main 39518931794 sono verificati verdi. D01 e B00 sono chiusi per il perimetro documentale/autorizzativo pubblicato, senza approvare fiscalità generale, produzione o pilota.
+
+L'inventario corrente comprende i moduli Organizations/composition root, Counterparties, Vehicles, Catalog, Workshop, Inventory, Integrations, Billing e Accounting con contratti espliciti e PostgreSQL condiviso ma dati posseduti. La prova B01–B14 non autorizza nuove capability o servizi. Non esiste un ambiente manuale persistente attivo; bootstrap web/API, Tailscale 443 → 9119 e 25 volumi/backups/configurazioni protetti restano fuori da C00. UI01 richiede autorizzazione separata.
+
+## Archivio storico — proposta e crescita incrementale della solution
+
+Gli stati e gli inventari seguenti sono conservati per spiegare l'evoluzione. Le affermazioni «non implementato», «in corso» o «da verificare» sono storiche dove incompatibili con il riepilogo C00; ownership e divieti architetturali restano applicabili.
 
 **Stato storico della proposta:** base architetturale confermata dal proprietario Luigi Pelosi: monolite modulare, contratti espliciti e PostgreSQL inizialmente unico, con dati posseduti per modulo. Il layout dettagliato, il catalogo dei moduli e le modalità tecniche restano proposte da rifinire; non è approvazione del dossier completo né autorizzazione a implementare. Nulla è ancora implementato oltre il bootstrap.
 **Ambito:** struttura della solution, ownership e dipendenze del monolite modulare per la prima slice. Il modello completo delle minacce, il backlog e i costi sono sezioni successive.

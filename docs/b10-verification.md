@@ -1,6 +1,6 @@
 # B10 — Destinazione amministrativa esterna simulata
 
-Stato: implementata e verificata localmente; consegna remota nella PR collegata alla issue #16. Solo dati sintetici, stack effimero senza porte pubblicate o volumi persistenti. D70 autorizza la consegna sequenziale; non si introduce un nuovo gate manuale.
+**Consegna verificata:** PR #31, CI exact-head 39424479525 success, merge `a2e3604046650602aa87447ccc126b4d6cffc842`; issue #16 chiusa/Completato. Il risultato è incluso nella baseline finale main `fa972837684e67b9e5094025acdd54848a46c62a`, CI main 39518931794 success. Solo dati sintetici e stack effimero; nessuna fiscalità reale, produzione o nuova esposizione.
 
 ## Contratto e confini
 
