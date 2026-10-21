@@ -125,7 +125,8 @@ Project privato esistente n. 3 riutilizzato (nessun nuovo Project); P00 #39 è i
 - Consegna corrente: tre mutation test aggiunti prima della guardia: restrizione commit attiva, evidenza Giobby mancante, suite mutation rimossa da CI. RED osservato: 3 fallimenti `0 == 0`; il vecchio guard accettava tutte e tre le corruzioni.
 - Eseguire `python3 scripts/test-c00-consistency.py`, `python3 scripts/test-productization-consistency.py` e `git diff --check`; CI conserva tutte le suite storiche e aggiunge i mutation test. Gli esiti/ID finali appartengono alla PR/issue dopo l'esecuzione, non sono anticipati da questo piano.
 - Review diretta del diff: significati Rxx originali, D1–D73 e B01–B14/C00 storici preservati; D74–D76 separano autorizzazione corrente, setup concreto e go-live. Discovery Giobby documentale, non compatibilità live.
-- Nessuna suite applicativa locale necessaria per documenti/guard; API/UI/audit/Compose/smoke restano nelle CI remote obbligatorie. Nessun runtime locale o deploy modificato.
+- Per la parte documentale: guard e mutation test locali; API/UI/audit/Compose/smoke restano nelle CI remote obbligatorie. Nessun runtime persistente o deploy modificato.
+- CI PR iniziale 39610973956: fallimento reale B10 per deadlock tra TRUNCATE della fixture e discovery outbox (ordine lock invertito outcomes/outbox). La run push 39610965303 dello stesso head è passata: race preesistente, non evidenza per ignorare la run fallita. Riproduzione deterministica su PostgreSQL effimero con il TRUNCATE effettivo: RED `deadlock detected`, GREEN dopo ordine requests → outbox → outcomes. Nessun comportamento applicativo cambiato, retry/skip o check indebolito. Due tentativi di quiescenza API sono stati scartati perché troppo lenti; non fanno parte della consegna. I tentativi locali B10 limitati a 390 secondi sono scaduti e non sono prove di suite completa; gli esiti finali appartengono alle run successive verificate.
 
 ## Ruoli operativi e percorso P00
 

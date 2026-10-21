@@ -36,7 +36,9 @@ file /b12/090_billing.sql
 file /b10/900_synthetic_fixtures.sql
 file /b11/900_synthetic_fixtures.sql
 reset(){
- printf 'TRUNCATE billing.invoice_journal_links, billing.invoice_confirmations, billing.invoices, workshop.internal_billing_claims, integrations.administrative_reconciliations, workshop.administrative_closures, workshop.administrative_outcomes, workshop.administrative_outbox, workshop.administrative_requests, workshop.technical_closures, integrations.administrative_dispatches, inventory.carcass_return_installations, inventory.carcass_returns, inventory.consumptions, workshop.installations, inventory.picks, inventory.reservations; UPDATE inventory.stock SET "Physical"=20; DELETE FROM workshop.administrative_destinations WHERE "Version">1; UPDATE organization_access.capability_activations SET "Enabled"=true WHERE "Capability" IN (%s);\n' "'workshop','inventory','external-administration'" | sql
+ # Match worker lock order: Record reads requests before outcomes, and Pending
+ # reads outbox before outcomes. Reversing either pair can deadlock fixture DDL.
+ printf 'TRUNCATE billing.invoice_journal_links, billing.invoice_confirmations, billing.invoices, workshop.internal_billing_claims, integrations.administrative_reconciliations, workshop.administrative_closures, workshop.administrative_requests, workshop.administrative_outbox, workshop.administrative_outcomes, workshop.technical_closures, integrations.administrative_dispatches, inventory.carcass_return_installations, inventory.carcass_returns, inventory.consumptions, workshop.installations, inventory.picks, inventory.reservations; UPDATE inventory.stock SET "Physical"=20; DELETE FROM workshop.administrative_destinations WHERE "Version">1; UPDATE organization_access.capability_activations SET "Enabled"=true WHERE "Capability" IN (%s);\n' "'workshop','inventory','external-administration'" | sql
  file /b09/900_synthetic_fixtures.sql >/dev/null
  file /b10/900_synthetic_fixtures.sql
 file /b11/900_synthetic_fixtures.sql >/dev/null
