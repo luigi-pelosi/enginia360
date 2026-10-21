@@ -1,6 +1,8 @@
 # Dossier di fondazione — 03. Capability e data ownership
 
-**Stato:** proposta per revisione, non approvata. I principi D24–D26 sono confermati; le assegnazioni dei profili e le dipendenze sotto sono proposte da validare.
+**Stato corrente D74–D76:** dossier approvato D58; sviluppo finito P00/UI01/R00–R06 autorizzato; consegna P00 documentale con commit/PR/CI/merge autorizzati. Vedere [piano attivo](../productization-plan.md). Le assegnazioni esemplificative sotto non sono scelte concrete del pilota.
+
+**D76 — organizzazione e integrazione:** tenant = cliente/gruppo contenente società; direzione unilaterale configurabile per cliente/dominio nelle impostazioni societarie, Enginia360 → Giobby oppure viceversa. Business data e integrazione sono societari; nucleo anagrafico comune con unica autorità tenant-wide D26/D65, estensioni/prezzi/stock separati. Profilo concreto al setup, senza blocco generale UI/runtime; niente writer bidirezionali concorrenti o switch automatico/retroattivo. Giobby primo ERP; SAP custom BTP escluso dallo sprint.
 **Ambito:** tre scenari societari di riferimento, responsabilità sui dati e prerequisiti funzionali. Nessun catalogo commerciale, prezzo, schema database, contratto API o implementazione.
 **Fonti:** `PROJECT_CHARTER.md` §7.1–7.3, §8–9, §11–12; [decisioni D3–D26](01-glossary-and-domain-boundaries.md); [organizzazione e accessi](02-organization-and-access.md). Nessuna nuova regola dedotta dal legacy.
 

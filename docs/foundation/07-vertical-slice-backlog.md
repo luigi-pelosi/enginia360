@@ -1,12 +1,12 @@
 # Dossier di fondazione — 07. Backlog della prima vertical slice
 
-## Stato corrente attivo — C00
+## Stato corrente attivo — P00/UI01/R00–R06
 
-Al 21 ottobre 2026 **B01–B14 sono consegnati**: PR #21–#35, issue #8–#20 chiuse e Project Completato. B02 è documentata nella PR #22 e implementata nella #23. La baseline finale è main `fa972837684e67b9e5094025acdd54848a46c62a`; workflow main 39518931794 success. D01 (issue #3) e B00 (issue #6) sono chiusi/Completato in base alla revisione pubblicata e D58.
+D74 autorizza lo sviluppo autonomo finito P00/UI01/R00–R06 per operatività officina pilota con amministrazione ERP esterna; preservare la capability contabile interna. D75 identifica Giobby come primo ERP ed esclude SAP custom BTP da questo sprint. Il [piano di productizzazione](../productization-plan.md) è il riferimento attivo: D76 conferma direzione unilaterale configurabile per cliente/dominio nelle impostazioni societarie (Enginia360 → Giobby oppure viceversa); nucleo comune con unica autorità tenant-wide D26/D65, estensioni/prezzi/stock societari distinti. Il profilo tecnico concreto resta gate di setup prima delle scritture dipendenti, non blocco generale UI/runtime; nessuna scrittura bidirezionale concorrente o cambio automatico/retroattivo di autorità. Autorizzazione allo sviluppo, nessun go-live, dato reale, acquisto o nuovo ambiente manuale persistente; nessuna produzione o deployment autorizzati.
 
-La chiusura tecnica della slice non è approvazione fiscale/contabile generale, SdI, produzione, pilota, budget definitivo o disponibilità/RPO/RTO contrattuali. I gate OPE01–OPE05 e le validazioni specialistiche oltre D42/D44/D45 restano aperti quando applicabili.
+B01–B14 consegnati: PR #21–#35, issue #8–#20 chiuse; D01/B00 chiusi secondo D58. Evidenza finale slice main `fa972837684e67b9e5094025acdd54848a46c62a`, CI 39518931794 success. C00 consegnata tramite PR #38: main `2ba4d273686854870b1a7806103bf1c096fcd0be`, CI 39592416386 success. La consegna P00 riguarda documenti e test, senza codice applicativo; il proprietario autorizza commit/PR/CI/merge e verifica CI merged-main prima della chiusura. UI01 inizia solo dopo P00 verificata.
 
-Non esiste un runtime manuale persistente B02–B06 attivo; bootstrap web/API, Tailscale 443 → 9119 e 25 volumi/backups/configurazioni conservati restano protetti. C00 è il solo WIP post-slice autorizzato. UI01 #5 è Ready ma non autorizzata da questo stato.
+Nessun runtime manuale persistente B02–B06 attivo; bootstrap web/API, Tailscale 443 → 9119 e 25 volumi/backups/configurazioni conservati restano protetti. Gate specialistici e OPE01–OPE05 non dimostrati rimangono aperti; #37 resta differita. Le decisioni seguenti sono cronologiche e non riscritte: D74/D75 prevalgono sulle precedenti restrizioni incompatibili di autorizzazione, non sulle invarianti.
 
 ## Archivio storico — backlog e autorizzazioni incrementali
 
