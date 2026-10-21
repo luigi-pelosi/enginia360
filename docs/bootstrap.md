@@ -1,7 +1,7 @@
 # ADR-0001 — Infrastructure bootstrap, not product approval
 
 - Status: accepted for this explicitly requested technical bootstrap only.
-- Foundation dossier: **NOT APPROVED**. This document is not that dossier.
+- Foundation dossier approved subsequently in D58; B01–B14 and C00 delivered. Current bounded development authorization is recorded by D74, D75 and D76; see [productization plan](productization-plan.md). This bootstrap ADR is historical infrastructure scope, not a go-live authorization.
 - Charter: PROJECT_CHARTER.md remains unchanged and authoritative for the future product.
 
 ## Context and boundary

@@ -1,6 +1,6 @@
 # Dossier di fondazione — 08. Valutazione UI React e composizione documento
 
-**Stato:** il proprietario rinuncia al template commerciale e delega all'agente la scelta UI basata su SmartData. Decisione dell'agente: React/TypeScript/Vite esistente con Ant Design come libreria principale e layout operativo dedicato. Nessuna libreria ancora installata; prove di editing/prestazioni/accessibilità e implementazione restano da eseguire. Non è approvazione del dossier completo.
+**Stato corrente D74–D76:** UI01 (issue #5) editor autorizzato nel [piano finito](../productization-plan.md), con prototipo sintetico isolato e successiva integrazione dei comandi autorizzati dopo R00. Ant Design resta scelta UI; nessuna libreria installata da P00. Nessun go-live, dato reale o deploy; profilo di integrazione concreto al setup, non blocco generale UI/runtime. La valutazione seguente conserva motivazioni e alternative storiche, non riapre il dossier approvato D58.
 **Ambito:** UI operativa di composizione del documento, interpretazione da confermare se si intende anche il layout di stampa. Non sono mockup già realizzati né una misurazione comparativa di prestazioni/accessibilità. Nessuna modifica al frontend pubblico.
 
 ## 1. Brief acquisito

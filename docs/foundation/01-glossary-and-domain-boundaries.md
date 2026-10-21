@@ -1,12 +1,12 @@
 # Dossier di fondazione — 01. Glossario e confini di dominio
 
-## Stato corrente attivo — C00
+## Stato corrente attivo — P00/UI01/R00–R06
 
-Al 21 ottobre 2026 la prima vertical slice sintetica/effimera **B01–B14 è consegnata** tramite PR #21–#35 (B02 usa la decisione #22 e l'implementazione #23). Le issue #8–#20 sono chiuse e in Project risultano Completato. La baseline finale verificata è main `fa972837684e67b9e5094025acdd54848a46c62a`; il workflow main 39518931794 è concluso con successo.
+D74 autorizza lo sviluppo autonomo finito P00/UI01/R00–R06 per operatività officina pilota con amministrazione ERP esterna; preservare la capability contabile interna. D75 identifica Giobby come primo ERP ed esclude SAP custom BTP da questo sprint. Il [piano di productizzazione](../productization-plan.md) è il riferimento attivo: D76 conferma direzione unilaterale configurabile per cliente/dominio nelle impostazioni societarie (Enginia360 → Giobby oppure viceversa); nucleo comune con unica autorità tenant-wide D26/D65, estensioni/prezzi/stock societari distinti. Il profilo tecnico concreto resta gate di setup prima delle scritture dipendenti, non blocco generale UI/runtime; nessuna scrittura bidirezionale concorrente o cambio automatico/retroattivo di autorità. Autorizzazione allo sviluppo, nessun go-live, dato reale, acquisto o nuovo ambiente manuale persistente; nessuna produzione o deployment autorizzati.
 
-D01 (issue #3) e B00 (issue #6) sono chiusi/Completato sulla base della revisione documentale pubblicata, della PR #2 e della decisione D58. La chiusura non approva fiscalità o contabilità generale, SdI, produzione, pilota, disponibilità/RPO/RTO contrattuali o regole per casi diversi dai riferimenti specialistici circoscritti D42/D44/D45.
+B01–B14 consegnati: PR #21–#35, issue #8–#20 chiuse; D01/B00 chiusi secondo D58. Evidenza finale slice main `fa972837684e67b9e5094025acdd54848a46c62a`, CI 39518931794 success. C00 consegnata tramite PR #38: main `2ba4d273686854870b1a7806103bf1c096fcd0be`, CI 39592416386 success. La consegna P00 riguarda documenti e test, senza codice applicativo; il proprietario autorizza commit/PR/CI/merge e verifica CI merged-main prima della chiusura. UI01 inizia solo dopo P00 verificata.
 
-Non esiste più un ambiente manuale persistente B02–B06 attivo: restano soltanto il bootstrap web/API, Tailscale 443 → 9119 e 25 volumi/backups/configurazioni conservati e protetti. I runbook manuali sono mantenuti come evidenza storica, non come endpoint correnti. C00 è il solo lavoro post-slice autorizzato; UI01 (issue #5, Ready) richiede un incarico separato e non autorizza implementazione o deploy.
+Nessun runtime manuale persistente B02–B06 attivo; bootstrap web/API, Tailscale 443 → 9119 e 25 volumi/backups/configurazioni conservati restano protetti. Gate specialistici e OPE01–OPE05 non dimostrati rimangono aperti; #37 resta differita. Le decisioni seguenti sono cronologiche e non riscritte: D74/D75 prevalgono sulle precedenti restrizioni incompatibili di autorizzazione, non sulle invarianti.
 
 ## Archivio storico — decisioni e stati al momento della loro registrazione
 
@@ -890,3 +890,41 @@ D01 e D02 restano issue aperte In verifica; B00 non viene completata o sbloccata
 **Applicazione di decisioni esistenti, non nuove policy:** identificazione D35 (commessa/lavorazione, riga e installazioni collegate, descrizione, quantità, data e operatore server); destinazione D38 in ubicazione dedicata configurata per il magazzino autorizzato della sede di testata, distinta dalle ubicazioni dei ricambi nuovi, fuori da giacenza fisica e disponibilità; requisito per ricambio nel customizing societario versionato del tipo documento (D30/D39/D14), fotografato su ciascuna installazione secondo D9: modifiche successive valgono per le installazioni successive. Assenza di configurazione non impone un blocco (D30).
 
 **Confini:** B09 sintetica/effimera. Il gate espone il requisito carcassa della chiusura tecnica; non introduce lo stato o la transizione di chiusura tecnica, gli altri requisiti locali D37 o effetti su operazioni successive. Nessuna valorizzazione, costo, rimborso, reso a fornitore, smaltimento, proprietà della carcassa, effetto fiscale, rientro facoltativo per ricambi senza requisito o nuova autenticazione. Prove eseguibili e CI remota restano necessarie prima di chiamare B09 consegnata.
+
+### D74 — Productizzazione P00/UI01/R00–R06 autorizzata, sviluppo distinto dal go-live
+
+**Aggiornamento di consegna, 21 ottobre 2026:** il proprietario autorizza ora commit/push/PR/CI/merge di P00 e verifica merged-main; poi soltanto checkpoint UI01 in questo incarico. La restrizione preparatoria citata sotto è storia della prima delega, non vincolo attivo. Nessun codice applicativo in P00, nessuna implementazione UI01 in questa consegna; protezioni runtime e gate invariati.
+
+**Fonte e provenienza:** incarico corrente del proprietario trasmesso al subagent, 21 ottobre 2026. Le formulazioni originali disponibili nell'incarico sono riportate esattamente, senza ricostruire citazioni italiane di turni non disponibili:
+
+> User explicitly authorizes autonomous development throughR06, pilot workshop operations with externalERP administration, preserve internal accounting capability; parallel independent work allowed, stop/ask genuine missingpolicy.
+
+> Documentation-only preparation, no app changes/deploy/secrets, no commitpushmerge yet.
+
+**Decisione:** autorizzato lo sviluppo autonomo finito P00 (perimetro pilota), UI01 (editor), R00 (runtime), R01 (amministrazione organizzativa), R02 (anagrafiche), R03 (ciclo officina), R04 (magazzino/approvvigionamento), R05 (integrazione Giobby), R06 (migrazione/readiness). Non rinumerare o ridefinire questi significati. La priorità pilota officina con amministrazione esterna non elimina contabilità interna o relativi test. Ammessa preparazione parallela indipendente, con contratti e file non conflittuali; arresto e domanda soltanto per policy realmente mancanti. Le restrizioni storiche C00-only/UI01 non autorizzata sono superate; invarianti e gate non lo sono.
+
+**Limiti:** questo incarico esegue soltanto registrazione, piano e tracking GitHub. Nessun codice applicativo, deploy, segreto, commit/push/merge in questa preparazione. L'autorizzazione allo sviluppo non è go-live del pilota, uso di dati/identità reali, acquisto, nuovo ambiente persistente o esposizione pubblica. Bootstrap e Tailscale 443 → localhost:9119, 25 volumi/backups/configurazioni conservati protetti. Criteri e dipendenze finite nel [piano](../productization-plan.md).
+
+### D75 — Giobby primo ERP, SAP custom BTP escluso; autorità dei dati aperta
+
+**Fonte disponibile nell'incarico corrente, esatta:**
+
+> Latest user identifies firstERP Giobby official docs https://app.giobby.com/GiobbyApi00554/ ; SAP custom BTP consultant API explicitly EXCLUDED this sprint.
+
+> Data authority for masters/prices/stock not yet answered—explicitgate do not infer.
+
+**Decisione:** primo ERP Giobby; API custom SAP su BTP del consulente esplicitamente esclusa dallo sprint, non adattatore parallelo da anticipare. Il portale ufficiale fornito è fonte da verificare per il contratto, non prova di compatibilità dell'implementazione o credenziale operativa. La pagina pubblica letta il 21 ottobre 2026 distingue api-client e api-server: nessuna delle due modalità è scelta da questa registrazione.
+
+**Gate AUTHORITY:** il proprietario deve designare l'autorità per identità anagrafiche comuni nel tenant, estensioni/prezzi societari, stock e transizioni amministrative; registrare direzione, conflitti, mapping e riconciliazione coerenti con D25/D26/D65. R02/R04/R05 non possono scegliere implicitamente Giobby o Enginia360 né introdurre scritture/sincronizzazioni dipendenti. Sono consentite lettura documentale, contratti tecnici neutrali e prove sintetiche senza fissare la policy. Risposta richiesta prima del primo subincremento dipendente; non blocca UI01 o analisi indipendenti. Nessun ERP reale chiamato, fiscalità o amministrazione certificata dal portale.
+
+### D76 — Direzione configurabile societaria, nucleo comune con unica autorità tenant
+
+**Fonte:** ulteriore chiarimento del proprietario trasmesso durante questo incarico il 21 ottobre 2026; formulazione esatta disponibile nel messaggio di delega:
+
+> New owner clarification: integration direction configurable by customer/domain in company settings, either Enginia360 authoritative unilateral towardGiobby orviceversa.
+
+**Decisione confermata:** per cliente e dominio l'integrazione è configurabile nelle impostazioni societarie: Enginia360 autorevole con flusso unilaterale verso Giobby, oppure Giobby autorevole con flusso unilaterale verso Enginia360. Capability/attivazione/integrazione e dati di business societari seguono lo scope società (D14/D24/D25); il tenant è invece il cliente/gruppo contrattuale e contiene le società, non è sinonimo di società.
+
+**Invariante già approvata, non da riconfermare:** nucleo anagrafico condiviso con una sola autorità designata nell'intero tenant, secondo D26/D65. La scelta societaria non può creare due master concorrenti del medesimo nucleo; estensioni e prezzi/stock societari restano distinti. Esempio solo esplicativo: A e B del medesimo tenant usano la stessa identità articolo con autorità comune unica; i prezzi e i movimenti di A non diventano quelli di B perché l'identità è comune. Una configurazione incompatibile va rifiutata, non risolta tramite ultimo writer o override automatico.
+
+**Limiti:** nessuna autorizzazione di scritture bidirezionali concorrenti, cambio automatico o retroattivo dell'autorità o scelta concreta del profilo pilota. Il profilo tecnico di lavoro per ciascun insieme di dati si seleziona in seguito al gate di setup prima delle scritture/sincronizzazioni dipendenti: non è un blocco generale di UI01/R00, ricerca contrattuale o implementazione configurabile neutrale. La precedente domanda aperta D75 è risolta quanto alla configurabilità e direzione; resta l'assegnazione concreta, non una nuova approvazione D26. Contratti e coerenza tenant/società da verificare con test negativi nel subincremento pertinente.

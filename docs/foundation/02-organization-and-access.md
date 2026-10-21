@@ -1,6 +1,8 @@
 # Dossier di fondazione — 02. Organizzazione, anagrafiche e accessi
 
-**Stato:** sintesi delle decisioni acquisite, dossier complessivo ancora in bozza. Nessuna autorizzazione a implementare. La [matrice delle capability e della data ownership](03-capabilities-and-data-ownership.md) è proposta per revisione, non ancora approvata.
+**Stato corrente D74–D76:** dossier approvato D58; sviluppo finito P00/UI01/R00–R06 autorizzato; consegna P00 documentale con commit/PR/CI/merge autorizzati. Vedere [piano attivo](../productization-plan.md). Le assegnazioni esemplificative sotto non sono scelte concrete del pilota.
+
+**D76 — organizzazione e integrazione:** tenant = cliente/gruppo contenente società; direzione unilaterale configurabile per cliente/dominio nelle impostazioni societarie, Enginia360 → Giobby oppure viceversa. Business data e integrazione sono societari; nucleo anagrafico comune con unica autorità tenant-wide D26/D65, estensioni/prezzi/stock separati. Profilo concreto al setup, senza blocco generale UI/runtime; niente writer bidirezionali concorrenti o switch automatico/retroattivo. Giobby primo ERP; SAP custom BTP escluso dallo sprint.
 
 **Fonti:** chiarimenti del proprietario Luigi Pelosi registrati in [D14–D23](01-glossary-and-domain-boundaries.md); charter §7–8. Le alternative storiche sui tenant societari non sono il modello scelto.
 

@@ -1,5 +1,7 @@
 # C00 — Riconciliazione finale e pulizia tecnica post-slice
 
+> Nota corrente D74/D75/D76: C00 è consegnata. Le esclusioni di autorizzazione sotto descrivono lo scope storico di C00, non annullano la successiva autorizzazione P00/UI01/R00–R06. Vedere [piano attivo](productization-plan.md); nessun go-live o ambiente persistente autorizzato.
+
 ## Perimetro
 
 C00 riconcilia lo stato pubblicato della prima vertical slice e applica soltanto pulizie documentali/CI a comportamento invariato. Non autorizza UI01, nuove capability di dominio, modifiche API/schema, fiscalità reale, produzione, pilota, ambienti persistenti o deploy.

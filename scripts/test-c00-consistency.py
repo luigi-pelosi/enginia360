@@ -45,7 +45,12 @@ def reject(condition: bool, message: str) -> None:
 for path in ACTIVE_DOCS:
     text = Path(path).read_text()
     active = text.split("## Archivio storico", 1)[0]
-    require(active, "## Stato corrente attivo — C00", path)
+    require(active, "## Stato corrente attivo — P00/UI01/R00–R06", path)
+    require(active, "D76", path)
+    for value in ("D74", "D75", "productization-plan.md", "Giobby", "autorità", "nessun go-live"):
+        require(active, value, path)
+    for stale in ("C00 è il solo", "UI01 richiede autorizzazione separata", "UI01 richiede un incarico separato"):
+        reject(stale in active, f"{path}: obsolete authorization {stale!r}")
     require(active, "B01–B14", path)
     require(active, "PR #21–#35", path)
     require(active, "issue #8–#20", path)
@@ -86,4 +91,57 @@ for number in range(2, 15):
     selection = f"run: sh scripts/run-b{number:02d}-tests.sh"
     reject(workflow.count(selection) != 1, f"CI selection must contain exactly one {selection!r}")
 
-print("PASS C00 active status, report delivery metadata, historical runbooks and CI selection are consistent")
+# Productization extends authorization, never the historical delivery assertions.
+import json
+import re
+
+plan_path = "docs/productization-plan.md"
+plan = Path(plan_path).read_text()
+cards = json.loads(Path("docs/productization-backlog.json").read_text())
+expected = {
+    "P00": "Perimetro pilota", "UI01": "Editor commessa", "R00": "Runtime",
+    "R01": "Amministrazione organizzativa", "R02": "Anagrafiche",
+    "R03": "Ciclo officina", "R04": "Magazzino e approvvigionamento",
+    "R05": "Integrazione Giobby", "R06": "Migrazione e readiness",
+}
+reject([card["id"] for card in cards] != list(expected), "Productization IDs/order changed or duplicated")
+seen = set()
+for card in cards:
+    identifier = card["id"]
+    reject(card["title"] != expected[identifier], f"{identifier}: original meaning changed")
+    reject(not set(card["depends"]).issubset(seen), f"{identifier}: missing/forward/cyclic dependency")
+    reject(not card["slices"] or not card["gate"] or not card["criteria"], f"{identifier}: incomplete card")
+    require(plan, f"### {identifier} — {card['title']}", plan_path)
+    for value in [card["gate"], card["criteria"], *card["slices"]]:
+        require(plan, value, plan_path)
+    if identifier in ("R02", "R04", "R05"):
+        require(card["gate"], "AUTHORITY", identifier)
+    seen.add(identifier)
+require(plan, "unica autorità del nucleo anagrafico condiviso tenant-wide D26/D65", plan_path)
+for value in ("D76", "direzione unilaterale configurabile", "societarie", "profilo tecnico concreto",
+              "Non servono nuova approvazione D26", "Nessun writer bidirezionale concorrente"):
+    require(plan, value, plan_path)
+for value in ("D74", "D75", "Giobby", "SAP custom BTP", "nessun codice applicativo",
+              "Nessun go-live", "stock", "non certificano", "contabile interna"):
+    require(plan, value, plan_path)
+for value in ("D74", "D75", "P00/UI01/R00–R06", "Giobby", "D76",
+              "no app changes", "25 retained", "SAP custom BTP"):
+    require(agents, value, "AGENTS.md")
+reject("only current post-slice authorization is C00" in agents, "AGENTS.md: obsolete C00-only authorization")
+register = Path(ACTIVE_DOCS[0]).read_text()
+ids = re.findall(r"^### D(\d+) —", register, re.MULTILINE)
+reject(len(ids) != len(set(ids)) or set(map(int, ids)) != set(range(1, 77)),
+       "Decision register must retain D1–D73 and append unique D74/D75/D76")
+# Authorization guards inspect active text only; chronological decisions stay intact.
+for path in ["AGENTS.md", plan_path, *ACTIVE_DOCS]:
+    active = Path(path).read_text().split("## Archivio storico", 1)[0]
+    for stale in ("no commit, push or merge yet", "senza commit/push/merge",
+                  "non effettuare commit/push/merge", "nessun codice applicativo, commit/push/merge"):
+        reject(stale in active, f"{path}: obsolete preparation restriction {stale!r}")
+require(plan, "giobby-discovery.md", plan_path)
+reject(not Path("docs/giobby-discovery.md").is_file(), "Giobby evidence missing")
+# Read the command, not a comment containing the command's name.
+ci_commands = "\n".join(line.split("#", 1)[0] for line in workflow.splitlines())
+reject("python3 scripts/test-productization-consistency.py" not in ci_commands,
+       "Productization mutation suite must execute in CI")
+print("PASS C00 delivery/history/CI invariants and D74–D76 bounded productization authorization, IDs, dependencies and gates")
