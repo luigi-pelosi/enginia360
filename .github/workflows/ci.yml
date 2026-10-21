@@ -5,6 +5,19 @@ on:
 permissions:
   contents: read
 jobs:
+  runtime-migrations:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Initialize private R00.a scratch directory
+        run: printf 'TMPDIR=%s\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+      - name: Verify R00.a CI selection and cleanup guards
+        run: python3 scripts/test-r00a-ci.py
+      - name: Fixture-free R00.a PostgreSQL migrations and recovery
+        run: timeout 600 sh scripts/run-r00a-tests.sh
+      - name: Real R00.a failure and TERM cleanup
+        run: timeout 180 python3 scripts/test-r00a-lifecycle.py
   verify:
     runs-on: ubuntu-24.04
     timeout-minutes: 55

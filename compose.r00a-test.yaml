@@ -1,0 +1,51 @@
+# R00.a DB/migration foundation only. Browser/API/identity integration belongs to R00.b.
+x-hardening: &hardening
+  user: "70:70"
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  mem_limit: 384m
+  cpus: 1.0
+  pids_limit: 128
+  logging: {driver: json-file, options: {max-size: "5m", max-file: "2"}}
+  networks: [runtime]
+services:
+  postgres:
+    <<: *hardening
+    build: {context: ., dockerfile: postgres.runtime.Dockerfile}
+    environment:
+      POSTGRES_DB: ${R00_DB_NAME:?required}
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${R00_INFRA_PASSWORD:?required}
+      R00_OWNER_USER: ${R00_OWNER_USER:?required}
+      R00_OWNER_PASSWORD: ${R00_OWNER_PASSWORD:?required}
+      R00_APP_USER: ${R00_APP_USER:?required}
+      R00_APP_PASSWORD: ${R00_APP_PASSWORD:?required}
+      PGDATA: /var/lib/postgresql/18/docker
+    tmpfs:
+      - /var/lib/postgresql:rw,noexec,nosuid,size=256m,uid=70,gid=70,mode=0700
+      - /var/run/postgresql:rw,noexec,nosuid,size=8m,uid=70,gid=70
+      - /tmp:rw,noexec,nosuid,size=16m,uid=70,gid=70
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U postgres -d "$${POSTGRES_DB}"']
+      interval: 2s
+      timeout: 3s
+      retries: 40
+  migrator:
+    <<: *hardening
+    build: {context: ., dockerfile: migrator.runtime.Dockerfile}
+    environment:
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGDATABASE: ${R00_DB_NAME:?required}
+      PGUSER: ${R00_OWNER_USER:?required}
+      PGPASSWORD: ${R00_OWNER_PASSWORD:?required}
+      R00_APP_USER: ${R00_APP_USER:?required}
+    tmpfs:
+      - /var/lib/postgresql:rw,noexec,nosuid,size=8m,uid=70,gid=70
+      - /tmp:rw,noexec,nosuid,size=16m,uid=70,gid=70
+    depends_on:
+      postgres: {condition: service_healthy}
+networks:
+  runtime:
+    internal: true
