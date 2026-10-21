@@ -1,0 +1,72 @@
+[
+  {
+    "id": "0001_organization_access",
+    "path": "migrations/0001_organization_access.sql",
+    "sha256": "505d714b4e46cbf99a711a76db66c4070860563aa3bd216ae10319c0c5949800"
+  },
+  {
+    "id": "0002_company_permissions",
+    "path": "migrations/0002_company_permissions.sql",
+    "sha256": "b60395e35aa2649ead4df72479219dc1a5b6f28d13fe30873888b0118249954e"
+  },
+  {
+    "id": "0003_counterparties",
+    "path": "migrations/0003_counterparties.sql",
+    "sha256": "fe2823ff96d15d65d0cc6d0bb82dc5458e93852cb71b8e5f5c3926136b853886"
+  },
+  {
+    "id": "0004_destinations",
+    "path": "migrations/0004_destinations.sql",
+    "sha256": "25e9be384cb40ed4ed27b3a36355d76b10c1e15f688f8b681163cbe20c5ff6bd"
+  },
+  {
+    "id": "0005_workshop",
+    "path": "migrations/0005_workshop.sql",
+    "sha256": "e1c0c26ad3fd5439876db1dc6c9b1240c65ea88afc56eaa441f256e2ad80f958"
+  },
+  {
+    "id": "0006_catalog_lines",
+    "path": "migrations/0006_catalog_lines.sql",
+    "sha256": "f824b8f6b594e43f6a7c3042756bee42ea3c6ef567096b7422126c8cf11db98e"
+  },
+  {
+    "id": "0007_inventory",
+    "path": "migrations/0007_inventory.sql",
+    "sha256": "39634f7bb58a99395f7ffc07713fc1754305f39499c7743081deb3ce589b768a"
+  },
+  {
+    "id": "0008_picking",
+    "path": "migrations/0008_picking.sql",
+    "sha256": "0a84e1d4ba48a4f6212da83e4d700b9f5f53dbe183cba800aac74b8c37b65a25"
+  },
+  {
+    "id": "0009_installation",
+    "path": "migrations/0009_installation.sql",
+    "sha256": "fb4235ea742aaede0b68fa624a8aef3a973d7bda44cd367aa16f7c37dc0c2feb"
+  },
+  {
+    "id": "0010_carcass",
+    "path": "migrations/0010_carcass.sql",
+    "sha256": "6a7376f05045502fc59277ddd3552968b6a38e4af0798a7d30915ed4117c902d"
+  },
+  {
+    "id": "0011_administration",
+    "path": "migrations/0011_administration.sql",
+    "sha256": "963ce9bec5ad123241bcae98c66dfdfe854016fd276050169c133307e3d1bc64"
+  },
+  {
+    "id": "0012_continuity",
+    "path": "migrations/0012_continuity.sql",
+    "sha256": "7890d361eb0dd5bf82d8b6f06167d1413d73a20542676b1bc5c4cfc243f71551"
+  },
+  {
+    "id": "0013_billing",
+    "path": "migrations/0013_billing.sql",
+    "sha256": "6ad1934b75b9be88bd772a30495bb1b8d5ecb41facafcc05898b317b89a4a55d"
+  },
+  {
+    "id": "0014_accounting",
+    "path": "migrations/0014_accounting.sql",
+    "sha256": "247a8ec11169d4e62a0f9f657c8f07e8ba631101eee08296d1941e005f39ea34"
+  }
+]
