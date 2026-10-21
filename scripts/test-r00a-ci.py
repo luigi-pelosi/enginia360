@@ -33,6 +33,17 @@ def validate_runner(text):
     assert 'R00_POOL_CONNECTION' in constants, 'real Npgsql pool suite missing'
 
 class CiSelectionTests(unittest.TestCase):
+    def test_binding_acceptance_is_selected_with_real_sql_and_authentication(self):
+        import json
+        text = (ROOT / 'scripts/run-r00a-tests.py').read_text()
+        constants = {node.value for node in ast.walk(ast.parse(text)) if isinstance(node, ast.Constant) and isinstance(node.value, str)}
+        self.assertIn('scripts/test-r00b-bindings.py', constants, 'real identity SQL acceptance missing')
+        dockerfile = (ROOT / 'runtime-pool-test.Dockerfile').read_text()
+        entrypoint = json.loads(next(line.removeprefix('ENTRYPOINT ') for line in dockerfile.splitlines() if line.startswith('ENTRYPOINT ')))
+        selected = entrypoint[entrypoint.index('--filter') + 1]
+        self.assertIn('FullyQualifiedName~RuntimeMigrationPoolTests', selected)
+        self.assertIn('FullyQualifiedName~ExternalIdentityAuthenticationTests', selected, 'real JWT/binding acceptance skipped')
+
     def test_ci_runs_real_bounded_migrations(self):
         validate_ci((ROOT / '.github/workflows/ci.yml').read_text())
         runner = ROOT / 'scripts/run-r00a-tests.sh'

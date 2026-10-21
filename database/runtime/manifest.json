@@ -68,5 +68,10 @@
     "id": "0014_accounting",
     "path": "migrations/0014_accounting.sql",
     "sha256": "247a8ec11169d4e62a0f9f657c8f07e8ba631101eee08296d1941e005f39ea34"
+  },
+  {
+    "id": "0015_external_identity_binding",
+    "path": "migrations/0015_external_identity_binding.sql",
+    "sha256": "c0c2b3616fd4cecb88c99a034a82f583f4d28f39ca1da19f06a727f3a83f11ef"
   }
 ]
