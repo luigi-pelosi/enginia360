@@ -1,0 +1,48 @@
+.ui01-workspace { display: flex; flex-direction: column; height: 100vh; width: 100%; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #15202b; background: #f1f3f5; }
+.ui01-topbar { display: flex; align-items: center; gap: 12px; padding: 6px 12px; background: #15202b; color: #f8f9fa; font-size: 13px; }
+.ui01-topbar strong span { font-weight: 400; opacity: .7; }
+.ui01-topbar > span:last-child { margin-left: auto; opacity: .75; }
+.ui01-body { display: flex; flex: 1; min-height: 0; }
+.ui01-context { width: 272px; flex: 0 0 272px; overflow-y: auto; padding: 10px 12px; background: #fff; border-right: 1px solid #dee2e6; font-size: 13px; }
+.ui01-context h2 { margin: 12px 0 4px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: #6c757d; }
+.ui01-context p { margin: 2px 0; }
+.ui01-context label { display: block; font-size: 11px; color: #6c757d; }
+.ui01-context select { width: 100%; padding: 3px 4px; border: 1px solid #ced4da; border-radius: 3px; background: #fff; font: inherit; }
+.ui01-hint { color: #6c757d; font-size: 11px; }
+.ui01-document { flex: 1; min-width: 0; overflow-y: auto; padding: 10px 14px 16px; }
+.ui01-document-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.ui01-document-heading p { margin: 0; font-size: 11px; letter-spacing: .08em; color: #6c757d; }
+.ui01-document-heading h1 { margin: 2px 0 10px; font-size: 20px; }
+.ui01-operations { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.ui01-operations > div { flex: 1 1 140px; padding: 6px 8px; background: #fff; border: 1px solid #dee2e6; border-left: 3px solid #176b5b; border-radius: 3px; }
+.ui01-operations span { display: block; font-size: 11px; color: #6c757d; }
+.ui01-operations strong { font-variant-numeric: tabular-nums; }
+.ui01-external { border-left-color: #c77700 !important; flex-basis: 100% !important; }
+.ui01-group { margin-bottom: 12px; background: #fff; border: 1px solid #dee2e6; border-radius: 3px; }
+.ui01-group-heading { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: #eef2f1; border-bottom: 1px solid #dee2e6; }
+.ui01-group-heading h2 { margin: 0; font-size: 13px; }
+.ui01-group table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ui01-group th { text-align: left; font-weight: 600; color: #6c757d; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+.ui01-group th, .ui01-group td { padding: 3px 10px; border-bottom: 1px solid #f1f3f5; vertical-align: top; }
+.ui01-group td small { display: block; color: #adb5bd; font-size: 10px; }
+.ui01-decimal { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ui01-active-row { background: #eef6f4; }
+.ui01-editor-cell { background: #f8f9fa; }
+.ui01-row-editor { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; }
+.ui01-row-editor label { display: block; font-size: 11px; color: #6c757d; }
+.ui01-row-editor [role="alert"] { display: block; color: #b42318; font-size: 11px; max-width: 320px; }
+.ui01-row-editor > p { flex-basis: 100%; margin: 0; color: #6c757d; font-size: 11px; }
+.ui01-description-field { flex: 1 1 320px; }
+.ui01-catalog { flex: 1 1 260px; }
+.ui01-catalog ul { list-style: none; display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0 0; padding: 0; }
+.ui01-empty { padding: 16px; background: #fff; border: 1px dashed #ced4da; color: #6c757d; text-align: center; }
+.ui01-summary { display: flex; align-items: center; gap: 18px; padding: 8px 14px; background: #fff; border-top: 2px solid #15202b; font-size: 13px; }
+.ui01-summary small { display: block; color: #6c757d; font-size: 11px; }
+.ui01-summary dl { display: flex; gap: 18px; margin: 0; }
+.ui01-summary dt { font-size: 11px; color: #6c757d; }
+.ui01-summary dd { margin: 0; font-variant-numeric: tabular-nums; font-weight: 600; }
+.ui01-summary .ui01-stale { color: #b42318; font-weight: 600; }
+.ui01-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.ui01-state { justify-content: flex-start; padding-bottom: 24px; }
+.ui01-state p { padding: 24px 14px; }
+.ui01-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

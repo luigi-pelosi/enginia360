@@ -21,7 +21,7 @@ jobs:
           printf 'B02_DB_PASSWORD=%s\nB02_DB_APP_PASSWORD=%s\n' "$owner_password" "$app_password" >> "$GITHUB_ENV"
       - name: Verify CI runtime configuration
         timeout-minutes: 10
-        run: python3 scripts/test-c00-consistency.py && python3 scripts/test-productization-consistency.py && python3 scripts/test-b10-reset-lifecycle.py && python3 scripts/test-ci-runtime.py && python3 scripts/test-b04-ci.py && python3 scripts/test-b05-ci.py && python3 scripts/test-b06-ci.py && python3 scripts/test-b07-ci.py && python3 scripts/test-b08-ci.py && python3 scripts/test-b09-ci.py && python3 scripts/test-b10-ci.py && python3 scripts/test-b11-ci.py && python3 scripts/test-b12-ci.py && python3 scripts/test-b13-ci.py && python3 scripts/test-b14-ci.py && python3 scripts/test-b14-restore-contract.py && python3 scripts/test-b14-diagnostics-unit.py
+        run: python3 scripts/test-ui01-ci.py && python3 scripts/test-c00-consistency.py && python3 scripts/test-productization-consistency.py && python3 scripts/test-b10-reset-lifecycle.py && python3 scripts/test-ci-runtime.py && python3 scripts/test-b04-ci.py && python3 scripts/test-b05-ci.py && python3 scripts/test-b06-ci.py && python3 scripts/test-b07-ci.py && python3 scripts/test-b08-ci.py && python3 scripts/test-b09-ci.py && python3 scripts/test-b10-ci.py && python3 scripts/test-b11-ci.py && python3 scripts/test-b12-ci.py && python3 scripts/test-b13-ci.py && python3 scripts/test-b14-ci.py && python3 scripts/test-b14-restore-contract.py && python3 scripts/test-b14-diagnostics-unit.py
       - name: Offline B09 carcass return race controller lifecycle
         timeout-minutes: 2
         run: timeout 60 python3 scripts/test-b09-return-race-lifecycle.py
@@ -52,6 +52,9 @@ jobs:
       - name: Private B13 UI build
         timeout-minutes: 10
         run: docker run --rm -v "$PWD:/source" -w /source/web node:24.22.0-alpine3.24@sha256:44fce696f38ba8c987c4db89954051000bbd05ffd8d8659ba15ed4a8602e937f sh -c 'VITE_B06_TEST_UI=true VITE_B07_TEST_UI=true VITE_B08_TEST_UI=true VITE_B09_TEST_UI=true VITE_B13_TEST_UI=true npm run build'
+      - name: Opt-in UI01.a synthetic prototype build
+        timeout-minutes: 10
+        run: docker run --rm -v "$PWD:/source" -w /source/web node:24.22.0-alpine3.24@sha256:44fce696f38ba8c987c4db89954051000bbd05ffd8d8659ba15ed4a8602e937f sh -c 'npm run build:ui01'
       - name: NuGet dependency audits
         timeout-minutes: 10
         run: docker run --rm -v "$PWD:/source" -w /source mcr.microsoft.com/dotnet/sdk:10.0.402-alpine3.24@sha256:230c3fbae0ceedc70bca04eed2bfb5694e8b248cadbb81010f41b7a993601f55 sh -c 'dotnet restore tests/Enginia360.Api.Tests --locked-mode && dotnet list src/Enginia360.Api package --vulnerable --include-transitive && dotnet list tests/Enginia360.Api.Tests package --vulnerable --include-transitive'
