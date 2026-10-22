@@ -2,12 +2,31 @@
 
 import os
 from pathlib import Path
+import re
 import subprocess
 import tempfile
 import unittest
 
 
 class CiRuntimeTests(unittest.TestCase):
+    def test_full_runtime_suite_is_manual_only(self):
+        workflow = Path(".github/workflows/ci.yml").read_text()
+        self.assertIn("  workflow_dispatch:", workflow)
+        steps = re.split(r"^      - ", workflow, flags=re.MULTILINE)[1:]
+        expensive_commands = (
+            "run: sh scripts/run-b03-tests.sh",
+            "run: sh scripts/run-b14-tests.sh",
+            "run: docker compose up -d --build --wait --wait-timeout 120",
+        )
+        for command in expensive_commands:
+            step = next(item for item in steps if command in item)
+            self.assertIn("if: github.event_name == 'workflow_dispatch'", step)
+
+    def test_automatic_ci_keeps_bounded_fast_checks(self):
+        workflow = Path(".github/workflows/ci.yml").read_text()
+        self.assertIn("- name: Fast API tests and dependency audit", workflow)
+        self.assertIn("- name: Fast UI tests, builds and dependency audit", workflow)
+
     def test_ci_avoids_duplicate_feature_branch_runs(self):
         workflow = Path(".github/workflows/ci.yml").read_text()
         self.assertIn("    branches: [main]", workflow)

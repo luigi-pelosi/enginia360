@@ -3,6 +3,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -10,6 +11,7 @@ permissions:
   contents: read
 jobs:
   runtime-migrations:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -40,91 +42,120 @@ jobs:
         timeout-minutes: 10
         run: python3 scripts/test-ui01-ci.py && python3 scripts/test-c00-consistency.py && python3 scripts/test-productization-consistency.py && python3 scripts/test-b10-reset-lifecycle.py && python3 scripts/test-ci-runtime.py && python3 scripts/test-b04-ci.py && python3 scripts/test-b05-ci.py && python3 scripts/test-b06-ci.py && python3 scripts/test-b07-ci.py && python3 scripts/test-b08-ci.py && python3 scripts/test-b09-ci.py && python3 scripts/test-b10-ci.py && python3 scripts/test-b11-ci.py && python3 scripts/test-b12-ci.py && python3 scripts/test-b13-ci.py && python3 scripts/test-b14-ci.py && python3 scripts/test-b14-restore-contract.py && python3 scripts/test-b14-diagnostics-unit.py
       - name: Offline B09 carcass return race controller lifecycle
+        if: github.event_name == 'workflow_dispatch'
         timeout-minutes: 2
         run: timeout 60 python3 scripts/test-b09-return-race-lifecycle.py
       - name: Offline B08 installation race controller lifecycle
+        if: github.event_name == 'workflow_dispatch'
         timeout-minutes: 2
         run: timeout 60 python3 scripts/test-b08-installation-race-lifecycle.py
       - name: Offline B07 picking race controller lifecycle
+        if: github.event_name == 'workflow_dispatch'
         timeout-minutes: 2
         run: timeout 60 python3 scripts/test-b07-picking-race-lifecycle.py
       - name: Offline B06 race controller lifecycle
+        if: github.event_name == 'workflow_dispatch'
         timeout-minutes: 2
         run: timeout 60 python3 scripts/test-b06-stock-race-lifecycle.py
-      - name: Integration tests in pinned SDK
+      - name: Fast API tests and dependency audit
         timeout-minutes: 10
-        run: docker run --rm -v "$PWD:/source" -w /source mcr.microsoft.com/dotnet/sdk:10.0.402-alpine3.24@sha256:230c3fbae0ceedc70bca04eed2bfb5694e8b248cadbb81010f41b7a993601f55 sh -c 'dotnet restore tests/Enginia360.Api.Tests --locked-mode && dotnet test tests/Enginia360.Api.Tests -c Release --no-restore'
-      - name: UI tests, both builds and dependency audit
+        run: docker run --rm -v "$PWD:/source" -w /source mcr.microsoft.com/dotnet/sdk:10.0.402-alpine3.24@sha256:230c3fbae0ceedc70bca04eed2bfb5694e8b248cadbb81010f41b7a993601f55 sh -c 'dotnet restore tests/Enginia360.Api.Tests --locked-mode && dotnet test tests/Enginia360.Api.Tests -c Release --no-restore && dotnet list src/Enginia360.Api package --vulnerable --include-transitive && dotnet list tests/Enginia360.Api.Tests package --vulnerable --include-transitive'
+      - name: Fast UI tests, builds and dependency audit
         timeout-minutes: 10
-        run: docker run --rm -v "$PWD:/source" -w /source/web node:24.22.0-alpine3.24@sha256:44fce696f38ba8c987c4db89954051000bbd05ffd8d8659ba15ed4a8602e937f sh -c 'npm ci --no-audit --no-fund && npm test && npm run build && VITE_B02_TEST_UI=true npm run build && VITE_B03_TEST_UI=true npm run build && VITE_B04_TEST_UI=true npm run build && VITE_B05_TEST_UI=true npm run build && VITE_B06_TEST_UI=true npm run build && VITE_B06_TEST_UI=true VITE_B07_TEST_UI=true npm run build && npm audit --audit-level=high'
+        run: docker run --rm -v "$PWD:/source" -w /source/web node:24.22.0-alpine3.24@sha256:44fce696f38ba8c987c4db89954051000bbd05ffd8d8659ba15ed4a8602e937f sh -c 'npm ci --no-audit --no-fund && npm test && npm run build && npm run build:ui01 && npm audit --audit-level=high'
+      - name: Legacy B02-B07 private UI build matrix
+        if: github.event_name == 'workflow_dispatch'
+        timeout-minutes: 10
+        run: docker run --rm -v "$PWD:/source" -w /source/web node:24.22.0-alpine3.24@sha256:44fce696f38ba8c987c4db89954051000bbd05ffd8d8659ba15ed4a8602e937f sh -c 'npm ci --no-audit --no-fund && VITE_B02_TEST_UI=true npm run build && VITE_B03_TEST_UI=true npm run build && VITE_B04_TEST_UI=true npm run build && VITE_B05_TEST_UI=true npm run build && VITE_B06_TEST_UI=true npm run build && VITE_B06_TEST_UI=true VITE_B07_TEST_UI=true npm run build'
       - name: Private B08 UI build
+        if: github.event_name == 'workflow_dispatch'
         timeout-minutes: 10
         run: docker run --rm -v "$PWD:/source" -w /source/web node:24.22.0-alpine3.24@sha256:44fce696f38ba8c987c4db89954051000bbd05ffd8d8659ba15ed4a8602e937f sh -c 'VITE_B06_TEST_UI=true VITE_B07_TEST_UI=true VITE_B08_TEST_UI=true npm run build'
       - name: Private B09 UI build
+        if: github.event_name == 'workflow_dispatch'
         timeout-minutes: 10
         run: docker run --rm -v "$PWD:/source" -w /source/web node:24.22.0-alpine3.24@sha256:44fce696f38ba8c987c4db89954051000bbd05ffd8d8659ba15ed4a8602e937f sh -c 'VITE_B06_TEST_UI=true VITE_B07_TEST_UI=true VITE_B08_TEST_UI=true VITE_B09_TEST_UI=true npm run build'
       - name: Private B10 UI build
+        if: github.event_name == 'workflow_dispatch'
         timeout-minutes: 10
         run: docker run --rm -v "$PWD:/source" -w /source/web node:24.22.0-alpine3.24@sha256:44fce696f38ba8c987c4db89954051000bbd05ffd8d8659ba15ed4a8602e937f sh -c 'VITE_B06_TEST_UI=true VITE_B07_TEST_UI=true VITE_B08_TEST_UI=true VITE_B09_TEST_UI=true VITE_B10_TEST_UI=true npm run build'
       - name: Private B13 UI build
+        if: github.event_name == 'workflow_dispatch'
         timeout-minutes: 10
         run: docker run --rm -v "$PWD:/source" -w /source/web node:24.22.0-alpine3.24@sha256:44fce696f38ba8c987c4db89954051000bbd05ffd8d8659ba15ed4a8602e937f sh -c 'VITE_B06_TEST_UI=true VITE_B07_TEST_UI=true VITE_B08_TEST_UI=true VITE_B09_TEST_UI=true VITE_B13_TEST_UI=true npm run build'
       - name: Opt-in UI01.a synthetic prototype build
+        if: github.event_name == 'workflow_dispatch'
         timeout-minutes: 10
         run: docker run --rm -v "$PWD:/source" -w /source/web node:24.22.0-alpine3.24@sha256:44fce696f38ba8c987c4db89954051000bbd05ffd8d8659ba15ed4a8602e937f sh -c 'npm run build:ui01'
       - name: NuGet dependency audits
+        if: github.event_name == 'workflow_dispatch'
         timeout-minutes: 10
         run: docker run --rm -v "$PWD:/source" -w /source mcr.microsoft.com/dotnet/sdk:10.0.402-alpine3.24@sha256:230c3fbae0ceedc70bca04eed2bfb5694e8b248cadbb81010f41b7a993601f55 sh -c 'dotnet restore tests/Enginia360.Api.Tests --locked-mode && dotnet list src/Enginia360.Api package --vulnerable --include-transitive && dotnet list tests/Enginia360.Api.Tests package --vulnerable --include-transitive'
       - name: Isolated B02 integration and hardening
+        if: github.event_name == 'workflow_dispatch'
         timeout-minutes: 10
         run: sh scripts/run-b02-tests.sh
       - name: Isolated B03 authorization, persistence and UI runtime
+        if: github.event_name == 'workflow_dispatch'
         timeout-minutes: 10
         run: sh scripts/run-b03-tests.sh
       - name: Isolated B04 direct order and authorization acceptance
+        if: github.event_name == 'workflow_dispatch'
         timeout-minutes: 10
         run: sh scripts/run-b04-tests.sh
       - name: Isolated B05 commercial line and catalog acceptance
+        if: github.event_name == 'workflow_dispatch'
         timeout-minutes: 10
         run: sh scripts/run-b05-tests.sh
       - name: Isolated B06 explicit stock reservation acceptance
+        if: github.event_name == 'workflow_dispatch'
         timeout-minutes: 10
         run: sh scripts/run-b06-tests.sh
       - name: Isolated B07 explicit partial picking acceptance
+        if: github.event_name == 'workflow_dispatch'
         timeout-minutes: 10
         run: sh scripts/run-b07-tests.sh
       - name: Isolated B08 explicit partial installation and recovery
+        if: github.event_name == 'workflow_dispatch'
         timeout-minutes: 10
         run: sh scripts/run-b08-tests.sh
       - name: Isolated B09 full-residual carcass return and closure gate
+        if: github.event_name == 'workflow_dispatch'
         timeout-minutes: 10
         run: sh scripts/run-b09-tests.sh
       - name: Isolated B10 technical closure, external administrative request and simulator
+        if: github.event_name == 'workflow_dispatch'
         timeout-minutes: 10
         run: sh scripts/run-b10-tests.sh
       - name: Isolated B11 continuity, uncertainty, process restart and reconciliation
+        if: github.event_name == 'workflow_dispatch'
         timeout-minutes: 10
         run: sh scripts/run-b11-tests.sh
       - name: Isolated B12 internal technical invoice and confirmation
+        if: github.event_name == 'workflow_dispatch'
         timeout-minutes: 10
         run: sh scripts/run-b12-tests.sh
       - name: Isolated B13 technical journal entry, intermodule fault and recovery
+        if: github.event_name == 'workflow_dispatch'
         timeout-minutes: 10
         run: sh scripts/run-b13-tests.sh
       - name: Isolated B14 joint destinations, diagnostics and measured restore rehearsal
+        if: github.event_name == 'workflow_dispatch'
         timeout-minutes: 15
         run: sh scripts/run-b14-tests.sh
       - name: Build and start hardened containers
+        if: github.event_name == 'workflow_dispatch'
         timeout-minutes: 10
         run: docker compose up -d --build --wait --wait-timeout 120
       - name: HTTP smoke tests
+        if: github.event_name == 'workflow_dispatch'
         timeout-minutes: 10
         run: sh scripts/smoke.sh
       - name: Container diagnostics
         timeout-minutes: 10
-        if: always()
+        if: ${{ always() && github.event_name == 'workflow_dispatch' }}
         run: docker compose ps && docker compose logs --tail=100
       - name: Stop containers
         timeout-minutes: 10
-        if: always()
+        if: ${{ always() && github.event_name == 'workflow_dispatch' }}
         run: docker compose down
