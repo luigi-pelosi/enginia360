@@ -7,7 +7,9 @@ from pathlib import Path
 import secrets
 import shutil
 import signal
+import subprocess
 import tempfile
+import time
 import uuid
 from decimal import Decimal, ROUND_HALF_UP
 
@@ -34,12 +36,22 @@ def fixtures(state, secret):
         for action in ('workshop.orders.read','workshop.orders.create','workshop.lines.add','counterparties.read'):
             statements.append(f"INSERT INTO organization_access.company_permissions VALUES ('{uuid.uuid4()}',{member},'{tenant}','{company}','{action}',NULL,NULL);")
         statements += [f"INSERT INTO counterparties.counterparties VALUES ('{data[k]}','{tenant}','Synthetic {k}','SYNTHETIC','Synthetic office');" for k in ('payerId','holderId')]
-        statements += [f"INSERT INTO vehicles.vehicles VALUES ('{data['vehicleId']}','{tenant}','{company}','{data['holderId']}','Synthetic vehicle');",
+        registered_company = browser['deniedContexts'][0]['legalEntityId'] if index == 0 else company
+        statements += [f"INSERT INTO vehicles.vehicles VALUES ('{data['vehicleId']}','{tenant}','{registered_company}','{data['holderId']}','Synthetic vehicle');",
+                       f"INSERT INTO vehicles.vehicles VALUES ('{uuid.uuid4()}','{tenant}','{company}','{data['holderId']}','Other vehicle');",
                        f"INSERT INTO workshop.document_types VALUES ('{data['documentTypeId']}','{tenant}','{company}',7,'Synthetic document',true);",
                        f"INSERT INTO workshop.line_policies VALUES ('{tenant}','{company}','{data['documentTypeId']}',9,'Case001',true);"]
         for kind in ('Service','Part'):
-            statements.append(f"INSERT INTO catalog.items VALUES ('{data[kind.lower()+'Id']}','{tenant}','{company}','{kind}','Synthetic {kind}',8);")
+            statements.append(f"INSERT INTO catalog.items VALUES ('{data[kind.lower()+'Id']}','{tenant}','{registered_company}','{kind}','Synthetic {kind}',8);")
         if index == 0:
+            browser['privateDestinationId'], browser['publishedDestinationId'] = str(uuid.uuid4()), str(uuid.uuid4())
+            for key, published in (('privateDestinationId', 'false'), ('publishedDestinationId', 'true')):
+                statements.append(f"INSERT INTO counterparties.destinations VALUES ('{browser[key]}','{tenant}','{data['payerId']}','{registered_company}','Synthetic destination',{published});")
+            statements.append(f"INSERT INTO organization_access.memberships VALUES ('{uuid.uuid4()}','{tenant}','{identities[4]}');")
+            for n in range(51):
+                statements += [f"INSERT INTO counterparties.counterparties VALUES ('{uuid.uuid4()}','{tenant}','Page {n:02d}','SYNTHETIC','Synthetic office');",
+                               f"INSERT INTO vehicles.vehicles VALUES ('{uuid.uuid4()}','{tenant}','{registered_company}','{data['holderId']}','Page {n:02d}');",
+                               f"INSERT INTO catalog.items VALUES ('{uuid.uuid4()}','{tenant}','{registered_company}','Service','Page {n:02d}',8);"]
             for action in ('workshop.orders.read','counterparties.read'):
                 statements.append(f"INSERT INTO organization_access.company_permissions VALUES ('{uuid.uuid4()}','{browser['grantTargetMembershipId']}','{tenant}','{company}','{action}',NULL,NULL);")
     # R00 seals its completed fixture read-only. Extend it as its owner, then reseal before any mount.
@@ -84,7 +96,27 @@ def main():
             for c in json.loads(run(['docker','inspect',*ids])):
                 h=c['HostConfig']; assert c['Config']['User'] not in ('','0','root') and h['ReadonlyRootfs']; assert h['CapDrop']==['ALL'] and 'no-new-privileges:true' in h['SecurityOpt']; assert not h['PortBindings'] and not any(m['Type']=='volume' for m in c['Mounts']); assert h['Memory']>0 and h['NanoCpus']>0 and h['PidsLimit']>0
             assert json.loads(run(['docker','network','inspect',project+'_runtime']))[0]['Internal']
-            run(command+['run','--rm','--no-deps','-T','browser'],timeout=240,capture=False)
+            process = subprocess.Popen(command+['run','--rm','--no-deps','-T','browser'],cwd=ROOT)
+            deadline = time.monotonic()+240
+            try:
+                while process.poll() is None:
+                    if time.monotonic() >= deadline: raise TimeoutError('editor browser deadline')
+                    request = state/'control/request'
+                    if request.exists():
+                        action = request.read_text(); request.unlink()
+                        if action == 'database-outage': run(command+['pause','postgres'],timeout=30)
+                        elif action == 'database-recover': run(command+['unpause','postgres'],timeout=30)
+                        else: raise ValueError('unknown editor lifecycle command')
+                        print('UI01B_LIFECYCLE '+action,flush=True)
+                        (state/'control/ack').write_text(action)
+                    time.sleep(0.1)
+                if process.returncode: raise RuntimeError('editor Chromium acceptance failed')
+            finally:
+                if process.poll() is None:
+                    process.terminate()
+                    try: process.wait(timeout=5)
+                    except subprocess.TimeoutExpired:
+                        process.kill(); process.wait(timeout=5)
             result=json.loads((state/'control/result.json').read_text())
             order,summary=result['order'],result['summary']
             assert run(query+['-c','SELECT count(*) FROM workshop.orders']).strip()=='1'

@@ -4,6 +4,6 @@ public sealed record CatalogChoice(Guid Id, string Kind, string Label, int Versi
 // The caller supplies only a server-verified tenant, never a client tenant claim.
 public interface IWorkshopCatalog
 {
-    Task<IReadOnlyList<CatalogChoice>> List(Guid verifiedTenantId, CancellationToken ct);
+    Task<IReadOnlyList<CatalogChoice>> List(Guid verifiedTenantId, CancellationToken ct, int? limit = null, string? search = null, Guid? after = null);
     Task<CatalogChoice?> Find(Guid verifiedTenantId, Guid itemId, CancellationToken ct);
 }

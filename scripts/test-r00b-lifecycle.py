@@ -13,10 +13,18 @@ import unittest
 from unittest.mock import patch
 
 ROOT=Path(__file__).resolve().parents[1]
-spec=importlib.util.spec_from_file_location('r00b_runner',ROOT/'scripts/run-r00b-tests.py')
+EDITOR='--editor' in sys.argv
+RUNNER=ROOT/('scripts/run-ui01b-tests.py' if EDITOR else 'scripts/run-r00b-tests.py')
+MARKER=b'UI01B_LIFECYCLE database-outage' if EDITOR else b'R00B_LIFECYCLE database-outage'
+spec=importlib.util.spec_from_file_location('r00b_runner',RUNNER)
 assert spec is not None and spec.loader is not None
 runner=importlib.util.module_from_spec(spec)
 spec.loader.exec_module(runner)
+if EDITOR:
+    # The editor runner reuses R00.b cleanup/inventory primitives against its own Compose file.
+    base = getattr(runner, 'r00')
+    for name in ('cleanup', 'inventory', 'CONFIG'):
+        setattr(runner, name, getattr(base, name))
 
 
 class CleanupGuardTests(unittest.TestCase):
@@ -64,7 +72,7 @@ class CleanupGuardTests(unittest.TestCase):
 def actual_term_probe():
     before_volumes=runner.inventory('volume')
     before_running=set(runner.run(['docker','ps','-q','--no-trunc']).splitlines())
-    process=subprocess.Popen([sys.executable,str(ROOT/'scripts/run-r00b-tests.py')],cwd=ROOT,
+    process=subprocess.Popen([sys.executable,str(RUNNER)],cwd=ROOT,
         stdout=subprocess.PIPE,stderr=subprocess.STDOUT,bufsize=0)
     deadline=time.monotonic()+240
     terminated=False
@@ -76,7 +84,7 @@ def actual_term_probe():
                 # Never mix select(fd) with a read-ahead TextIOWrapper: a complete
                 # lifecycle marker may already be buffered while the fd is quiet.
                 pending=(pending+os.read(process.stdout.fileno(),65536))[-8192:]
-                if b'R00B_LIFECYCLE database-outage' in pending:
+                if MARKER in pending:
                     process.send_signal(signal.SIGTERM)
                     terminated=True
                     break
@@ -96,7 +104,7 @@ def actual_term_probe():
     assert runner.inventory('volume')==before_volumes
     assert set(runner.run(['docker','ps','-q','--no-trunc']).splitlines())==before_running
     assert not runner.run(['docker','ps','-aq','--filter','label=com.docker.compose.project.config_files='+str(runner.CONFIG)]).strip()
-    print('PASS actual R00.b TERM while PostgreSQL paused and Chromium alive; child/resources removed, protected inventory unchanged.')
+    print('PASS actual '+('UI01.b editor' if EDITOR else 'R00.b')+' TERM while PostgreSQL paused and Chromium alive; child/resources removed, protected inventory unchanged.')
 
 
 if __name__=='__main__':

@@ -5,6 +5,6 @@ public sealed record VehicleChoice(Guid Id, string Label);
 public sealed record SelectedVehicle(Guid Id, Guid HolderId);
 public interface IWorkshopVehicles
 {
-    Task<IReadOnlyList<VehicleChoice>> List(Guid verifiedTenantId, CancellationToken ct);
+    Task<IReadOnlyList<VehicleChoice>> List(Guid verifiedTenantId, CancellationToken ct, int? limit = null, string? search = null, Guid? after = null);
     Task<SelectedVehicle?> Find(Guid verifiedTenantId, Guid vehicleId, CancellationToken ct);
 }

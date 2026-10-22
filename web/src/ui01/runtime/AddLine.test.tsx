@@ -13,6 +13,10 @@ test('explicit line policy version, q6 payload, current revision and exact uncer
   const saved = vi.fn().mockResolvedValue(undefined);
   render(<AddLine order={{ id, legalEntityId: id, siteId: id, documentTypeId: id, configurationVersion: 7, payerId: id, vehicleId: id, vehicleHolderId: id, isCustomerOrder: true }} summary={{ orderId: id, payerId: id, revision: 0, lines: [], netAmount: '0.000000', taxAmount: '0.000000', total: '0.000000', currency: 'EUR', policy: 'Case001' }} onSaved={saved} onError={() => {}} />);
   await screen.findByRole('option', { name: 'Service · Servizio server' });
+  fireEvent.change(screen.getByLabelText('Ricerca articolo / prestazione'), { target: { value: 'Servizio' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Cerca articolo / prestazione' }));
+  await screen.findByRole('option', { name: 'Service · Servizio server' });
+  expect(fetch.mock.calls.some(([path]) => path.includes('/catalog?') && path.includes('search=Servizio') && path.includes('limit=20'))).toBe(true);
   fireEvent.change(screen.getByLabelText('Articolo / prestazione'), { target: { value: id } });
   expect((screen.getByRole('button', { name: 'Aggiungi riga' }) as HTMLButtonElement).disabled).toBe(true);
   fireEvent.change(screen.getByLabelText('Versione configurazione righe (setup)'), { target: { value: '9' } });
