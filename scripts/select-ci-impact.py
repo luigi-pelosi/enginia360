@@ -23,16 +23,26 @@ AUTH_FILES = {
 }
 AUTH_TESTS = {'BrowserSessionTests','BoundedTicketStoreTests','BrowserAuthenticationBoundaryTests',
               'ExternalIdentityAuthenticationTests','AuthorizedContextContractTests','LimitedGrantAdministrationTests','BootstrapTests','RuntimeMigrationPoolTests'}
+UI01B_FILES = {'web/ui01-runtime.html','web/vite.ui01-runtime.config.ts','web/nginx.ui01b-test.conf',
+    'compose.ui01b-test.yaml','scripts/run-ui01b-tests.py','scripts/test-ui01b-wiring.py','scripts/test-ui01b-impact.py','scripts/test-ui01b-fixture.py',
+    'tests/browser/ui01b-acceptance.cjs','web/package.json','web/package-lock.json',
+    'scripts/select-ci-impact.py','scripts/test-ci-impact.py','.github/workflows/ci.yml','browser.runtime.Dockerfile'}
+WORKSHOP_FILTER = '|'.join('FullyQualifiedName~'+name for name in (
+    'WorkshopBoundaryTests','CommercialCalculationTests','CounterpartyArchitectureTests'))
 
 
 def selection(paths):
     paths = sorted(set(paths))
-    auth = ui = False
+    auth = ui = ui01b = False
     unknown = []
     for path in paths:
         parsed = PurePosixPath(path)
         if not path or parsed.is_absolute() or '..' in parsed.parts or '\\' in path or str(parsed) != path:
             raise ValueError('invalid changed path')
+        if path in UI01B_FILES or path.startswith('web/src/ui01/runtime/'):
+            ui01b = ui = True
+            if path not in AUTH_FILES:
+                continue
         if (path in AUTH_FILES or path.startswith(('src/Enginia360.Api/BrowserAuthentication/',
                 'src/Enginia360.Api/OrganizationAccess/','database/runtime/','tests/browser/',
                 'scripts/run-r00','scripts/test-r00'))
@@ -46,8 +56,9 @@ def selection(paths):
             unknown.append(path)
     if unknown:
         raise ValueError('extend and test direct-dependency impact mapping for: '+', '.join(unknown))
-    return {'changed_paths':paths,'api_filter':AUTH_FILTER if auth else '',
-            'browser':auth,'migrations':auth,'ui_build':auth or ui,'ui_tests':ui,
+    filters = ([AUTH_FILTER] if auth or ui01b else []) + ([WORKSHOP_FILTER] if ui01b else [])
+    return {'changed_paths':paths,'api_filter':'|'.join(filters),
+            'browser':auth,'ui01b':ui01b,'migrations':auth or ui01b,'ui_build':auth or ui,'ui_tests':ui,
             'full_architecture':False}
 
 

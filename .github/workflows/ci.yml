@@ -28,6 +28,7 @@ jobs:
       ui_build: ${{ steps.selection.outputs.ui_build }}
       ui_tests: ${{ steps.selection.outputs.ui_tests }}
       browser: ${{ steps.selection.outputs.browser }}
+      ui01b: ${{ steps.selection.outputs.ui01b }}
       migrations: ${{ steps.selection.outputs.migrations }}
     steps:
       - uses: actions/checkout@v4
@@ -35,7 +36,7 @@ jobs:
       - name: Initialize private impact scratch directory
         run: printf 'TMPDIR=%s\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
       - name: Verify impact selection and direct runtime contracts
-        run: python3 scripts/test-ci-impact.py && python3 scripts/test-r00a-ci.py && python3 scripts/test-r00b-migration-tls.py && python3 scripts/test-r00b-lifecycle.py && python3 scripts/test-ci-runtime.py && python3 scripts/test-c00-consistency.py && python3 scripts/test-productization-consistency.py
+        run: python3 scripts/test-ci-impact.py && python3 scripts/test-ui01b-impact.py && python3 scripts/test-ui01b-wiring.py && python3 scripts/test-r00a-ci.py && python3 scripts/test-r00b-migration-tls.py && python3 scripts/test-r00b-lifecycle.py && python3 scripts/test-ci-runtime.py && python3 scripts/test-c00-consistency.py && python3 scripts/test-productization-consistency.py
       - name: Select exact changed-file impact
         id: selection
         env:
@@ -69,7 +70,8 @@ jobs:
       - name: Fast UI tests, builds and dependency audit
         env:
           UI_TESTS: ${{ needs.impact.outputs.ui_tests }}
-        run: docker run --rm -e UI_TESTS -v "$PWD:/source" -w /source/web node:24.22.0-alpine3.24@sha256:44fce696f38ba8c987c4db89954051000bbd05ffd8d8659ba15ed4a8602e937f sh -c 'npm ci --no-audit --no-fund && if [ "$UI_TESTS" = true ]; then npm test; else printf "UI test selection unchanged React source - runtime shell exercised in browser job\n"; fi && npm run build && npm run build:ui01 && npm audit --audit-level=high'
+          UI01B: ${{ needs.impact.outputs.ui01b }}
+        run: docker run --rm -e UI_TESTS -e UI01B -v "$PWD:/source" -w /source/web node:24.22.0-alpine3.24@sha256:44fce696f38ba8c987c4db89954051000bbd05ffd8d8659ba15ed4a8602e937f sh -c 'npm ci --no-audit --no-fund && if [ "$UI01B" = true ]; then npm test -- src/ui01/runtime src/ui01/WorkshopEditor.test.tsx src/ui01/Editor.acceptance.test.tsx --maxWorkers=1; elif [ "$UI_TESTS" = true ]; then npm test; else printf "UI test selection unchanged React source - runtime shell exercised in browser job\n"; fi && npm run build && npm run build:ui01 && if [ "$UI01B" = true ]; then npm run build:ui01-runtime; fi && npm audit --audit-level=high'
   affected-migrations:
     needs: impact
     if: github.event_name == 'workflow_dispatch' && needs.impact.outputs.migrations == 'true'
@@ -96,6 +98,21 @@ jobs:
         run: timeout 600 python3 scripts/run-r00b-tests.py
       - name: Actual browser child and paused-database TERM cleanup
         run: timeout 300 python3 scripts/test-r00b-lifecycle.py --actual
+  affected-editor:
+    needs: impact
+    if: github.event_name == 'workflow_dispatch' && needs.impact.outputs.ui01b == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Initialize private editor scratch directory
+        run: printf 'TMPDIR=%s\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+      - name: Build separate opt-in runtime editor
+        run: docker run --rm -v "$PWD:/source" -w /source/web node:24.22.0-alpine3.24@sha256:44fce696f38ba8c987c4db89954051000bbd05ffd8d8659ba15ed4a8602e937f sh -c 'npm ci --no-audit --no-fund && npm run build:ui01-runtime'
+      - name: Actual editor Chromium TLS OIDC API PostgreSQL acceptance
+        run: timeout 600 python3 scripts/run-ui01b-tests.py
+      - name: Nonroot synthetic fixture extension retains readonly browser mount
+        run: docker run --rm --user 1001:1001 --read-only --cap-drop=ALL --security-opt=no-new-privileges:true --network none --memory=128m --pids-limit=32 --tmpfs /tmp:rw,noexec,nosuid,size=16m,uid=1001,gid=1001 -v "$PWD:/source:ro" -w /source python:3.14.3-alpine3.23@sha256:faee120f7885a06fcc9677922331391fa690d911c020abb9e8025ff3d908e510 python3 scripts/test-ui01b-fixture.py
   runtime-migrations:
     if: github.event_name == 'workflow_dispatch' && inputs.full_architecture
     runs-on: ubuntu-24.04
