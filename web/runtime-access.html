@@ -19,6 +19,19 @@
 <p id="result" role="status"></p>
 <p>Le note create in questa pagina sono rilette per ID nella sessione corrente. Non è disponibile una lista/storia né il recupero dell'ID dopo ricarica.</p>
 </section>
+<section id="grant-admin" hidden>
+<h2>Permessi operativi delegati</h2>
+<p>Solo mandati verificati del proprietario e altre membership già trusted. Nessuna creazione di utenti, amministratori o subdelega.</p>
+<form id="grant-form">
+<label>Assegnazione autorizzata <select id="grant-options"></select></label>
+<p id="grant-scope"></p>
+<label>Operazione <select id="grant-operation"><option value="grant">Concedi</option><option value="revoke">Revoca</option></select></label>
+<label><input id="grant-confirm" type="checkbox" required> Confermo questa azione, questa membership e questo scope.</label>
+<button id="grant-apply" disabled>Applica permesso</button>
+</form>
+<p>Nessun permesso viene salvato nella memoria del browser. Riprova aggiorna mandati, scadenze e permessi dal server.</p>
+</section>
+<p id="grant-result" role="status"></p>
 <p>Esci revoca solo la sessione locale. La sessione del provider può rimanere attiva; per cambiare account terminare anche la sessione sul provider. Dopo un riavvio occorre un nuovo accesso.</p>
 </main>
 </body></html>

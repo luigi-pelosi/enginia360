@@ -3,7 +3,8 @@ WORKDIR /source
 COPY Directory.Build.props ./
 COPY src/ ./src/
 COPY tests/ ./tests/
+COPY database/runtime/migrations/0001_organization_access.sql ./database/runtime/migrations/0001_organization_access.sql
 RUN dotnet restore tests/Enginia360.Api.Tests --locked-mode && dotnet build tests/Enginia360.Api.Tests -c Release --no-restore
-ENV HOME=/tmp DOTNET_CLI_HOME=/tmp
+ENV HOME=/tmp DOTNET_CLI_HOME=/tmp R01_LEGACY_SCHEMA=/source/database/runtime/migrations/0001_organization_access.sql
 USER 1654:1654
-ENTRYPOINT ["dotnet", "test", "tests/Enginia360.Api.Tests", "-c", "Release", "--no-build", "--no-restore", "--filter", "FullyQualifiedName~RuntimeMigrationPoolTests|FullyQualifiedName~ExternalIdentityAuthenticationTests", "--results-directory", "/tmp/results"]
+ENTRYPOINT ["dotnet", "test", "tests/Enginia360.Api.Tests", "-c", "Release", "--no-build", "--no-restore", "--filter", "FullyQualifiedName~RuntimeMigrationPoolTests|FullyQualifiedName~ExternalIdentityAuthenticationTests|FullyQualifiedName~LimitedGrantAdministrationTests", "--results-directory", "/tmp/results"]

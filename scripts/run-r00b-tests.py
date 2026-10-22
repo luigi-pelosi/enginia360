@@ -10,6 +10,7 @@ import subprocess
 import tempfile
 import time
 import uuid
+from datetime import datetime, timedelta, timezone
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = ROOT / 'compose.r00b-test.yaml'
@@ -82,7 +83,7 @@ def fixtures(state, secret):
     sql = []
     internal_ids = []
     issuer = 'https://idp.r00.test:8443/realms/runtime'
-    for index in range(5):
+    for index in range(6):
         internal, subject = str(uuid.uuid4()), str(uuid.uuid4())
         internal_ids.append(internal)
         user = {'id': subject, 'username': 'synthetic-' + secrets.token_hex(6), 'enabled': True,
@@ -105,6 +106,7 @@ def fixtures(state, secret):
         for permission in ['read'] + ([] if index == 1 else ['write']):
             sql.append(f"INSERT INTO organization_access.membership_scopes VALUES ('{uuid.uuid4()}','{membership}','{tenant}','{company}','{site}','{warehouse}','organization-context.{permission}');")
         if index == 0:
+            browser['adminMembershipId'] = membership
             for missing_scope in ('company','site','warehouse'):
                 other_company = str(uuid.uuid4()) if missing_scope == 'company' else company
                 other_site = str(uuid.uuid4()) if missing_scope in ('company','site') else site
@@ -115,6 +117,24 @@ def fixtures(state, secret):
                     sql.append(f"INSERT INTO organization_access.sites VALUES ('{other_site}','{other_company}','{tenant}','Synthetic ungranted site');")
                 sql.append(f"INSERT INTO organization_access.warehouses VALUES ('{other_warehouse}','{other_site}','{other_company}','{tenant}','Synthetic ungranted warehouse');")
                 browser['deniedContexts'].append({'tenantId':tenant,'legalEntityId':other_company,'siteId':other_site,'warehouseId':other_warehouse})
+    # Synthetic already-trusted target: no grant and no delegation authority.
+    context = browser['contexts'][0]
+    tenant,company,site,warehouse = [context[k] for k in ('tenantId','legalEntityId','siteId','warehouseId')]
+    target = str(uuid.uuid4())
+    browser['grantTargetMembershipId'] = target
+    sql.append(f"INSERT INTO organization_access.memberships VALUES ('{target}','{tenant}','{internal_ids[5]}');")
+    browser['mandates'] = []
+    now=datetime.now(timezone.utc)
+    owner_actor=str(uuid.uuid4())
+    for action in ('read','write'):
+        mandate = str(uuid.uuid4())
+        browser['mandates'].append(mandate)
+        payload={'operation':'create','ownerActorId':owner_actor,'mandateId':mandate,'tenantId':tenant,
+                 'adminMembershipId':browser['adminMembershipId'],'legalEntityId':company,'siteId':site,'warehouseId':warehouse,
+                 'action':'organization-context.'+action,'validFrom':(now-timedelta(minutes=1)).isoformat(),'validUntil':(now+timedelta(hours=1)).isoformat()}
+        path=state/('mandate-'+mandate+'.json')
+        path.write_text(json.dumps(payload))
+        path.chmod(0o444)
     realm = {'realm':'runtime','enabled':True,'sslRequired':'all','registrationAllowed':False,
              'clients':[{'clientId':'runtime-browser','secret':secret,'publicClient':False,
                          'standardFlowEnabled':True,'directAccessGrantsEnabled':False,'implicitFlowEnabled':False,
@@ -166,10 +186,22 @@ def main():
             run(command+['up','-d','--wait','--wait-timeout','180','postgres','identity'],timeout=210)
             run(command+['run','--rm','--no-deps','-T','migrator'],timeout=90)
             query = command+['exec','-T','postgres','psql','-X','-qAt','-U','postgres','-d','runtime','-v','ON_ERROR_STOP=1']
-            assert run(query+['-c','SELECT count(*) FROM runtime_migrations.applied']).strip() == '15'
+            assert run(query+['-c','SELECT count(*) FROM runtime_migrations.applied']).strip() == '16'
             empty = """DO $$ DECLARE r record; n bigint; BEGIN FOR r IN SELECT schemaname,tablename FROM pg_tables WHERE schemaname NOT IN ('pg_catalog','information_schema','runtime_migrations') LOOP EXECUTE format('SELECT count(*) FROM %I.%I',r.schemaname,r.tablename) INTO n; IF n <> 0 THEN RAISE EXCEPTION 'business data before fixture'; END IF; END LOOP; END $$;"""
             run(query, input=empty)
             run(query, input=sql)
+            def owner_mandate(mandate,operation):
+                source=state/('mandate-'+mandate+'.json')
+                payload=json.loads(source.read_text())
+                payload['operation']=operation
+                source.chmod(0o600)
+                source.write_text(json.dumps(payload))
+                source.chmod(0o444)
+                output=run(command+['run','--rm','--no-deps','-T','-v',str(source)+':/run/mandate.json:ro','--entrypoint','python3','migrator','scripts/owner-operative-mandate.py','/run/mandate.json'],timeout=45)
+                assert 'committed and exact state read back' in output
+                print('R01B_OWNER_PROCEDURE '+operation+' verified',flush=True)
+            for mandate in json.loads((state/'browser.json').read_text())['mandates']:
+                owner_mandate(mandate,'create')
             run(command+['up','-d','api','web'],timeout=120)
             ids = run(command+['ps','-q']).splitlines()
             for container in json.loads(run(['docker','inspect',*ids])):
@@ -220,6 +252,10 @@ def main():
                                 tenant,company,site,warehouse = [context[k] for k in ('tenantId','legalEntityId','siteId','warehouseId')]
                                 statement = f"INSERT INTO organization_access.membership_scopes VALUES ('{uuid.uuid4()}',({membership}),'{tenant}','{company}','{site}','{warehouse}','organization-context.{permission}');"
                             run(query, input=statement)
+                        elif action == 'mandate-revoke':
+                            mandates = json.loads((state/'browser.json').read_text())['mandates']
+                            for mandate in mandates:
+                                owner_mandate(mandate,'revoke')
                         elif action == 'binding-revoke':
                             run(query,input="DELETE FROM organization_access.external_identity_bindings WHERE \"InternalIdentityId\"='"+internal_ids[2]+"';")
                         else:
@@ -237,7 +273,7 @@ def main():
                     except subprocess.TimeoutExpired:
                         process.kill()
                         process.wait(timeout=5)
-            assert run(query+['-c','SELECT count(*) FROM organization_access.context_notes']).strip() == '2'
+            assert run(query+['-c','SELECT count(*) FROM organization_access.context_notes']).strip() == '3'
             assert run(query+['-c',"SELECT count(*) FROM pg_stat_activity WHERE usename='runtime_app'"]).strip() == '1'
             logs = run(command+['logs','--no-color','api','web','identity'])
             for value in list(values.values())[:4]:

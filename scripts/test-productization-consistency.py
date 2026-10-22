@@ -52,6 +52,18 @@ class ConsistencyGuardTests(unittest.TestCase):
         self.mutate('docs/productization-plan.md',old,card['gate'])
         self.run_guard('D77 bounded mandate')
 
+    def test_r01b_delivery_cannot_claim_full_provisioning_or_r02_policy(self):
+        path=self.root/'docs/productization-backlog.json'
+        cards=json.loads(path.read_text())
+        card=next(card for card in cards if card['id']=='R01')
+        old=card['gate']
+        boundary='non provisioning completo né policy CRUD R02'
+        self.assertIn(boundary,old)
+        card['gate']=old.replace(boundary,'provisioning completo e policy CRUD R02 approvati')
+        path.write_text(json.dumps(cards))
+        self.mutate('docs/productization-plan.md',old,card['gate'])
+        self.run_guard('D77 bounded mandate')
+
     def test_current_documentation_passes(self):
         self.run_guard()
 

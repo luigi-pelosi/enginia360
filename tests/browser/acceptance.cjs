@@ -215,6 +215,60 @@ async function login(browser, index, holdCallback=false) {
       assert.equal(values[1].value[0].tenantId,fixture.contexts[2].tenantId);
     }
     passed('insufficient action, cross-tenant read/write, fake bearer no fallback and concurrent identity alternation');
+    stage = 'R01.b real limited mandate grant panel';
+    const delegate = await login(browser,5);
+    assert.deepEqual((await json(delegate.page,'/api/v1/organization/contexts')).value,[]);
+    await a.page.goto(origin+'/');
+    await a.page.locator('#grant-admin').waitFor({state:'visible'});
+    assert.equal(await a.page.locator('#grant-options option').count(),2);
+    assert.equal(await a.page.locator('#grant-apply').isDisabled(),true,'explicit confirmation required');
+    assert.match(await a.page.locator('#grant-scope').textContent(),/Scadenza:/);
+    await a.page.locator('#grant-options').selectOption('0');
+    await a.page.locator('#grant-confirm').check();
+    await a.page.locator('#grant-apply').click();
+    await a.page.getByText('Permesso aggiornato e riletto.',{exact:true}).waitFor();
+    assert.equal((await json(delegate.page,'/api/v1/organization/contexts')).value.length,1);
+    assert.equal((await json(delegate.page,'/api/v1/organization/contexts')).value[0].canWrite,false);
+    assert.deepEqual((await json(delegate.page,'/api/v1/organization/grant-administration')).value,[]);
+    const grantBase={...fixture.contexts[0],mandateId:fixture.mandates[0],targetMembershipId:fixture.grantTargetMembershipId,action:'organization-context.read',operation:'grant'};
+    const grantCommand=async(page,changes={},token=true)=>json(page,'/api/v1/organization/grant-commands',{
+      method:'POST',headers:{'Content-Type':'application/json',...(token?{'X-CSRF-TOKEN':await csrf(page)}:{})},
+      body:JSON.stringify({commandId:crypto.randomUUID(),...grantBase,...changes}),
+    });
+    assert.equal((await grantCommand(a.page,{},false)).status,400);
+    for (const change of [{targetMembershipId:fixture.adminMembershipId},{targetMembershipId:crypto.randomUUID()},
+      {action:'common-master.edit'},{legalEntityId:fixture.deniedContexts[0].legalEntityId},
+      {siteId:fixture.deniedContexts[1].siteId},{warehouseId:fixture.deniedContexts[2].warehouseId},fixture.contexts[2]])
+      assert.equal((await grantCommand(a.page,change)).status,403);
+    assert.equal((await grantCommand(c.page)).status,403);
+    assert.equal((await grantCommand(delegate.page)).status,403);
+    // A new command is NOT an idempotent retry: existing resource conflicts visibly.
+    await a.page.locator('#grant-confirm').check();
+    await a.page.locator('#grant-apply').click();
+    await a.page.getByText('Conflitto: comando o permesso già utilizzato. Aggiorna con Riprova prima di una nuova conferma.',{exact:true}).waitFor();
+    assert.equal(await a.page.locator('#grant-admin').isVisible(),false);
+    await a.page.locator('#retry').click();
+    await a.page.locator('#grant-admin').waitFor({state:'visible'});
+    await a.page.locator('#grant-options').selectOption('1');
+    await a.page.locator('#grant-confirm').check();
+    await a.page.locator('#grant-apply').click();
+    await a.page.getByText('Permesso aggiornato e riletto.',{exact:true}).waitFor();
+    const delegatedWrite=await json(delegate.page,'/api/v1/organization/context-notes',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':await csrf(delegate.page)},body:JSON.stringify({...fixture.contexts[0],message:'Synthetic delegated write'})});
+    assert.equal(delegatedWrite.status,201);
+    assert.equal((await json(delegate.page,'/api/v1/organization/context-notes/'+delegatedWrite.value.id)).status,200);
+    await a.page.locator('#grant-operation').selectOption('revoke');
+    await a.page.locator('#grant-confirm').check();
+    await a.page.locator('#grant-apply').click();
+    await a.page.getByText('Permesso aggiornato e riletto.',{exact:true}).waitFor();
+    assert.equal((await json(delegate.page,'/api/v1/organization/contexts')).value[0].canWrite,false);
+    await control('mandate-revoke');
+    assert.deepEqual((await json(delegate.page,'/api/v1/organization/contexts')).value,[]);
+    assert.equal((await json(delegate.page,'/api/v1/organization/context-notes/'+delegatedWrite.value.id)).status,404);
+    assert.equal((await grantCommand(a.page,{operation:'revoke'})).status,403);
+    await a.page.locator('#retry').click();
+    await a.page.getByText('Sessione attiva.',{exact:true}).waitFor();
+    assert.equal(await a.page.locator('#grant-admin').isVisible(),false);
+    passed('R01.b real confirmed grant/revoke, immediate read/write effects, CSRF and manipulated action/resource/target denials, revoked mandate and no subdelegation');
     stage = 'R01 own grant revocation and disabled capability history';
     assert.equal((await json(b.page, '/api/v1/organization/contexts')).value[0].canWrite, false);
     await control('capability-disable');

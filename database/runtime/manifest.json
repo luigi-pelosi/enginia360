@@ -73,5 +73,10 @@
     "id": "0015_external_identity_binding",
     "path": "migrations/0015_external_identity_binding.sql",
     "sha256": "c0c2b3616fd4cecb88c99a034a82f583f4d28f39ca1da19f06a727f3a83f11ef"
+  },
+  {
+    "id": "0016_limited_grant_administration",
+    "path": "migrations/0016_limited_grant_administration.sql",
+    "sha256": "0277df5036d79b4933a2e7c0a90b8e5fb8a6ad675ccd354f37dc1582155ee55b"
   }
 ]

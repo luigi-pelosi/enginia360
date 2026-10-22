@@ -1,4 +1,12 @@
-# Enginia360 — technical bootstrap
+# Enginia360 — bootstrap e incrementi runtime bounded
+
+## Stato corrente del codice
+
+B01–B14/C00 e R00/R01.a sono consegnati; R01.b (#58, parent #41) aggiunge amministrazione grant operativi limitata dal mandato owner D77. [Contratto, procedura owner, test e limiti R01.b](docs/r01b-limited-grant-administration.md). Evidenze exact-head/merge sono riportate nella PR/issue, non dedotte da questa pagina. [Piano corrente e gate R02–R06](docs/productization-plan.md).
+
+Il runtime usa binding verificati, cookie OIDC/CSRF, grant espliciti e migrazioni append-only: **non** crea automaticamente tenant/utenti/admin. Il tool owner applica solo mandati espliciti a binding/membership già trusted; provisioning/root binding completo e policy CRUD restano esclusi. Queste modifiche non sono un deployment: il bootstrap protetto continua a eseguire le proprie immagini già presenti, senza dati reali, go-live, nuovi ambienti persistenti o modifica Tailscale/storage.
+
+## Bootstrap storico — istruzioni del perimetro tecnico iniziale
 
 A minimal Italian landing page and live API status. **Not a usable DMS:** the foundation dossier is not approved and the charter vertical slice is not implemented. No business data, identity, tenant operations or database. Read [PROJECT_CHARTER.md](PROJECT_CHARTER.md), [scope/ADR](docs/bootstrap.md) and [engineering standards](AGENTS.md).
 
