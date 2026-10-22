@@ -13,6 +13,8 @@ import uuid
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = ROOT / 'compose.r00b-test.yaml'
+# Pinned helper used only to apply container-side ownership; hosted runners cannot chown directly.
+OWNERSHIP_IMAGE = 'python:3.14.3-alpine3.23@sha256:faee120f7885a06fcc9677922331391fa690d911c020abb9e8025ff3d908e510'
 
 
 def run(args, *, capture=True, timeout=180, input=None, env=None):
@@ -51,6 +53,13 @@ def cleanup(command, project):
             raise RuntimeError('ephemeral ' + kind + ' leaked')
 
 
+def own(state, relative, uid):
+    run(['docker','run','--rm','--read-only','--cap-drop=ALL','--cap-add=CHOWN','--security-opt=no-new-privileges:true',
+         '--network','none','--memory=64m','--pids-limit=16','--user','0:0',
+         '-v',str(state)+'/'+relative+':/key',OWNERSHIP_IMAGE,
+         'chown',str(uid)+':'+str(uid),'/key'],timeout=60)
+
+
 def certificate(state, service, hostname, uid):
     directory = state / service
     directory.mkdir(mode=0o755)
@@ -62,8 +71,8 @@ def certificate(state, service, hostname, uid):
          '-keyout', str(key), '-out', str(request)])
     run(['openssl', 'x509', '-req', '-in', str(request), '-CA', str(state/'ca.crt'), '-CAkey', str(state/'ca.key'),
          '-CAcreateserial', '-days', '1', '-sha256', '-extfile', str(extensions), '-out', str(directory/(service+'.crt'))])
-    os.chown(key, uid, uid)
     key.chmod(0o400)
+    own(state, service+'/'+key.name, uid)
     (directory/'ca.crt').write_bytes((state/'ca.crt').read_bytes())
 
 
@@ -144,8 +153,8 @@ def main():
         (state/'postgres'/'pg_hba.conf').write_text('local all all trust\nhostnossl all all all reject\nhostssl all all all scram-sha-256\n')
         sql, internal_ids = fixtures(state,values['R00_CLIENT_SECRET'])
         control = state/'control'
-        control.mkdir(mode=0o755)
-        os.chown(control,1001,1001)
+        control.mkdir()
+        control.chmod(0o777)  # private per-run scratch; the nonroot browser writes lifecycle requests here
         command = ['docker','compose','--env-file',str(envfile),'-p',project,'-f',str(CONFIG)]
         def interrupted(signum, frame):
             raise KeyboardInterrupt
