@@ -2,6 +2,8 @@
 
 ## Status
 
+Historical stage-1 report. The browser/session half is now implemented and verified separately in [R00.b stage 2](r00b-browser-session.md); the remaining-work list below describes what stage 1 did **not** deliver, not the current stage-2 capability. Final remote delivery IDs belong to the stage-2 PR/issue readback.
+
 Bounded delivery under D74–D76, tracked by **#53**, a subissue of **R00 #40**. This is **not** the complete R00.b browser/session contract and does not close #40, #53 or UI01.b #5. It delivers the identity half of the contract frozen in the R00 implementation handoff: an append-only verified-issuer/opaque-subject binding and a product authentication boundary that refuses the legacy credential surface by default. The real-browser OIDC code/PKCE flow, cookie/ticket session, antiforgery, TLS ephemeral identity stack and logout/revocation acceptance remain **open work**, listed under “Not delivered” below.
 
 Baseline: merged main `23240a1769fedeebf579b0bcbd81fe4098e0f1ea`. Protected bootstrap Compose/nginx, Tailscale 443 → localhost:9119, the two original bootstrap containers and 25 retained volumes are untouched; no persistent environment, public exposure, real identity/data, ERP call or purchase occurred.
@@ -63,9 +65,9 @@ dotnet list … package --vulnerable --include-transitive                     # 
 
 The canonical runner now applies the 15-unit manifest twice, runs both PostgreSQL suites and the pool/identity .NET suite with zero skips, restarts the same ephemeral project, reapplies the manifest, checks logs for generated secrets and cleans up only exact project/configuration-labelled resources. Pre-existing container, network and volume inventories are asserted unchanged.
 
-## Not delivered (remaining R00.b work)
+## Not delivered by stage 1 (historical remaining R00.b work)
 
-These remain unproven and are therefore not claimed anywhere:
+At stage-1 delivery these were unproven. Stage-2 guarantees, executed evidence and explicit logout limitations are in the linked current report:
 
 1. Backend OIDC confidential client, authorization code + PKCE S256 via the official middleware, with meaningful state/correlation/nonce/signature/issuer/audience/lifetime negative tests.
 2. Same-origin `__Host` Secure/HttpOnly cookie, bounded absolute-expiry revocable server-side tickets, no tokens in JS, antiforgery on login/logout and every cookie-authorized command, bearer-present-never-cookie selection.

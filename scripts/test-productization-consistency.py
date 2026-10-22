@@ -31,11 +31,11 @@ class ConsistencyGuardTests(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn(expected, result.stderr)
 
-    def mutate(self, relative, old, new):
+    def mutate(self, relative, old, new, count=1):
         path = self.root / relative
         text = path.read_text()
         self.assertIn(old, text)
-        path.write_text(text.replace(old, new, 1))
+        path.write_text(text.replace(old, new, count))
 
     def test_current_documentation_passes(self):
         self.run_guard()
@@ -52,7 +52,7 @@ class ConsistencyGuardTests(unittest.TestCase):
 
     def test_mutation_suite_is_executed_in_ci(self):
         self.mutate(".github/workflows/ci.yml", "python3 scripts/test-c00-consistency.py",
-                    "python3 scripts/test-c00-consistency.py # python3 scripts/test-productization-consistency.py removed")
+                    "python3 scripts/test-c00-consistency.py # python3 scripts/test-productization-consistency.py removed", count=-1)
         self.run_guard("Productization mutation suite must execute in CI")
 
     def test_stale_active_authorization_is_rejected(self):

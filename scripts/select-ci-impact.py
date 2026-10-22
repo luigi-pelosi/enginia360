@@ -1,0 +1,82 @@
+#!/usr/bin/env python3
+"""Finite R00.b/UI change-impact contract. Unknown executable paths require an explicit mapping, never a blanket run."""
+import argparse
+import json
+from pathlib import PurePosixPath
+import re
+import subprocess
+import sys
+
+AUTH_FILTER = '|'.join('FullyQualifiedName~'+name for name in (
+    'BrowserSessionTests','BoundedTicketStoreTests','BrowserAuthenticationBoundaryTests',
+    'ExternalIdentityAuthenticationTests','AuthorizedContextContractTests','BootstrapTests'))
+AUTH_FILES = {
+    'src/Enginia360.Api/Program.cs','src/Enginia360.Api/Enginia360.Api.csproj',
+    'src/Enginia360.Api/packages.lock.json','tests/Enginia360.Api.Tests/packages.lock.json',
+    'src/Enginia360.Api/Dockerfile','compose.r00b-test.yaml','compose.r00a-test.yaml',
+    'browser.runtime.Dockerfile','keycloak.runtime.Dockerfile','postgres.runtime.Dockerfile',
+    'migrator.runtime.Dockerfile','runtime-pool-test.Dockerfile',
+    'scripts/apply-runtime-migrations.py','scripts/validate-runtime-config.py',
+    'scripts/select-ci-impact.py','scripts/test-ci-impact.py','.github/workflows/ci.yml',
+    'scripts/test-productization-consistency.py',
+    'web/nginx.r00b-test.conf','web/runtime-access.html','web/runtime-access.js',
+}
+AUTH_TESTS = {'BrowserSessionTests','BoundedTicketStoreTests','BrowserAuthenticationBoundaryTests',
+              'ExternalIdentityAuthenticationTests','AuthorizedContextContractTests','BootstrapTests','RuntimeMigrationPoolTests'}
+
+
+def selection(paths):
+    paths = sorted(set(paths))
+    auth = ui = False
+    unknown = []
+    for path in paths:
+        parsed = PurePosixPath(path)
+        if not path or parsed.is_absolute() or '..' in parsed.parts or '\\' in path or str(parsed) != path:
+            raise ValueError('invalid changed path')
+        if (path in AUTH_FILES or path.startswith(('src/Enginia360.Api/BrowserAuthentication/',
+                'src/Enginia360.Api/OrganizationAccess/','database/runtime/','tests/browser/',
+                'scripts/run-r00','scripts/test-r00'))
+                or (path.startswith('tests/Enginia360.Api.Tests/') and parsed.stem in AUTH_TESTS)):
+            auth = True
+        elif path.startswith('web/'):
+            ui = True
+        elif path.endswith('.md') or path.startswith('docs/') or path in ('.gitignore',):
+            pass
+        else:
+            unknown.append(path)
+    if unknown:
+        raise ValueError('extend and test direct-dependency impact mapping for: '+', '.join(unknown))
+    return {'changed_paths':paths,'api_filter':AUTH_FILTER if auth else '',
+            'browser':auth,'migrations':auth,'ui_build':auth or ui,'ui_tests':ui,
+            'full_architecture':False}
+
+
+def changed_paths(base, head):
+    for value in (base, head):
+        if not re.fullmatch(r'[0-9a-f]{40}',value):
+            raise ValueError('comparison commits must be exact 40-character lowercase SHAs')
+    return subprocess.check_output(['git','diff','--name-only','-z',base,head],text=True).rstrip('\0').split('\0') if base != head else []
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--paths-json')
+    parser.add_argument('--base')
+    parser.add_argument('--head')
+    args = parser.parse_args()
+    if args.paths_json is not None:
+        paths = json.loads(args.paths_json)
+        if not isinstance(paths,list) or any(not isinstance(path,str) for path in paths):
+            raise ValueError('changed paths must be a string array')
+    else:
+        paths = changed_paths(args.base or '',args.head or '')
+        paths = [path for path in paths if path]
+    print(json.dumps(selection(paths),sort_keys=True))
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except (ValueError,subprocess.CalledProcessError) as error:
+        print(str(error),file=sys.stderr)
+        sys.exit(1)
