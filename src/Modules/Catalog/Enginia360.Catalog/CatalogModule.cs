@@ -29,11 +29,14 @@ internal sealed class CatalogItem
 }
 internal sealed class WorkshopCatalog(CatalogDbContext db) : IWorkshopCatalog
 {
-    public async Task<IReadOnlyList<CatalogChoice>> List(Guid verifiedTenantId, CancellationToken ct)
+    public async Task<IReadOnlyList<CatalogChoice>> List(Guid verifiedTenantId, CancellationToken ct, int? limit = null, string? search = null, Guid? after = null)
     {
         await using var tx = await db.Database.BeginTransactionAsync(ct);
         await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.tenant_id', {verifiedTenantId.ToString()}, true)", ct);
-        var rows = await db.Items.AsNoTracking().Where(x => x.TenantId == verifiedTenantId).OrderBy(x => x.Id)
+        var rows = await db.Items.AsNoTracking().Where(x => x.TenantId == verifiedTenantId)
+            .Where(x => search == null || x.Label.Contains(search))
+            .Where(x => after == null || x.Id.CompareTo(after.Value) > 0)
+            .OrderBy(x => x.Id).Take(limit ?? int.MaxValue)
             .Select(x => new CatalogChoice(x.Id, x.Kind, x.Label, x.Version)).ToListAsync(ct);
         await tx.CommitAsync(ct);
         return rows;

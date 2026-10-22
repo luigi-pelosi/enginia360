@@ -39,18 +39,22 @@ public static class WorkshopModule
             await tx.CommitAsync(ct);
             return Results.Ok(types);
         });
-        routes.MapGet("/vehicles", async (Guid legalEntityId, Guid siteId, ClaimsPrincipal user,
+        routes.MapGet("/vehicles", async (Guid legalEntityId, Guid siteId, int? limit, string? search, Guid? after, ClaimsPrincipal user,
             IWorkshopAccess access, IWorkshopVehicles vehicles, CancellationToken ct) =>
         {
             var grant = await access.Authorize(Subject(user), legalEntityId, siteId, "workshop.orders.create", true, ct);
-            return grant is null ? Results.StatusCode(403) : Results.Ok(await vehicles.List(grant.TenantId, ct));
+            if (grant is null) return Results.StatusCode(403);
+            if (limit is < 1 or > 50 || search is { Length: > 200 }) return Results.BadRequest();
+            return Results.Ok(await vehicles.List(grant.TenantId, ct, limit ?? 20, search, after));
         });
         routes.MapPost("/orders", Create);
-        routes.MapGet("/catalog", async (Guid legalEntityId, Guid siteId, ClaimsPrincipal user,
+        routes.MapGet("/catalog", async (Guid legalEntityId, Guid siteId, int? limit, string? search, Guid? after, ClaimsPrincipal user,
             IWorkshopAccess access, IWorkshopCatalog catalog, CancellationToken ct) =>
         {
             var grant = await access.Authorize(Subject(user), legalEntityId, siteId, "workshop.orders.create", true, ct);
-            return grant is null ? Results.StatusCode(403) : Results.Ok(await catalog.List(grant.TenantId, ct));
+            if (grant is null) return Results.StatusCode(403);
+            if (limit is < 1 or > 50 || search is { Length: > 200 }) return Results.BadRequest();
+            return Results.Ok(await catalog.List(grant.TenantId, ct, limit ?? 20, search, after));
         });
         routes.MapGet("/orders/{id:guid}", Get);
         CommercialEndpoints.Map(routes);

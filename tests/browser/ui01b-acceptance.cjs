@@ -7,6 +7,31 @@ const checks = [];
 function pass(name) { checks.push(name); console.log('PASS UI01B '+name); }
 async function json(page,path,options={}) { return page.evaluate(async ({path,options}) => { const r=await fetch(path,options); return { status:r.status, value:await r.json().catch(()=>null) }; },{path,options}); }
 async function post(page,path,body,token) { const csrf=token===undefined ? (await json(page,'/auth/csrf')).value.requestToken : token; return json(page,path,{method:'POST',headers:{'Content-Type':'application/json',...(csrf ? {'X-CSRF-TOKEN':csrf} : {})},body:JSON.stringify(body)}); }
+async function control(action) {
+  fs.writeFileSync('/run/control/request',action);
+  for(let i=0;i<80;i++) {
+    if(fs.existsSync('/run/control/ack')) { assert.equal(fs.readFileSync('/run/control/ack','utf8'),action); fs.unlinkSync('/run/control/ack'); return; }
+    await new Promise(r=>setTimeout(r,100));
+  }
+  assert.fail('ephemeral database controller did not acknowledge '+action);
+}
+async function paging(page, noun, label) {
+  await page.getByLabel('Ricerca '+noun,{exact:true}).fill('Page');
+  async function fetchPage(button) {
+    const response=page.waitForResponse(r=>new URL(r.url()).searchParams.get('search')==='Page' && r.request().method()==='GET');
+    await page.getByRole('button',{name:button,exact:true}).click();
+    const r=await response; assert.equal(r.status(),200); const rows=await r.json();
+    await page.waitForFunction(({label,ids})=>JSON.stringify(Array.from(document.querySelector('select[aria-label="'+label+'"]').options).map(o=>o.value).filter(Boolean))===JSON.stringify(ids),{label,ids:rows.map(r=>r.id)});
+    return rows.map(r=>r.id);
+  }
+  const ids=await fetchPage('Cerca '+noun);
+  assert.equal(ids.length,20);
+  ids.push(...await fetchPage('Pagina successiva '+noun));
+  ids.push(...await fetchPage('Pagina successiva '+noun));
+  assert.equal(ids.length,51); assert.equal(new Set(ids).size,51); assert.deepEqual(ids,[...ids].sort());
+  assert(await page.getByRole('button',{name:'Pagina successiva '+noun,exact:true}).isDisabled());
+  assert.deepEqual(await fetchPage('Prima pagina '+noun),ids.slice(0,20));
+}
 async function login(browser,index) {
   const context=await browser.newContext(); const page=await context.newPage();
   await page.goto(origin+'/'); await page.getByRole('button',{name:'Accedi',exact:true}).waitFor();
@@ -30,14 +55,99 @@ async function login(browser,index) {
   let cspErrors=0; page.on('console',m=>{if (/Content Security Policy|violates.*directive/i.test(m.text())) cspErrors++;});
   page.on('pageerror',e=>console.error('APP_JS_ERROR '+e.message));
   assert.equal((await json(page,'/auth/session')).value.authenticated,true);
+  stage='R02 bounded selector queries';
+  const ctx=fixture.contexts[0];
+  const scope='legalEntityId='+ctx.legalEntityId+'&siteId='+ctx.siteId;
+  const selectors=['/api/v1/counterparties?'+scope,'/api/v1/workshop/vehicles?'+scope,'/api/v1/workshop/catalog?'+scope];
+  const sizes=[];
+  for(const endpoint of selectors) {
+    const result=await json(page,endpoint+'&limit=1'); assert.equal(result.status,200); sizes.push(result.value.length);
+  }
+  assert.deepEqual(sizes,[1,1,1],'each owning-module query must bound actual database results');
+  pass('R02 bounded results in all three PostgreSQL selectors');
+  stage='R02 literal search and stable paging';
+  const searched=[];
+  for(const endpoint of selectors) {
+    const empty=await json(page,endpoint+'&search=NoSuchMaster'); searched.push(empty.value);
+  }
+  assert.deepEqual(searched,[[],[],[]],'literal search must execute in each owning query');
+  for(const endpoint of selectors) {
+    assert.equal((await json(page,endpoint)).value.length,20);
+    assert.equal((await json(page,endpoint+'&limit=50')).value.length,50);
+    const all=(await json(page,endpoint+'&limit=50&search=Synthetic')).value;
+    assert(all.length>=1); assert.deepEqual(all.map(x=>x.id),all.map(x=>x.id).sort());
+    const collected=[]; let after='';
+    for(let n=0;n<=all.length;n++) {
+      const r=await json(page,endpoint+'&search=Synthetic&limit=1'+(after?'&after='+after:'')); assert.equal(r.status,200);
+      if(!r.value.length) break;
+      assert.equal(r.value.length,1); collected.push(r.value[0]); after=r.value[0].id;
+    }
+    assert.deepEqual(collected,all,'exclusive UUID pagination cannot repeat or omit stable rows');
+    for(const term of ['synthetic','Sýnthetic','%','_']) assert.deepEqual((await json(page,endpoint+'&search='+encodeURIComponent(term))).value,[]);
+    assert((await json(page,endpoint+'&search=Synthetic')).value.length>0);
+    for(const query of ['limit=0','limit=51','limit=-1','limit=x','after=broken','search='+('x'.repeat(201))]) assert.equal((await json(page,endpoint+'&'+query)).status,400,query.split('=')[0]);
+  }
+  pass('R02 literal case/diacritic-sensitive search, wildcard escaping, empty result, UUID keyset paging and input caps');
+  stage='R02 exact action context and tenant boundaries';
+  assert.deepEqual(Object.keys((await json(page,selectors[1]+'&search=Synthetic')).value[0]).sort(),['id','label']);
+  assert.deepEqual(Object.keys((await json(page,selectors[2]+'&search=Synthetic')).value[0]).sort(),['id','kind','label','version']);
+  for(const [n, endpoint] of selectors.entries()) {
+    const r=await json(page,endpoint+'&search=Synthetic&tenantId='+fixture.contexts[1].tenantId+'&identitySubject='+fixture.contexts[1].tenantId);
+    assert.equal(r.status,200);
+    const forbidden=n===0?[fixture.workshop[1].payerId,fixture.workshop[1].holderId]:n===1?[fixture.workshop[1].vehicleId]:[fixture.workshop[1].serviceId,fixture.workshop[1].partId];
+    assert(r.value.every(x=>!forbidden.includes(x.id)));
+    const wrong=endpoint.replace(ctx.legalEntityId,fixture.deniedContexts[0].legalEntityId);
+    assert.equal((await json(page,wrong)).status,403);
+    if(n>0) assert.equal((await json(page,endpoint.replace(ctx.siteId,fixture.contexts[1].siteId))).status,403);
+  }
+  const destinations=(await json(page,'/api/v1/counterparties/'+fixture.workshop[0].payerId+'/destinations?legalEntityId='+ctx.legalEntityId)).value;
+  assert.deepEqual(destinations.map(x=>x.id),[fixture.publishedDestinationId]);
+  assert.equal((await json(page,'/api/v1/counterparties/destinations/'+fixture.privateDestinationId+'?legalEntityId='+ctx.legalEntityId)).status,404);
+  const onlyRead=await login(browser,5), membershipOnly=await login(browser,4);
+  assert.deepEqual(await Promise.all(selectors.map(async e=>(await json(onlyRead.page,e)).status)),[200,403,403]);
+  assert.deepEqual(await Promise.all(selectors.map(async e=>(await json(membershipOnly.page,e)).status)),[403,403,403]);
+  await onlyRead.context.close(); await membershipOnly.context.close();
+  pass('R02 same-tenant other-company minimal choices, private destination hidden/published visible, tenant/identity tampering and exact distinct actions denied');
   stage='editor route'; await page.goto(origin+'/ui01-runtime.html');
   await page.getByRole('heading',{name:'Nuova commessa',exact:true}).waitFor();
   stage='document selectors';
   await page.getByRole('option',{name:'Synthetic document · v7',exact:true}).waitFor({state:'attached'});
+  stage='R02 actual database outage and recovery';
+  await control('database-outage');
+  for(const endpoint of selectors) assert.equal((await json(page,endpoint+'&search=Synthetic')).status,503);
+  await page.getByLabel('Ricerca veicolo',{exact:true}).fill('Synthetic vehicle');
+  await page.getByRole('button',{name:'Cerca veicolo',exact:true}).click();
+  await page.getByText(/Veicolo: Servizio non disponibile/).waitFor();
+  assert.equal(await page.getByLabel('Veicolo',{exact:true}).locator('option').count(),1);
+  await control('database-recover');
+  await page.getByRole('button',{name:'Cerca veicolo',exact:true}).click();
+  await page.getByRole('option',{name:'Synthetic vehicle',exact:true}).waitFor({state:'attached'});
+  pass('R02 actual paused PostgreSQL yields selector503 and empty UI; unpause explicit retry recovers');
+  stage='R02 real UI search paging and stale context response';
+  await paging(page,'pagante','Pagante'); await paging(page,'veicolo','Veicolo');
+  let release, captured, fulfilled;
+  const held=new Promise(resolve=>{release=resolve;}), received=new Promise(resolve=>{captured=resolve;}), completed=new Promise(resolve=>{fulfilled=resolve;});
+  const hold=async route=>{const response=await route.fetch(); assert.equal(response.status(),200); captured(); await held; await route.fulfill({response}); fulfilled();};
+  await page.route('**/api/v1/counterparties?**search=Synthetic**',hold);
+  await page.getByLabel('Ricerca pagante',{exact:true}).fill('Synthetic');
+  await page.getByRole('button',{name:'Cerca pagante',exact:true}).click(); await received;
+  await page.getByLabel('Società / sede',{exact:true}).selectOption('');
+  release(); await completed; await page.unroute('**/api/v1/counterparties?**search=Synthetic**',hold);
+  assert.equal(await page.getByLabel('Pagante',{exact:true}).locator('option').count(),1);
+  assert(await page.getByRole('button',{name:'Cerca pagante',exact:true}).isDisabled());
+  await page.getByLabel('Società / sede',{exact:true}).selectOption('0');
+  await page.getByRole('option',{name:'Synthetic document · v7',exact:true}).waitFor({state:'attached'});
+  pass('R02 UI traverses 51 actual payer/vehicle rows without duplicates; delayed real response discarded after context clear');
   await page.getByLabel('Tipo documento',{exact:true}).selectOption(fixture.workshop[0].documentTypeId);
   stage='payer select';
+  await page.getByLabel('Ricerca pagante',{exact:true}).fill('Synthetic payerId');
+  await page.getByRole('button',{name:'Cerca pagante',exact:true}).click();
+  await page.getByRole('option',{name:'Synthetic payerId',exact:true}).waitFor({state:'attached'});
   await page.getByLabel('Pagante',{exact:true}).selectOption(fixture.workshop[0].payerId);
   stage='vehicle select';
+  await page.getByLabel('Ricerca veicolo',{exact:true}).fill('Synthetic vehicle');
+  await page.getByRole('button',{name:'Cerca veicolo',exact:true}).click();
+  await page.getByRole('option',{name:'Synthetic vehicle',exact:true}).waitFor({state:'attached'});
   await page.getByLabel('Veicolo',{exact:true}).selectOption(fixture.workshop[0].vehicleId);
   assert.equal(await page.getByLabel('Pagante',{exact:true}).inputValue(),fixture.workshop[0].payerId);
   await page.getByRole('button',{name:'Crea commessa',exact:true}).click();
@@ -47,8 +157,12 @@ async function login(browser,index) {
   assert.equal(order.payerId,fixture.workshop[0].payerId); assert.equal(order.vehicleHolderId,fixture.workshop[0].holderId); assert.notEqual(order.payerId,order.vehicleHolderId); assert.equal(order.configurationVersion,7);
   pass('native OIDC S256 → real selectors/server v7 → create/read immutable independent payer/holder');
   stage='add service and part';
+  await paging(page,'articolo / prestazione','Articolo / prestazione');
+  pass('R02 UI traverses 51 actual catalog identities with stable cursor and no prices/stock');
   let firstBody;
   for(const [kind,quantity,price,discount,revision] of [['Service','1.123456','45.654321','12.34',1],['Part','2.000001','12.123456','0.01',2]]) {
+    await page.getByLabel('Ricerca articolo / prestazione',{exact:true}).fill('Synthetic '+kind);
+    await page.getByRole('button',{name:'Cerca articolo / prestazione',exact:true}).click();
     await page.getByRole('option',{name:kind+' · Synthetic '+kind,exact:true}).waitFor({state:'attached'});
     await page.getByLabel('Articolo / prestazione',{exact:true}).selectOption(fixture.workshop[0][kind.toLowerCase()+'Id']);
     await page.getByLabel('Versione configurazione righe (setup)',{exact:true}).fill('9');

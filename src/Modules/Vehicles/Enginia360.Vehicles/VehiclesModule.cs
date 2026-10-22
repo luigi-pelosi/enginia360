@@ -28,12 +28,14 @@ internal sealed class Vehicle
 }
 internal sealed class WorkshopVehicles(VehiclesDbContext db) : IWorkshopVehicles
 {
-    public async Task<IReadOnlyList<VehicleChoice>> List(Guid verifiedTenantId, CancellationToken ct)
+    public async Task<IReadOnlyList<VehicleChoice>> List(Guid verifiedTenantId, CancellationToken ct, int? limit = null, string? search = null, Guid? after = null)
     {
         await using var tx = await db.Database.BeginTransactionAsync(ct);
         await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.tenant_id', {verifiedTenantId.ToString()}, true)", ct);
         var rows = await db.Vehicles.AsNoTracking().Where(x => x.TenantId == verifiedTenantId)
-            .OrderBy(x => x.Id).Select(x => new VehicleChoice(x.Id, x.Label)).ToListAsync(ct);
+            .Where(x => search == null || x.Label.Contains(search))
+            .Where(x => after == null || x.Id.CompareTo(after.Value) > 0)
+            .OrderBy(x => x.Id).Take(limit ?? int.MaxValue).Select(x => new VehicleChoice(x.Id, x.Label)).ToListAsync(ct);
         await tx.CommitAsync(ct);
         return rows;
     }

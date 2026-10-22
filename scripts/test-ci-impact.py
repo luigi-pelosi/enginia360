@@ -39,6 +39,21 @@ def validate_workflow(text):
 
 
 class ImpactTests(unittest.TestCase):
+    def test_shared_master_search_owners_select_actual_editor_and_scoped_api(self):
+        for path in ('src/Modules/Vehicles/Enginia360.Vehicles/VehiclesModule.cs',
+                     'src/Modules/Vehicles/Enginia360.Vehicles.Contracts/Contracts.cs',
+                     'src/Modules/Catalog/Enginia360.Catalog/CatalogModule.cs',
+                     'src/Modules/Catalog/Enginia360.Catalog.Contracts/Contracts.cs',
+                     'src/Modules/Counterparties/Enginia360.Counterparties/CounterpartiesModule.cs',
+                     'src/Modules/Workshop/Enginia360.Workshop/WorkshopModule.cs'):
+            result = select([path])
+            self.assertTrue(result['ui01b'])
+            self.assertTrue(result['migrations'])
+            self.assertIn('WorkshopBoundaryTests', result['api_filter'])
+            self.assertIn('CounterpartyArchitectureTests', result['api_filter'])
+            self.assertNotIn('AccountingBoundaryTests', result['api_filter'])
+            self.assertFalse(result['full_architecture'])
+
     def test_browser_auth_selects_its_security_and_direct_dependencies_only(self):
         selection = select(['src/Enginia360.Api/BrowserAuthentication/BrowserSessionModule.cs'])
         self.assertTrue(selection['browser'])

@@ -69,6 +69,7 @@ La matrice strutturata `productization-backlog.json` è verificata dal test C00 
 - Dipende da: R01.
 - Gate: AUTHORITY: D76 configurabile per società/dominio, master condiviso con unica autorità tenant-wide; selezione concreta al setup prima di scrittura/sync dipendente. Creazione/disattivazione/duplicati da decidere solo al percorso necessario.
 - R02.a: ricerca/selezione di controparte, veicolo e articolo/prestazione comuni nel tenant senza ampliare grant di gestione.
+- Contratto R02.a #62: [ricerca/selezione anagrafiche condivise](r02a-shared-master-selection.md), soli contratti dei moduli proprietari già autorizzati con cap tecnici di query/limite, cursore UUID stabile e scarto delle risposte superate. Grant per azione/risorsa invariati: `counterparties.read` non concede veicoli o catalogo e il selettore catalogo richiede ancora `workshop.orders.create`. Nessuna creazione, modifica, disattivazione, deduplicazione, pubblicazione, import/sync o scelta di autorità.
 - R02.b: un percorso autorizzato di acquisizione o modifica, locale oppure proiezione ERP secondo autorità confermata, con mapping e storico.
 - Accettazione/evidenze: D21/D26/D61/D63/D65 rispettati; pagante non sovrascritto da veicolo; destinazioni riservate e dati societari protetti; input e conflitti validati; test negativi più percorso UI/API/SQL reale e audit minimizzato.
 
