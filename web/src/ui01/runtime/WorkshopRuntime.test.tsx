@@ -92,3 +92,11 @@ test('accepted add followed by failed read is visibly unverified; reread never r
   await screen.findByText('Valori salvati riletti — revisione 0');
   expect(fetch.mock.calls.filter(([,o])=>o?.method==='POST')).toHaveLength(1);
 });
+test('read-only order success is not overwritten by independently denied catalog selector',async()=>{
+ window.location.hash='order='+id; const fetch=server();
+ fetch.mockImplementation(async(path:string)=>path.includes('/catalog?')?new Response(null,{status:403}):new Response(JSON.stringify(path==='/auth/session'?{authenticated:true}:path==='/auth/csrf'?{requestToken:'test-only'}:path.endsWith('/commercial-summary')?summary:path.endsWith('/orders/'+id)?order:[])));
+ render(<WorkshopRuntime/>);
+ await screen.findByText(/Catalogo non disponibile/);
+ expect(screen.getByText('Valori salvati riletti — revisione 0')).toBeTruthy();
+ expect(screen.getByText('0.000000 EUR')).toBeTruthy();
+});

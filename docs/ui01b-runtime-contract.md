@@ -32,6 +32,8 @@ Persisted row edit/remove, Note, multiple groups, order list/search, payer/vehic
 
 Pinned existing Ant Design 6.6.7; no dependencies/lock changes. Its installed `antd/dist/antd.css` and supported `theme.zeroRuntime` supply static styles; ConfigProvider `csp.nonce` covers remaining dynamic style mechanisms. The opt-in TLS edge substitutes a fresh nginx `$request_id` (16 random bytes) into the document meta and `style-src 'self' 'nonce-…'` per response, with no-store. Script/connect remain same-origin, no unsafe-inline/wildcard or untrusted client nonce. Native controls avoid style-attribute-requiring overlays; real Ant Button is exercised under that policy. Existing bootstrap/R00 nginx policy is untouched. This profile is a bounded acceptance entry, not an approved production deployment.
 
+Official primary references checked: `https://ant.design/docs/react/compatible-style/` (zeroRuntime/static antd.css), `https://ant.design/components/config-provider` (csp nonce), `https://nginx.org/en/docs/http/ngx_http_core_module.html#var_request_id` (16 random bytes). Installed pinned package sources and actual strict-CSP Chromium acceptance verify the concrete integration rather than relying only on documentation.
+
 ## Rollback
 
 A reviewed revert removes the separate entry, runtime sources/build script, opt-in Compose/nginx and targeted CI mapping/job. No application schema, migration, backend contract, saved snapshot or protected deployment was changed; no data rollback or authority switch is needed. Do not delete retained data or alter the existing Tailscale handler.

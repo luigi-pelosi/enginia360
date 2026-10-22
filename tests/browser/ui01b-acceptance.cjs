@@ -56,7 +56,8 @@ async function login(browser,index) {
     if(kind==='Service') await page.route('**/api/v1/workshop/orders/*/lines',async route=>{firstBody=route.request().postData(); const response=await route.fetch(); assert.equal(response.status(),201); await route.abort('connectionreset'); await page.unroute('**/api/v1/workshop/orders/*/lines');});
     if(kind==='Part') await page.route('**/commercial-summary',route=>route.abort('connectionreset'));
     await page.getByLabel('Quantità',{exact:true}).fill('1,5'); assert(await page.getByRole('button',{name:'Aggiungi riga',exact:true}).isDisabled()); await page.getByLabel('Quantità',{exact:true}).fill(quantity);
-    await page.getByRole('button',{name:'Aggiungi riga',exact:true}).click();
+    if(kind==='Service') { await page.getByLabel('Quantità',{exact:true}).focus(); await page.keyboard.press('Tab'); assert(await page.getByLabel('Prezzo unitario',{exact:true}).evaluate(e=>e===document.activeElement)); await page.getByLabel('Sconto %',{exact:true}).press('Enter'); }
+    else await page.getByRole('button',{name:'Aggiungi riga',exact:true}).click();
     if(kind==='Service') { await page.getByRole('button',{name:'Riprova comando identico',exact:true}).waitFor(); const replay=page.waitForRequest(r=>r.method()==='POST' && new URL(r.url()).pathname.endsWith('/lines')); await page.getByRole('button',{name:'Riprova comando identico',exact:true}).click(); assert.equal((await replay).postData(),firstBody); }
     if(kind==='Part') { await page.getByText(/Scrittura accettata; riepilogo non verificato/).waitFor(); await page.unroute('**/commercial-summary'); await page.getByRole('button',{name:'Rileggi commessa',exact:true}).click(); }
     await page.getByText('Valori salvati riletti — revisione '+revision,{exact:true}).waitFor();
@@ -83,7 +84,13 @@ async function login(browser,index) {
   assert.deepEqual((await json(page,'/api/v1/workshop/orders/'+orderId+'/commercial-summary')).value,saved);
   pass('missing/corrupt CSRF, stale revision/duplicate kind, foreign tenant and missing exact add action denied');
   pass('read-only identity with empty creation contexts reopens authorized known order');
-  stage='layout'; for(const [width,height] of [[1920,1080],[1366,768]]) {await page.setViewportSize({width,height}); const measure=await page.evaluate(()=>({width:innerWidth,height:innerHeight,bottom:document.querySelector('.ui01-summary').getBoundingClientRect().bottom})); assert.deepEqual(measure,{width,height,bottom:height}); await page.screenshot({path:'/run/control/ui01b-'+width+'x'+height+'.png'});}
+  stage='layout'; for(const [width,height] of [[1920,1080],[1366,768]]) {
+    await page.setViewportSize({width,height});
+    const measure=await page.evaluate(()=>({width:innerWidth,height:innerHeight,bottom:document.querySelector('.ui01-summary').getBoundingClientRect().bottom})); assert.deepEqual(measure,{width,height,bottom:height});
+    await page.locator('.ui01-document').evaluate(e=>{e.scrollTop=e.scrollHeight;});
+    const reachable=await page.getByRole('button',{name:'Aggiungi riga',exact:true}).evaluate(e=>{const r=e.getBoundingClientRect(), footer=document.querySelector('.ui01-summary').getBoundingClientRect(); return r.top>=0 && r.bottom<=footer.top;}); assert(reachable,'add control reachable above sticky summary after document scroll');
+    await page.screenshot({path:'/run/control/ui01b-'+width+'x'+height+'.png'});
+  }
   assert.equal(cspErrors,0,'no app CSP violations with actual Ant Design button/styles');
   const response=await page.request.get(origin+'/ui01-runtime.html'); const nonce=(await response.text()).match(/name="style-nonce" content="([a-f0-9]{32})"/)[1]; assert(response.headers()['content-security-policy'].includes("'nonce-"+nonce+"'"));
   const again=await page.request.get(origin+'/ui01-runtime.html'); assert.notEqual((await again.text()).match(/name="style-nonce" content="([a-f0-9]{32})"/)[1],nonce);
