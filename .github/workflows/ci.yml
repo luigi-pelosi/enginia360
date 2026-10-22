@@ -111,6 +111,8 @@ jobs:
         run: docker run --rm -v "$PWD:/source" -w /source/web node:24.22.0-alpine3.24@sha256:44fce696f38ba8c987c4db89954051000bbd05ffd8d8659ba15ed4a8602e937f sh -c 'npm ci --no-audit --no-fund && npm run build:ui01-runtime'
       - name: Actual editor Chromium TLS OIDC API PostgreSQL acceptance
         run: timeout 600 python3 scripts/run-ui01b-tests.py
+      - name: Nonroot synthetic fixture extension retains readonly browser mount
+        run: docker run --rm --user 1001:1001 --read-only --cap-drop=ALL --security-opt=no-new-privileges:true --network none --memory=128m --pids-limit=32 --tmpfs /tmp:rw,noexec,nosuid,size=16m,uid=1001,gid=1001 -v "$PWD:/source:ro" -w /source python:3.14.3-alpine3.23@sha256:faee120f7885a06fcc9677922331391fa690d911c020abb9e8025ff3d908e510 python3 scripts/test-ui01b-fixture.py
   runtime-migrations:
     if: github.event_name == 'workflow_dispatch' && inputs.full_architecture
     runs-on: ubuntu-24.04

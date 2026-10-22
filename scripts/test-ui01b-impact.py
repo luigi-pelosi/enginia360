@@ -7,7 +7,7 @@ spec=importlib.util.spec_from_file_location('impact',ROOT/'scripts/select-ci-imp
 module=importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
 class UI01bImpact(unittest.TestCase):
     def test_every_new_runtime_layer_selects_actual_editor_acceptance_and_direct_contracts(self):
-        paths=['web/src/ui01/runtime/WorkshopRuntime.tsx','web/ui01-runtime.html','web/vite.ui01-runtime.config.ts','web/nginx.ui01b-test.conf','compose.ui01b-test.yaml','scripts/run-ui01b-tests.py','scripts/test-ui01b-wiring.py','scripts/test-ui01b-impact.py','tests/browser/ui01b-acceptance.cjs']
+        paths=['web/src/ui01/runtime/WorkshopRuntime.tsx','web/ui01-runtime.html','web/vite.ui01-runtime.config.ts','web/nginx.ui01b-test.conf','compose.ui01b-test.yaml','scripts/run-ui01b-tests.py','scripts/test-ui01b-wiring.py','scripts/test-ui01b-impact.py','scripts/test-ui01b-fixture.py','tests/browser/ui01b-acceptance.cjs']
         for path in paths:
             with self.subTest(path=path):
                 result=module.selection([path]); self.assertTrue(result.get('ui01b')); self.assertTrue(result['ui_tests']); self.assertTrue(result['ui_build']); self.assertTrue(result['migrations']); self.assertIn('WorkshopBoundaryTests',result['api_filter']); self.assertIn('CommercialCalculationTests',result['api_filter']); self.assertNotIn('AccountingBoundaryTests',result['api_filter']); self.assertFalse(result['full_architecture'])

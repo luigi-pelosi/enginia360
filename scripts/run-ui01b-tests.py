@@ -42,6 +42,8 @@ def fixtures(state, secret):
         if index == 0:
             for action in ('workshop.orders.read','counterparties.read'):
                 statements.append(f"INSERT INTO organization_access.company_permissions VALUES ('{uuid.uuid4()}','{browser['grantTargetMembershipId']}','{tenant}','{company}','{action}',NULL,NULL);")
+    # R00 seals its completed fixture read-only. Extend it as its owner, then reseal before any mount.
+    (state/'browser.json').chmod(0o600)
     (state/'browser.json').write_text(json.dumps(browser))
     (state/'browser.json').chmod(0o444)
     return '\n'.join(statements)
