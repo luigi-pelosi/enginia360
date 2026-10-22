@@ -7,6 +7,7 @@
     "dev": "vite --host 0.0.0.0",
     "build": "tsc --noEmit && vite build",
     "build:ui01": "tsc --noEmit && vite build --config vite.ui01.config.ts",
+    "build:ui01-runtime": "tsc --noEmit && vite build --config vite.ui01-runtime.config.ts",
     "dev:ui01": "vite --config vite.ui01.config.ts",
     "test": "vitest run"
   },

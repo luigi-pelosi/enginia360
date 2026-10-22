@@ -1,0 +1,94 @@
+import { afterEach, expect, test, vi } from 'vitest';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import WorkshopRuntime from './WorkshopRuntime';
+const id = '11111111-1111-4111-8111-111111111111';
+export const order = { id, legalEntityId: id, siteId: id, documentTypeId: id, configurationVersion: 7, payerId: id, vehicleId: id, vehicleHolderId: '22222222-2222-4222-8222-222222222222', isCustomerOrder: true };
+export const summary = { orderId: id, payerId: id, revision: 0, lines: [], netAmount: '0.000000', taxAmount: '0.000000', total: '0.000000', currency: 'EUR', policy: 'Case001' };
+export function server(overrides: Record<string, unknown> = {}) {
+  const routes: Record<string, unknown> = { '/auth/session': { authenticated: true }, '/auth/csrf': { requestToken: 'test-only' }, '/api/v1/organization/contexts': [], '/api/v1/workshop/contexts': [], ['/api/v1/workshop/orders/'+id]: order, ['/api/v1/workshop/orders/'+id+'/commercial-summary']: summary, ...overrides };
+  const fetch = vi.fn(async (path: string, _options?: RequestInit) => new Response(JSON.stringify(routes[path] ?? []))); vi.stubGlobal('fetch', fetch); return fetch;
+}
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); window.location.hash = ''; });
+test('known UUID URL reopens server order even with empty create scopes; immutable q6 and disabled R03 controls', async () => {
+  window.location.hash = 'order='+id; server(); render(<WorkshopRuntime />);
+  expect(await screen.findByText('Intestatario: '+order.vehicleHolderId)).toBeTruthy();
+  expect(screen.getByText('Configurazione documento: 7')).toBeTruthy();
+  expect(screen.getByText('Società: '+order.legalEntityId)).toBeTruthy();
+  expect(await screen.findByText('0.000000 EUR')).toBeTruthy();
+  for (const name of ['Modifica righe', 'Rimuovi righe', 'Note', 'Nuova lavorazione', 'Cambia pagante', 'Cambia veicolo', 'Elenco commesse']) expect((screen.getByRole('button', { name }) as HTMLButtonElement).disabled).toBe(true);
+  expect(screen.getByText(/R03/)).toBeTruthy();
+  for (const name of ['Prenotazione','Prelievo','Preparazione','Installazione / consumo','Carcassa','Esito amministrativo esterno']) expect(screen.getByText(name)).toBeTruthy();
+  expect(screen.getAllByText('Non collegato in UI01.b').length).toBe(6);
+  fireEvent.click(screen.getByRole('button', { name: 'Rileggi commessa' }));
+  expect(await screen.findByText('Valori salvati riletti — revisione 0')).toBeTruthy();
+});
+test('server selectors and non-default document version create with independent payer and vehicle', async () => {
+  vi.spyOn(crypto, 'randomUUID').mockReturnValue(id);
+  const fetch = server({ '/api/v1/workshop/contexts': [{ legalEntityId: id, legalEntityName: 'Società sintetica', siteId: id, siteName: 'Sede sintetica' }],
+    ['/api/v1/workshop/document-types?legalEntityId='+id+'&siteId='+id]: [{ id, name: 'Ordine server', version: 7, directCreationEnabled: true }],
+    ['/api/v1/workshop/vehicles?legalEntityId='+id+'&siteId='+id]: [{ id, label: 'Veicolo server' }],
+    ['/api/v1/counterparties?legalEntityId='+id+'&search=']: [{ id, legalName: 'Pagante server' }], '/api/v1/workshop/orders': order });
+  render(<WorkshopRuntime />);
+  await screen.findByRole('option', { name: 'Ordine server · v7' });
+  fireEvent.change(screen.getByLabelText('Tipo documento'), { target: { value: id } });
+  fireEvent.change(screen.getByLabelText('Pagante'), { target: { value: id } });
+  fireEvent.change(screen.getByLabelText('Veicolo'), { target: { value: id } });
+  expect((screen.getByLabelText('Pagante') as HTMLSelectElement).value).toBe(id);
+  fireEvent.click(screen.getByRole('button', { name: 'Crea commessa' }));
+  await screen.findByText('Valori salvati riletti — revisione 0');
+  const call = fetch.mock.calls.find(([p, options]) => p === '/api/v1/workshop/orders' && options?.method === 'POST');
+  expect(JSON.parse(call![1]!.body as string)).toMatchObject({ configurationVersion: 7, payerId: id, vehicleId: id });
+});
+test('loaded order binds actual add form; session expiry clears document and prevents writes', async () => {
+  window.location.hash = 'order='+id;
+  const fetch = server(); render(<WorkshopRuntime />);
+  await screen.findByRole('heading', { name: 'Aggiunta persistita' });
+  fetch.mockImplementation(async (path: string) => path === '/auth/session' ? new Response('{"authenticated":false}') : new Response(null, { status: 401 }));
+  fireEvent.click(screen.getByRole('button', { name: 'Riprova sessione' }));
+  await screen.findByText('Sessione terminata. Accedi nuovamente.');
+  expect(screen.queryByText('Intestatario: '+order.vehicleHolderId)).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Crea commessa' })).toBeNull();
+});
+test('anonymous browser gets native antiforgery login without synthetic credentials', async () => {
+  server({ '/auth/session': { authenticated: false } }); render(<WorkshopRuntime />);
+  const login = await screen.findByRole('button', { name: 'Accedi' });
+  const form = login.closest('form')!; expect(form.getAttribute('action')).toBe('/auth/login');
+  expect(form.querySelector('input')!.value).toBe('test-only');
+});
+test('own organization capability unknown stays unknown and never gates Workshop using canWrite', async () => {
+  server({ '/api/v1/organization/contexts': [{ tenantId: id, tenantName: 'Tenant sintetico', legalEntityId: id, legalEntityName: 'Società', siteId: id, siteName: 'Sede', warehouseId: id, warehouseName: 'Magazzino', readPermission: 'organization-context.read', capability: 'organization-context', capabilityEnabled: null, canWrite: false }] });
+  render(<WorkshopRuntime />);
+  expect(await screen.findByText(/organization-context: Non configurata/)).toBeTruthy();
+  expect(screen.getByText(/canWrite riguarda solo/)).toBeTruthy();
+});
+test('late authenticated response cannot restore authority after newer anonymous session check', async () => {
+  let resolve!: (r: Response) => void;
+  const delayed = new Promise<Response>(r => { resolve = r; });
+  let count = 0; const fetch = server();
+  fetch.mockImplementation(async (path: string) => path === '/auth/session' ? (++count === 1 ? delayed : new Response('{"authenticated":false}')) : path === '/auth/csrf' ? new Response('{"requestToken":"test-only"}') : new Response('[]'));
+  render(<WorkshopRuntime />);
+  fireEvent.click(screen.getByRole('button', { name: 'Riprova sessione' }));
+  await screen.findByRole('button', { name: 'Accedi' });
+  await act(async () => { resolve(new Response('{"authenticated":true}')); await new Promise(r => setTimeout(r, 30)); });
+  expect(screen.queryByRole('heading', { name: 'Nuova commessa' })).toBeNull();
+});
+test('accepted add followed by failed read is visibly unverified; reread never resubmits a write', async () => {
+  window.location.hash='order='+id; let written=false, outage=true;
+  const fetch=server();
+  fetch.mockImplementation(async(path:string,options?:RequestInit)=>{
+    if(options?.method==='POST'){written=true;return new Response(JSON.stringify({id:JSON.parse(options.body as string).id}));}
+    if(path.endsWith('/commercial-summary')) return written && outage ? new Response(null,{status:503}) : new Response(JSON.stringify(summary));
+    if(path.includes('/catalog?'))return new Response(JSON.stringify([{id,kind:'Service',label:'Service',version:8}]));
+    return new Response(JSON.stringify(path==='/auth/session'?{authenticated:true}:path==='/auth/csrf'?{requestToken:'test-only'}:path.endsWith('/orders/'+id)?order:[]));
+  });
+  render(<WorkshopRuntime/>); await screen.findByRole('option',{name:'Service · Service'});
+  fireEvent.change(screen.getByLabelText('Articolo / prestazione'),{target:{value:id}});
+  for(const [label,value] of [['Versione configurazione righe (setup)','9'],['Quantità','1'],['Prezzo unitario','2'],['Sconto %','0']])fireEvent.change(screen.getByLabelText(label),{target:{value}});
+  fireEvent.click(screen.getByRole('button',{name:'Aggiungi riga'}));
+  await screen.findByText(/Scrittura accettata; riepilogo non verificato/);
+  expect(screen.queryByText('0.000000 EUR')).toBeNull();
+  expect(screen.queryByRole('button',{name:'Crea commessa'})).toBeNull();
+  outage=false; fireEvent.click(screen.getByRole('button',{name:'Rileggi commessa'}));
+  await screen.findByText('Valori salvati riletti — revisione 0');
+  expect(fetch.mock.calls.filter(([,o])=>o?.method==='POST')).toHaveLength(1);
+});

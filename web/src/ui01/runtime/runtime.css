@@ -1,0 +1,21 @@
+html, body, #root { margin: 0; width: 100%; height: 100%; }
+* { box-sizing: border-box; }
+.ui01-topbar a { color: #fff; }
+.ui01-workspace > form, .ui01-workspace > [role=status] { padding: 4px 12px; }
+.ui01-context { overflow-wrap: anywhere; }
+.ui01-context fieldset { min-width: 0; margin: 4px 0; padding: 4px; border: 0; }
+.ui01-context input { width: 100%; }
+.ui01-document fieldset { display: flex; flex-wrap: wrap; gap: 8px; border: 0; }
+.ui01-document label { display: flex; flex-direction: column; font-size: 12px; }
+.ui01-document p { font-size: 12px; }
+.ui01-group h2, .ui01-group p, .ui01-group > button { margin: 8px; }
+.ui01-context p, .ui01-context summary { font-size: 12px; }
+button, input, select { font: inherit; }
+button { cursor: pointer; margin: 2px; }
+button:disabled { cursor: not-allowed; }
+:focus-visible { outline: 2px solid #1677ff; outline-offset: 2px; }
+.ui01-summary { flex-shrink: 0; min-height: 48px; }
+.ui01-group small { display: block; overflow-wrap: anywhere; }
+.ui01-runtime-session { display: flex; align-items: center; gap: 12px; padding: 4px 12px; }
+.ui01-document h1 { font-size: 20px; margin: 8px 0; overflow-wrap: anywhere; }
+.ui01-document h2 { font-size: 15px; }
