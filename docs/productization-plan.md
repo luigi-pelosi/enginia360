@@ -2,7 +2,7 @@
 
 ## Stato e autorizzazione
 
-21 ottobre 2026. D74 (sviluppo), D75 (Giobby/esclusione SAP), D76 (direzione e scope) sono le decisioni attive. Sviluppo autonomo autorizzato fino a R06 per operatività officina pilota con amministrazione ERP esterna; capability contabile interna preservata, non deprecata. Il proprietario autorizza ora la consegna P00 con commit, push, PR, CI exact-head, merge e CI merged-main. P00 include solo documenti e test di consistenza: nessun codice applicativo. UI01 può iniziare dopo P00 verificata; in questo incarico solo checkpoint e contratto/progetto finito, nessuna implementazione UI01. Baseline C00 `2ba4d273686854870b1a7806103bf1c096fcd0be`, CI 39592416386 success.
+22 ottobre 2026. D74 (sviluppo), D75 (Giobby/esclusione SAP), D76 (direzione e scope), D77 (primo accesso offline/delega limitata) sono le decisioni attive. Sviluppo autonomo autorizzato fino a R06 per operatività officina pilota con amministrazione ERP esterna; capability contabile interna preservata, non deprecata. P00 (documenti/test, nessun codice applicativo), UI01.a isolata e R00.a/R00.b sono consegnate; R00 #40 chiusa dopo readback CI e smoke bootstrap read-only. R01.a #56 è la consegna corrente; R01.b e UI01.b restano separate. Nessun go-live. Baseline storica C00 `2ba4d273686854870b1a7806103bf1c096fcd0be`, CI 39592416386 success.
 
 Nessun go-live, utente/dato reale, acquisto, nuovo ambiente persistente o deployment pubblico è autorizzato. Bootstrap web/API, Tailscale 443 → localhost:9119 e 25 volumi/backups/configurazioni conservati non si toccano. #37 resta differita. Il charter resta invariato; D1–D73 e il report C00 conservano il significato storico.
 
@@ -10,7 +10,7 @@ Nessun go-live, utente/dato reale, acquisto, nuovo ambiente persistente o deploy
 
 **AUTHORITY — gate di setup, non blocco generale (D76):** direzione unilaterale configurabile per cliente/dominio nelle impostazioni societarie: Enginia360 → Giobby oppure Giobby → Enginia360. Tenant = cliente/gruppo, società = unità organizzativa interna; integrazione/capability/business data societari non cambiano l'unica autorità del nucleo anagrafico condiviso tenant-wide D26/D65. Estensioni/prezzi/stock societari separati. Il profilo tecnico concreto sarà scelto al setup prima della scrittura/sincronizzazione dipendente, con mapping, conflitti/cancellazioni e dataset espliciti. Non servono nuova approvazione D26 o scelta pilota anticipata per UI01/R00, ricerca documentale o comportamento configurabile neutrale. Nessun writer bidirezionale concorrente, cambio automatico/retroattivo di autorità o profilo concreto pilota è approvato.
 
-**POLICY — al comando interessato:** concedente/revoca R01; create/disattivazione/deduplicazione R02; appuntamenti, autorizzazioni, tempi e riconsegna R03; ricevimento/reso/rilascio e stock R04. Riutilizzare decisioni già confermate, non chiedere nuovamente D14/D15/D63/D65/D67/D69–D73. Non inventare fallback.
+**POLICY — al comando interessato:** D77 risolve concedente iniziale e delega limitata R01, non implementa R01.b o ogni policy di sicurezza; restano create/disattivazione/deduplicazione R02; appuntamenti, autorizzazioni, tempi e riconsegna R03; ricevimento/reso/rilascio e stock R04. Riutilizzare decisioni già confermate, non chiedere nuovamente D14/D15/D63/D65/D67/D69–D73. Non inventare fallback.
 
 **CONTRACT — R05:** Giobby primo ERP; [discovery ufficiale pubblicata](giobby-discovery.md) con fonti e hash acquisiti il 21 ottobre 2026. Swagger pubblico 2.0 osservato, ma risposte business senza schema, idempotenza e lookup dopo timeout ignoti. Nessun contratto live inventato o verificato; api-client/api-server non selezionato, nessun client registrato. SAP custom BTP del consulente **escluso da questo sprint**. Nessuna chiamata al gestionale reale. Ricerca R05.a indipendente consentita prima di R04, senza completare adapter/mapping.
 
@@ -57,8 +57,9 @@ La matrice strutturata `productization-backlog.json` è verificata dal test C00 
 ### R01 — Amministrazione organizzativa
 
 - Dipende da: R00.
-- Gate: Autorità concessione/revoca, ruoli e lifecycle da confermare prima di ciascun comando non già deciso; niente amministratore onnipotente inventato.
+- Gate: D77: proprietario/operatore trusted inizializza fuori dall'applicazione binding, membership e mandato limitato previa verifica identità e tracciamento; admin tenant assegna/revoca solo azioni e scope operativi esplicitamente delegati ad altri utenti già trusted. Nessun self-grant, subdelega, altro admin o default-first-user; binding e mandato restano al proprietario. Gate concedente risolto solo in questo scope, non R01.b implementata né policy CRUD R02.
 - R01.a: selezione e lettura autorizzate società/sedi/magazzini/capability con scope visibile.
+- Contratto R01.a #56: [proprio contesto organizzativo](r01a-own-context.md), sole tuple organization-context.read esatte, capability true/false/null e canWrite informativo rivalutati dal server; non inventario generale né directory. R00 #40 chiusa con CI già verificata e smoke canonico read-only, senza riavvio bootstrap o full architecture.
 - R01.b: singolo percorso amministrativo di configurazione/assegnazione autorizzato e auditato, dopo risoluzione della policy esatta.
 - Accettazione/evidenze: Gerarchia D15/D16, customizing societario D14, grants espliciti D23 e storico con capability disabilitata; rifiuti cross-tenant/azione/scope e revoca esercitati; nessun CRUD organizzativo massivo.
 
@@ -107,7 +108,7 @@ La matrice strutturata `productization-backlog.json` è verificata dal test C00 
 
 ## Tracking GitHub verificato
 
-Project privato esistente n. 3 riutilizzato (nessun nuovo Project); P00 #39 è il solo WIP di consegna iniziale. UI01 #5 riutilizzata, R00–R06 dipendono dai predecessori sotto. La tabella è una mappa stabile, non una copia immutabile dello stato live: transizioni e readback sono evidenze nei thread GitHub. UI01 passa In corso solo dopo P00 merged-main verde; #37 resta differita.
+Project privato esistente n. 3 riutilizzato (nessun nuovo Project). P00 #39, UI01.a #49, R00 #40 e sue sottoissue sono consegnate; #41/R01.a #56 è il WIP corrente. UI01 #5 resta aperta per UI01.b; #37 resta differita. La tabella è una mappa stabile, non una copia immutabile dello stato live: transizioni, SHA e readback sono evidenze nei thread GitHub. R02–R06 conservano le dipendenze e Backlog.
 
 | ID | Issue | Dipendenze |
 | --- | --- | --- |
@@ -132,7 +133,7 @@ Project privato esistente n. 3 riutilizzato (nessun nuovo Project); P00 #39 è i
 
 ## Ruoli operativi e percorso P00
 
-Ruoli funzionali, non assegnazioni a persone né nuovi grant: accettazione seleziona documento/pagante/veicolo; operatore officina gestisce lavorazioni/consuntivi; magazzino gestisce prenotazione/prelievo/installazione/carcassa secondo scope e policy esistenti; amministrazione riconcilia la richiesta ERP e il suo esito business. R01 confermerà concedente/revoca per ciascun comando nuovo. Identità pilota e referenti reali non comunicati, da acquisire prima dell'uso operativo.
+Ruoli funzionali, non assegnazioni a persone né nuovi grant: accettazione seleziona documento/pagante/veicolo; operatore officina gestisce lavorazioni/consuntivi; magazzino gestisce prenotazione/prelievo/installazione/carcassa secondo scope e policy esistenti; amministrazione riconcilia la richiesta ERP e il suo esito business. R01.b applicherà il mandato limitato D77 al solo comando operativo allowlistato e separato; nessuna delega universale o provisioning implicito. Identità pilota e referenti reali non comunicati, da acquisire prima dell'uso operativo.
 
 Percorso finito: contesto autorizzato → selezione anagrafiche → commessa e lavorazioni → valori commerciali → prenotazione/prelievo/installazione/carcassa → chiusura tecnica → richiesta amministrativa esterna persistita → esito business/riconciliazione. D37/D40 separano chiusura tecnica e amministrativa, senza incasso/riconsegna impliciti. Appuntamenti/autorizzazioni/tempi ulteriori passano i gate puntuali R03. R06 raccoglie readiness senza autorizzare go-live. Il profilo interno Billing/Accounting e i suoi test restano preservati.
 

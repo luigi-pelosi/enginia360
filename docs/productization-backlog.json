@@ -42,7 +42,7 @@
     "depends": [
       "R00"
     ],
-    "gate": "Autorità concessione/revoca, ruoli e lifecycle da confermare prima di ciascun comando non già deciso; niente amministratore onnipotente inventato.",
+    "gate": "D77: proprietario/operatore trusted inizializza fuori dall'applicazione binding, membership e mandato limitato previa verifica identità e tracciamento; admin tenant assegna/revoca solo azioni e scope operativi esplicitamente delegati ad altri utenti già trusted. Nessun self-grant, subdelega, altro admin o default-first-user; binding e mandato restano al proprietario. Gate concedente risolto solo in questo scope, non R01.b implementata né policy CRUD R02.",
     "slices": [
       "R01.a: selezione e lettura autorizzate società/sedi/magazzini/capability con scope visibile.",
       "R01.b: singolo percorso amministrativo di configurazione/assegnazione autorizzato e auditato, dopo risoluzione della policy esatta."

@@ -57,6 +57,25 @@ class ImpactTests(unittest.TestCase):
                 self.assertTrue(selection['browser'])
                 self.assertTrue(selection['migrations'])
 
+    def test_r01_own_context_and_shell_select_real_revocation_acceptance(self):
+        for path in ('src/Enginia360.Api/OrganizationAccess/OrganizationAccessModule.cs',
+                     'web/runtime-access.html','web/runtime-access.js','tests/browser/acceptance.cjs',
+                     'scripts/run-r00b-tests.py'):
+            with self.subTest(path=path):
+                result = select([path])
+                self.assertTrue(result['browser'])
+                self.assertTrue(result['migrations'])
+                self.assertTrue(result['ui_build'])
+                self.assertIn('AuthorizedContextContractTests', result['api_filter'])
+                self.assertNotIn('AccountingBoundaryTests', result['api_filter'])
+                self.assertFalse(result['full_architecture'])
+
+    def test_documentation_guard_change_runs_in_impact_without_architecture(self):
+        result = select(['scripts/test-c00-consistency.py'])
+        self.assertEqual(result['api_filter'], '')
+        self.assertFalse(result['browser'])
+        self.assertFalse(result['full_architecture'])
+
     def test_docs_only_do_not_select_blanket_runtime(self):
         selection = select(['docs/r00b-browser-session.md'])
         self.assertFalse(selection['browser'])

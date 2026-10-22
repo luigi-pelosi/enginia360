@@ -26,6 +26,18 @@ class CleanupGuardTests(unittest.TestCase):
                 runner.cleanup(['docker','compose'],'enginia360')
             command.assert_not_called()
 
+    def test_term_probe_observes_marker_without_waiting_for_more_output(self):
+        real_popen = subprocess.Popen
+        # A single write makes TextIOWrapper read ahead both lines. The child must
+        # receive TERM before its short ordinary-success exit, without new output.
+        child = "import os,time; os.write(1,b'PASS previous check\\nR00B_LIFECYCLE database-outage\\n'); time.sleep(0.8)"
+        def start(*args, **kwargs):
+            return real_popen([sys.executable, '-c', child], **kwargs)
+        with patch.object(subprocess, 'Popen', side_effect=start), \
+             patch.object(runner, 'inventory', return_value=set()), \
+             patch.object(runner, 'run', return_value=''):
+            actual_term_probe()
+
     def test_exact_labelled_paused_container_is_unpaused_before_removal(self):
         project='enginia360-r00b-0123456789ab'
         calls=[]
@@ -53,15 +65,18 @@ def actual_term_probe():
     before_volumes=runner.inventory('volume')
     before_running=set(runner.run(['docker','ps','-q','--no-trunc']).splitlines())
     process=subprocess.Popen([sys.executable,str(ROOT/'scripts/run-r00b-tests.py')],cwd=ROOT,
-        stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,bufsize=1)
+        stdout=subprocess.PIPE,stderr=subprocess.STDOUT,bufsize=0)
     deadline=time.monotonic()+240
     terminated=False
+    pending=b''
     try:
         assert process.stdout is not None
         while process.poll() is None and time.monotonic()<deadline:
             if select.select([process.stdout],[],[],0.2)[0]:
-                line=process.stdout.readline()
-                if 'R00B_LIFECYCLE database-outage' in line:
+                # Never mix select(fd) with a read-ahead TextIOWrapper: a complete
+                # lifecycle marker may already be buffered while the fd is quiet.
+                pending=(pending+os.read(process.stdout.fileno(),65536))[-8192:]
+                if b'R00B_LIFECYCLE database-outage' in pending:
                     process.send_signal(signal.SIGTERM)
                     terminated=True
                     break

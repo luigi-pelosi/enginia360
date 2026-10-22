@@ -8,6 +8,8 @@ B01–B14 consegnati: PR #21–#35, issue #8–#20 chiuse; D01/B00 chiusi second
 
 Nessun runtime manuale persistente B02–B06 attivo; bootstrap web/API, Tailscale 443 → 9119 e 25 volumi/backups/configurazioni conservati restano protetti. Gate specialistici e OPE01–OPE05 non dimostrati rimangono aperti; #37 resta differita. Le decisioni seguenti sono cronologiche e non riscritte: D74/D75 prevalgono sulle precedenti restrizioni incompatibili di autorizzazione, non sulle invarianti.
 
+**D77 — accesso iniziale e delega limitata:** il proprietario/operatore trusted inizializza fuori dall'applicazione, previa verifica dell'identità e tracciamento, binding, membership e mandato limitato. L'amministratore tenant assegna/revoca ad altri utenti già trusted soltanto grant operativi su azioni/scope esplicitamente delegati; niente self-grant, subdelega, creazione di altri amministratori o primo utente amministratore automatico. Binding e concessione/rinnovo/revoca del mandato restano al proprietario. Policy confermata, non provisioning eseguito né completamento R01.b/R02.
+
 ## Archivio storico — decisioni e stati al momento della loro registrazione
 
 Le sezioni seguenti preservano cronologia, motivazioni e gate. Ogni frase di stato o autorizzazione incompatibile con il riepilogo C00 sopra è storica; i requisiti di dominio e i limiti specialistici restano validi.
@@ -928,3 +930,15 @@ D01 e D02 restano issue aperte In verifica; B00 non viene completata o sbloccata
 **Invariante già approvata, non da riconfermare:** nucleo anagrafico condiviso con una sola autorità designata nell'intero tenant, secondo D26/D65. La scelta societaria non può creare due master concorrenti del medesimo nucleo; estensioni e prezzi/stock societari restano distinti. Esempio solo esplicativo: A e B del medesimo tenant usano la stessa identità articolo con autorità comune unica; i prezzi e i movimenti di A non diventano quelli di B perché l'identità è comune. Una configurazione incompatibile va rifiutata, non risolta tramite ultimo writer o override automatico.
 
 **Limiti:** nessuna autorizzazione di scritture bidirezionali concorrenti, cambio automatico o retroattivo dell'autorità o scelta concreta del profilo pilota. Il profilo tecnico di lavoro per ciascun insieme di dati si seleziona in seguito al gate di setup prima delle scritture/sincronizzazioni dipendenti: non è un blocco generale di UI01/R00, ricerca contrattuale o implementazione configurabile neutrale. La precedente domanda aperta D75 è risolta quanto alla configurabilità e direzione; resta l'assegnazione concreta, non una nuova approvazione D26. Contratti e coerenza tenant/società da verificare con test negativi nel subincremento pertinente.
+
+### D77 — Primo accesso trusted offline e amministratore tenant con mandato limitato
+
+**Fonte:** conferma ripetuta del proprietario, trasmessa nell'incarico del 22 ottobre 2026 come risposta alla proposta immediatamente precedente, non nuova domanda:
+
+> Approvi che, come proprietario, inizializzo il primo accesso di un tenant fuori dall’applicazione, con verifica dell’identità e tracciamento, creando un amministratore di tenant con mandato limitato.
+
+**Portata della proposta confermata:** owner/operatore incaricato trusted inizializza fuori dalla UI il primo binding verificato issuer+subject, membership e mandato limitato. L'amministratore tenant può assegnare/revocare ad altri utenti già trusted esclusivamente azioni e scope operativi esplicitamente delegati. Possedere un grant non lo rende delegabile. Vietati self-grant, subdelegazione, creazione di altri amministratori, ampliamento del proprio mandato, default-first-user e privilegi derivati da claim/ruoli IdP. Binding e concessione/rinnovo/revoca del mandato restano al proprietario.
+
+**Motivo:** separare la radice iniziale di fiducia dall'operatività ordinaria e impedire escalation o provisioning implicito dal primo login. La procedura offline non è un privilegio del processo web, un endpoint o un comando business già implementato; richiede identità verificata e tracciamento minimizzato prima dell'uso reale.
+
+**Gate risolto solo in questo scope:** non manca più la scelta del concedente iniziale/delega limitata. R01.a legge esclusivamente il proprio contesto. R01.b, separata e non consegnata da questa decisione, deve provare un singolo grant operativo allowlistato ad altra membership trusted nello stesso tenant, mandato valido/revocabile, scope entro mandato, atomicità/idempotenza e audit. Nessuna directory completa, onboarding, attivazione capability, entitlement, CRUD R02 o policy di lifecycle ulteriore approvata. Nessun tenant/utente reale creato, go-live o ambiente persistente autorizzato.

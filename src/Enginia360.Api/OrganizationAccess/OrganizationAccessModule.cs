@@ -258,11 +258,13 @@ public sealed class OrganizationContextService(OrganizationAccessDbContext db)
             join le in db.LegalEntities on s.LegalEntityId equals le.Id
             join site in db.Sites on s.SiteId equals site.Id
             join w in db.Warehouses on s.WarehouseId equals w.Id
-            join a in db.CapabilityActivations on le.Id equals a.LegalEntityId
+            join a in db.CapabilityActivations.Where(activation =>
+                activation.Capability == OrganizationAccessModule.ContextCapability)
+                on le.Id equals a.LegalEntityId into activations
+            from a in activations.DefaultIfEmpty()
             where
                 m.IdentitySubject == subject
                 && s.Permission == OrganizationAccessModule.ReadPermission
-                && a.Capability == OrganizationAccessModule.ContextCapability
             orderby t.Name, le.Name, site.Name, w.Name
             select new OrganizationContextContract(
                 t.Id,
@@ -273,7 +275,16 @@ public sealed class OrganizationContextService(OrganizationAccessDbContext db)
                 site.Name,
                 w.Id,
                 w.Name,
-                a.Enabled
+                a == null ? (bool?)null : a.Enabled,
+                OrganizationAccessModule.ContextCapability,
+                OrganizationAccessModule.ReadPermission,
+                a != null && a.Enabled && db.MembershipScopes.Any(write =>
+                    write.MembershipId == m.Id
+                    && write.TenantId == m.TenantId
+                    && write.LegalEntityId == le.Id
+                    && write.SiteId == site.Id
+                    && write.WarehouseId == w.Id
+                    && write.Permission == OrganizationAccessModule.WritePermission)
             )
         )
             .AsNoTracking()
@@ -380,7 +391,10 @@ public sealed record OrganizationContextContract(
     string SiteName,
     Guid WarehouseId,
     string WarehouseName,
-    bool CapabilityEnabled
+    bool? CapabilityEnabled,
+    string Capability,
+    string ReadPermission,
+    bool CanWrite
 );
 
 public sealed record CreateContextNoteRequest(
