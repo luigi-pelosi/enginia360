@@ -27,9 +27,11 @@ class CiRuntimeTests(unittest.TestCase):
         self.assertIn("- name: Fast API tests and dependency audit", workflow)
         self.assertIn("- name: Fast UI tests, builds and dependency audit", workflow)
 
-    def test_ci_avoids_duplicate_feature_branch_runs(self):
+    def test_ci_avoids_automatic_push_runs(self):
         workflow = Path(".github/workflows/ci.yml").read_text()
-        self.assertIn("    branches: [main]", workflow)
+        trigger_block = workflow.split("concurrency:", 1)[0]
+        self.assertNotIn("  push:", trigger_block)
+        self.assertIn("  pull_request:", trigger_block)
 
     def test_ci_cancels_superseded_runs(self):
         workflow = Path(".github/workflows/ci.yml").read_text()
