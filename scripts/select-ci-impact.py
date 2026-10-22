@@ -40,7 +40,7 @@ def selection(paths):
             auth = True
         elif path.startswith('web/'):
             ui = True
-        elif path.endswith('.md') or path.startswith('docs/') or path in ('.gitignore',):
+        elif path.endswith('.md') or path.startswith('docs/') or path in ('.gitignore', 'scripts/test-c00-consistency.py'):
             pass
         else:
             unknown.append(path)

@@ -130,9 +130,16 @@ for value in ("D74", "D75", "P00/UI01/R00–R06", "Giobby", "D76",
 reject("only current post-slice authorization is C00" in agents, "AGENTS.md: obsolete C00-only authorization")
 register = Path(ACTIVE_DOCS[0]).read_text()
 ids = re.findall(r"^### D(\d+) —", register, re.MULTILINE)
-reject(len(ids) != len(set(ids)) or set(map(int, ids)) != set(range(1, 77)),
-       "Decision register must retain D1–D73 and append unique D74/D75/D76")
+reject(len(ids) != len(set(ids)) or set(map(int, ids)) != set(range(1, 78)),
+       "Decision register must retain D1–D76 and append unique D77")
 # Authorization guards inspect active text only; chronological decisions stay intact.
+reject('**D77 — accesso iniziale e delega limitata:**' not in register.split('## Archivio storico', 1)[0],
+       'missing active D77')
+r01_gate = next(card['gate'] for card in cards if card['id'] == 'R01')
+for boundary in ('fuori dall\'applicazione', 'verifica identità e tracciamento',
+                 'esplicitamente delegati', 'Nessun self-grant, subdelega, altro admin o default-first-user',
+                 'binding e mandato restano al proprietario', 'non R01.b implementata né policy CRUD R02'):
+    reject(boundary not in r01_gate, 'D77 bounded mandate: '+boundary)
 for path in ["AGENTS.md", plan_path, *ACTIVE_DOCS]:
     active = Path(path).read_text().split("## Archivio storico", 1)[0]
     for stale in ("no commit, push or merge yet", "senza commit/push/merge",
@@ -144,4 +151,4 @@ reject(not Path("docs/giobby-discovery.md").is_file(), "Giobby evidence missing"
 ci_commands = "\n".join(line.split("#", 1)[0] for line in workflow.splitlines())
 reject("python3 scripts/test-productization-consistency.py" not in ci_commands,
        "Productization mutation suite must execute in CI")
-print("PASS C00 delivery/history/CI invariants and D74–D76 bounded productization authorization, IDs, dependencies and gates")
+print("PASS C00 delivery/history/CI invariants and D74–D77 bounded productization authorization, IDs, dependencies and gates")

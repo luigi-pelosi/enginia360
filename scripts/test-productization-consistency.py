@@ -37,6 +37,21 @@ class ConsistencyGuardTests(unittest.TestCase):
         self.assertIn(old, text)
         path.write_text(text.replace(old, new, count))
 
+    def test_d77_active_policy_cannot_be_lost_in_history(self):
+        self.mutate('docs/foundation/01-glossary-and-domain-boundaries.md',
+                    '**D77 — accesso iniziale e delega limitata:**', '**Decisione non attiva:**')
+        self.run_guard('missing active D77')
+
+    def test_d77_cannot_expand_delegation_in_both_plan_and_backlog(self):
+        path = self.root / 'docs/productization-backlog.json'
+        cards = json.loads(path.read_text())
+        card = next(card for card in cards if card['id'] == 'R01')
+        old = card['gate']
+        card['gate'] = old.replace('Nessun self-grant, subdelega, altro admin o default-first-user', 'Amministratore senza limiti')
+        path.write_text(json.dumps(cards))
+        self.mutate('docs/productization-plan.md',old,card['gate'])
+        self.run_guard('D77 bounded mandate')
+
     def test_current_documentation_passes(self):
         self.run_guard()
 

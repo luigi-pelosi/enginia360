@@ -201,6 +201,25 @@ def main():
                             run(command+['unpause','identity'],timeout=30)
                         elif action == 'api-restart':
                             run(command+['restart','api'],timeout=60)
+                        elif action in ('capability-disable', 'capability-remove', 'capability-restore'):
+                            company = json.loads((state/'browser.json').read_text())['contexts'][0]['legalEntityId']
+                            if action == 'capability-disable':
+                                statement = f"UPDATE organization_access.capability_activations SET \"Enabled\"=false WHERE \"LegalEntityId\"='{company}' AND \"Capability\"='organization-context';"
+                            elif action == 'capability-remove':
+                                statement = f"DELETE FROM organization_access.capability_activations WHERE \"LegalEntityId\"='{company}' AND \"Capability\"='organization-context';"
+                            else:
+                                statement = f"INSERT INTO organization_access.capability_activations VALUES ('{company}','organization-context',true);"
+                            run(query, input=statement)
+                        elif action in ('read-revoke','read-restore','write-revoke','write-restore'):
+                            permission, operation = action.split('-')
+                            membership = f"SELECT \"Id\" FROM organization_access.memberships WHERE \"IdentitySubject\"='{internal_ids[0]}'"
+                            if operation == 'revoke':
+                                statement = f"DELETE FROM organization_access.membership_scopes WHERE \"MembershipId\"=({membership}) AND \"Permission\"='organization-context.{permission}';"
+                            else:
+                                context = json.loads((state/'browser.json').read_text())['contexts'][0]
+                                tenant,company,site,warehouse = [context[k] for k in ('tenantId','legalEntityId','siteId','warehouseId')]
+                                statement = f"INSERT INTO organization_access.membership_scopes VALUES ('{uuid.uuid4()}',({membership}),'{tenant}','{company}','{site}','{warehouse}','organization-context.{permission}');"
+                            run(query, input=statement)
                         elif action == 'binding-revoke':
                             run(query,input="DELETE FROM organization_access.external_identity_bindings WHERE \"InternalIdentityId\"='"+internal_ids[2]+"';")
                         else:

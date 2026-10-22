@@ -47,7 +47,7 @@ Il catalogo completo dei campi, i formati e le validazioni, la deduplicazione, l
 - Appartenenza al tenant non equivale ad accesso a tutte le società (D23).
 - Modifica dell'anagrafica subordinata a un permesso specifico; consultazione e utilizzo non conferiscono modifica (D21).
 
-Le autorizzazioni devono essere verificate lato server sull'azione e sulla risorsa nel contesto corretto, secondo il charter. Non si decide qui chi possa concedere/revocare ruoli o come combinare scope e permessi; la conferma non autorizza ruoli amministrativi illimitati o accessi tra tenant.
+Le autorizzazioni devono essere verificate lato server sull'azione e sulla risorsa nel contesto corretto. **D77:** il proprietario/operatore trusted inizializza offline binding, membership e mandato limitato, con verifica identità e tracciamento. Admin tenant assegna/revoca ad altri utenti già trusted solo azioni/scope operativi esplicitamente delegati: niente self-grant, subdelega, altri amministratori o primo utente admin automatico. Binding e concessione/rinnovo/revoca mandato restano al proprietario. Questa policy non è provisioning implementato, non concede tutte le società o CRUD R02; R01.b resta una consegna separata con audit e test di mandato/revoca.
 
 ## Prossimo blocco: composizione delle capability
 
