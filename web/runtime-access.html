@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="it">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Enginia360 — accesso runtime</title><script src="/runtime-access.js" defer></script></head>
+<body>
+<main>
+<h1>Accesso Enginia360</h1>
+<p>Verifica tecnica della sessione e dei contesti assegnati. Non è l'editor commessa.</p>
+<p id="status" role="status">Verifica sessione…</p>
+<button id="retry" type="button">Riprova</button>
+<form id="login" method="post" action="/auth/login" hidden><input type="hidden" name="__RequestVerificationToken"><button>Accedi</button></form>
+<form id="logout" method="post" action="/auth/logout" hidden><input type="hidden" name="__RequestVerificationToken"><button>Esci da Enginia360</button></form>
+<section id="assigned" hidden>
+<h2>Contesti autorizzati</h2>
+<label>Contesto <select id="contexts"></select></label>
+<form id="note"><label>Nota tecnica <input id="message" maxlength="200" required></label><button id="write">Salva e rileggi nota</button></form>
+<p id="result" role="status"></p>
+<p>Le note create in questa pagina sono rilette per ID nella sessione corrente. Non è disponibile una lista/storia né il recupero dell'ID dopo ricarica.</p>
+</section>
+<p>Esci revoca solo la sessione locale. La sessione del provider può rimanere attiva; per cambiare account terminare anche la sessione sul provider. Dopo un riavvio occorre un nuovo accesso.</p>
+</main>
+</body></html>

@@ -80,7 +80,7 @@ END $$;
         identifier = entry['id']
         sql += f"SELECT NOT EXISTS (SELECT 1 FROM runtime_migrations.applied WHERE id='{identifier}') AS pending \\gset\n\\if :pending\n"
         sql += 'BEGIN;\n' + entry['sql'] + f"\nINSERT INTO runtime_migrations.applied(id,checksum) VALUES ('{identifier}','{entry['sha256']}');\nCOMMIT;\n\\endif\n"
-    env = {key: value for key, value in os.environ.items() if key in ('PATH', 'PGHOST', 'PGPORT', 'PGDATABASE', 'PGUSER', 'PGPASSWORD')}
+    env = {key: value for key, value in os.environ.items() if key in ('PATH', 'PGHOST', 'PGPORT', 'PGDATABASE', 'PGUSER', 'PGPASSWORD', 'PGSSLMODE', 'PGSSLROOTCERT')}
     env.update(PGCONNECT_TIMEOUT='5', PGAPPNAME='enginia360-runtime-migrator', LC_ALL='C')
     def interrupted(signum, frame):
         raise KeyboardInterrupt

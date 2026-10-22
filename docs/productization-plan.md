@@ -24,6 +24,8 @@ Ogni scheda sotto è una capability finita, non un incarico di CRUD massivo. I s
 
 Definition of Done comune: isolamento tenant e azione/scope precisi, ownership moduli, immutabilità dei fatti, q6/D67, idempotenza/concorrenza, migrazione/rollback, audit minimizzato; API integration, UI test/typecheck/build, dipendenze/audit, Compose health e HTTP smoke applicabili realmente eseguiti. Preservare test Billing/Accounting interni anche se il primo pilota usa Giobby. Nessuna conclusione fiscale generale dai test tecnici.
 
+**Aggiornamento CI del proprietario, 22 ottobre 2026:** la suite di routine è circoscritta all'ultima implementazione completata, ai file realmente cambiati e alle dipendenze dirette interessate; non all'intera architettura. Sicurezza, isolamento/RLS e acceptance reale interessata restano obbligatori. Full B02–B14/all-architecture disponibile solo come eccezione esplicita, non gate automatico o manuale per ogni consegna. PR automatiche rappresentative, runtime mirato exact-head su dispatch, nessuna nuova run automatica su push main; skip runtime non significa pass. Dopo merge verificare readback/tree del candidato provato e fare un nuovo check main solo se necessario e mirato. Per R00.b: [contratto, selettore ed evidenze browser/sessione](r00b-browser-session.md). Questa direttiva aggiorna il gate di routine precedente senza riscrivere gli esiti storici.
+
 ## Backlog tracciabile
 
 La matrice strutturata `productization-backlog.json` è verificata dal test C00 evoluto; le issue non sono completate dalla pianificazione. Criteri e gate sono riportati anche nelle schede remote, senza duplicare UI01 #5.

@@ -1,0 +1,136 @@
+# Isolated synthetic R00.b acceptance only; never publish ports or use retained volumes.
+x-hardening: &hardening
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  mem_limit: 512m
+  cpus: 1.0
+  pids_limit: 128
+  logging: {driver: json-file, options: {max-size: "5m", max-file: "2"}}
+  networks: [runtime]
+services:
+  postgres:
+    <<: *hardening
+    user: "70:70"
+    build: {context: ., dockerfile: postgres.runtime.Dockerfile}
+    command: [postgres, -c, ssl=on, -c, ssl_cert_file=/run/tls/postgres.crt, -c, ssl_key_file=/run/tls/postgres.key, -c, hba_file=/run/tls/pg_hba.conf]
+    environment:
+      POSTGRES_DB: runtime
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${R00_INFRA_PASSWORD:?required}
+      R00_OWNER_USER: runtime_owner
+      R00_OWNER_PASSWORD: ${R00_OWNER_PASSWORD:?required}
+      R00_APP_USER: runtime_app
+      R00_APP_PASSWORD: ${R00_APP_PASSWORD:?required}
+      PGDATA: /var/lib/postgresql/18/docker
+    volumes: ["${R00_STATE:?required}/postgres:/run/tls:ro"]
+    tmpfs:
+      - /var/lib/postgresql:rw,noexec,nosuid,size=256m,uid=70,gid=70,mode=0700
+      - /var/run/postgresql:rw,noexec,nosuid,size=8m,uid=70,gid=70
+      - /tmp:rw,noexec,nosuid,size=16m,uid=70,gid=70
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U postgres -d runtime']
+      interval: 2s
+      timeout: 3s
+      retries: 40
+  migrator:
+    <<: *hardening
+    user: "70:70"
+    build: {context: ., dockerfile: migrator.runtime.Dockerfile}
+    environment:
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGDATABASE: runtime
+      PGUSER: runtime_owner
+      PGPASSWORD: ${R00_OWNER_PASSWORD:?required}
+      PGSSLMODE: verify-full
+      PGSSLROOTCERT: /run/tls/ca.crt
+      R00_APP_USER: runtime_app
+    volumes: ["${R00_STATE:?required}/public:/run/tls:ro"]
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m,uid=70,gid=70
+      - /var/lib/postgresql:rw,noexec,nosuid,size=8m,uid=70,gid=70
+    depends_on:
+      postgres: {condition: service_healthy}
+  identity:
+    <<: *hardening
+    build: {context: ., dockerfile: keycloak.runtime.Dockerfile}
+    user: "1000:1000"
+    command: [start, --optimized, --db=dev-file, --http-enabled=false, --hostname=https://idp.r00.test:8443, --https-certificate-file=/run/tls/identity.crt, --https-certificate-key-file=/run/tls/identity.key, --import-realm, --http-management-scheme=http]
+    mem_limit: 1024m
+    pids_limit: 256
+    volumes:
+      - "${R00_STATE:?required}/identity:/run/tls:ro"
+      - "${R00_STATE:?required}/realm.json:/opt/keycloak/data/import/runtime.json:ro"
+    tmpfs:
+      - /opt/keycloak/data:rw,noexec,nosuid,size=256m,uid=1000,gid=1000
+      - /tmp:rw,noexec,nosuid,size=64m,uid=1000,gid=1000
+    networks:
+      runtime: {aliases: [idp.r00.test]}
+    healthcheck:
+      test: [CMD-SHELL, "exec 3<>/dev/tcp/127.0.0.1/9000; printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3; grep -q '200 OK' <&3"]
+      interval: 3s
+      timeout: 3s
+      retries: 60
+      start_period: 15s
+  api:
+    <<: *hardening
+    user: "1654:1654"
+    build: {context: ., dockerfile: src/Enginia360.Api/Dockerfile}
+    environment:
+      ASPNETCORE_URLS: https://+:8443
+      ASPNETCORE_Kestrel__Certificates__Default__Path: /run/tls/api.crt
+      ASPNETCORE_Kestrel__Certificates__Default__KeyPath: /run/tls/api.key
+      SSL_CERT_FILE: /run/tls/ca.crt
+      ConnectionStrings__OrganizationAccess: Host=postgres;Database=runtime;Username=runtime_app;Password=${R00_APP_PASSWORD:?required};SSL Mode=VerifyFull;Root Certificate=/run/tls/ca.crt;Maximum Pool Size=${R00_POOL_SIZE:-1};Timeout=3;Command Timeout=5
+      Authentication__ValidIssuer: https://idp.r00.test:8443/realms/runtime
+      Authentication__Audience: enginia360-api
+      BrowserSessions__Enabled: "true"
+      BrowserSessions__PublicOrigin: https://app.r00.test:8443
+      BrowserSessions__Authority: https://idp.r00.test:8443/realms/runtime
+      BrowserSessions__ClientId: runtime-browser
+      BrowserSessions__ClientSecret: ${R00_CLIENT_SECRET:?required}
+      Logging__LogLevel__Microsoft.AspNetCore.Hosting.Diagnostics: Warning
+      Logging__LogLevel__Microsoft.EntityFrameworkCore.Database.Command: Warning
+    volumes: ["${R00_STATE:?required}/api:/run/tls:ro"]
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=32m,uid=1654,gid=1654"]
+    networks:
+      runtime: {aliases: [api.r00.test]}
+    healthcheck:
+      disable: true
+    depends_on:
+      migrator: {condition: service_completed_successfully}
+      identity: {condition: service_healthy}
+  web:
+    <<: *hardening
+    image: nginx:1.30.6-alpine3.24@sha256:750f6c5456af731b47295d124fbed55664eeb1daab4f6bac0b092b7406235091
+    user: "101:101"
+    entrypoint: [nginx, -g, "daemon off;"]
+    volumes:
+      - ./web/nginx.r00b-test.conf:/etc/nginx/nginx.conf:ro
+      - ./web/runtime-access.html:/usr/share/nginx/runtime-access.html:ro
+      - ./web/runtime-access.js:/usr/share/nginx/runtime-access.js:ro
+      - "${R00_STATE:?required}/web:/run/tls:ro"
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=16m,uid=101,gid=101"]
+    networks:
+      runtime: {aliases: [app.r00.test]}
+    depends_on: [api]
+  browser:
+    <<: *hardening
+    user: "1001:1001"
+    build: {context: ., dockerfile: browser.runtime.Dockerfile}
+    mem_limit: 1536m
+    cpus: 2.0
+    pids_limit: 512
+    shm_size: 256m
+    environment:
+      NODE_EXTRA_CA_CERTS: /run/tls/ca.crt
+      R00_BROWSER_PHASE: ${R00_BROWSER_PHASE:-core}
+    volumes:
+      - "${R00_STATE:?required}/public:/run/tls:ro"
+      - "${R00_STATE:?required}/browser.json:/run/fixture.json:ro"
+      - "${R00_STATE:?required}/control:/run/control:rw"
+    tmpfs: ["/tmp:rw,nosuid,size=256m,uid=1001,gid=1001"]
+networks:
+  runtime:
+    internal: true

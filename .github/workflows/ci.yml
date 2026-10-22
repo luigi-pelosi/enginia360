@@ -2,14 +2,102 @@ name: Bootstrap verification
 on:
   pull_request:
   workflow_dispatch:
+    inputs:
+      comparison_base:
+        description: Exact base SHA for change-impact selection (empty selects main or its first parent)
+        type: string
+        required: false
+        default: ''
+      full_architecture:
+        description: Explicit exceptional architecture-wide run, not a routine delivery gate
+        type: boolean
+        required: false
+        default: false
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 permissions:
   contents: read
 jobs:
+  impact:
+    if: ${{ !inputs.full_architecture }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      api_filter: ${{ steps.selection.outputs.api_filter }}
+      ui_build: ${{ steps.selection.outputs.ui_build }}
+      ui_tests: ${{ steps.selection.outputs.ui_tests }}
+      browser: ${{ steps.selection.outputs.browser }}
+      migrations: ${{ steps.selection.outputs.migrations }}
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - name: Initialize private impact scratch directory
+        run: printf 'TMPDIR=%s\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+      - name: Verify impact selection and direct runtime contracts
+        run: python3 scripts/test-ci-impact.py && python3 scripts/test-r00a-ci.py && python3 scripts/test-r00b-migration-tls.py && python3 scripts/test-r00b-lifecycle.py && python3 scripts/test-ci-runtime.py && python3 scripts/test-c00-consistency.py && python3 scripts/test-productization-consistency.py
+      - name: Select exact changed-file impact
+        id: selection
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || inputs.comparison_base }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          if [ -z "$BASE_SHA" ]; then
+            BASE_SHA="$(git rev-parse origin/main)"
+            if [ "$BASE_SHA" = "$HEAD_SHA" ]; then BASE_SHA="$(git rev-parse HEAD^)"; fi
+          fi
+          python3 scripts/select-ci-impact.py --base "$BASE_SHA" --head "$HEAD_SHA" > "$RUNNER_TEMP/impact.json"
+          python3 -c 'import json,os; d=json.load(open(os.environ["RUNNER_TEMP"]+"/impact.json")); print(json.dumps(d,indent=2)); f=open(os.environ["GITHUB_OUTPUT"],"a"); [f.write(k+"="+(str(v).lower() if isinstance(v,bool) else v)+"\n") for k,v in d.items() if k!="changed_paths"]; f.close(); open(os.environ["GITHUB_STEP_SUMMARY"],"a").write("## Exact change-impact selection\n```json\n"+json.dumps(d,indent=2)+"\n```\nRuntime jobs run only on explicit dispatch; skipped runtime is not acceptance evidence.\n")'
+  affected-api:
+    needs: impact
+    if: needs.impact.outputs.api_filter != ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fast API tests and dependency audit
+        env:
+          API_FILTER: ${{ needs.impact.outputs.api_filter }}
+        run: docker run --rm -e API_FILTER -v "$PWD:/source" -w /source mcr.microsoft.com/dotnet/sdk:10.0.402-alpine3.24@sha256:230c3fbae0ceedc70bca04eed2bfb5694e8b248cadbb81010f41b7a993601f55 sh -c 'dotnet restore tests/Enginia360.Api.Tests --locked-mode && dotnet test tests/Enginia360.Api.Tests -c Release --no-restore --filter "$API_FILTER" && dotnet publish src/Enginia360.Api -c Release --no-restore -o /proof /p:UseAppHost=false && dotnet list src/Enginia360.Api package --vulnerable --include-transitive && dotnet list tests/Enginia360.Api.Tests package --vulnerable --include-transitive'
+  affected-ui:
+    needs: impact
+    if: needs.impact.outputs.ui_build == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fast UI tests, builds and dependency audit
+        env:
+          UI_TESTS: ${{ needs.impact.outputs.ui_tests }}
+        run: docker run --rm -e UI_TESTS -v "$PWD:/source" -w /source/web node:24.22.0-alpine3.24@sha256:44fce696f38ba8c987c4db89954051000bbd05ffd8d8659ba15ed4a8602e937f sh -c 'npm ci --no-audit --no-fund && if [ "$UI_TESTS" = true ]; then npm test; else printf "UI test selection unchanged React source - runtime shell exercised in browser job\n"; fi && npm run build && npm run build:ui01 && npm audit --audit-level=high'
+  affected-migrations:
+    needs: impact
+    if: github.event_name == 'workflow_dispatch' && needs.impact.outputs.migrations == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Initialize private migration scratch directory
+        run: printf 'TMPDIR=%s\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+      - name: Direct fixture-free migrations, binding, RLS and pool dependencies
+        run: timeout 600 sh scripts/run-r00a-tests.sh
+      - name: Direct migration failure and TERM cleanup
+        run: timeout 180 python3 scripts/test-r00a-lifecycle.py
+  affected-browser:
+    needs: impact
+    if: github.event_name == 'workflow_dispatch' && needs.impact.outputs.browser == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Initialize private browser scratch directory
+        run: printf 'TMPDIR=%s\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+      - name: Actual CA-trusted TLS Chromium OIDC session and recovery
+        run: timeout 600 python3 scripts/run-r00b-tests.py
+      - name: Actual browser child and paused-database TERM cleanup
+        run: timeout 300 python3 scripts/test-r00b-lifecycle.py --actual
   runtime-migrations:
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' && inputs.full_architecture
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -23,6 +111,7 @@ jobs:
       - name: Real R00.a failure and TERM cleanup
         run: timeout 180 python3 scripts/test-r00a-lifecycle.py
   verify:
+    if: github.event_name == 'workflow_dispatch' && inputs.full_architecture
     runs-on: ubuntu-24.04
     timeout-minutes: 55
     steps:

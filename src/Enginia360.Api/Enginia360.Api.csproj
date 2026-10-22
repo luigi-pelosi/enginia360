@@ -12,6 +12,7 @@
     <ProjectReference Include="../Modules/Vehicles/Enginia360.Vehicles/Enginia360.Vehicles.csproj" />
     <ProjectReference Include="../Modules/Counterparties/Enginia360.Counterparties/Enginia360.Counterparties.csproj" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.13" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.13" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.13" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.0" />

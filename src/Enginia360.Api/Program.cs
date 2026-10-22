@@ -1,13 +1,17 @@
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using Enginia360.Api.OrganizationAccess;
+using Enginia360.Api.BrowserAuthentication;
 using Enginia360.Counterparties;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders();
 builder.Logging.AddJsonConsole(options => options.IncludeScopes = true);
+if (builder.Configuration.GetValue<bool>("BrowserSessions:Enabled"))
+    builder.Logging.AddFilter("Microsoft.AspNetCore.Hosting.Diagnostics", LogLevel.Warning);
 builder.Services.AddOpenApi();
 builder.Services.AddOrganizationAccess(builder.Configuration);
+builder.Services.AddBrowserSessions(builder.Configuration);
 if (builder.Configuration.GetValue<bool>("Counterparties:Enabled"))
 {
     builder.Services.AddScoped<Enginia360.Counterparties.Contracts.ICounterpartyAccess, CounterpartyAccessAdapter>();
@@ -101,7 +105,9 @@ app.Use(
     }
 );
 
+app.UseBrowserSessionTransport();
 app.UseAuthentication();
+app.UseBrowserSessionCsrf();
 app.UseAuthorization();
 
 app.MapGet(
@@ -131,6 +137,7 @@ app.MapHealthChecks(
     }
 );
 app.MapOrganizationAccess();
+app.MapBrowserSessions();
 if (app.Configuration.GetValue<bool>("Counterparties:Enabled"))
     app.MapCounterparties();
 if (app.Configuration.GetValue<bool>("Workshop:Enabled"))
