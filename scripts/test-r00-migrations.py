@@ -38,12 +38,14 @@ class BaselineTests(unittest.TestCase):
     def test_runtime_baseline_has_fifteen_units_without_business_dml(self):
         path = ROOT / 'database/runtime/manifest.json'
         units = engine().load_manifest(path) if path.exists() else []
-        self.assertEqual(len(units), 15, 'fixture-free runtime schema missing')
+        self.assertEqual(len(units), 16, 'fixture-free runtime schema missing')
         published = json.loads(path.read_text())[:14]
         digest = hashlib.sha256(json.dumps(published, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
         self.assertEqual(digest, '91cd082ac5ad4ccf370161047d586b357b804d5e99f013947046507f766650b2',
                          'published R00.a manifest prefix changed')
-        for unit in units:
+        self.assertEqual(hashlib.sha256(json.dumps(json.loads(path.read_text())[:15],sort_keys=True,separators=(',',':')).encode()).hexdigest(),
+                         'e482b5b8ee7d876c97a3704ebf0fe63da8437782be8d9e59feea00d9f982eb7e','published 15-unit prefix changed')
+        for unit in units[:15]:
             self.assertNotRegex(unit['sql'], r'(?im)^\s*INSERT\s+INTO', unit['id'])
         self.assertIn('accounting.chart_accounts', units[13]['sql'])
         self.assertIn('organization_access.external_identity_bindings', units[14]['sql'])
@@ -370,7 +372,7 @@ class PostgreSqlTests(unittest.TestCase):
         code, output, error = self.migrate()
         self.assertEqual(code, 0, error)
         self.assertEqual(self.sql("SELECT to_regclass('runtime_migrations.applied') IS NOT NULL"), 't', 'migration ledger absent')
-        self.assertEqual(self.sql('SELECT count(*) FROM runtime_migrations.applied'), '15')
+        self.assertEqual(self.sql('SELECT count(*) FROM runtime_migrations.applied'), '16')
         tables = self.sql("SELECT schemaname||'.'||tablename FROM pg_tables WHERE schemaname NOT IN ('pg_catalog','information_schema','runtime_migrations') ORDER BY 1").splitlines()
         import re
         units = engine().load_manifest(ROOT / 'database/runtime/manifest.json')

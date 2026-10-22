@@ -118,6 +118,20 @@ public static class OrganizationAccessModule
             && app.Configuration.GetValue<bool>("DevelopmentTestLogin:Enabled"))
             app.MapPost("/api/v1/development/login", DevelopmentLogin);
         var g = app.MapGroup("/api/v1/organization").RequireAuthorization();
+        g.MapGet("/grant-administration", async (ClaimsPrincipal u, OrganizationContextService s, CancellationToken c) =>
+            Subject(u) is not string sub ? Results.Unauthorized() : Results.Content(await s.GrantAdministration(sub, c), "application/json"));
+        g.MapPost("/grant-commands", async (ClaimsPrincipal u, OperativeGrantCommand r, OrganizationContextService s, CancellationToken c) =>
+        {
+            if (Subject(u) is not string sub) return Results.Unauthorized();
+            if (!r.IsValid) return Results.BadRequest();
+            var result = await s.CommandGrant(sub, r, c);
+            return result switch
+            {
+                "applied" or "replayed" => Results.Ok(new OperativeGrantOutcome(result)),
+                "conflict" => Results.Conflict(new OperativeGrantOutcome(result)),
+                _ => Results.Json(new OperativeGrantOutcome("forbidden"), statusCode: 403),
+            };
+        });
         g.MapGet(
             "/contexts",
             async (ClaimsPrincipal u, OrganizationContextService s, CancellationToken c) =>
@@ -225,8 +239,19 @@ public static class OrganizationAccessModule
     }
 }
 
-public sealed class OrganizationContextService(OrganizationAccessDbContext db)
+public sealed partial class OrganizationContextService(OrganizationAccessDbContext db, IConfiguration configuration)
 {
+    // Only the already-existing synthetic legacy fixture profile reads its original
+    // schema. Runtime never catches a missing view or falls back to root permissions.
+    private IQueryable<MembershipScope> AuthorizedScopes =>
+        configuration["Authentication:Profile"] == "SyntheticLegacy"
+        && !configuration.GetValue<bool>("BrowserSessions:Enabled")
+            ? db.MembershipScopes
+            : db.MembershipScopes.FromSqlRaw("""
+                SELECT "Id","MembershipId","TenantId","LegalEntityId","SiteId","WarehouseId","Permission"
+                FROM organization_access.effective_membership_scopes
+                """);
+
     private async Task SetIdentity(string subject, CancellationToken c)
     {
         await db.Database.ExecuteSqlInterpolatedAsync(
@@ -254,7 +279,7 @@ public sealed class OrganizationContextService(OrganizationAccessDbContext db)
         var result = await (
             from m in db.Memberships
             join t in db.Tenants on m.TenantId equals t.Id
-            join s in db.MembershipScopes on m.Id equals s.MembershipId
+            join s in AuthorizedScopes on m.Id equals s.MembershipId
             join le in db.LegalEntities on s.LegalEntityId equals le.Id
             join site in db.Sites on s.SiteId equals site.Id
             join w in db.Warehouses on s.WarehouseId equals w.Id
@@ -278,7 +303,7 @@ public sealed class OrganizationContextService(OrganizationAccessDbContext db)
                 a == null ? (bool?)null : a.Enabled,
                 OrganizationAccessModule.ContextCapability,
                 OrganizationAccessModule.ReadPermission,
-                a != null && a.Enabled && db.MembershipScopes.Any(write =>
+                a != null && a.Enabled && AuthorizedScopes.Any(write =>
                     write.MembershipId == m.Id
                     && write.TenantId == m.TenantId
                     && write.LegalEntityId == le.Id
@@ -306,7 +331,7 @@ public sealed class OrganizationContextService(OrganizationAccessDbContext db)
         await SetIdentity(subject, c);
         var auth = await (
             from m in db.Memberships
-            join s in db.MembershipScopes on m.Id equals s.MembershipId
+            join s in AuthorizedScopes on m.Id equals s.MembershipId
             join a in db.CapabilityActivations on s.LegalEntityId equals a.LegalEntityId
             where
                 m.IdentitySubject == subject
@@ -350,7 +375,7 @@ public sealed class OrganizationContextService(OrganizationAccessDbContext db)
                     && db.Memberships.Any(membership =>
                         membership.IdentitySubject == subject
                         && membership.TenantId == note.TenantId
-                        && db.MembershipScopes.Any(scope =>
+                        && AuthorizedScopes.Any(scope =>
                             scope.MembershipId == membership.Id
                             && scope.TenantId == note.TenantId
                             && scope.LegalEntityId == note.LegalEntityId

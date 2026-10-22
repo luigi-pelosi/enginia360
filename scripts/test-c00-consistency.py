@@ -138,7 +138,7 @@ reject('**D77 — accesso iniziale e delega limitata:**' not in register.split('
 r01_gate = next(card['gate'] for card in cards if card['id'] == 'R01')
 for boundary in ('fuori dall\'applicazione', 'verifica identità e tracciamento',
                  'esplicitamente delegati', 'Nessun self-grant, subdelega, altro admin o default-first-user',
-                 'binding e mandato restano al proprietario', 'non R01.b implementata né policy CRUD R02'):
+                 'binding e mandato restano al proprietario', 'non provisioning completo né policy CRUD R02'):
     reject(boundary not in r01_gate, 'D77 bounded mandate: '+boundary)
 for path in ["AGENTS.md", plan_path, *ACTIVE_DOCS]:
     active = Path(path).read_text().split("## Archivio storico", 1)[0]

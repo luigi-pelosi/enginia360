@@ -9,7 +9,7 @@ import sys
 
 AUTH_FILTER = '|'.join('FullyQualifiedName~'+name for name in (
     'BrowserSessionTests','BoundedTicketStoreTests','BrowserAuthenticationBoundaryTests',
-    'ExternalIdentityAuthenticationTests','AuthorizedContextContractTests','BootstrapTests'))
+    'ExternalIdentityAuthenticationTests','AuthorizedContextContractTests','LimitedGrantAdministrationTests','BootstrapTests'))
 AUTH_FILES = {
     'src/Enginia360.Api/Program.cs','src/Enginia360.Api/Enginia360.Api.csproj',
     'src/Enginia360.Api/packages.lock.json','tests/Enginia360.Api.Tests/packages.lock.json',
@@ -18,11 +18,11 @@ AUTH_FILES = {
     'migrator.runtime.Dockerfile','runtime-pool-test.Dockerfile',
     'scripts/apply-runtime-migrations.py','scripts/validate-runtime-config.py',
     'scripts/select-ci-impact.py','scripts/test-ci-impact.py','.github/workflows/ci.yml',
-    'scripts/test-productization-consistency.py',
+    'scripts/test-productization-consistency.py','scripts/owner-operative-mandate.py','scripts/test-r01b-grants.py',
     'web/nginx.r00b-test.conf','web/runtime-access.html','web/runtime-access.js',
 }
 AUTH_TESTS = {'BrowserSessionTests','BoundedTicketStoreTests','BrowserAuthenticationBoundaryTests',
-              'ExternalIdentityAuthenticationTests','AuthorizedContextContractTests','BootstrapTests','RuntimeMigrationPoolTests'}
+              'ExternalIdentityAuthenticationTests','AuthorizedContextContractTests','LimitedGrantAdministrationTests','BootstrapTests','RuntimeMigrationPoolTests'}
 
 
 def selection(paths):

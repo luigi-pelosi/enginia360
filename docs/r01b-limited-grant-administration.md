@@ -1,0 +1,62 @@
+# R01.b — bounded operative grant administration (D77)
+
+Subincrement #58 of #41. Implementation on `feat/r01b-limited-grant-administration`; exact remote delivery evidence belongs in the PR/issue after execution. This is not full tenant onboarding or organizational CRUD.
+
+## Contract and authority
+
+- The owner creates **explicit** mandate rows: tenant, existing bound admin membership, one action (`organization-context.read` OR `organization-context.write`), one exact company/site/warehouse chain, validity start/end. There is no default grant, implicit first administrator, wildcard or inherited scope. A second action/resource requires another explicit mandate.
+- The authenticated internal membership may grant/revoke that one action to **another existing bound membership in the same tenant**. Possession of the operative action alone never delegates it. No role/tenant/header/IdP claim is authority. The projection exposes only eligible technical target IDs under the caller's live mandates, not names, email or a tenant directory.
+- Root binding/membership and mandate creation/renewal/revocation remain outside the web process. The application role cannot write them, root membership scopes, command/audit tables or delegated scopes directly. The fixed allowlist excludes common-master edits/publication, admin creation, capability activation, entitlement, customizing and all master CRUD.
+- Each command has an explicit nonempty command ID and all exact resource IDs, target, action and grant/revoke operation. Same command/body replays once; changed action/resource/target/operation conflicts. A separate command cannot take over an existing root or active/future other-mandate grant. A new explicit command under a newly owner-created valid mandate may replace an ineffective revoked/expired delegated row; it does not renew the old mandate or grant anything automatically. Revoke removes only the selected mandate's exact grant; it cannot remove an owner grant.
+- Delegated scopes are separate from root scopes. A security-invoker effective-scope view applies mandate validity/revocation on every operative query. Expired/revoked mandates stop both administration and derived access on the next request, without changing capability state or erasing note history. Owners renew by a **new explicit mandate**, never editing the old one.
+
+## Persistence/security and concurrency
+
+Migration `0016_limited_grant_administration` appends to the published 15-entry checksum prefix; historical SQL is unchanged. Every new table has ENABLE/FORCE RLS and tenant policy. Functions use SECURITY DEFINER owned by the **nonprivileged database owner**, fixed `pg_catalog,organization_access` search path and revoked PUBLIC execute. No new role, BYPASSRLS, arbitrary table-write grant or public endpoint is introduced. The app gets only bounded function execution and tenant-filtered reads needed by the effective scope view.
+
+The existing architecture trusts the authenticated API to set transaction-local identity/tenant GUCs on its private database connection. These are not authentication credentials. Compromise of the application DB credential/process is outside the endpoint threat boundary; this increment does not pretend to turn a caller-set PostgreSQL GUC into cryptographic identity. Direct SQL without identity/context fails closed; table writes and out-of-mandate function calls fail. No client API exposes SQL or context setters.
+
+The pre-existing **SyntheticLegacy** acceptance profile (and only that explicit profile with browser sessions disabled) retains its original root-scope table. Runtime queries compose the effective view explicitly; a missing runtime view is an error, never a fallback to root permissions. An isolated original-schema test protects this direct dependency without running historical Bxx suites or changing their published SQL. It also proves the same original database is refused by the ordinary runtime profile.
+
+Commands lock command ID, then their mandate row, then exact target/action/resource. Owner revocation updates the **same row**. A revocation committed first forces the waiting command to deny; a command committed first is subsequently ineffective when revocation commits. New command/action-resource collisions are controlled conflicts. Mutations, replay record and technical audit commit together; rollback leaves no successful grant/command/audit. Audit contains technical actor/target/command/mandate/scope IDs, finite action/operation/result and time only, never tokens, issuer/subject/email or note content. UPDATE/DELETE/TRUNCATE of audit is rejected, including through the owner connection; no audit mutation endpoint exists.
+
+## Owner operational procedure — deliberately bounded
+
+Prerequisites are external, not produced or attested by this tool:
+
+1. Owner/trusted operator verifies identity offline and preserves the verification/authorization evidence in an approved restricted operational record. Select explicit known internal IDs, verified issuer+subject bindings, existing membership, existing hierarchy and owner-approved validity/actions. No identity verification is inferred from a login or manufactured by the agent.
+2. Existing schema and **known trusted bindings/memberships/hierarchy must already exist**. R00 identity binding is deliberately read-only and this increment does not add a root binding/membership provisioning tool. The absence of a complete supported onboarding/root-binding command remains a product/operational gap, not a claim of full R01 onboarding. No real identity/tenant setup is authorized by the synthetic acceptance.
+3. Prepare a private JSON file with **every** field (no defaults): `operation` (`create`/`revoke`), `ownerActorId`, `mandateId`, `tenantId`, `adminMembershipId`, `legalEntityId`, `siteId`, `warehouseId`, `action`, `validFrom`, `validUntil`. IDs are canonical nonempty UUIDs; timestamps are timezone-aware and ordered. The owner supplies actual values; do not copy synthetic test values into business use.
+4. With the nonprivileged database-owner PG* connection configured securely outside the repository (`PGSSLMODE=verify-full`, approved `PGSSLROOTCERT`; never the app credential), execute:
+
+   ```sh
+   python3 scripts/owner-operative-mandate.py /private/explicit-owner-mandate.json
+   ```
+
+   The tool validates the complete payload, database-owner role, live binding, exact hierarchy, finite action and validity; commits the mandate and technical audit in a bounded transaction; then reads back the exact target. It never creates a binding/membership/admin/tenant. Output/errors do not print passwords or the JSON payload. A wrong role, unbound admin, foreign hierarchy, omitted value or mismatched revoke is refused.
+5. To revoke, submit the **same exact mandate fields** with `operation: revoke`. To renew, owner approves and creates a new ID/validity explicitly. Revocation serializes against grant commands. Keep the resulting technical mandate/audit IDs in the restricted authorization record, separate from identity-verification evidence.
+
+The CA-trusted TLS acceptance exercises this actual create/revoke tool with isolated synthetic known bindings, not a fabricated owner approval.
+
+## Runtime UI
+
+The existing Italian runtime access shell has a real server-backed panel only for live eligible mandate/target options, action and exact scope, expiry and grant state. Grant/revoke requires explicit confirmation, fresh CSRF and a new command ID. Success requires exact grant-state reread; conflict/error is visible and clears stale delegation options pending refresh. Ordinary read/write permission does not display an admin panel. No browser storage or UI trust creates authorization.
+
+## Verification and RED evidence
+
+- API RED: `LimitedGrantAdministrationTests.Anonymous_cannot_inspect_or_command_delegation` expected 401, got 404 before the endpoints existed (`r01b-red-api.log`).
+- UI RED: actual trusted-TLS Chromium passed the six preceding authentication/CSRF/isolation checks, then timed out waiting for missing `#grant-admin` (`r01b-browser-red.log`); no auth or timeout gate was weakened.
+- CI selector RED: new finite grant test absent from `api_filter` (`r01b-red-impact.log`). New code/root-tool/test paths now select auth/API, UI build, real browser and migration/RLS/pool acceptance, not historical Bxx suites.
+- Initial migration invocation passed 23 Python tests and 8 .NET tests, then **failed** the intact global-container preservation assertion because this agent overlapped its own browser project. Readback showed the only additional containers were that owned R00.b project; protected API/web IDs remained healthy with October 18 StartedAt and all 25 volumes. It is not a passing run. Subsequent acceptance is serialized; assertion is unchanged.
+- SQL RED: revoking a mandate after its admin binding was removed failed with `mandate requires existing trusted membership` (`r01b-migrations-red-root.log`). Creation still requires a live binding; owner revocation no longer depends on that binding surviving.
+- Renewal RED: both pool sizes expected HTTP 200 but received 409 after owner-created replacement authority (`r01b-migrations-red-renewal.log`). Only a new explicit command under a fresh valid mandate can now replace an inactive row; active/future/root grants still conflict.
+- Compatibility RED: an isolated original-schema SyntheticLegacy context failed with PostgreSQL `42P01`, missing effective view (`r01b-legacy-behavior-red.log`). Runtime now explicitly composes the effective view while the already-existing synthetic legacy profile keeps its original schema. The first compatibility attempt had a fixture path error (`r01b-legacy-compat-red.log`), **not** behavior RED; it was repaired before the real failure was accepted.
+- Local GREEN: `r01b-migrations-final.log` passed **25 Python tests and 9 .NET cases, zero skipped**, including larger/single pool, exact replay/action/resource collisions, owner revocation barrier, SQL privileges/RLS/rollback/audit, renewal and original-schema compatibility/runtime fail-closed. Guarded lifecycle/container/volume preservation passed. `r01b-sdk-final.log`: **55 pass**, three opt-in runtime theories omitted there and actually executed by the migration runner; publish succeeded. Earlier unchanged-lock NuGet audits in `r01b-sdk-quality.log` found no vulnerable packages.
+- Local browser: `r01b-browser-final.log` passed **15 real Chromium/TLS checks, zero skipped**, with the actual owner CLI create/revoke/readback (two explicit mandates), UI confirm/success/visible conflict, immediate access changes and original R00 security/recovery. This preceded the subsequent explicit legacy query-source compatibility adjustment; final exact-head browser CI remains required. `r01b-ui-quality.log`: five direct bootstrap UI tests, typecheck and both builds passed, npm audit zero; existing Ant Design dependency module-directive bundler warnings remain unchanged.
+- Bounded canonical commands: `timeout 600 sh scripts/run-r00a-tests.sh`; `timeout 600 python3 scripts/run-r00b-tests.py`; `timeout 180 python3 scripts/test-r00a-lifecycle.py`; `timeout 300 python3 scripts/test-r00b-lifecycle.py --actual`. SDK tests/audits and UI build/audit are separate bounded commands. Actual exact-head remote results are recorded only after CI readback.
+
+## Rollback and exclusions
+
+No deployment changes and no persistent environment are made. Bootstrap/Tailscale/retained volumes remain untouched; acceptance projects use tmpfs/private ephemeral networks and guarded cleanup. Do not modify/prune the protected running stack. Operational rollback is owner revocation of affected mandates (derived access becomes ineffective), then restore the last reviewed application image/config under separately authorized deployment procedure. Do not delete audit, roll back published migration bytes or run unreviewed destructive down migrations. Old code will not use delegated grants; preserve the additive schema/audit for diagnosis and forward remediation.
+
+The finite R01.a+b acceptance is not full company/site/warehouse management, identity onboarding, tenant lifecycle, customizing, capability administration or R02 master CRUD. R02 creation/deactivation/deduplication policy is still an explicit domain gate; Giobby provider contracts/direction setup and real pilot identities remain separate. No real data, go-live, purchase, public deployment or first-user provisioning occurs here.

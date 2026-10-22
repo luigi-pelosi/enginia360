@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Owner policy: deterministic changed-file impact, never blanket architecture delivery."""
+import ast
 import importlib.util
 import json
 from pathlib import Path
@@ -69,6 +70,32 @@ class ImpactTests(unittest.TestCase):
                 self.assertIn('AuthorizedContextContractTests', result['api_filter'])
                 self.assertNotIn('AccountingBoundaryTests', result['api_filter'])
                 self.assertFalse(result['full_architecture'])
+
+    def test_limited_grant_ownership_and_root_tool_select_security_acceptance(self):
+        for path in ('src/Enginia360.Api/OrganizationAccess/LimitedGrantAdministration.cs',
+                     'scripts/owner-operative-mandate.py','scripts/test-r01b-grants.py',
+                     'tests/Enginia360.Api.Tests/LimitedGrantAdministrationTests.cs'):
+            result=select([path])
+            self.assertTrue(result['browser'])
+            self.assertTrue(result['migrations'])
+            self.assertIn('LimitedGrantAdministrationTests',result['api_filter'])
+            self.assertNotIn('AccountingBoundaryTests',result['api_filter'])
+            self.assertFalse(result['full_architecture'])
+
+    def test_new_grant_sql_and_pool_cases_are_executable_targeted_dependencies(self):
+        text=(ROOT/'scripts/run-r00a-tests.py').read_text()
+        def validate(source):
+            suite_loops=[node for node in ast.walk(ast.parse(source)) if isinstance(node,ast.For)
+                         and isinstance(node.target,ast.Name) and node.target.id=='suite']
+            self.assertEqual(len(suite_loops),1)
+            self.assertIn('scripts/test-r01b-grants.py',ast.literal_eval(suite_loops[0].iter))
+            self.assertIn('FullyQualifiedName~LimitedGrantAdministrationTests',(ROOT/'runtime-pool-test.Dockerfile').read_text())
+            copy=next(line for line in (ROOT/'migrator.runtime.Dockerfile').read_text().splitlines() if line.startswith('COPY scripts/'))
+            self.assertIn('scripts/test-r01b-grants.py',copy.split())
+            self.assertIn('scripts/owner-operative-mandate.py',copy.split())
+        validate(text)
+        with self.assertRaises(AssertionError):
+            validate(text.replace(", 'scripts/test-r01b-grants.py'",''))
 
     def test_documentation_guard_change_runs_in_impact_without_architecture(self):
         result = select(['scripts/test-c00-consistency.py'])
