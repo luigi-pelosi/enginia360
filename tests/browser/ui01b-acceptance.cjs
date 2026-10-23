@@ -175,32 +175,36 @@ async function login(browser,index) {
   stage='add service and part';
   await paging(page,'articolo / prestazione','Articolo / prestazione');
   pass('R02 UI traverses 51 actual catalog identities with stable cursor and no prices/stock');
+  await page.getByLabel('Nuova lavorazione',{exact:true}).fill('Lavorazione sintetica');
+  await page.getByRole('button',{name:'Aggiungi lavorazione',exact:true}).click();
+  await page.getByText('Valori salvati riletti — revisione 1',{exact:true}).waitFor();
+  assert((await page.getByText(/Documento v7 · Policy righe v9 · Struttura v1/).count())>0,'server policy shown, no manual setup number');
+  assert.equal(await page.getByLabel('Versione configurazione righe (setup)',{exact:true}).count(),0);
   let firstBody;
-  for(const [kind,quantity,price,discount,revision] of [['Service','1.123456','45.654321','12.34',1],['Part','2.000001','12.123456','0.01',2]]) {
+  for(const [kind,quantity,price,discount,revision] of [['Service','1.123456','45.654321','12.34',2],['Part','2.000001','12.123456','0.01',3]]) {
     await page.getByLabel('Ricerca articolo / prestazione',{exact:true}).fill('Synthetic '+kind);
     await page.getByRole('button',{name:'Cerca articolo / prestazione',exact:true}).click();
     await page.getByRole('option',{name:kind+' · Synthetic '+kind,exact:true}).waitFor({state:'attached'});
     await page.getByLabel('Articolo / prestazione',{exact:true}).selectOption(fixture.workshop[0][kind.toLowerCase()+'Id']);
-    await page.getByLabel('Versione configurazione righe (setup)',{exact:true}).fill('9');
     await page.getByLabel('Quantità',{exact:true}).fill(quantity); await page.getByLabel('Prezzo unitario',{exact:true}).fill(price); await page.getByLabel('Sconto %',{exact:true}).fill(discount);
-    if(kind==='Service') await page.route('**/api/v1/workshop/orders/*/lines',async route=>{firstBody=route.request().postData(); const response=await route.fetch(); assert.equal(response.status(),201); await route.abort('connectionreset'); await page.unroute('**/api/v1/workshop/orders/*/lines');});
-    if(kind==='Part') await page.route('**/commercial-summary',route=>route.abort('connectionreset'));
-    await page.getByLabel('Quantità',{exact:true}).fill('1,5'); assert(await page.getByRole('button',{name:'Aggiungi riga',exact:true}).isDisabled()); await page.getByLabel('Quantità',{exact:true}).fill(quantity);
+    if(kind==='Service') await page.route('**/editor/commands',async route=>{firstBody=route.request().postData(); const response=await route.fetch(); assert.equal(response.status(),201); await route.abort('connectionreset'); await page.unroute('**/editor/commands');});
+    if(kind==='Part') await page.route('**/editor',route=>route.abort('connectionreset'));
+    await page.getByLabel('Quantità',{exact:true}).fill('1,5'); await page.getByRole('button',{name:'Aggiungi riga',exact:true}).click(); await page.getByText('Quantità positiva, punto decimale, max 6 interi e 6 decimali.',{exact:true}).waitFor(); assert(await page.getByLabel('Quantità',{exact:true}).evaluate(e=>e===document.activeElement),'first invalid field receives focus'); await page.getByLabel('Quantità',{exact:true}).fill(quantity);
     if(kind==='Service') { await page.getByLabel('Quantità',{exact:true}).focus(); await page.keyboard.press('Tab'); assert(await page.getByLabel('Prezzo unitario',{exact:true}).evaluate(e=>e===document.activeElement)); await page.getByLabel('Sconto %',{exact:true}).press('Enter'); }
     else await page.getByRole('button',{name:'Aggiungi riga',exact:true}).click();
-    if(kind==='Service') { await page.getByRole('button',{name:'Riprova comando identico',exact:true}).waitFor(); const replay=page.waitForRequest(r=>r.method()==='POST' && new URL(r.url()).pathname.endsWith('/lines')); await page.getByRole('button',{name:'Riprova comando identico',exact:true}).click(); assert.equal((await replay).postData(),firstBody); }
-    if(kind==='Part') { await page.getByText(/Scrittura accettata; riepilogo non verificato/).waitFor(); await page.unroute('**/commercial-summary'); await page.getByRole('button',{name:'Rileggi commessa',exact:true}).click(); }
+    if(kind==='Service') { await page.getByRole('button',{name:'Riprova comando identico',exact:true}).waitFor(); const replay=page.waitForRequest(r=>r.method()==='POST' && new URL(r.url()).pathname.endsWith('/editor/commands')); await page.getByRole('button',{name:'Riprova comando identico',exact:true}).click(); assert.equal((await replay).postData(),firstBody); }
+    if(kind==='Part') { await page.getByText(/Scrittura accettata; riepilogo non verificato/).first().waitFor(); await page.unroute('**/editor'); await page.getByRole('button',{name:'Rileggi commessa',exact:true}).click(); }
     await page.getByText('Valori salvati riletti — revisione '+revision,{exact:true}).waitFor();
   }
-  const saved=(await json(page,'/api/v1/workshop/orders/'+orderId+'/commercial-summary')).value;
-  assert.equal(saved.revision,2); assert.equal(saved.lines.length,2); for(const l of saved.lines){assert.equal(l.payerId,order.payerId);assert.equal(l.workingGroupId,orderId);assert.equal(l.configurationVersion,9);assert.match(l.netAmount,/^\d+\.\d{6}$/);}
+  const savedEditor=(await json(page,'/api/v1/workshop/orders/'+orderId+'/editor')).value, saved=savedEditor.summary;
+  assert.equal(saved.revision,3); assert.equal(saved.lines.length,2); assert.equal(savedEditor.groups.length,1); for(const l of saved.lines){assert.equal(l.payerId,order.payerId);assert.equal(l.workingGroupId,savedEditor.groups[0].id);assert.equal(l.configurationVersion,9);assert.match(l.netAmount,/^\d+\.\d{6}$/);}
   fs.writeFileSync('/run/control/result.json',JSON.stringify({order,summary:saved}));
-  pass('Service and Part q6 writes → authoritative summary revision2; policy9/catalog8 preserved');
+  pass('Group, Service and Part q6 writes through the real UI → authoritative summary revision3; policy9/catalog8 preserved');
   pass('negative transport fault: accepted Service response dropped, exact UUID/payload replay, no duplicate');
-  pass('negative read fault: accepted Part then summary unavailable, explicit real read recovery without second command');
-  stage='reopen'; await page.reload(); await page.getByText('Valori salvati riletti — revisione 2',{exact:true}).waitFor();
+  pass('negative read fault: accepted Part then editor read unavailable, explicit real read recovery without second command');
+  stage='reopen'; await page.reload(); await page.getByText('Valori salvati riletti — revisione 3',{exact:true}).waitFor();
   assert.deepEqual((await json(page,'/api/v1/workshop/orders/'+orderId+'/commercial-summary')).value,saved);
-  const second=await a.context.newPage(); await second.goto(origin+'/ui01-runtime.html#order='+orderId); await second.getByText('Valori salvati riletti — revisione 2',{exact:true}).waitFor();
+  const second=await a.context.newPage(); await second.goto(origin+'/ui01-runtime.html#order='+orderId); await second.getByText('Valori salvati riletti — revisione 3',{exact:true}).waitFor();
   assert.deepEqual(await page.evaluate(()=>({local:Object.keys(localStorage),session:Object.keys(sessionStorage)})),{local:[],session:[]});
   pass('reload and new-page known UUID reread from API without browser document storage');
   stage='negative HTTP'; const endpoint='/api/v1/workshop/orders/'+orderId+'/lines';
@@ -209,7 +213,7 @@ async function login(browser,index) {
   const b=await login(browser,1); assert.equal((await json(b.page,'/api/v1/workshop/orders/'+orderId)).status,404); assert.equal((await post(b.page,endpoint,body)).status,404);
   const limited=await login(browser,5); assert.equal((await post(limited.page,endpoint,body)).status,403);
   assert.deepEqual((await json(limited.page,'/api/v1/workshop/contexts')).value,[]);
-  await limited.page.goto(origin+'/ui01-runtime.html#order='+orderId); await limited.page.getByText('Valori salvati riletti — revisione 2',{exact:true}).waitFor();
+  await limited.page.goto(origin+'/ui01-runtime.html#order='+orderId); await limited.page.getByText('Valori salvati riletti — revisione 3',{exact:true}).waitFor();
   assert.equal((await json(page,'/api/v1/workshop/orders/'+fixture.workshop[1].vehicleId)).status,404);
   assert.deepEqual((await json(page,'/api/v1/workshop/orders/'+orderId+'/commercial-summary')).value,saved);
   pass('missing/corrupt CSRF, stale revision/duplicate kind, foreign tenant and missing exact add action denied');
@@ -259,7 +263,7 @@ async function login(browser,index) {
   const again=await page.request.get(origin+'/ui01-runtime.html'); assert.notEqual((await again.text()).match(/name="style-nonce" content="([a-f0-9]{32})"/)[1],nonce);
   pass('actual desktop1920x1080 and laptop1366x768 sticky-summary screenshots synthetic only');
   stage='logout'; await page.goto(origin+'/'); await page.getByRole('button',{name:'Esci da Enginia360',exact:true}).waitFor(); await page.getByRole('button',{name:'Esci da Enginia360',exact:true}).click();
-  await second.getByRole('button',{name:'Riprova sessione',exact:true}).click(); await second.getByText('Sessione terminata. Accedi nuovamente.',{exact:true}).waitFor(); assert.equal(await second.getByRole('heading',{name:'Aggiunta persistita',exact:true}).count(),0);
+  await second.getByRole('button',{name:'Riprova sessione',exact:true}).click(); await second.getByText('Sessione terminata. Accedi nuovamente.',{exact:true}).waitFor(); assert.equal(await second.getByLabel('Workspace commessa',{exact:true}).count(),0);
   assert.equal((await json(second,authorityEndpoint)).status,401);
   assert.equal(await second.getByRole('heading',{name:'Autorità anagrafica condivisa',exact:true}).count(),0);
   pass('local logout invalidates existing editor session and clears document/write controls');

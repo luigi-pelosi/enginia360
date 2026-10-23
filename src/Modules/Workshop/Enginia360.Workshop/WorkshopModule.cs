@@ -58,6 +58,7 @@ public static class WorkshopModule
         });
         routes.MapGet("/orders/{id:guid}", Get);
         CommercialEndpoints.Map(routes);
+        EditorEndpoints.Map(routes);
         if (inventoryEnabled) InstallationEndpoints.Map(routes);
         // The carcass requirement of technical closure is evaluated with Inventory receipts.
         if (inventoryEnabled) AdministrativeEndpoints.MapClosure(routes);

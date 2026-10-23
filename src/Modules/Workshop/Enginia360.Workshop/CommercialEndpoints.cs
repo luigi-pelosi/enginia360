@@ -18,16 +18,16 @@ internal static partial class CommercialEndpoints
         routes.MapGet("/orders/{id:guid}/commercial-summary", Read);
     }
     private static string Subject(ClaimsPrincipal user) => user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
-    private static string Value(decimal value) => value.ToString("0.######", CultureInfo.InvariantCulture);
-    private static string Money(decimal value) => value.ToString("0.000000", CultureInfo.InvariantCulture);
+    internal static string Value(decimal value) => value.ToString("0.######", CultureInfo.InvariantCulture);
+    internal static string Money(decimal value) => value.ToString("0.000000", CultureInfo.InvariantCulture);
     // D67 admits nonnegative values only; AwayFromZero is ROUND_HALF_UP in this domain.
     private static decimal RoundMoney(decimal value) => decimal.Round(value, 6, MidpointRounding.AwayFromZero);
     [GeneratedRegex(@"^[0-9]{1,6}(?:\.[0-9]{1,6})?$", RegexOptions.CultureInvariant | RegexOptions.NonBacktracking)]
     private static partial Regex InvariantDecimal();
-    private static bool Number(string? text, int scale, out decimal value)
+    internal static bool Number(string? text, int scale, out decimal value)
     {
         // Storage/anti-overflow bound, not a commercial maximum: numeric(12,6).
-        // At most two lines: exact decimal multiplication and aggregate totals fit decimal.
+        // Exact decimal multiplication fits decimal for any capped line count; aggregates are bounded by the summary-limit guard.
         value = 0;
         return text is { Length: > 0 and <= 13 } && InvariantDecimal().IsMatch(text)
             && (!text.Contains('.') || text.Length - text.IndexOf('.') - 1 <= scale)
@@ -79,9 +79,16 @@ internal static partial class CommercialEndpoints
             .OrderByDescending(x => x.Version).FirstOrDefaultAsync(ct);
         if (policy is null || policy.Version != request.ConfigurationVersion || !policy.SameWorkingGroup
             || policy.Policy != "Case001") return Results.Conflict();
-        var count = await db.Lines.CountAsync(x => x.OrderId == id, ct);
-        if (count != request.ExpectedRevision || await db.Lines.AnyAsync(x => x.OrderId == id && x.Kind == item.Kind, ct))
+        // The persisted lifecycle revision (never a row count) is read under the order lock.
+        var revision = await db.Orders.AsNoTracking().Where(x => x.Id == id && x.TenantId == member.TenantId).Select(x => x.CommercialRevision).SingleAsync(ct);
+        if (revision != request.ExpectedRevision || await db.Lines.AnyAsync(x => x.OrderId == id && x.Kind == item.Kind && x.State == "Active", ct))
             return Results.Conflict();
+        // The legacy single-group path owns only the implicit group Id=OrderId; a multi-group order uses the editor commands.
+        if (await db.WorkingGroups.AnyAsync(x => x.OrderId == id && x.Id != id, ct))
+            return Results.Conflict(new { code = "legacy_line_requires_editor", message = "La commessa usa più lavorazioni: usa i comandi dell'editor." });
+        var legacyGroup = await db.WorkingGroups.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id, ct);
+        if (legacyGroup is { State: not "Active" }) return Results.Conflict();
+        if (revision == int.MaxValue) return Results.Conflict(new { code = "revision_limit", message = "Limite revisioni raggiunto." });
         var line = new CommercialLine
         {
             Id = request.Id, TenantId = member.TenantId, OrderId = id, CatalogItemId = item.Id,
@@ -99,6 +106,19 @@ internal static partial class CommercialEndpoints
             ON CONFLICT ("Id") DO NOTHING
             """, ct);
         if (inserted == 0) return Results.Conflict(); // Foreign-tenant command collision, no disclosure.
+        var active = await db.Lines.AsNoTracking().Where(x => x.OrderId == id && x.State == "Active").ToListAsync(ct);
+        if (EditorEndpoints.ExceedsSummaryLimit(active)) return EditorEndpoints.SummaryLimit();
+        if (legacyGroup is null)
+        {
+            await db.Database.ExecuteSqlInterpolatedAsync($"""
+                INSERT INTO workshop.working_groups ("Id","TenantId","OrderId","Title","State","Version","CreatedRevision")
+                VALUES ({id},{member.TenantId},{id},'Lavorazione','Active',1,{revision})
+                """, ct);
+            await EditorEndpoints.History(db, "Group", id, 1, member.TenantId, id, revision + 1, "Created", null,
+                new { id, title = "Lavorazione", state = "Active", version = 1 }, ct);
+        }
+        await EditorEndpoints.History(db, "Line", line.Id, 1, member.TenantId, id, revision + 1, "Created", null, EditorEndpoints.LineSnapshot(line), ct);
+        if (!await EditorEndpoints.Advance(db, member.TenantId, id, revision, ct)) return Results.Conflict();
         await tx.CommitAsync(ct);
         return Results.Created($"/api/v1/workshop/orders/{id}/commercial-summary", line.ToContract());
     }
@@ -113,21 +133,23 @@ internal static partial class CommercialEndpoints
         {
             await SetTenant(db, member.TenantId, ct);
             order = await db.Orders.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id && x.TenantId == member.TenantId, ct);
-            lines = await db.Lines.AsNoTracking().Where(x => x.OrderId == id).OrderBy(x => x.ExpectedRevision).ToListAsync(ct);
+            lines = await db.Lines.AsNoTracking().Where(x => x.OrderId == id && x.State == "Active").OrderBy(x => x.ExpectedRevision).ToListAsync(ct);
             await tx.CommitAsync(ct);
         }
         if (order is null || await access.Authorize(Subject(user), order.LegalEntityId, order.SiteId, "workshop.orders.read", false, ct) is null)
             return Results.NotFound();
-        return Results.Ok(Summarize(order, lines));
+        return Results.Ok(Summarize(order, lines, order.CommercialRevision));
     }
     internal static IResult Closed() => Results.Conflict(new { code = "order_technically_closed",
         message = "Commessa chiusa tecnicamente: nessuna modifica registrata." });
-    internal static CommercialSummary Summarize(WorkOrder order, IReadOnlyList<CommercialLine> lines)
+    internal static decimal RoundAmount(decimal value) => RoundMoney(value);
+    internal static string Quantity(decimal value) => Value(value);
+    internal static CommercialSummary Summarize(WorkOrder order, IReadOnlyList<CommercialLine> lines, int revision)
     {
         var net = lines.Sum(x => x.NetAmount);
         var tax = lines.GroupBy(x => new { x.PayerId, x.TaxRate })
             .Sum(group => RoundMoney(group.Sum(x => x.NetAmount) * group.Key.TaxRate / 100m));
-        return new CommercialSummary(order.Id, order.PayerId, lines.Count, lines.Select(x => x.ToContract()).ToArray(),
+        return new CommercialSummary(order.Id, order.PayerId, revision, lines.Select(x => x.ToContract()).ToArray(),
             Money(net), Money(tax), Money(net + tax), "EUR", "Case001");
     }
     internal static LineContract Contract(CommercialLine x) => new(x.Id, x.OrderId, x.CatalogItemId, x.CatalogVersion,
@@ -152,6 +174,9 @@ internal sealed class CommercialLine
     public Guid WorkingGroupId { get; set; }
     public int ConfigurationVersion { get; set; }
     public int ExpectedRevision { get; set; }
+    public string? Description { get; set; }
+    public string State { get; set; } = "Active";
+    public int Version { get; set; } = 1;
     internal LineContract ToContract() => CommercialEndpoints.Contract(this);
 }
 internal sealed class LinePolicy
@@ -162,4 +187,5 @@ internal sealed class LinePolicy
     public int Version { get; set; }
     public required string Policy { get; set; }
     public bool SameWorkingGroup { get; set; }
+    public bool MultipleWorkingGroups { get; set; }
 }

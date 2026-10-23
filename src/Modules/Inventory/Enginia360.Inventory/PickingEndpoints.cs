@@ -81,7 +81,7 @@ internal static class PickingEndpoints
         var row = new PickedPart
         {
             Id = request.Id, TenantId = member.TenantId, ReservationId = reservationId, OrderId = orderId,
-            WorkingGroupId = orderId, LineId = lineId, LegalEntityId = reservation.LegalEntityId, SiteId = reservation.SiteId,
+            WorkingGroupId = reservation.WorkingGroupId, LineId = lineId, LegalEntityId = reservation.LegalEntityId, SiteId = reservation.SiteId,
             WarehouseId = reservation.WarehouseId, CatalogItemId = reservation.CatalogItemId, CatalogVersion = reservation.CatalogVersion,
             Quantity = quantity, ConfigurationVersion = policy.Version, OriginLocation = location.OriginLocation,
             PlacementLocation = policy.PreparationEnabled ? location.PreparationLocation : null,

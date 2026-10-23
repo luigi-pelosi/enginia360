@@ -85,7 +85,7 @@ internal static class CarcassReturnEndpoints
         now = new DateTimeOffset(now.Ticks - now.Ticks % 10, TimeSpan.Zero);
         var row = new CarcassReturn
         {
-            Id = request.Id, TenantId = member.TenantId, OrderId = orderId, WorkingGroupId = orderId, LineId = lineId,
+            Id = request.Id, TenantId = member.TenantId, OrderId = orderId, WorkingGroupId = line.WorkingGroupId, LineId = lineId,
             LegalEntityId = line.LegalEntityId, SiteId = line.SiteId, WarehouseId = request.WarehouseId, CatalogItemId = line.CatalogItemId,
             Location = location.Location, LocationConfigurationVersion = location.Version, Description = request.Description,
             Quantity = quantity, ReceivedAt = now, OperatorId = Guid.Parse(subject)

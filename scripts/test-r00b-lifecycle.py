@@ -13,9 +13,10 @@ import unittest
 from unittest.mock import patch
 
 ROOT=Path(__file__).resolve().parents[1]
-EDITOR='--editor' in sys.argv
-RUNNER=ROOT/('scripts/run-ui01b-tests.py' if EDITOR else 'scripts/run-r00b-tests.py')
-MARKER=b'UI01B_LIFECYCLE database-outage' if EDITOR else b'R00B_LIFECYCLE database-outage'
+R03A='--r03a' in sys.argv
+EDITOR='--editor' in sys.argv or R03A
+RUNNER=ROOT/('scripts/run-r03a-tests.py' if R03A else 'scripts/run-ui01b-tests.py' if EDITOR else 'scripts/run-r00b-tests.py')
+MARKER=b'R03A_LIFECYCLE database-outage' if R03A else b'UI01B_LIFECYCLE database-outage' if EDITOR else b'R00B_LIFECYCLE database-outage'
 spec=importlib.util.spec_from_file_location('r00b_runner',RUNNER)
 assert spec is not None and spec.loader is not None
 runner=importlib.util.module_from_spec(spec)
@@ -104,7 +105,7 @@ def actual_term_probe():
     assert runner.inventory('volume')==before_volumes
     assert set(runner.run(['docker','ps','-q','--no-trunc']).splitlines())==before_running
     assert not runner.run(['docker','ps','-aq','--filter','label=com.docker.compose.project.config_files='+str(runner.CONFIG)]).strip()
-    print('PASS actual '+('UI01.b editor' if EDITOR else 'R00.b')+' TERM while PostgreSQL paused and Chromium alive; child/resources removed, protected inventory unchanged.')
+    print('PASS actual '+('R03.a workspace' if R03A else 'UI01.b editor' if EDITOR else 'R00.b')+' TERM while PostgreSQL paused and Chromium alive; child/resources removed, protected inventory unchanged.')
 
 
 if __name__=='__main__':

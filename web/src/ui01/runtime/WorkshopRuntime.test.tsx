@@ -1,11 +1,10 @@
 import { afterEach, expect, test, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import WorkshopRuntime from './WorkshopRuntime';
-const id = '11111111-1111-4111-8111-111111111111';
-export const order = { id, legalEntityId: id, siteId: id, documentTypeId: id, configurationVersion: 7, payerId: id, vehicleId: id, vehicleHolderId: '22222222-2222-4222-8222-222222222222', isCustomerOrder: true };
-export const summary = { orderId: id, payerId: id, revision: 0, lines: [], netAmount: '0.000000', taxAmount: '0.000000', total: '0.000000', currency: 'EUR', policy: 'Case001' };
+import { id, order, summary, policy, capabilities, editorView } from './editorFixtures';
+export { order, summary, policy, capabilities, editorView };
 export function server(overrides: Record<string, unknown> = {}) {
-  const routes: Record<string, unknown> = { '/auth/session': { authenticated: true }, '/auth/csrf': { requestToken: 'test-only' }, '/api/v1/organization/contexts': [], '/api/v1/workshop/contexts': [], ['/api/v1/workshop/orders/'+id]: order, ['/api/v1/workshop/orders/'+id+'/commercial-summary']: summary, ...overrides };
+  const routes: Record<string, unknown> = { '/auth/session': { authenticated: true }, '/auth/csrf': { requestToken: 'test-only' }, '/api/v1/organization/contexts': [], '/api/v1/workshop/contexts': [], ['/api/v1/workshop/orders/'+id+'/editor']: editorView, ...overrides };
   const fetch = vi.fn(async (path: string, _options?: RequestInit) => new Response(JSON.stringify(routes[path] ?? []))); vi.stubGlobal('fetch', fetch); return fetch;
 }
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); window.location.hash = ''; });
@@ -15,8 +14,8 @@ test('known UUID URL reopens server order even with empty create scopes; immutab
   expect(screen.getByText('Configurazione documento: 7')).toBeTruthy();
   expect(screen.getByText('Società: '+order.legalEntityId)).toBeTruthy();
   expect(await screen.findByText('0.000000 EUR')).toBeTruthy();
-  for (const name of ['Modifica righe', 'Rimuovi righe', 'Note', 'Nuova lavorazione', 'Cambia pagante', 'Cambia veicolo', 'Elenco commesse']) expect((screen.getByRole('button', { name }) as HTMLButtonElement).disabled).toBe(true);
-  expect(screen.getByText(/R03/)).toBeTruthy();
+  expect(screen.getByText(/Documento v7 · Policy righe v9 · Struttura v1 · Revisione 0/)).toBeTruthy();
+  for (const name of ['Cambia testata', 'Cambia pagante', 'Cambia veicolo']) expect((screen.getByRole('button', { name }) as HTMLButtonElement).disabled).toBe(true);
   for (const name of ['Prenotazione','Prelievo','Preparazione','Installazione / consumo','Carcassa','Esito amministrativo esterno']) expect(screen.getByText(name)).toBeTruthy();
   expect(screen.getAllByText('Non collegato in UI01.b').length).toBe(6);
   fireEvent.click(screen.getByRole('button', { name: 'Rileggi commessa' }));
@@ -44,7 +43,7 @@ test('server selectors and non-default document version create with independent 
 test('loaded order binds actual add form; session expiry clears document and prevents writes', async () => {
   window.location.hash = 'order='+id;
   const fetch = server(); render(<WorkshopRuntime />);
-  await screen.findByRole('heading', { name: 'Aggiunta persistita' });
+  await screen.findByLabelText('Workspace commessa');
   fetch.mockImplementation(async (path: string) => path === '/auth/session' ? new Response('{"authenticated":false}') : new Response(null, { status: 401 }));
   fireEvent.click(screen.getByRole('button', { name: 'Riprova sessione' }));
   await screen.findByText('Sessione terminata. Accedi nuovamente.');
@@ -74,20 +73,18 @@ test('late authenticated response cannot restore authority after newer anonymous
   await act(async () => { resolve(new Response('{"authenticated":true}')); await new Promise(r => setTimeout(r, 30)); });
   expect(screen.queryByRole('heading', { name: 'Nuova commessa' })).toBeNull();
 });
-test('accepted add followed by failed read is visibly unverified; reread never resubmits a write', async () => {
+test('accepted command followed by failed read is visibly unverified; reread never resubmits the write', async () => {
   window.location.hash='order='+id; let written=false, outage=true;
   const fetch=server();
   fetch.mockImplementation(async(path:string,options?:RequestInit)=>{
-    if(options?.method==='POST'){written=true;return new Response(JSON.stringify({id:JSON.parse(options.body as string).id}));}
-    if(path.endsWith('/commercial-summary')) return written && outage ? new Response(null,{status:503}) : new Response(JSON.stringify(summary));
-    if(path.includes('/catalog?'))return new Response(JSON.stringify([{id,kind:'Service',label:'Service',version:8}]));
-    return new Response(JSON.stringify(path==='/auth/session'?{authenticated:true}:path==='/auth/csrf'?{requestToken:'test-only'}:path.endsWith('/orders/'+id)?order:[]));
+    if(options?.method==='POST'){written=true;const b=JSON.parse(options.body as string);return new Response(JSON.stringify({commandId:b.commandId,orderId:id,appliedRevision:1,resultKind:'Created',targetId:b.groupId}));}
+    if(path.endsWith('/editor')) return written && outage ? new Response(null,{status:503}) : new Response(JSON.stringify(editorView));
+    return new Response(JSON.stringify(path==='/auth/session'?{authenticated:true}:path==='/auth/csrf'?{requestToken:'test-only'}:[]));
   });
-  render(<WorkshopRuntime/>); await screen.findByRole('option',{name:'Service · Service'});
-  fireEvent.change(screen.getByLabelText('Articolo / prestazione'),{target:{value:id}});
-  for(const [label,value] of [['Versione configurazione righe (setup)','9'],['Quantità','1'],['Prezzo unitario','2'],['Sconto %','0']])fireEvent.change(screen.getByLabelText(label),{target:{value}});
-  fireEvent.click(screen.getByRole('button',{name:'Aggiungi riga'}));
-  await screen.findByText(/Scrittura accettata; riepilogo non verificato/);
+  render(<WorkshopRuntime/>); await screen.findByLabelText('Workspace commessa');
+  fireEvent.change(screen.getByLabelText('Nuova lavorazione'),{target:{value:'Freni'}});
+  fireEvent.click(screen.getByRole('button',{name:'Aggiungi lavorazione'}));
+  await screen.findAllByText(/Scrittura accettata; riepilogo non verificato/);
   expect(screen.queryByText('0.000000 EUR')).toBeNull();
   expect(screen.queryByRole('button',{name:'Crea commessa'})).toBeNull();
   outage=false; fireEvent.click(screen.getByRole('button',{name:'Rileggi commessa'}));
@@ -96,7 +93,7 @@ test('accepted add followed by failed read is visibly unverified; reread never r
 });
 test('read-only order success is not overwritten by independently denied catalog selector',async()=>{
  window.location.hash='order='+id; const fetch=server();
- fetch.mockImplementation(async(path:string)=>path.includes('/catalog?')?new Response(null,{status:403}):new Response(JSON.stringify(path==='/auth/session'?{authenticated:true}:path==='/auth/csrf'?{requestToken:'test-only'}:path.endsWith('/commercial-summary')?summary:path.endsWith('/orders/'+id)?order:[])));
+ fetch.mockImplementation(async(path:string)=>path.includes('/catalog?')?new Response(null,{status:403}):new Response(JSON.stringify(path==='/auth/session'?{authenticated:true}:path==='/auth/csrf'?{requestToken:'test-only'}:path.endsWith('/editor')?editorView:[])));
  render(<WorkshopRuntime/>);
  await screen.findByText(/Catalogo non disponibile/);
  expect(screen.getByText('Valori salvati riletti — revisione 0')).toBeTruthy();
@@ -107,14 +104,14 @@ test('pending catalog response cannot restore choices after session expiry',asyn
  const fetch=server();
  fetch.mockImplementation(async(path:string)=>{
   if(path.includes('search=late')) return await new Promise<Response>(resolve=>{release=resolve;});
-  return new Response(JSON.stringify(path==='/auth/session'?{authenticated:!expired}:path==='/auth/csrf'?{requestToken:'test-only'}:path.endsWith('/commercial-summary')?summary:path.endsWith('/orders/'+id)?order:[]));
+  return new Response(JSON.stringify(path==='/auth/session'?{authenticated:!expired}:path==='/auth/csrf'?{requestToken:'test-only'}:path.endsWith('/editor')?editorView:[]));
  });
- render(<WorkshopRuntime/>); await screen.findByRole('heading',{name:'Aggiunta persistita'});
+ render(<WorkshopRuntime/>); await screen.findByLabelText('Workspace commessa');
  fireEvent.change(screen.getByLabelText('Ricerca articolo / prestazione'),{target:{value:'late'}});
  fireEvent.click(screen.getByRole('button',{name:'Cerca articolo / prestazione'}));
  expired=true; fireEvent.click(screen.getByRole('button',{name:'Riprova sessione'}));
  await screen.findByText('Sessione terminata. Accedi nuovamente.');
  await act(async()=>{release(new Response(JSON.stringify([{id,kind:'Service',label:'Late secret choice',version:8}])));});
  expect(screen.queryByRole('option',{name:/Late secret choice/})).toBeNull();
- expect(screen.queryByRole('heading',{name:'Aggiunta persistita'})).toBeNull();
+ expect(screen.queryByLabelText('Workspace commessa')).toBeNull();
 });

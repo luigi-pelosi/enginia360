@@ -29,6 +29,7 @@ jobs:
       ui_tests: ${{ steps.selection.outputs.ui_tests }}
       browser: ${{ steps.selection.outputs.browser }}
       ui01b: ${{ steps.selection.outputs.ui01b }}
+      r03a: ${{ steps.selection.outputs.r03a }}
       migrations: ${{ steps.selection.outputs.migrations }}
     steps:
       - uses: actions/checkout@v4
@@ -36,7 +37,7 @@ jobs:
       - name: Initialize private impact scratch directory
         run: printf 'TMPDIR=%s\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
       - name: Verify impact selection and direct runtime contracts
-        run: python3 scripts/test-ci-impact.py && python3 scripts/test-ui01b-impact.py && python3 scripts/test-ui01b-wiring.py && python3 scripts/test-r00a-ci.py && python3 scripts/test-r00b-migration-tls.py && python3 scripts/test-r00b-lifecycle.py && python3 scripts/test-ci-runtime.py && python3 scripts/test-c00-consistency.py && python3 scripts/test-productization-consistency.py
+        run: python3 scripts/test-ci-impact.py && python3 scripts/test-ui01b-impact.py && python3 scripts/test-r03a-impact.py && python3 scripts/test-r03a-contract.py && python3 scripts/test-ui01b-wiring.py && python3 scripts/test-r00a-ci.py && python3 scripts/test-r00b-migration-tls.py && python3 scripts/test-r00b-lifecycle.py && python3 scripts/test-ci-runtime.py && python3 scripts/test-c00-consistency.py && python3 scripts/test-productization-consistency.py
       - name: Select exact changed-file impact
         id: selection
         env:
@@ -115,6 +116,21 @@ jobs:
         run: timeout 300 python3 scripts/test-r00b-lifecycle.py --actual --editor
       - name: Nonroot synthetic fixture extension retains readonly browser mount
         run: docker run --rm --user 1001:1001 --read-only --cap-drop=ALL --security-opt=no-new-privileges:true --network none --memory=128m --pids-limit=32 --tmpfs /tmp:rw,noexec,nosuid,size=16m,uid=1001,gid=1001 -v "$PWD:/source:ro" -w /source python:3.14.3-alpine3.23@sha256:faee120f7885a06fcc9677922331391fa690d911c020abb9e8025ff3d908e510 python3 scripts/test-ui01b-fixture.py
+  affected-r03a:
+    needs: impact
+    if: github.event_name == 'workflow_dispatch' && needs.impact.outputs.r03a == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Initialize private R03.a scratch directory
+        run: printf 'TMPDIR=%s\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+      - name: Build separate opt-in runtime editor
+        run: docker run --rm -v "$PWD:/source" -w /source/web node:24.22.0-alpine3.24@sha256:44fce696f38ba8c987c4db89954051000bbd05ffd8d8659ba15ed4a8602e937f sh -c 'npm ci --no-audit --no-fund && npm run build:ui01-runtime'
+      - name: Actual order-workspace Chromium TLS OIDC API PostgreSQL acceptance
+        run: timeout 600 python3 scripts/run-r03a-tests.py
+      - name: Actual order-workspace paused-database TERM cleanup
+        run: timeout 300 python3 scripts/test-r00b-lifecycle.py --actual --r03a
   runtime-migrations:
     if: github.event_name == 'workflow_dispatch' && inputs.full_architecture
     runs-on: ubuntu-24.04

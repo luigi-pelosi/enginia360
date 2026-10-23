@@ -117,10 +117,10 @@ public static class InventoryModule
             return Results.Conflict(new { code = "insufficient_available", message = "Disponibilità insufficiente per la quantità richiesta. Nessuna prenotazione eseguita." });
         var row = new Reservation { Id = request.Id, TenantId = member.TenantId, OrderId = orderId, LineId = lineId,
             LegalEntityId = line.LegalEntityId, SiteId = line.SiteId, WarehouseId = request.WarehouseId,
-            CatalogItemId = line.CatalogItemId, CatalogVersion = request.CatalogVersion, Quantity = quantity };
+            CatalogItemId = line.CatalogItemId, CatalogVersion = request.CatalogVersion, Quantity = quantity, WorkingGroupId = line.WorkingGroupId };
         var inserted = await db.Database.ExecuteSqlInterpolatedAsync($"""
-            INSERT INTO inventory.reservations ("Id","TenantId","OrderId","LineId","LegalEntityId","SiteId","WarehouseId","CatalogItemId","CatalogVersion","Quantity")
-            VALUES ({row.Id},{row.TenantId},{row.OrderId},{row.LineId},{row.LegalEntityId},{row.SiteId},{row.WarehouseId},{row.CatalogItemId},{row.CatalogVersion},{row.Quantity})
+            INSERT INTO inventory.reservations ("Id","TenantId","OrderId","LineId","LegalEntityId","SiteId","WarehouseId","CatalogItemId","CatalogVersion","Quantity","WorkingGroupId")
+            VALUES ({row.Id},{row.TenantId},{row.OrderId},{row.LineId},{row.LegalEntityId},{row.SiteId},{row.WarehouseId},{row.CatalogItemId},{row.CatalogVersion},{row.Quantity},{row.WorkingGroupId})
             ON CONFLICT ("Id") DO NOTHING
             """, ct);
         if (inserted == 0) return Results.Conflict();
@@ -179,5 +179,6 @@ internal sealed class Reservation
     public Guid CatalogItemId { get; set; }
     public int CatalogVersion { get; set; }
     public decimal Quantity { get; set; }
+    public Guid WorkingGroupId { get; set; }
     internal ReservationContract Contract() => new(Id, OrderId, LineId, WarehouseId, InventoryModule.Value(Quantity), CatalogVersion);
 }

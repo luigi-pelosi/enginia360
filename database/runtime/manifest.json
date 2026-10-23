@@ -83,5 +83,15 @@
     "id": "0017_master_authority_profile",
     "path": "migrations/0017_master_authority_profile.sql",
     "sha256": "c2b66e0d04c4734931192dbead01f6c11f47fa99dd983d2d34cd99d37c2cdf5b"
+  },
+  {
+    "id": "0018_workshop_order_workspace",
+    "path": "migrations/0018_workshop_order_workspace.sql",
+    "sha256": "a52874259440f65b5d85960627138a607f2e1428371c20f2c5f3fca8438bfffe"
+  },
+  {
+    "id": "0019_inventory_working_group_provenance",
+    "path": "migrations/0019_inventory_working_group_provenance.sql",
+    "sha256": "a0c54329ca6c15c1d3c057b342a2af9e2c8031662ab6f4c508b6029376356028"
   }
 ]

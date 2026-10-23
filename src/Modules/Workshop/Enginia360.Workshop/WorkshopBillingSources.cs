@@ -50,8 +50,10 @@ internal sealed class WorkshopBillingSources(WorkshopDbContext db) : IWorkshopBi
         var order = await db.Orders.AsNoTracking().SingleOrDefaultAsync(x => x.TenantId == tenantId && x.Id == orderId, ct);
         var closure = await db.TechnicalClosures.AsNoTracking().SingleOrDefaultAsync(x => x.TenantId == tenantId && x.OrderId == orderId, ct);
         if (order is null || closure is null) return null;
-        var lines = await db.Lines.AsNoTracking().Where(x => x.OrderId == orderId).OrderBy(x => x.ExpectedRevision).ToListAsync(ct);
-        var summary = CommercialEndpoints.Summarize(order, lines);
+        var lines = await db.Lines.AsNoTracking().Where(x => x.OrderId == orderId && x.State == "Active").OrderBy(x => x.ExpectedRevision).ToListAsync(ct);
+        // A closed order cannot change: the order revision must equal the frozen closure revision.
+        if (order.CommercialRevision != closure.Revision) return null;
+        var summary = CommercialEndpoints.Summarize(order, lines, closure.Revision);
         return new(tenantId, orderId, order.LegalEntityId, order.SiteId, order.PayerId, closure.Revision, 0, summary);
     }
 }
