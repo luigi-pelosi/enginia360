@@ -40,18 +40,31 @@ UI01B_FILES = {'scripts/owner-master-authority.py','scripts/test-r02b-authority.
     'compose.ui01b-test.yaml','scripts/run-ui01b-tests.py','scripts/test-ui01b-wiring.py','scripts/test-ui01b-impact.py','scripts/test-ui01b-fixture.py',
     'tests/browser/ui01b-acceptance.cjs','web/package.json','web/package-lock.json',
     'scripts/select-ci-impact.py','scripts/test-ci-impact.py','.github/workflows/ci.yml','browser.runtime.Dockerfile'}
+R03A_FILES = {'database/runtime/migrations/0018_workshop_order_workspace.sql','scripts/run-r03a-tests.py',
+    'scripts/test-r03a-impact.py','scripts/test-r03a-contract.py','tests/browser/r03a-acceptance.cjs',
+    'compose.r03a-test.yaml','tests/Enginia360.Api.Tests/WorkshopEditorTests.cs','web/nginx.r03a-test.conf'}
+R03A_PREFIXES = ('src/Modules/Workshop/','src/Modules/Inventory/')
+R03A_EXCLUDED = {'src/Modules/Workshop/Enginia360.Workshop/WorkshopModule.cs'}
 WORKSHOP_FILTER = '|'.join('FullyQualifiedName~'+name for name in (
     'WorkshopBoundaryTests','CommercialCalculationTests','CounterpartyArchitectureTests'))
+
+R03A_FILTER = '|'.join('FullyQualifiedName~'+name for name in (
+    'WorkshopBoundaryTests','CommercialCalculationTests','CounterpartyArchitectureTests','WorkshopEditorTests','InstallationBoundaryTests','CarcassBoundaryTests',
+    'InventoryArchitectureTests','AdministrationBoundaryTests','BillingBoundaryTests','AccountingBoundaryTests'))
 
 
 def selection(paths):
     paths = sorted(set(paths))
-    auth = ui = ui01b = False
+    auth = ui = ui01b = r03a = False
     unknown = []
     for path in paths:
         parsed = PurePosixPath(path)
         if not path or parsed.is_absolute() or '..' in parsed.parts or '\\' in path or str(parsed) != path:
             raise ValueError('invalid changed path')
+        if path in R03A_FILES or (path.startswith(R03A_PREFIXES) and path not in R03A_EXCLUDED):
+            r03a = ui01b = True
+            if path not in UI01B_FILES and not path.startswith('database/runtime/'):
+                continue
         if path in UI01B_FILES or path.startswith('web/src/ui01/runtime/'):
             ui01b = ui = True
             if path not in AUTH_FILES and not path.startswith(('src/Enginia360.Api/OrganizationAccess/','database/runtime/')):
@@ -69,9 +82,9 @@ def selection(paths):
             unknown.append(path)
     if unknown:
         raise ValueError('extend and test direct-dependency impact mapping for: '+', '.join(unknown))
-    filters = ([AUTH_FILTER] if auth or ui01b else []) + ([WORKSHOP_FILTER] if ui01b else [])
+    filters = ([AUTH_FILTER] if auth or ui01b else []) + ([R03A_FILTER if r03a else WORKSHOP_FILTER] if ui01b else [])
     return {'changed_paths':paths,'api_filter':'|'.join(filters),
-            'browser':auth,'ui01b':ui01b,'migrations':auth or ui01b,'ui_build':auth or ui,'ui_tests':ui,
+            'browser':auth,'ui01b':ui01b,'r03a':r03a,'migrations':auth or ui01b,'ui_build':auth or ui,'ui_tests':ui,
             'full_architecture':False}
 
 
