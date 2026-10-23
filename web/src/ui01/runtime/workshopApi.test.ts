@@ -19,6 +19,12 @@ test('malformed CSRF projection refuses POST instead of sending undefined author
   await expect(request('/api/v1/workshop/orders', { id: 'command' })).rejects.toThrow(/Contratto/);
   expect(fetch).toHaveBeenCalledTimes(1);
 });
+test('bounded common edit uses PUT with fresh CSRF and preserves server refusal state', async () => {
+  const fetch=vi.fn().mockResolvedValueOnce(new Response('{"requestToken":"fresh"}')).mockResolvedValueOnce(new Response('{"state":"external"}',{status:409}));
+  vi.stubGlobal('fetch',fetch);
+  await expect(request('/api/v1/counterparties/id',{commandId:'same'},'PUT')).rejects.toMatchObject({status:409,code:'external'});
+  expect(fetch.mock.calls[1][1]).toMatchObject({method:'PUT',headers:{'X-CSRF-TOKEN':'fresh'}});
+});
 test.each([400,401,403,404,409,503])('HTTP%s with empty body is a typed recoverable error', async status => {
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status })));
   await expect(request('/api/v1/workshop/contexts')).rejects.toMatchObject({ status });

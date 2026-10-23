@@ -7,6 +7,7 @@ const checks = [];
 function pass(name) { checks.push(name); console.log('PASS UI01B '+name); }
 async function json(page,path,options={}) { return page.evaluate(async ({path,options}) => { const r=await fetch(path,options); return { status:r.status, value:await r.json().catch(()=>null) }; },{path,options}); }
 async function post(page,path,body,token) { const csrf=token===undefined ? (await json(page,'/auth/csrf')).value.requestToken : token; return json(page,path,{method:'POST',headers:{'Content-Type':'application/json',...(csrf ? {'X-CSRF-TOKEN':csrf} : {})},body:JSON.stringify(body)}); }
+async function put(page,path,body) { const csrf=(await json(page,'/auth/csrf')).value.requestToken; return json(page,path,{method:'PUT',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrf},body:JSON.stringify(body)}); }
 async function control(action) {
   fs.writeFileSync('/run/control/request',action);
   for(let i=0;i<80;i++) {
@@ -57,6 +58,14 @@ async function login(browser,index) {
   assert.equal((await json(page,'/auth/session')).value.authenticated,true);
   stage='R02 bounded selector queries';
   const ctx=fixture.contexts[0];
+  stage='R02b authority read API';
+  const authorityEndpoint='/api/v1/counterparties/authority?legalEntityId='+ctx.legalEntityId;
+  const authority=await json(page,authorityEndpoint); assert.equal(authority.status,200,'authorized authority read must exist');
+  assert.equal(authority.value.state,'missing');
+  pass('R02b missing setup visible without blocking reads');
+  const editEndpoint='/api/v1/counterparties/'+fixture.workshop[0].payerId;
+  const editBody={legalEntityId:ctx.legalEntityId,commandId:crypto.randomUUID(),authorityVersion:0,expectedRevision:0,legalName:'Synthetic edited payer',fiscalIdentifier:'SYNTHETIC',registeredOffice:'Synthetic office'};
+  const refused=await put(page,editEndpoint,editBody); assert.equal(refused.status,409,'missing authority must refuse dependent write explicitly'); assert.equal(refused.value.state,'missing');
   const scope='legalEntityId='+ctx.legalEntityId+'&siteId='+ctx.siteId;
   const selectors=['/api/v1/counterparties?'+scope,'/api/v1/workshop/vehicles?'+scope,'/api/v1/workshop/catalog?'+scope];
   const sizes=[];
@@ -111,15 +120,22 @@ async function login(browser,index) {
   stage='editor route'; await page.goto(origin+'/ui01-runtime.html');
   await page.getByRole('heading',{name:'Nuova commessa',exact:true}).waitFor();
   stage='document selectors';
+  await page.getByRole('heading',{name:'Autorità anagrafica condivisa',exact:true}).waitFor({timeout:5000});
+  await page.getByText('Profilo assente: modifica comune bloccata; ricerca e selezione disponibili.',{exact:true}).waitFor();
   await page.getByRole('option',{name:'Synthetic document · v7',exact:true}).waitFor({state:'attached'});
   stage='R02 actual database outage and recovery';
   await control('database-outage');
+  assert.equal((await json(page,authorityEndpoint)).status,503);
+  await page.getByRole('button',{name:'Rileggi autorità',exact:true}).click();
+  await page.getByRole('heading',{name:'Autorità anagrafica condivisa',exact:true}).locator('..').getByText(/Servizio non disponibile/).waitFor();
   for(const endpoint of selectors) assert.equal((await json(page,endpoint+'&search=Synthetic')).status,503);
   await page.getByLabel('Ricerca veicolo',{exact:true}).fill('Synthetic vehicle');
   await page.getByRole('button',{name:'Cerca veicolo',exact:true}).click();
   await page.getByText(/Veicolo: Servizio non disponibile/).waitFor();
   assert.equal(await page.getByLabel('Veicolo',{exact:true}).locator('option').count(),1);
   await control('database-recover');
+  await page.getByRole('button',{name:'Rileggi autorità',exact:true}).click();
+  await page.getByText('Profilo assente: modifica comune bloccata; ricerca e selezione disponibili.',{exact:true}).waitFor();
   await page.getByRole('button',{name:'Cerca veicolo',exact:true}).click();
   await page.getByRole('option',{name:'Synthetic vehicle',exact:true}).waitFor({state:'attached'});
   pass('R02 actual paused PostgreSQL yields selector503 and empty UI; unpause explicit retry recovers');
@@ -198,6 +214,39 @@ async function login(browser,index) {
   assert.deepEqual((await json(page,'/api/v1/workshop/orders/'+orderId+'/commercial-summary')).value,saved);
   pass('missing/corrupt CSRF, stale revision/duplicate kind, foreign tenant and missing exact add action denied');
   pass('read-only identity with empty creation contexts reopens authorized known order');
+  stage='R02b real owner setup and local common edit';
+  await control('authority-external');
+  assert.equal((await json(page,authorityEndpoint)).value.state,'external');
+  const external=await put(page,editEndpoint,{...editBody,authorityVersion:1}); assert.equal(external.status,409); assert.equal(external.value.state,'external');
+  await page.getByRole('button',{name:'Rileggi autorità',exact:true}).click();
+  await page.getByText('Autorità esterna: modifica locale rifiutata; letture disponibili.',{exact:true}).waitFor();
+  assert.equal(await page.getByLabel('Denominazione comune',{exact:true}).count(),0);
+  assert.deepEqual((await json(page,'/api/v1/workshop/orders/'+orderId+'/commercial-summary')).value,saved);
+  await control('authority-local');
+  await page.getByRole('button',{name:'Rileggi autorità',exact:true}).click();
+  await page.getByLabel('Denominazione comune',{exact:true}).waitFor();
+  await page.getByLabel('Denominazione comune',{exact:true}).fill('Synthetic edited payer');
+  let commonPayload;
+  await page.route('**/api/v1/counterparties/'+fixture.workshop[0].payerId,async route=>{
+    if(route.request().method()!=='PUT') return route.continue();
+    commonPayload=route.request().postData();const response=await route.fetch();assert.equal(response.status(),200);await route.abort('connectionreset');await page.unroute('**/api/v1/counterparties/'+fixture.workshop[0].payerId);
+  });
+  await page.getByRole('button',{name:'Salva dati comuni',exact:true}).click();
+  await page.getByRole('button',{name:'Riprova modifica identica',exact:true}).waitFor();
+  assert(await page.getByLabel('Denominazione comune',{exact:true}).isDisabled());
+  const commonReplay=page.waitForRequest(r=>r.method()==='PUT' && new URL(r.url()).pathname===editEndpoint);
+  await page.getByRole('button',{name:'Riprova modifica identica',exact:true}).click();assert.equal((await commonReplay).postData(),commonPayload);
+  await page.getByText('Dati comuni salvati e riletti — revisione 1',{exact:true}).waitFor();
+  assert.equal(await page.getByLabel('Denominazione comune',{exact:true}).inputValue(),'Synthetic edited payer');
+  const common=(await json(page,editEndpoint+'?legalEntityId='+ctx.legalEntityId)).value; assert.equal(common.legalName,'Synthetic edited payer');
+  assert.deepEqual((await json(page,'/api/v1/workshop/orders/'+orderId)).value,order);
+  assert.deepEqual((await json(page,'/api/v1/workshop/orders/'+orderId+'/commercial-summary')).value,saved);
+  assert.equal((await put(limited.page,editEndpoint,{...editBody,authorityVersion:2,expectedRevision:1})).status,403);
+  assert.equal((await put(b.page,editEndpoint,{...editBody,legalEntityId:fixture.contexts[1].legalEntityId,authorityVersion:2,expectedRevision:1})).status,403);
+  const stale=await put(page,editEndpoint,{...editBody,authorityVersion:1,expectedRevision:1}); assert.equal(stale.status,409);assert.equal(stale.value.state,'stale_authority');
+  const invalid=await put(page,editEndpoint,{legalEntityId:ctx.legalEntityId,legalName:'Invalid command',fiscalIdentifier:'SYNTHETIC',registeredOffice:'Synthetic office'}); assert.equal(invalid.status,400);
+  const proof=JSON.parse(fs.readFileSync('/run/control/result.json','utf8')); proof.common=common; proof.authority=(await json(page,authorityEndpoint)).value; fs.writeFileSync('/run/control/result.json',JSON.stringify(proof));
+  pass('R02b trusted TLS owner tool establishes explicit external/local source; external/missing/stale write denied; actual UI PUT and API reread preserve saved order/q6 and exact grants');
   stage='layout'; for(const [width,height] of [[1920,1080],[1366,768]]) {
     await page.setViewportSize({width,height});
     const measure=await page.evaluate(()=>({width:innerWidth,height:innerHeight,bottom:document.querySelector('.ui01-summary').getBoundingClientRect().bottom})); assert.deepEqual(measure,{width,height,bottom:height});
@@ -211,6 +260,8 @@ async function login(browser,index) {
   pass('actual desktop1920x1080 and laptop1366x768 sticky-summary screenshots synthetic only');
   stage='logout'; await page.goto(origin+'/'); await page.getByRole('button',{name:'Esci da Enginia360',exact:true}).waitFor(); await page.getByRole('button',{name:'Esci da Enginia360',exact:true}).click();
   await second.getByRole('button',{name:'Riprova sessione',exact:true}).click(); await second.getByText('Sessione terminata. Accedi nuovamente.',{exact:true}).waitFor(); assert.equal(await second.getByRole('heading',{name:'Aggiunta persistita',exact:true}).count(),0);
+  assert.equal((await json(second,authorityEndpoint)).status,401);
+  assert.equal(await second.getByRole('heading',{name:'Autorità anagrafica condivisa',exact:true}).count(),0);
   pass('local logout invalidates existing editor session and clears document/write controls');
   console.log('UI01B_CHECK_COUNT '+checks.length+' skipped=0');
  } catch(e) { console.error('UI01B_FAILED_STAGE '+stage+' '+e.name+' '+(stage.includes('login') ? String(e.message).split('\n')[0] : String(e.message))); process.exitCode=1; } finally {await browser.close();}

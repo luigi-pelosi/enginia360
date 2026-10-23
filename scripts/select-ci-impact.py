@@ -9,7 +9,8 @@ import sys
 
 AUTH_FILTER = '|'.join('FullyQualifiedName~'+name for name in (
     'BrowserSessionTests','BoundedTicketStoreTests','BrowserAuthenticationBoundaryTests',
-    'ExternalIdentityAuthenticationTests','AuthorizedContextContractTests','LimitedGrantAdministrationTests','BootstrapTests'))
+    'ExternalIdentityAuthenticationTests','AuthorizedContextContractTests','LimitedGrantAdministrationTests',
+    'MasterAuthorityEnforcementTests','BootstrapTests'))
 AUTH_FILES = {
     'src/Enginia360.Api/Program.cs','src/Enginia360.Api/Enginia360.Api.csproj',
     'src/Enginia360.Api/packages.lock.json','tests/Enginia360.Api.Tests/packages.lock.json',
@@ -19,16 +20,22 @@ AUTH_FILES = {
     'scripts/apply-runtime-migrations.py','scripts/validate-runtime-config.py',
     'scripts/select-ci-impact.py','scripts/test-ci-impact.py','.github/workflows/ci.yml',
     'scripts/test-productization-consistency.py','scripts/owner-operative-mandate.py','scripts/test-r01b-grants.py',
+    'scripts/test-r02b-authority.py','scripts/owner-master-authority.py',
     'web/nginx.r00b-test.conf','web/runtime-access.html','web/runtime-access.js',
 }
 AUTH_TESTS = {'BrowserSessionTests','BoundedTicketStoreTests','BrowserAuthenticationBoundaryTests',
-              'ExternalIdentityAuthenticationTests','AuthorizedContextContractTests','LimitedGrantAdministrationTests','BootstrapTests','RuntimeMigrationPoolTests'}
-UI01B_FILES = {'web/ui01-runtime.html','web/vite.ui01-runtime.config.ts','web/nginx.ui01b-test.conf',
+              'ExternalIdentityAuthenticationTests','AuthorizedContextContractTests','LimitedGrantAdministrationTests',
+              'MasterAuthorityEnforcementTests','BootstrapTests','RuntimeMigrationPoolTests'}
+UI01B_FILES = {'scripts/owner-master-authority.py','scripts/test-r02b-authority.py',
+    'database/runtime/migrations/0017_master_authority_profile.sql',
+    'src/Enginia360.Api/OrganizationAccess/CounterpartyAccessAdapter.cs','web/ui01-runtime.html','web/vite.ui01-runtime.config.ts','web/nginx.ui01b-test.conf',
     'src/Modules/Vehicles/Enginia360.Vehicles/VehiclesModule.cs',
     'src/Modules/Vehicles/Enginia360.Vehicles.Contracts/Contracts.cs',
     'src/Modules/Catalog/Enginia360.Catalog/CatalogModule.cs',
     'src/Modules/Catalog/Enginia360.Catalog.Contracts/Contracts.cs',
     'src/Modules/Counterparties/Enginia360.Counterparties/CounterpartiesModule.cs',
+    'src/Modules/Counterparties/Enginia360.Counterparties/CommonEndpoints.cs',
+    'src/Modules/Counterparties/Enginia360.Counterparties.Contracts/Contracts.cs',
     'src/Modules/Workshop/Enginia360.Workshop/WorkshopModule.cs',
     'compose.ui01b-test.yaml','scripts/run-ui01b-tests.py','scripts/test-ui01b-wiring.py','scripts/test-ui01b-impact.py','scripts/test-ui01b-fixture.py',
     'tests/browser/ui01b-acceptance.cjs','web/package.json','web/package-lock.json',
@@ -47,7 +54,7 @@ def selection(paths):
             raise ValueError('invalid changed path')
         if path in UI01B_FILES or path.startswith('web/src/ui01/runtime/'):
             ui01b = ui = True
-            if path not in AUTH_FILES:
+            if path not in AUTH_FILES and not path.startswith(('src/Enginia360.Api/OrganizationAccess/','database/runtime/')):
                 continue
         if (path in AUTH_FILES or path.startswith(('src/Enginia360.Api/BrowserAuthentication/',
                 'src/Enginia360.Api/OrganizationAccess/','database/runtime/','tests/browser/',

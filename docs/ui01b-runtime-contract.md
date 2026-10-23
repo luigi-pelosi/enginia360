@@ -1,6 +1,6 @@
 # UI01.b — bounded runtime editor contract
 
-Subissue #60 of UI01 #5; baseline f2d64cba0dd9ea2d962c4ec679ed5be01ec458a1. D74–D77, existing D67 snapshots/rounding unchanged. No R02 implementation, ERP call, production identity, provisioning, fiscal engine or new business endpoint.
+Subissue #60 of UI01 #5; baseline f2d64cba0dd9ea2d962c4ec679ed5be01ec458a1. D74–D77, existing D67 snapshots/rounding unchanged. The bounded R02.b authority/common-edit addition is specified separately in [its contract](r02b-master-authority.md). No ERP call, production identity, provisioning or fiscal engine.
 
 ## Opt-in only
 

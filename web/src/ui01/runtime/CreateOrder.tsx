@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ApiError, request } from './workshopApi';
 import { check, positive, record, uuid } from './contracts';
 import MasterSearch, { type MasterChoice } from './MasterSearch';
+import MasterAuthority from './MasterAuthority';
 type Context = Readonly<{ legalEntityId: string; legalEntityName: string; siteId: string; siteName: string }>;
 type Choice = Readonly<{ id: string; label: string; version?: number; directCreationEnabled?: boolean }>;
 function choices(value: unknown, label: string, versioned = false): Choice[] {
@@ -47,5 +48,5 @@ export default function CreateOrder({ onCreated, onError }: Readonly<{ onCreated
     <MasterSearch key={'payer:'+(vehicleEndpoint ?? 'none')} endpoint={payerEndpoint} label="Pagante" legalName value={payer} onChange={setPayer} onError={onError} />
     <MasterSearch key={vehicleEndpoint ?? 'no-vehicle-context'} endpoint={vehicleEndpoint} label="Veicolo" value={vehicle} onChange={setVehicle} onError={onError} />
     <p>L'intestatario è risolto dal server; non cambia il pagante.</p></fieldset>
-    <button disabled={busy || (!pending.current && (!documentTypeId || !payerId || !vehicleId))}>{pending.current ? 'Riprova comando identico' : 'Crea commessa'}</button></form></section>;
+    <button disabled={busy || (!pending.current && (!documentTypeId || !payerId || !vehicleId))}>{pending.current ? 'Riprova comando identico' : 'Crea commessa'}</button></form>{context && <MasterAuthority key={context.legalEntityId} companyId={context.legalEntityId} counterpartyId={payerId} onError={onError} />}</section>;
 }

@@ -47,6 +47,8 @@ public static class CounterpartiesModule
             await tx.CommitAsync(ct);
             return row is null ? Results.NotFound() : Results.Ok(row);
         });
+        routes.MapGet("/authority", CommonEndpoints.Authority);
+        routes.MapGet("/{id:guid}/edit-state", CommonEndpoints.EditState);
         routes.MapPut("/{id:guid}", CommonEndpoints.Update);
         routes.MapPost("/destinations/{id:guid}/publication", DestinationEndpoints.Publish);
         routes.MapPost("/{id:guid}/destinations", DestinationEndpoints.Create);
