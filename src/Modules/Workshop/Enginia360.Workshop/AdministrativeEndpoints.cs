@@ -76,7 +76,8 @@ internal static partial class AdministrativeEndpoints
             return replay.OrderId == id && replay.Revision == request.ExpectedRevision ? Results.Ok(replay.Contract()) : Results.Conflict();
         if (await db.TechnicalClosures.AnyAsync(x => x.OrderId == id, ct))
             return Results.Conflict(new { code = "already_closed", message = "Commessa già chiusa tecnicamente." });
-        var revision = await db.Lines.CountAsync(x => x.OrderId == id, ct);
+        // Persisted lifecycle revision under the order lock shared with every editor command; never a row count.
+        var revision = await db.Orders.AsNoTracking().Where(x => x.TenantId == member.TenantId && x.Id == id).Select(x => x.CommercialRevision).SingleAsync(ct);
         if (revision != request.ExpectedRevision)
             return Results.Conflict(new { code = "revision_changed", revision, message = "Valori della commessa cambiati: rileggi prima di chiudere." });
         // Fresh committed installations under the order lock shared with RecordPartInstallation (D9 snapshots).
@@ -137,8 +138,8 @@ internal static partial class AdministrativeEndpoints
                     && x.LegalEntityId == order.LegalEntityId).OrderByDescending(x => x.Version).FirstOrDefaultAsync(ct);
                 if (destination is not { Destination: "External" })
                     return Results.Conflict(new { code = "administrative_destination_missing", message = "Destinazione amministrativa della società non configurata. Nessuna richiesta registrata." });
-                var lines = await db.Lines.AsNoTracking().Where(x => x.OrderId == id).OrderBy(x => x.ExpectedRevision).ToListAsync(ct);
-                var summary = CommercialEndpoints.Summarize(order, lines);
+                var lines = await db.Lines.AsNoTracking().Where(x => x.OrderId == id && x.State == "Active").OrderBy(x => x.ExpectedRevision).ToListAsync(ct);
+                var summary = CommercialEndpoints.Summarize(order, lines, closure.Revision);
                 row = new AdministrativeRequest
                 {
                     Id = command.Id, TenantId = member.TenantId, OrderId = id, LegalEntityId = order.LegalEntityId, SiteId = order.SiteId,

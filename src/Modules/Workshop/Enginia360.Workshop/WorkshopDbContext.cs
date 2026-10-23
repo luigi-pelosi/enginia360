@@ -10,6 +10,9 @@ internal sealed class WorkshopDbContext(DbContextOptions<WorkshopDbContext> opti
     internal DbSet<CarcassPolicy> CarcassPolicies => Set<CarcassPolicy>();
     internal DbSet<CommercialLine> Lines => Set<CommercialLine>();
     internal DbSet<LinePolicy> LinePolicies => Set<LinePolicy>();
+    internal DbSet<WorkingGroup> WorkingGroups => Set<WorkingGroup>();
+    internal DbSet<OrderNote> Notes => Set<OrderNote>();
+    internal DbSet<EditorCommandReceipt> EditorCommands => Set<EditorCommandReceipt>();
     internal DbSet<DocumentTypeConfiguration> Configurations => Set<DocumentTypeConfiguration>();
     internal DbSet<TechnicalClosure> TechnicalClosures => Set<TechnicalClosure>();
     internal DbSet<AdministrativeDestination> AdministrativeDestinations => Set<AdministrativeDestination>();
@@ -39,6 +42,10 @@ internal sealed class WorkshopDbContext(DbContextOptions<WorkshopDbContext> opti
         b.Entity<CommercialLine>().Property(x => x.UnitPrice).HasPrecision(12, 6);
         b.Entity<CommercialLine>().Property(x => x.DiscountPercent).HasPrecision(5, 2);
         b.Entity<CommercialLine>().Property(x => x.NetAmount).HasPrecision(18, 6);
+        b.Entity<WorkingGroup>().ToTable("working_groups", "workshop").HasKey(x => x.Id);
+        b.Entity<OrderNote>().ToTable("order_notes", "workshop").HasKey(x => x.Id);
+        b.Entity<EditorCommandReceipt>().ToTable("editor_commands", "workshop").HasKey(x => x.CommandId);
+        b.Entity<EditorCommandReceipt>().Property(x => x.Canonical).HasColumnType("jsonb");
         b.Entity<LinePolicy>().ToTable("line_policies", "workshop").HasKey(x => new { x.TenantId, x.LegalEntityId, x.DocumentTypeId, x.Version });
         b.Entity<DocumentTypeConfiguration>().ToTable("document_types", "workshop")
             .HasKey(x => new { x.TenantId, x.LegalEntityId, x.Id, x.Version });
@@ -56,6 +63,8 @@ internal sealed class WorkOrder
     public Guid VehicleId { get; set; }
     public Guid VehicleHolderId { get; set; }
     public Guid CreatedByMembershipId { get; set; }
+    // Persisted monotonic lifecycle version of the commercial content (never a count of rows).
+    public int CommercialRevision { get; set; }
     internal OrderContract ToContract() => new(Id, LegalEntityId, SiteId, DocumentTypeId,
         ConfigurationVersion, PayerId, VehicleId, VehicleHolderId, true);
 }
@@ -76,4 +85,40 @@ internal sealed class CarcassPolicy
     public Guid CatalogItemId { get; set; }
     public int Version { get; set; }
     public bool ReturnRequired { get; set; }
+}
+internal sealed class WorkingGroup
+{
+    public Guid Id { get; set; }
+    public Guid TenantId { get; set; }
+    public Guid OrderId { get; set; }
+    public required string Title { get; set; }
+    public required string State { get; set; }
+    public int Version { get; set; }
+    public int CreatedRevision { get; set; }
+}
+internal sealed class OrderNote
+{
+    public Guid Id { get; set; }
+    public Guid TenantId { get; set; }
+    public Guid OrderId { get; set; }
+    public Guid WorkingGroupId { get; set; }
+    public required string Description { get; set; }
+    public required string State { get; set; }
+    public int Version { get; set; }
+    public int CreatedRevision { get; set; }
+}
+internal sealed class EditorCommandReceipt
+{
+    public Guid CommandId { get; set; }
+    public Guid TenantId { get; set; }
+    public Guid OrderId { get; set; }
+    public required string Type { get; set; }
+    public required string Canonical { get; set; }
+    public Guid TargetId { get; set; }
+    public int InitialRevision { get; set; }
+    public int AppliedRevision { get; set; }
+    public required string ResultKind { get; set; }
+    public int? LinePolicyVersion { get; set; }
+    public int StructurePolicyVersion { get; set; }
+    internal WorkshopEditReceipt Receipt() => new(CommandId, OrderId, AppliedRevision, ResultKind, TargetId);
 }

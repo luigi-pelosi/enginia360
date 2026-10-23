@@ -12,9 +12,9 @@ internal sealed class WorkshopReservationLines(WorkshopDbContext db) : IWorkshop
         var row = await (from order in db.Orders.AsNoTracking()
                          join line in db.Lines.AsNoTracking() on order.Id equals line.OrderId
                          where order.TenantId == verifiedTenantId && line.TenantId == verifiedTenantId
-                             && order.Id == orderId && line.Id == lineId
+                             && order.Id == orderId && line.Id == lineId && line.State == "Active"
                          select new ReservationLine(order.Id, line.Id, order.LegalEntityId, order.SiteId,
-                             line.CatalogItemId, line.CatalogVersion, line.Kind, line.Quantity)).SingleOrDefaultAsync(ct);
+                             line.CatalogItemId, line.CatalogVersion, line.Kind, line.Quantity, line.WorkingGroupId)).SingleOrDefaultAsync(ct);
         await tx.CommitAsync(ct);
         return row;
     }
