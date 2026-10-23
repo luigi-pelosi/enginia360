@@ -41,9 +41,10 @@ UI01B_FILES = {'scripts/owner-master-authority.py','scripts/test-r02b-authority.
     'tests/browser/ui01b-acceptance.cjs','web/package.json','web/package-lock.json',
     'scripts/select-ci-impact.py','scripts/test-ci-impact.py','.github/workflows/ci.yml','browser.runtime.Dockerfile'}
 R03A_FILES = {'database/runtime/migrations/0018_workshop_order_workspace.sql','scripts/run-r03a-tests.py',
-    'scripts/test-r03a-impact.py','scripts/test-r03a-contract.py','tests/browser/r03a-acceptance.cjs',
+    'scripts/test-r03a-impact.py','scripts/test-r03a-contract.py','scripts/test-r03a-migration.py','tests/browser/r03a-acceptance.cjs',
     'compose.r03a-test.yaml','tests/Enginia360.Api.Tests/WorkshopEditorTests.cs','web/nginx.r03a-test.conf'}
 R03A_PREFIXES = ('src/Modules/Workshop/','src/Modules/Inventory/')
+R03A_WEB = ('web/src/ui01/runtime/OrderWorkspace','web/src/ui01/runtime/OrderList','web/src/ui01/runtime/editor')
 R03A_EXCLUDED = {'src/Modules/Workshop/Enginia360.Workshop/WorkshopModule.cs'}
 WORKSHOP_FILTER = '|'.join('FullyQualifiedName~'+name for name in (
     'WorkshopBoundaryTests','CommercialCalculationTests','CounterpartyArchitectureTests'))
@@ -65,6 +66,8 @@ def selection(paths):
             r03a = ui01b = True
             if path not in UI01B_FILES and not path.startswith('database/runtime/'):
                 continue
+        if path.startswith(R03A_WEB):
+            r03a = True
         if path in UI01B_FILES or path.startswith('web/src/ui01/runtime/'):
             ui01b = ui = True
             if path not in AUTH_FILES and not path.startswith(('src/Enginia360.Api/OrganizationAccess/','database/runtime/')):

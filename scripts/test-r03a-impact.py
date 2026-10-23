@@ -23,7 +23,9 @@ OWNERS = (
     'database/runtime/migrations/0018_workshop_order_workspace.sql',
     'scripts/run-r03a-tests.py', 'scripts/test-r03a-impact.py', 'scripts/test-r03a-contract.py',
     'tests/browser/r03a-acceptance.cjs', 'compose.r03a-test.yaml',
-    'tests/Enginia360.Api.Tests/WorkshopEditorTests.cs',
+    'tests/Enginia360.Api.Tests/WorkshopEditorTests.cs', 'scripts/test-r03a-migration.py',
+    'web/src/ui01/runtime/OrderWorkspace.tsx', 'web/src/ui01/runtime/OrderWorkspace.test.tsx', 'web/src/ui01/runtime/OrderList.tsx',
+    'web/src/ui01/runtime/editorContracts.ts', 'web/src/ui01/runtime/editorMessages.ts', 'web/src/ui01/runtime/editorFixtures.ts',
 )
 CONSUMERS = ('WorkshopBoundaryTests', 'CommercialCalculationTests', 'WorkshopEditorTests', 'InstallationBoundaryTests',
              'CarcassBoundaryTests', 'InventoryArchitectureTests', 'AdministrationBoundaryTests',
@@ -40,6 +42,16 @@ class R03aImpact(unittest.TestCase):
                 for name in CONSUMERS:
                     self.assertIn(name, result['api_filter'])
                 self.assertFalse(result['full_architecture'])
+
+    def test_every_path_changed_by_this_increment_is_mapped(self):
+        import subprocess
+        base = subprocess.run(['git', 'rev-parse', 'origin/main'], cwd=ROOT, capture_output=True, text=True).stdout.strip()
+        if not base:
+            self.skipTest('no origin/main in this checkout')
+        paths = subprocess.run(['git', 'diff', '--name-only', base, 'HEAD'], cwd=ROOT, capture_output=True, text=True).stdout.split()
+        self.assertTrue(paths)
+        result = module.selection(paths)
+        self.assertTrue(result['r03a'] and result['ui01b'] and result['migrations'])
 
     def test_unrelated_paths_do_not_select_r03a(self):
         for path in ('docs/r03a-order-workspace.md', 'web/src/ui01/App.tsx', 'scripts/test-c00-consistency.py',
