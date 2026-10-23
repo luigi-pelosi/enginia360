@@ -21,7 +21,7 @@ NEW_TABLES = ('workshop.working_groups', 'workshop.order_notes', 'workshop.works
 class ManifestContract(unittest.TestCase):
     def test_new_units_are_appended_after_the_published_head_without_rewriting_it(self):
         entries = json.loads((ROOT/'database/runtime/manifest.json').read_text())
-        self.assertEqual([e['id'] for e in entries[17:]], ['0018_workshop_order_workspace', '0019_inventory_working_group_provenance'])
+        self.assertEqual([e['id'] for e in entries[17:19]], ['0018_workshop_order_workspace', '0019_inventory_working_group_provenance'])
         digest = hashlib.sha256(json.dumps(entries[:17], sort_keys=True, separators=(',', ':')).encode()).hexdigest()
         self.assertEqual(digest, '0ad2ffe59881d41069e375abc10b6c4272e59868d39391fa51f2808cb4b03e97', 'published 17-unit prefix changed')
 
@@ -69,7 +69,7 @@ class WorkspaceSqlTests(unittest.TestCase):
         data, orders, lines = self.seed_baseline()
         code, _, error = self.migrate()
         self.assertEqual(code, 0, error)
-        self.assertEqual(self.sql('SELECT count(*) FROM runtime_migrations.applied'), '19')
+        self.assertEqual(self.sql('SELECT count(*) FROM runtime_migrations.applied'), '20')
         tenant = data['tenant']
         scope = f"SELECT set_config('app.tenant_id','{tenant}',false);"
         revisions = self.sql(scope+'SELECT "Id"::text||\'|\'||"CommercialRevision" FROM workshop.orders ORDER BY "Id"').splitlines()[1:]
@@ -129,6 +129,7 @@ class WorkspaceSqlTests(unittest.TestCase):
         self.sql(scope+f'UPDATE workshop.orders SET "CommercialRevision"="CommercialRevision"+1 WHERE "Id"=\'{order}\'')
         refused(f'UPDATE workshop.orders SET "CommercialRevision"="CommercialRevision"-1 WHERE "Id"=\'{order}\'')
         refused(f'UPDATE workshop.commercial_lines SET "CatalogVersion"=9 WHERE "Id"=\'{service}\'')
+        self.sql(scope+f"INSERT INTO inventory.reservations (\"Id\",\"TenantId\",\"OrderId\",\"LineId\",\"LegalEntityId\",\"SiteId\",\"WarehouseId\",\"CatalogItemId\",\"CatalogVersion\",\"Quantity\",\"WorkingGroupId\") VALUES ('{uuid.uuid4()}','{tenant}','{order}','{part}','{company}','{site}','{uuid.uuid4()}','{payer}',8,1,'{group}');")
         refused(f'UPDATE workshop.commercial_lines SET "Quantity"=2 WHERE "Id"=\'{part}\'')
         refused(f'UPDATE workshop.commercial_lines SET "State"=\'Removed\',"Version"=2 WHERE "Id"=\'{part}\'')
         self.sql(scope+f'UPDATE workshop.commercial_lines SET "Quantity"=2,"NetAmount"=2,"Version"=2 WHERE "Id"=\'{service}\'')

@@ -40,7 +40,7 @@ UI01B_FILES = {'scripts/owner-master-authority.py','scripts/test-r02b-authority.
     'compose.ui01b-test.yaml','scripts/run-ui01b-tests.py','scripts/test-ui01b-wiring.py','scripts/test-ui01b-impact.py','scripts/test-ui01b-fixture.py',
     'tests/browser/ui01b-acceptance.cjs','web/package.json','web/package-lock.json',
     'scripts/select-ci-impact.py','scripts/test-ci-impact.py','.github/workflows/ci.yml','browser.runtime.Dockerfile'}
-R03A_FILES = {'database/runtime/migrations/0018_workshop_order_workspace.sql','scripts/run-r03a-tests.py',
+R03A_FILES = {'database/runtime/migrations/0020_material_structure_fence.sql','scripts/run-r03a2-tests.py','scripts/test-r03a2-impact.py','scripts/test-r03a2-lifecycle.py','tests/browser/r03a2-acceptance.cjs','compose.r03a2-test.yaml','database/runtime/migrations/0018_workshop_order_workspace.sql','scripts/run-r03a-tests.py',
     'scripts/test-r03a-impact.py','scripts/test-r03a-contract.py','scripts/test-r03a-migration.py','tests/browser/r03a-acceptance.cjs',
     'compose.r03a-test.yaml','tests/Enginia360.Api.Tests/WorkshopEditorTests.cs','web/nginx.r03a-test.conf'}
 R03A_PREFIXES = ('src/Modules/Workshop/','src/Modules/Inventory/')
@@ -87,7 +87,7 @@ def selection(paths):
         raise ValueError('extend and test direct-dependency impact mapping for: '+', '.join(unknown))
     filters = ([AUTH_FILTER] if auth or ui01b else []) + ([R03A_FILTER if r03a else WORKSHOP_FILTER] if ui01b else [])
     return {'changed_paths':paths,'api_filter':'|'.join(filters),
-            'browser':auth,'ui01b':ui01b,'r03a':r03a,'migrations':auth or ui01b,'ui_build':auth or ui,'ui_tests':ui,
+            'browser':auth,'ui01b':ui01b,'r03a':r03a,'r03a2':r03a,'migrations':auth or ui01b,'ui_build':auth or ui,'ui_tests':ui,
             'full_architecture':False}
 
 

@@ -15,16 +15,27 @@ function api(handler: (body: Record<string, unknown>) => Response | Promise<Resp
   vi.stubGlobal('fetch', fetch); return fetch;
 }
 const posts = (fetch: ReturnType<typeof api>) => fetch.mock.calls.filter(([, o]) => (o as RequestInit | undefined)?.method === 'POST').map(([, o]) => JSON.parse((o as RequestInit).body as string));
+test('authoritative reread revision change discards an old edit instead of rebasing it silently', () => {
+  api(receipt);
+  const original = view();
+  const { rerender } = render(<OrderWorkspace editor={original} onApplied={async () => undefined} onError={() => undefined} />);
+  fireEvent.click(document.getElementById('row-' + s1)!);
+  fireEvent.change(screen.getByLabelText('Quantità riga'), { target: { value: '3' } });
+  const fresh = { ...original, revision: 6, summary: { ...original.summary, revision: 6 } };
+  rerender(<OrderWorkspace editor={fresh} onApplied={async () => undefined} onError={() => undefined} />);
+  expect(screen.queryByLabelText('Quantità riga')).toBeNull();
+});
+
 const receipt = (b: Record<string, unknown>) => new Response(JSON.stringify({ commandId: b.commandId, orderId: id, appliedRevision: 6, resultKind: 'Updated', targetId: id }));
 
-test('server policy and revision drive every command; no manual setup number; Part removal/quantity are explicit unsupported', async () => {
+test('server policy and revision drive every command; no manual setup number; server capability false keeps Part structural controls unavailable', async () => {
   const fetch = api(receipt); const applied = vi.fn().mockResolvedValue(undefined);
   render(<OrderWorkspace editor={view()} onApplied={applied} onError={() => undefined} />);
   expect(screen.getByText(/Documento v7 · Policy righe v9 · Struttura v1 · Revisione 5/)).toBeTruthy();
   expect(screen.queryByLabelText(/setup/i)).toBeNull();
   const remove = screen.getAllByRole('button', { name: 'Rimuovi' });
   expect(remove.map(b => (b as HTMLButtonElement).disabled)).toEqual([false, true, false]);
-  expect(remove[1].getAttribute('title')).toMatch(/Non supportato/);
+  expect(remove[1].getAttribute('title')).toBe(capabilities.materialStructureEditReason);
   for (const name of ['Cambia testata', 'Cambia pagante', 'Cambia veicolo']) expect((screen.getByRole('button', { name }) as HTMLButtonElement).disabled).toBe(true);
   fireEvent.click(screen.getAllByRole('button', { name: 'Modifica' })[1]);
   expect(screen.queryByLabelText('Quantità riga')).toBeNull();

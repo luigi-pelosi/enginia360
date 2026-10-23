@@ -38,7 +38,7 @@ class BaselineTests(unittest.TestCase):
     def test_runtime_baseline_has_fifteen_units_without_business_dml(self):
         path = ROOT / 'database/runtime/manifest.json'
         units = engine().load_manifest(path) if path.exists() else []
-        self.assertEqual(len(units), 19, 'fixture-free runtime schema missing')
+        self.assertEqual(len(units), 20, 'fixture-free runtime schema missing')
         published = json.loads(path.read_text())[:14]
         digest = hashlib.sha256(json.dumps(published, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
         self.assertEqual(digest, '91cd082ac5ad4ccf370161047d586b357b804d5e99f013947046507f766650b2',
@@ -374,7 +374,7 @@ class PostgreSqlTests(unittest.TestCase):
         code, output, error = self.migrate()
         self.assertEqual(code, 0, error)
         self.assertEqual(self.sql("SELECT to_regclass('runtime_migrations.applied') IS NOT NULL"), 't', 'migration ledger absent')
-        self.assertEqual(self.sql('SELECT count(*) FROM runtime_migrations.applied'), '19')
+        self.assertEqual(self.sql('SELECT count(*) FROM runtime_migrations.applied'), '20')
         tables = self.sql("SELECT schemaname||'.'||tablename FROM pg_tables WHERE schemaname NOT IN ('pg_catalog','information_schema','runtime_migrations') ORDER BY 1").splitlines()
         import re
         units = engine().load_manifest(ROOT / 'database/runtime/manifest.json')

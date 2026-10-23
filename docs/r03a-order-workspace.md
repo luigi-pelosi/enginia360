@@ -7,7 +7,11 @@
 - **P1** Ogni riga Service/Part appartiene a **una sola** lavorazione obbligatoria; ogni lavorazione può avere più righe; nessuna riga condivisa. La lavorazione è un raggruppamento operativo, **non** un gruppo fiscale: l'imposta resta calcolata sull'aggregato fiscale (pagante + aliquota) della commessa.
 - **P2** Prima della chiusura tecnica: correzioni tracciate; prezzo, sconto e descrizione sempre modificabili; quantità/articolo/lavorazione/rimozione di un ricambio **solo senza impegni logistici attivi**. Storia sempre conservata, nessuna cancellazione fisica.
 
-## Stato della parte strutturale dei ricambi (limite esplicito)
+## Stato corrente R03.a.2
+
+Il limite R03.a.1 sotto è storico. R03.a.2 #68 implementa la fence già concordata, correzione strutturale/rimozione Part senza impegni e prove runtime reali dei consumer diretti: [contratto ed evidenze](r03a2-safe-material-corrections.md). Nessuna chiusura di #43/#5 o autorizzazione R03.b implicita.
+
+## Stato storico R03.a.1 della parte strutturale dei ricambi (limite esplicito)
 
 Questo incremento **non** consegna la modifica strutturale/rimozione dei ricambi, nemmeno prima della prima prenotazione. Il server risponde `409 material_structure_edit_not_supported` e un trigger PostgreSQL impedisce che un ricambio cambi quantità o venga rimosso. Motivo: `Inventory.Reserve` legge la riga Workshop *prima* della propria transazione e prende il lock `inventory:line:{tenant}:{line}`, non il lock ordine Workshop; una lettura "nessuna prenotazione" seguita da modifica è un check-then-act e non una fence. Contratto residuo esatto per l'incremento successivo (R03.a.2):
 
@@ -38,4 +42,4 @@ Rollback: nessun rollback automatico dei dati; fermare solo gli ingressi del tar
 
 ## Non incluso
 
-Modifica strutturale/rimozione ricambi (sopra), cambio testata/pagante/veicolo, drag/drop, ripartizioni, appuntamenti/autorizzazioni/tempi/riconsegna, ERP, nuove aliquote. R03.b e R03.c mantengono i propri gate; #43 e #5 restano aperte.
+Nel solo R03.a.1 storico: modifica strutturale/rimozione ricambi (superata dal contratto R03.a.2). Restano esclusi: cambio testata/pagante/veicolo, drag/drop, ripartizioni, appuntamenti/autorizzazioni/tempi/riconsegna, ERP, nuove aliquote. R03.b e R03.c mantengono i propri gate; #43 e #5 restano aperte.

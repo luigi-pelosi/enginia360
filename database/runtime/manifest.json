@@ -93,5 +93,10 @@
     "id": "0019_inventory_working_group_provenance",
     "path": "migrations/0019_inventory_working_group_provenance.sql",
     "sha256": "a0c54329ca6c15c1d3c057b342a2af9e2c8031662ab6f4c508b6029376356028"
+  },
+  {
+    "id": "0020_material_structure_fence",
+    "path": "migrations/0020_material_structure_fence.sql",
+    "sha256": "20169101030799531e840b36db35b89f00fe4ab105cc4a1197f48231a1362d9a"
   }
 ]

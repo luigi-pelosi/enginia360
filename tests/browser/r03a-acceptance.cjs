@@ -81,7 +81,7 @@ async function createOrder(page, documentTypeId = data.documentTypeId, configura
     stage = 'T2/T3 groups and repeated rows';
     const empty = await editor(page, order);
     assert.equal(empty.status, 200); assert.equal(empty.value.revision, 0); assert.deepEqual(empty.value.groups, []); assert.deepEqual(empty.value.rows, []);
-    assert.equal(empty.value.capabilities.materialStructureEdit, false);
+    assert.equal(empty.value.capabilities.materialStructureEdit, true);
     const g1 = uid(), g2 = uid(), s1 = uid(), s2 = uid(), p1 = uid(), p2 = uid();
     const first = envelope('AddGroup', 0, { groupId: g1, title: 'Cambio olio' });
     const r1 = await cmd(page, order, first); assert.equal(r1.status, 201); assert.deepEqual([r1.value.appliedRevision, r1.value.resultKind, r1.value.targetId], [1, 'Created', g1]);
@@ -149,10 +149,11 @@ async function createOrder(page, documentTypeId = data.documentTypeId, configura
     assert.equal(r.status, 200); revision = r.value.appliedRevision;
     r = await edit(p1, { unitPrice: '13', discountPercent: '0', description: 'Pastiglie' });
     assert.equal(r.status, 200); revision = r.value.appliedRevision;
-    r = await edit(p1, { quantity: '5' }); assert.equal(r.status, 409); assert.equal(r.value.code, 'material_structure_edit_not_supported');
+    for(const part of [p1,p2]) assert.equal((await post(page,`/api/v1/inventory/orders/${order}/lines/${part}/reservations`,{id:uid(),warehouseId:ctx.warehouseId,catalogVersion:8,quantity:'1'})).status,201);
+    r = await edit(p1, { quantity: '5' }); assert.equal(r.status, 409); assert.equal(r.value.code, 'active_material_commitments');
     r = await edit(s1, { unitPrice: '41.5' }); assert.equal(r.status, 409); assert.equal(r.value.code, 'no_change');
     r = await edit(uid(), { unitPrice: '1' }); assert.equal(r.status, 404);
-    r = await cmd(page, order, envelope('RemoveLine', revision, { lineId: p2 })); assert.equal(r.status, 409); assert.equal(r.value.code, 'material_structure_edit_not_supported');
+    r = await cmd(page, order, envelope('RemoveLine', revision, { lineId: p2 })); assert.equal(r.status, 409); assert.equal(r.value.code, 'active_material_commitments');
     r = await cmd(page, order, envelope('RemoveLine', revision, { lineId: s2 })); assert.equal(r.status, 200); revision = r.value.appliedRevision;
     r = await cmd(page, order, envelope('RemoveEmptyGroup', revision, { groupId: g2 })); assert.equal(r.value.code, 'group_not_empty');
     r = await cmd(page, order, envelope('RenameGroup', revision, { groupId: g2, title: 'Impianto frenante' })); assert.equal(r.status, 200); revision = r.value.appliedRevision;
@@ -379,7 +380,7 @@ async function createOrder(page, documentTypeId = data.documentTypeId, configura
     await page.getByLabel('Nota (solo descrizione, non commerciale)').fill('Nota da interfaccia'); await page.getByRole('button', { name: 'Aggiungi nota' }).click();
     await page.getByText('Valori salvati riletti — revisione 107', { exact: true }).waitFor();
     const partRemove = page.locator('tr', { hasText: 'Synthetic Part' }).first().getByRole('button', { name: 'Rimuovi' });
-    assert(await partRemove.isDisabled()); assert.match(await partRemove.getAttribute('title'), /Non supportato/);
+    assert.equal(await partRemove.isDisabled(),false); assert.match(await partRemove.getAttribute('title'), /impegni logistici/);
     for (const name of ['Cambia testata', 'Cambia pagante', 'Cambia veicolo']) assert(await page.getByRole('button', { name }).isDisabled());
     // Reopen from the authorized list, not by UUID.
     await page.goto(origin + '/ui01-runtime.html'); await page.getByRole('button', { name: 'Elenca commesse' }).waitFor();

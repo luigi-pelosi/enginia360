@@ -124,8 +124,8 @@ internal static class EditorEndpoints
         if (await access.Authorize(subject, order.LegalEntityId, order.SiteId, "workshop.orders.read", false, ct) is null) return Results.NotFound();
         async Task<bool> Can(string action) => !closed && await access.Authorize(subject, order.LegalEntityId, order.SiteId, action, true, ct) is not null;
         var capabilities = new EditorCapabilities(closed, await Can("workshop.lines.add"), await Can("workshop.lines.edit"), await Can("workshop.lines.remove"),
-            await Can("workshop.notes.write"), await Can("workshop.groups.write"), false,
-            "Modifica strutturale dei ricambi non supportata in questo incremento.");
+            await Can("workshop.notes.write"), await Can("workshop.groups.write"), await Can("workshop.lines.edit") || await Can("workshop.lines.remove"),
+            "Quantità, articolo, lavorazione e rimozione solo senza impegni logistici attivi; controllo server al salvataggio.");
         var rows = lines.Select(x => new EditorRow(x.Id, x.Kind, x.WorkingGroupId, x.ExpectedRevision, x.Version, x.Description, x.ToContract()))
             .Concat(notes.Select(x => new EditorRow(x.Id, "Note", x.WorkingGroupId, x.CreatedRevision, x.Version, x.Description, null)))
             .OrderBy(x => x.Sequence).ToArray();
@@ -142,7 +142,7 @@ internal static class EditorEndpoints
         ["RemoveEmptyGroup"] = new(["groupId"], [], "workshop.groups.write"),
         ["AddCommercialLine"] = new(["lineId", "groupId", "catalogItemId", "catalogVersion", "quantity", "unitPrice", "discountPercent"], ["description"], "workshop.lines.add"),
         ["AddNote"] = new(["lineId", "groupId", "description"], [], "workshop.notes.write"),
-        ["EditCommercialLine"] = new(["lineId"], ["quantity", "unitPrice", "discountPercent", "description"], "workshop.lines.edit"),
+        ["EditCommercialLine"] = new(["lineId"], ["quantity", "unitPrice", "discountPercent", "description", "groupId", "catalogItemId", "catalogVersion"], "workshop.lines.edit"),
         ["EditNote"] = new(["lineId", "description"], [], "workshop.notes.write"),
         ["RemoveLine"] = new(["lineId"], [], ""),
     };
@@ -167,7 +167,8 @@ internal static class EditorEndpoints
         if (request.Quantity is not null && (!CommercialEndpoints.Number(request.Quantity, 6, out quantity) || quantity <= 0)) return Results.BadRequest();
         if (request.UnitPrice is not null && !CommercialEndpoints.Number(request.UnitPrice, 6, out price)) return Results.BadRequest();
         if (request.DiscountPercent is not null && (!CommercialEndpoints.Number(request.DiscountPercent, 2, out discount) || discount > 100)) return Results.BadRequest();
-        if (request.Type == "EditCommercialLine" && !shape.Optional.Any(x => present[x])) return Results.BadRequest();
+        if (request.Type == "EditCommercialLine" && (!shape.Optional.Any(x => present[x])
+            || (request.CatalogItemId is null) != (request.CatalogVersion is null))) return Results.BadRequest();
         var canonical = JsonSerializer.Serialize(new
         {
             type = request.Type, expectedRevision = request.ExpectedRevision, linePolicy = request.ExpectedLinePolicyVersion,
@@ -200,7 +201,7 @@ internal static class EditorEndpoints
         }
         if (await access.Authorize(subject, order.LegalEntityId, order.SiteId, action, true, ct) is null) return Results.StatusCode(403);
         CatalogChoice? item = null;
-        if (request.Type == "AddCommercialLine") item = await catalog.Find(member.TenantId, request.CatalogItemId!.Value, ct);
+        if (request.Type == "AddCommercialLine" || request.Type == "EditCommercialLine" && request.CatalogItemId is not null) item = await catalog.Find(member.TenantId, request.CatalogItemId!.Value, ct);
 
         await using var tx = await db.Database.BeginTransactionAsync(ct);
         await InstallationEndpoints.SetTenant(db, member.TenantId, ct);
@@ -300,19 +301,39 @@ internal static class EditorEndpoints
             {
                 var line = activeLines.SingleOrDefault(x => x.Id == request.LineId);
                 if (line is null) return NotFound("line_not_found");
-                if (line.Kind == "Part" && request.Quantity is not null)
-                    return Results.Conflict(new { code = "material_structure_edit_not_supported", message = "Modifica strutturale dei ricambi non supportata: solo prezzo, sconto e descrizione." });
+                if (request.GroupId is not null && await ActiveGroup(request.GroupId.Value) is null) return NotFound("group_not_found");
+                if (request.CatalogItemId is not null)
+                {
+                    if (item is null) return NotFound("catalog_item_not_found");
+                    if (item.Version != request.CatalogVersion) return Results.Conflict(new { code = "catalog_version_changed" });
+                    if (item.Kind != line.Kind) return Results.BadRequest();
+                }
+                var group = request.GroupId ?? line.WorkingGroupId;
+                var catalogId = item?.Id ?? line.CatalogItemId;
+                var catalogVersion = item?.Version ?? line.CatalogVersion;
+                var catalogLabel = item?.Label ?? line.CatalogLabel;
+                var structural = request.Quantity is not null && quantity != line.Quantity || group != line.WorkingGroupId
+                    || catalogId != line.CatalogItemId || catalogVersion != line.CatalogVersion || catalogLabel != line.CatalogLabel;
+                if (line.Kind == "Part" && structural)
+                {
+                    var lineLock = $"inventory:line:{member.TenantId}:{line.Id}";
+                    await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({lineLock}, 0))", ct);
+                    if (await db.Database.SqlQuery<bool>($"SELECT inventory.line_has_commitments({member.TenantId},{line.Id}) AS \"Value\"").SingleAsync(ct))
+                        return Results.Conflict(new { code = "active_material_commitments", message = "Impegni logistici attivi: sono modificabili solo prezzo, sconto e descrizione." });
+                }
                 var q = request.Quantity is null ? line.Quantity : quantity;
                 var p = request.UnitPrice is null ? line.UnitPrice : price;
                 var d = request.DiscountPercent is null ? line.DiscountPercent : discount;
                 var text = request.Description is null ? line.Description : string.IsNullOrWhiteSpace(request.Description) ? null : request.Description;
-                if (q == line.Quantity && p == line.UnitPrice && d == line.DiscountPercent && text == line.Description) return NoChange();
+                if (!structural && q == line.Quantity && p == line.UnitPrice && d == line.DiscountPercent && text == line.Description) return NoChange();
                 var netAmount = CommercialEndpoints.RoundAmount(q * p * (1 - d / 100m));
                 target = line.Id; resultKind = "Updated";
                 await db.Database.ExecuteSqlInterpolatedAsync($"""
-                    UPDATE workshop.commercial_lines SET "Quantity"={q},"UnitPrice"={p},"DiscountPercent"={d},"NetAmount"={netAmount},"Description"={text},"Version"={line.Version + 1}
+                    UPDATE workshop.commercial_lines SET "Quantity"={q},"UnitPrice"={p},"DiscountPercent"={d},"NetAmount"={netAmount},"Description"={text},"Version"={line.Version + 1},
+                        "WorkingGroupId"={group},"CatalogItemId"={catalogId},"CatalogVersion"={catalogVersion},"CatalogLabel"={catalogLabel}
                     WHERE "Id"={target}
                     """, ct);
+                line.WorkingGroupId = group; line.CatalogItemId = catalogId; line.CatalogVersion = catalogVersion; line.CatalogLabel = catalogLabel;
                 line.Quantity = q; line.UnitPrice = p; line.DiscountPercent = d; line.NetAmount = netAmount; line.Description = text; line.Version++;
                 await History(db, "Line", target, line.Version, member.TenantId, id, next, "Updated", request.CommandId, LineSnapshot(line), ct);
                 break;
@@ -352,7 +373,12 @@ internal static class EditorEndpoints
                 if (line is not null)
                 {
                     if (line.Kind == "Part")
-                        return Results.Conflict(new { code = "material_structure_edit_not_supported", message = "Rimozione ricambi non supportata in questo incremento." });
+                    {
+                        var lineLock = $"inventory:line:{member.TenantId}:{line.Id}";
+                        await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({lineLock}, 0))", ct);
+                        if (await db.Database.SqlQuery<bool>($"SELECT inventory.line_has_commitments({member.TenantId},{line.Id}) AS \"Value\"").SingleAsync(ct))
+                            return Results.Conflict(new { code = "active_material_commitments", message = "Impegni logistici attivi: rimozione non consentita." });
+                    }
                     await db.Database.ExecuteSqlInterpolatedAsync($"""UPDATE workshop.commercial_lines SET "State"='Removed',"Version"={line.Version + 1} WHERE "Id"={target}""", ct);
                     activeLines.Remove(line); line.State = "Removed"; line.Version++;
                     await History(db, "Line", target, line.Version, member.TenantId, id, next, "Removed", request.CommandId, LineSnapshot(line), ct);
