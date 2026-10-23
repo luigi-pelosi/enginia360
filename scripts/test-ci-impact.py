@@ -97,6 +97,46 @@ class ImpactTests(unittest.TestCase):
             self.assertNotIn('AccountingBoundaryTests',result['api_filter'])
             self.assertFalse(result['full_architecture'])
 
+    def test_master_authority_enforcement_owners_select_real_sql_and_dependent_write_acceptance(self):
+        for path in ('src/Enginia360.Api/OrganizationAccess/MasterAuthorityProfiles.cs',
+                     'src/Modules/Counterparties/Enginia360.Counterparties/CommonEndpoints.cs',
+                     'src/Modules/Counterparties/Enginia360.Counterparties.Contracts/Contracts.cs',
+                     'scripts/test-r02b-authority.py',
+                     'scripts/owner-master-authority.py',
+                     'tests/Enginia360.Api.Tests/MasterAuthorityEnforcementTests.cs',
+                     'web/src/ui01/runtime/MasterAuthority.tsx',
+                     'database/runtime/migrations/0017_master_authority_profile.sql'):
+            with self.subTest(path=path):
+                result=select([path])
+                self.assertTrue(result['migrations'],'authority profile schema/enforcement needs real migrations')
+                self.assertIn('MasterAuthorityEnforcementTests',result['api_filter'])
+                self.assertNotIn('AccountingBoundaryTests',result['api_filter'])
+                self.assertFalse(result['full_architecture'])
+        for path in ('src/Enginia360.Api/OrganizationAccess/CounterpartyAccessAdapter.cs',
+                     'scripts/owner-master-authority.py',
+                     'scripts/test-r02b-authority.py',
+                     'database/runtime/migrations/0017_master_authority_profile.sql',
+                     'src/Modules/Counterparties/Enginia360.Counterparties/CommonEndpoints.cs',
+                     'src/Modules/Counterparties/Enginia360.Counterparties.Contracts/Contracts.cs',
+                     'web/src/ui01/runtime/MasterAuthority.tsx'):
+            with self.subTest(editor=path):
+                result=select([path])
+                self.assertTrue(result['ui01b'],'dependent write and runtime panel need the actual editor acceptance')
+                self.assertIn('CounterpartyArchitectureTests',result['api_filter'])
+
+    def test_new_authority_sql_suite_is_an_executable_targeted_dependency(self):
+        text=(ROOT/'scripts/run-r00a-tests.py').read_text()
+        def validate(source):
+            suite_loops=[node for node in ast.walk(ast.parse(source)) if isinstance(node,ast.For)
+                         and isinstance(node.target,ast.Name) and node.target.id=='suite']
+            self.assertEqual(len(suite_loops),1)
+            self.assertIn('scripts/test-r02b-authority.py',ast.literal_eval(suite_loops[0].iter))
+            copy=next(line for line in (ROOT/'migrator.runtime.Dockerfile').read_text().splitlines() if line.startswith('COPY scripts/'))
+            self.assertIn('scripts/test-r02b-authority.py',copy.split())
+        validate(text)
+        with self.assertRaises(AssertionError):
+            validate(text.replace("'scripts/test-r02b-authority.py'","'removed'"))
+
     def test_new_grant_sql_and_pool_cases_are_executable_targeted_dependencies(self):
         text=(ROOT/'scripts/run-r00a-tests.py').read_text()
         def validate(source):

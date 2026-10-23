@@ -44,6 +44,7 @@ def fixtures(state, secret):
         for kind in ('Service','Part'):
             statements.append(f"INSERT INTO catalog.items VALUES ('{data[kind.lower()+'Id']}','{tenant}','{registered_company}','{kind}','Synthetic {kind}',8);")
         if index == 0:
+            statements.append(f"INSERT INTO organization_access.common_edit_permissions VALUES ('{browser['adminMembershipId']}','{tenant}');")
             browser['privateDestinationId'], browser['publishedDestinationId'] = str(uuid.uuid4()), str(uuid.uuid4())
             for key, published in (('privateDestinationId', 'false'), ('publishedDestinationId', 'true')):
                 statements.append(f"INSERT INTO counterparties.destinations VALUES ('{browser[key]}','{tenant}','{data['payerId']}','{registered_company}','Synthetic destination',{published});")
@@ -88,7 +89,7 @@ def main():
             run(command+['up','-d','--wait','--wait-timeout','180','postgres','identity'],timeout=210)
             run(command+['run','--rm','--no-deps','-T','migrator'],timeout=90)
             query=command+['exec','-T','postgres','psql','-X','-qAt','-U','postgres','-d','runtime','-v','ON_ERROR_STOP=1']
-            assert run(query+['-c','SELECT count(*) FROM runtime_migrations.applied']).strip()=='16'
+            assert run(query+['-c','SELECT count(*) FROM runtime_migrations.applied']).strip()=='17'
             assert run(query+['-c','SELECT count(*) FROM workshop.orders']).strip()=='0'
             run(query,input=sql)
             run(command+['up','-d','api','web'],timeout=120)
@@ -96,6 +97,7 @@ def main():
             for c in json.loads(run(['docker','inspect',*ids])):
                 h=c['HostConfig']; assert c['Config']['User'] not in ('','0','root') and h['ReadonlyRootfs']; assert h['CapDrop']==['ALL'] and 'no-new-privileges:true' in h['SecurityOpt']; assert not h['PortBindings'] and not any(m['Type']=='volume' for m in c['Mounts']); assert h['Memory']>0 and h['NanoCpus']>0 and h['PidsLimit']>0
             assert json.loads(run(['docker','network','inspect',project+'_runtime']))[0]['Internal']
+            authority_version=0
             process = subprocess.Popen(command+['run','--rm','--no-deps','-T','browser'],cwd=ROOT)
             deadline = time.monotonic()+240
             try:
@@ -106,6 +108,14 @@ def main():
                         action = request.read_text(); request.unlink()
                         if action == 'database-outage': run(command+['pause','postgres'],timeout=30)
                         elif action == 'database-recover': run(command+['unpause','postgres'],timeout=30)
+                        elif action in ('authority-local','authority-external'):
+                            # Synthetic setup deliberately invokes the real bounded owner tool over verified TLS.
+                            fixture=json.loads((state/'browser.json').read_text())
+                            setup=dict(commandId=str(uuid.uuid4()),tenantId=fixture['contexts'][0]['tenantId'],actorMembershipId=fixture['adminMembershipId'],verificationReference=str(uuid.uuid4()),expectedVersion=authority_version,domain='counterparties',direction='Enginia360ToExternal' if action=='authority-local' else 'ExternalToEnginia360',sourceId=str(uuid.uuid4()),profileId=str(uuid.uuid4()),companyIds=[fixture['contexts'][0]['legalEntityId']])
+                            if (state/'public/authority.json').exists(): (state/'public/authority.json').chmod(0o600)
+                            (state/'public/authority.json').write_text(json.dumps(setup)); (state/'public/authority.json').chmod(0o444)
+                            run(command+['run','--rm','--no-deps','-T','--entrypoint','python3','migrator','scripts/owner-master-authority.py','/run/tls/authority.json'],timeout=40)
+                            authority_version+=1
                         else: raise ValueError('unknown editor lifecycle command')
                         print('UI01B_LIFECYCLE '+action,flush=True)
                         (state/'control/ack').write_text(action)
@@ -119,6 +129,14 @@ def main():
                         process.kill(); process.wait(timeout=5)
             result=json.loads((state/'control/result.json').read_text())
             order,summary=result['order'],result['summary']
+            fixture=json.loads((state/'browser.json').read_text())
+            common=result['common']; assert common['id']==order['payerId'] and str(uuid.UUID(common['id']))==common['id']
+            assert run(query+['-c',f'''SELECT "LegalName" FROM counterparties.counterparties WHERE "Id"='{common['id']}';''']).strip()==common['legalName']=='Synthetic edited payer'
+            assert run(query+['-c',f'''SELECT "CounterpartyId"::text||'|'||"ActorMembershipId"::text||'|'||"AuthorityVersion"::text||'|'||"Revision"::text FROM counterparties.common_edit_history;''']).strip()==common['id']+'|'+fixture['adminMembershipId']+'|2|1'
+            assert run(query+['-c','SELECT count(*) FROM counterparties.common_edit_history']).strip()=='1'
+            assert run(query+['-c','SELECT count(*) FROM organization_access.master_authority_history']).strip()=='2'
+            assert run(query+['-c',f'''SELECT "SourceId"::text||'|'||"ProfileId"::text||'|'||"Direction" FROM organization_access.master_authority_history WHERE "Version"=2;''']).strip()==result['authority']['sourceId']+'|'+result['authority']['profileId']+'|Enginia360ToExternal'
+            print('PASS R02B SQL explicit source/profile authority versions=2; immutable edit history=1, exact actor/revision; uncertain replay made no duplicate',flush=True)
             assert run(query+['-c','SELECT count(*) FROM workshop.orders']).strip()=='1'
             assert run(query+['-c','SELECT count(*) FROM workshop.commercial_lines']).strip()=='2'
             expected=[]

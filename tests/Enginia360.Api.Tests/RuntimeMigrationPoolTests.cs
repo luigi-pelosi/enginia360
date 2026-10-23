@@ -78,6 +78,65 @@ public sealed class RuntimeMigrationPoolTests
         }
     }
 
+    [RuntimePostgreSqlTheory]
+    [InlineData(1)]
+    [InlineData(12)]
+    public async Task Explicit_authority_and_identity_do_not_leak_across_reused_real_pool(int size)
+    {
+        await using var admin = NpgsqlDataSource.Create(Environment.GetEnvironmentVariable("R00_POOL_ADMIN_CONNECTION")!);
+        var contexts = Enumerable.Range(0, 2).Select(_ => new { Tenant=Guid.NewGuid(), Company=Guid.NewGuid(), Actor=Guid.NewGuid(), Member=Guid.NewGuid() }).ToArray();
+        foreach (var item in contexts)
+        {
+            await using var connection = await admin.OpenConnectionAsync();
+            await using var transaction = await connection.BeginTransactionAsync();
+            await using var seed = new NpgsqlCommand("""
+                INSERT INTO organization_access.tenants VALUES (@tenant,'Synthetic authority pool');
+                INSERT INTO organization_access.legal_entities VALUES (@company,@tenant,'Synthetic company');
+                INSERT INTO organization_access.external_identity_bindings VALUES (@actor,'https://synthetic.test',@subject);
+                INSERT INTO organization_access.memberships VALUES (@member,@tenant,@subject);
+                INSERT INTO organization_access.company_permissions VALUES (@grant,@member,@tenant,@company,'counterparties.read',NULL,NULL);
+                SET LOCAL ROLE runtime_owner;
+                SELECT set_config('app.tenant_id',@tenant_text,true);
+                SELECT organization_access.establish_master_authority(@command,@tenant,@member,@proof,0,'Enginia360ToExternal',@source,@profile,ARRAY[@company]);
+                """, connection);
+            seed.Parameters.AddWithValue("tenant",item.Tenant); seed.Parameters.AddWithValue("company",item.Company);
+            seed.Parameters.AddWithValue("actor",item.Actor); seed.Parameters.AddWithValue("subject",item.Actor.ToString());
+            seed.Parameters.AddWithValue("member",item.Member); seed.Parameters.AddWithValue("grant",Guid.NewGuid());
+            seed.Parameters.AddWithValue("tenant_text",item.Tenant.ToString()); seed.Parameters.AddWithValue("command",Guid.NewGuid());
+            seed.Parameters.AddWithValue("proof",Guid.NewGuid()); seed.Parameters.AddWithValue("source",Guid.NewGuid()); seed.Parameters.AddWithValue("profile",Guid.NewGuid());
+            await seed.ExecuteNonQueryAsync(); await transaction.CommitAsync();
+        }
+        var builder = new NpgsqlConnectionStringBuilder(Environment.GetEnvironmentVariable("R00_POOL_CONNECTION")!) { MaxPoolSize=size, MinPoolSize=1 };
+        await using var source = NpgsqlDataSource.Create(builder.ConnectionString);
+        var barrier = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously); var opened=0;
+        var tasks=Enumerable.Range(0,size).Select(async index =>
+        {
+            await using var connection=await source.OpenConnectionAsync();
+            if(Interlocked.Increment(ref opened)==size) barrier.SetResult();
+            await barrier.Task.WaitAsync(TimeSpan.FromSeconds(15));
+            for(var round=0;round<4;round++)
+            {
+                var item=contexts[(index+round)%2];
+                await using(var tx=await connection.BeginTransactionAsync())
+                {
+                    await using var set=new NpgsqlCommand("SELECT set_config('app.tenant_id',@tenant,true),set_config('app.identity_subject',@subject,true)",connection);
+                    set.Parameters.AddWithValue("tenant",item.Tenant.ToString()); set.Parameters.AddWithValue("subject",item.Actor.ToString());
+                    await set.ExecuteNonQueryAsync();
+                    await using var query=new NpgsqlCommand("SELECT organization_access.read_master_authority(@company)->>'state'",connection);
+                    query.Parameters.AddWithValue("company",item.Company);
+                    Assert.Equal("local",await query.ExecuteScalarAsync());
+                    if(round%2==0) await tx.CommitAsync(); else await tx.RollbackAsync();
+                }
+                await using var denied=new NpgsqlCommand("SELECT organization_access.read_master_authority(@company)->>'state'",connection);
+                denied.Parameters.AddWithValue("company",item.Company);
+                Assert.Equal("forbidden",await denied.ExecuteScalarAsync());
+            }
+            return connection.ProcessID;
+        });
+        Assert.Equal(size,(await Task.WhenAll(tasks)).Distinct().Count());
+        // Immutable authority history is retained until the isolated acceptance database is destroyed.
+    }
+
     private static async Task<int> Exercise(NpgsqlDataSource source, Guid tenant, bool rollback)
     {
         await using var connection = await source.OpenConnectionAsync();

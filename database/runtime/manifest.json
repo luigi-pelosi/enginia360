@@ -78,5 +78,10 @@
     "id": "0016_limited_grant_administration",
     "path": "migrations/0016_limited_grant_administration.sql",
     "sha256": "0277df5036d79b4933a2e7c0a90b8e5fb8a6ad675ccd354f37dc1582155ee55b"
+  },
+  {
+    "id": "0017_master_authority_profile",
+    "path": "migrations/0017_master_authority_profile.sql",
+    "sha256": "c2b66e0d04c4734931192dbead01f6c11f47fa99dd983d2d34cd99d37c2cdf5b"
   }
 ]

@@ -3,6 +3,7 @@ import { request, ApiError } from './workshopApi';
 import CreateOrder from './CreateOrder';
 import AddLine from './AddLine';
 import OwnContexts from './OwnContexts';
+import MasterAuthority from './MasterAuthority';
 import { Button } from 'antd';
 import { parseOrder, parseSummary, uuid, type Order, type Summary } from './contracts';
 export default function WorkshopRuntime() {
@@ -45,5 +46,6 @@ export default function WorkshopRuntime() {
     {['Modifica righe','Rimuovi righe','Note','Nuova lavorazione','Cambia pagante','Cambia veicolo','Elenco commesse'].map(name => <button key={name} disabled>{name}</button>)}
     {summary && <section className="ui01-group"><h2>Lavorazione {summary.orderId}</h2><table><thead><tr><th>Tipo</th><th>Descrizione</th><th>Quantità</th><th>Prezzo</th><th>Sconto %</th><th>Netto salvato</th></tr></thead><tbody>{summary.lines.map(l => <tr key={l.id}><td>{l.kind}</td><td>{l.catalogLabel}<small>{l.id}</small></td><td>{l.quantity}</td><td>{l.unitPrice}</td><td>{l.discountPercent}</td><td>{l.netAmount}</td></tr>)}</tbody></table></section>}
     {authenticated && order && summary && !busy && <AddLine key={order.id} order={order} summary={summary} onSaved={async () => { await load(order.id, true); }} onError={optionalFailed} />}
+    {authenticated && order && <MasterAuthority key={'authority:'+order.legalEntityId} companyId={order.legalEntityId} counterpartyId={order.payerId} onError={optionalFailed} />}
     </section></div><footer className="ui01-summary">{summary ? <><span>Imponibile {summary.netAmount}</span><span>IVA {summary.taxAmount}</span><strong>{summary.total} EUR</strong></> : 'Riepilogo non verificato'}</footer></main>;
 }
