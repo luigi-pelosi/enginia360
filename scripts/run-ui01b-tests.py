@@ -33,7 +33,7 @@ def fixtures(state, secret):
         data = {k:str(uuid.uuid4()) for k in ('documentTypeId','payerId','holderId','vehicleId','serviceId','partId')}
         browser['workshop'].append(data)
         statements.append(f"INSERT INTO organization_access.capability_activations VALUES ('{company}','workshop',true);")
-        for action in ('workshop.orders.read','workshop.orders.create','workshop.lines.add','counterparties.read'):
+        for action in ('workshop.orders.read','workshop.orders.create','workshop.lines.add','workshop.groups.write','counterparties.read'):
             statements.append(f"INSERT INTO organization_access.company_permissions VALUES ('{uuid.uuid4()}',{member},'{tenant}','{company}','{action}',NULL,NULL);")
         statements += [f"INSERT INTO counterparties.counterparties VALUES ('{data[k]}','{tenant}','Synthetic {k}','SYNTHETIC','Synthetic office');" for k in ('payerId','holderId')]
         registered_company = browser['deniedContexts'][0]['legalEntityId'] if index == 0 else company
@@ -89,7 +89,7 @@ def main():
             run(command+['up','-d','--wait','--wait-timeout','180','postgres','identity'],timeout=210)
             run(command+['run','--rm','--no-deps','-T','migrator'],timeout=90)
             query=command+['exec','-T','postgres','psql','-X','-qAt','-U','postgres','-d','runtime','-v','ON_ERROR_STOP=1']
-            assert run(query+['-c','SELECT count(*) FROM runtime_migrations.applied']).strip()=='17'
+            assert run(query+['-c','SELECT count(*) FROM runtime_migrations.applied']).strip()=='19'
             assert run(query+['-c','SELECT count(*) FROM workshop.orders']).strip()=='0'
             run(query,input=sql)
             run(command+['up','-d','api','web'],timeout=120)

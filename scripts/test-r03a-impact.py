@@ -59,6 +59,7 @@ class R03aImpact(unittest.TestCase):
         self.assertIn('timeout 600 python3 scripts/run-r03a-tests.py', block)
         self.assertIn('r03a: ${{ steps.selection.outputs.r03a }}', text)
         self.assertIn('python3 scripts/test-r03a-impact.py', text)
+        self.assertIn('python3 scripts/test-r03a-contract.py', text)
         self.assertNotIn('  push:', text.split('concurrency:', 1)[0])
 
     def test_runner_is_covered_by_selection_mutation(self):
