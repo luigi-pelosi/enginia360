@@ -89,7 +89,7 @@ def main():
             run(command+['up','-d','--wait','--wait-timeout','180','postgres','identity'],timeout=210)
             run(command+['run','--rm','--no-deps','-T','migrator'],timeout=90)
             query=command+['exec','-T','postgres','psql','-X','-qAt','-U','postgres','-d','runtime','-v','ON_ERROR_STOP=1']
-            assert run(query+['-c','SELECT count(*) FROM runtime_migrations.applied']).strip()=='19'
+            assert run(query+['-c','SELECT count(*) FROM runtime_migrations.applied']).strip()=='20'
             assert run(query+['-c','SELECT count(*) FROM workshop.orders']).strip()=='0'
             run(query,input=sql)
             run(command+['up','-d','api','web'],timeout=120)

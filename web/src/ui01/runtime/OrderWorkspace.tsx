@@ -22,7 +22,10 @@ export default function OrderWorkspace({ editor, onApplied, onError }: Readonly<
   const [focusId, setFocusId] = useState<string>();
   // The edit row is replaced by the stable display row: focus can only move after that render.
   useEffect(() => { if (focusId && !edit) { document.getElementById('row-' + focusId)?.focus(); setFocusId(undefined); } });
-  const [edit, setEdit] = useState<{ row: Row; quantity: string; price: string; discount: string; description: string }>();
+  const [edit, setEdit] = useState<{ row: Row; quantity: string; price: string; discount: string; description: string; groupId: string; catalog?: MasterChoice }>();
+  // A reread must not silently rebase an old draft onto a newer server revision.
+  // An uncertain command stays frozen until its exact retry or explicit abandonment.
+  useEffect(() => { if (!frozen.current) { setEdit(undefined); setRename(undefined); } }, [editor.revision, caps.closed, caps.canEditLine, caps.canWriteNotes]);
   const ready = policy.state === 'ready' && !caps.closed;
   const writeBlocked = busy || uncertain;
   const reason = caps.closed ? 'Commessa chiusa tecnicamente: sola lettura.' : policy.state !== 'ready' ? 'Policy righe non configurata: nessuna scrittura.' : '';
@@ -84,16 +87,20 @@ export default function OrderWorkspace({ editor, onApplied, onError }: Readonly<
     }
     const l = r.line!;
     const fields: Fields = { lineId: r.id };
-    if (r.kind === 'Service') { if (!decimal(edit.quantity) || !/[1-9]/.test(edit.quantity)) return invalid('edit-quantity', 'Quantità positiva, max 6 decimali.'); if (edit.quantity !== l.quantity) fields.quantity = edit.quantity; }
+    if (r.kind === 'Service' || caps.materialStructureEdit) { if (!decimal(edit.quantity) || !/[1-9]/.test(edit.quantity)) return invalid('edit-quantity', 'Quantità positiva, max 6 decimali.'); if (edit.quantity !== l.quantity) fields.quantity = edit.quantity; }
     if (!decimal(edit.price)) return invalid('edit-price', 'Prezzo non negativo, max 6 decimali.');
     if (!discountOk(edit.discount)) return invalid('edit-discount', 'Sconto da 0 a 100, max 2 decimali.');
+    if (edit.groupId !== r.workingGroupId) fields.groupId = edit.groupId;
+    if (edit.catalog && (edit.catalog.id !== l.catalogItemId || edit.catalog.version !== l.catalogVersion)) {
+      fields.catalogItemId = edit.catalog.id; fields.catalogVersion = edit.catalog.version;
+    }
     if (edit.price !== l.unitPrice) fields.unitPrice = edit.price;
     if (edit.discount !== l.discountPercent) fields.discountPercent = edit.discount;
     if (edit.description !== (r.description ?? '')) fields.description = edit.description;
     if (Object.keys(fields).length === 1) return invalid('edit-price', 'Nessuna differenza da registrare.');
     if (await send('EditCommercialLine', fields)) { setEdit(undefined); setFocusId(r.id); }
   }
-  const startEdit = (row: Row) => setEdit({ row, quantity: row.line?.quantity ?? '', price: row.line?.unitPrice ?? '', discount: row.line?.discountPercent ?? '', description: row.description ?? '' });
+  const startEdit = (row: Row) => setEdit({ row, quantity: row.line?.quantity ?? '', price: row.line?.unitPrice ?? '', discount: row.line?.discountPercent ?? '', description: row.description ?? '', groupId: row.workingGroupId });
 
   return <section className="ui01-workspace-editor" aria-label="Workspace commessa">
     <p>Documento v{policy.documentConfigurationVersion} · Policy righe {policy.currentLinePolicyVersion === null ? 'non configurata' : 'v' + policy.currentLinePolicyVersion} · Struttura v{policy.structurePolicyVersion} · Revisione {editor.revision}{caps.closed ? ' · CHIUSA' : ''}</p>
@@ -130,16 +137,21 @@ export default function OrderWorkspace({ editor, onApplied, onError }: Readonly<
         <button disabled={!ready || !caps.canWriteGroups || writeBlocked || rows.length > 0} title={rows.length ? 'La lavorazione contiene righe o note.' : undefined} onClick={() => void send('RemoveEmptyGroup', { groupId: g.id })}>Rimuovi lavorazione vuota</button>
         <table><thead><tr><th>Tipo</th><th>Descrizione</th><th>Quantità</th><th>Prezzo</th><th>Sconto %</th><th>Netto salvato</th><th>Azioni</th></tr></thead><tbody>
           {rows.map(r => edit?.row.id === r.id ? <tr key={r.id}><td>{r.kind}</td>
-            <td><input id="edit-description" aria-label="Descrizione riga" value={edit.description} onChange={e => setEdit({ ...edit, description: e.target.value })} onKeyDown={e => { if (e.key === 'Escape') { setEdit(undefined); setFocusId(r.id); } if (e.key === 'Enter') { e.preventDefault(); void applyEdit(); } }} /></td>
+            <td><input disabled={writeBlocked} id="edit-description" aria-label="Descrizione riga" value={edit.description} onChange={e => setEdit({ ...edit, description: e.target.value })} onKeyDown={e => { if (e.key === 'Escape') { setEdit(undefined); setFocusId(r.id); } if (e.key === 'Enter') { e.preventDefault(); void applyEdit(); } }} />{r.kind !== 'Note' && (r.kind === 'Service' || caps.materialStructureEdit) && <fieldset disabled={writeBlocked}>
+              <label>Lavorazione della riga<select value={edit.groupId} onChange={e => setEdit({ ...edit, groupId: e.target.value })}>{editor.groups.map(group => <option key={group.id} value={group.id}>{group.title}</option>)}</select></label>
+              <MasterSearch key={'edit:' + r.id} endpoint={'/api/v1/workshop/catalog?legalEntityId=' + order.legalEntityId + '&siteId=' + order.siteId} label="Sostituisci articolo / prestazione" catalog value={edit.catalog}
+                disabledKinds={r.kind === 'Part' ? ['Service'] : ['Part']} onChange={catalog => setEdit(current => current ? { ...current, catalog } : current)} onError={onError} />
+              <small>Catalogo corrente dal server; il tipo riga resta invariato. Il selettore richiede orders.create. Nessun prezzo implicito.</small>
+            </fieldset>}</td>
             {r.kind === 'Note' ? <td colSpan={4} /> : <>
-              <td>{r.kind === 'Service' ? <input id="edit-quantity" aria-label="Quantità riga" value={edit.quantity} onChange={e => setEdit({ ...edit, quantity: e.target.value })} onKeyDown={e => { if (e.key === 'Escape') { setEdit(undefined); setFocusId(r.id); } if (e.key === 'Enter') { e.preventDefault(); void applyEdit(); } }} /> : <span title={NOT_SUPPORTED + 'quantità ricambio'}>{r.line!.quantity}</span>}</td>
-              <td><input id="edit-price" aria-label="Prezzo riga" value={edit.price} onChange={e => setEdit({ ...edit, price: e.target.value })} onKeyDown={e => { if (e.key === 'Escape') { setEdit(undefined); setFocusId(r.id); } if (e.key === 'Enter') { e.preventDefault(); void applyEdit(); } }} /></td>
-              <td><input id="edit-discount" aria-label="Sconto riga" value={edit.discount} onChange={e => setEdit({ ...edit, discount: e.target.value })} onKeyDown={e => { if (e.key === 'Escape') { setEdit(undefined); setFocusId(r.id); } if (e.key === 'Enter') { e.preventDefault(); void applyEdit(); } }} /></td><td>{r.line!.netAmount}</td></>}
-            <td><button disabled={writeBlocked} onClick={() => void applyEdit()}>Applica</button><button onClick={() => { setEdit(undefined); setFocusId(r.id); }}>Annulla</button></td></tr>
+              <td>{r.kind === 'Service' || caps.materialStructureEdit ? <input disabled={writeBlocked} id="edit-quantity" aria-label="Quantità riga" value={edit.quantity} onChange={e => setEdit({ ...edit, quantity: e.target.value })} onKeyDown={e => { if (e.key === 'Escape') { setEdit(undefined); setFocusId(r.id); } if (e.key === 'Enter') { e.preventDefault(); void applyEdit(); } }} /> : <span title={NOT_SUPPORTED + 'quantità ricambio'}>{r.line!.quantity}</span>}</td>
+              <td><input disabled={writeBlocked} id="edit-price" aria-label="Prezzo riga" value={edit.price} onChange={e => setEdit({ ...edit, price: e.target.value })} onKeyDown={e => { if (e.key === 'Escape') { setEdit(undefined); setFocusId(r.id); } if (e.key === 'Enter') { e.preventDefault(); void applyEdit(); } }} /></td>
+              <td><input disabled={writeBlocked} id="edit-discount" aria-label="Sconto riga" value={edit.discount} onChange={e => setEdit({ ...edit, discount: e.target.value })} onKeyDown={e => { if (e.key === 'Escape') { setEdit(undefined); setFocusId(r.id); } if (e.key === 'Enter') { e.preventDefault(); void applyEdit(); } }} /></td><td>{r.line!.netAmount}</td></>}
+            <td><button disabled={writeBlocked} onClick={() => void applyEdit()}>Applica</button><button disabled={writeBlocked} onClick={() => { setEdit(undefined); setFocusId(r.id); }}>Annulla</button></td></tr>
             : <tr key={r.id}><td>{r.kind === 'Note' ? 'Nota' : r.kind}</td><td>{r.kind === 'Note' ? r.description : <>{r.line!.catalogLabel}{r.description ? ' — ' + r.description : ''}<small>{r.line!.catalogItemId} v{r.line!.catalogVersion}</small></>}</td>
               <td>{r.line?.quantity ?? ''}</td><td>{r.line?.unitPrice ?? ''}</td><td>{r.line?.discountPercent ?? ''}</td><td>{r.line?.netAmount ?? ''}</td>
               <td><button id={'row-' + r.id} disabled={!ready || writeBlocked || !(r.kind === 'Note' ? caps.canWriteNotes : caps.canEditLine)} onClick={() => startEdit(r)}>Modifica</button>
-                <button disabled={!ready || writeBlocked || !(r.kind === 'Note' ? caps.canWriteNotes : caps.canRemoveLine) || r.kind === 'Part'} title={r.kind === 'Part' ? NOT_SUPPORTED + 'la rimozione dei ricambi richiede la fence con Inventory.' : undefined}
+                <button disabled={!ready || writeBlocked || !(r.kind === 'Note' ? caps.canWriteNotes : caps.canRemoveLine) || r.kind === 'Part' && !caps.materialStructureEdit} title={r.kind === 'Part' ? caps.materialStructureEditReason ?? undefined : undefined}
                   onClick={() => void send('RemoveLine', { lineId: r.id })}>Rimuovi</button></td></tr>)}
         </tbody></table></section>;
     })}

@@ -81,8 +81,6 @@ public static class InventoryModule
         if (await workshop.Authorize(Subject(user), line.LegalEntityId, line.SiteId, "workshop.orders.read", true, ct) is null
             || !await access.Authorize(Subject(user), line.LegalEntityId, line.SiteId, request.WarehouseId, "inventory.reservations.create", true, ct))
             return Results.StatusCode(403);
-        if (line.Kind != "Part") return Results.BadRequest();
-        if (request.CatalogVersion != line.CatalogVersion) return Results.Conflict();
         await using var tx = await db.Database.BeginTransactionAsync(ct);
         await SetTenant(db, member.TenantId, ct);
         await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({request.Id.ToString()}, 0))", ct);
@@ -95,6 +93,12 @@ public static class InventoryModule
         // Line lock deliberately excludes warehouse: partials across warehouses share one residual.
         var lineLock = $"inventory:line:{member.TenantId}:{lineId}";
         await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({lineLock}, 0))", ct);
+        // Owning Workshop public SQL contract, evaluated AFTER the line lock on this
+        // Inventory transaction/connection. Never open a nested pooled module connection.
+        line = await db.Database.SqlQuery<ReservationLine>($"SELECT * FROM workshop.reservation_line({member.TenantId},{orderId},{lineId})").SingleOrDefaultAsync(ct);
+        if (line is null) return Results.NotFound();
+        if (line.Kind != "Part") return Results.BadRequest();
+        if (request.CatalogVersion != line.CatalogVersion) return Results.Conflict();
         var reserved = await db.Reservations.Where(x => x.TenantId == member.TenantId && x.LineId == lineId).SumAsync(x => x.Quantity, ct);
         if (quantity > line.Quantity - reserved)
             return Results.Conflict(new { code = "exceeds_remaining", message = "La quantità supera il residuo non prenotato della riga." });

@@ -1,0 +1,29 @@
+# Opt-in synthetic ephemeral R03.a order-workspace acceptance only; no ports or persistent volumes.
+services:
+  postgres:
+    extends: {file: compose.r00b-test.yaml, service: postgres}
+  migrator:
+    extends: {file: compose.r00b-test.yaml, service: migrator}
+  identity:
+    extends: {file: compose.r00b-test.yaml, service: identity}
+  api:
+    extends: {file: compose.r00b-test.yaml, service: api}
+    environment:
+      Counterparties__Enabled: "true"
+      Workshop__Enabled: "true"
+      Inventory__Enabled: "true"
+      InternalBilling__Enabled: "true"
+      TechnicalAccounting__Enabled: "true"
+      ExternalAdministration__Enabled: "true"
+      ExternalAdministration__SimulatorBaseUrl: "http://127.0.0.1:9/"
+  web:
+    extends: {file: compose.r00b-test.yaml, service: web}
+    volumes:
+      - ./web/nginx.ui01b-test.conf:/etc/nginx/nginx.conf:ro
+      - ./web/dist-ui01-runtime:/usr/share/nginx/editor:ro
+  browser:
+    extends: {file: compose.r00b-test.yaml, service: browser}
+    entrypoint: [sh, -c, 'mkdir -p "$$HOME/.pki/nssdb" && certutil -N -d sql:$$HOME/.pki/nssdb --empty-password && certutil -A -d sql:$$HOME/.pki/nssdb -n runtime-ephemeral-ca -t C,, -i /run/tls/ca.crt && exec node r03a2-acceptance.cjs']
+networks:
+  runtime:
+    internal: true

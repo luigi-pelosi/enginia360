@@ -9,6 +9,7 @@ export const codeMessages: Record<string, string> = {
   group_not_found: 'Lavorazione non disponibile.',
   line_not_found: 'Riga non disponibile.',
   no_change: 'Nessuna differenza da registrare.',
+  active_material_commitments: 'Impegni logistici attivi: modifica solo prezzo, sconto e descrizione, oppure rileggi la commessa.',
   material_structure_edit_not_supported: 'Modifica strutturale o rimozione dei ricambi non supportata in questo incremento: solo prezzo, sconto e descrizione.',
   commercial_summary_limit: 'Il totale supera il limite tecnico di importo: nessuna modifica registrata.',
   workspace_limit: 'Limite tecnico di righe, note o lavorazioni raggiunto.',

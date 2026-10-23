@@ -79,7 +79,7 @@ def main():
             for _ in range(2):
                 run(command + ['run', '--rm', '--no-deps', '-T', 'migrator'])
             query = ['exec','-T','postgres','psql','-X','-qAt','-U','postgres','-d','runtime','-v','ON_ERROR_STOP=1','-c']
-            assert run(command+query+["SELECT count(*) FROM runtime_migrations.applied"],capture=True).stdout.strip() == '19'
+            assert run(command+query+["SELECT count(*) FROM runtime_migrations.applied"],capture=True).stdout.strip() == '20'
             assert run(command+query+["SHOW data_directory"],capture=True).stdout.strip() == '/var/lib/postgresql/18/docker'
             for suite in ('scripts/test-r00-migrations.py', 'scripts/test-r00b-bindings.py', 'scripts/test-r01b-grants.py', 'scripts/test-r02b-authority.py', 'scripts/test-r03a-migration.py'):
                 run(command + ['run', '--rm', '--no-deps', '-T', '--entrypoint', 'python3',
@@ -99,7 +99,7 @@ def main():
             run(command + ['stop', 'postgres'])
             run(command + ['up', '-d', '--wait', '--wait-timeout', '120', 'postgres'])
             run(command + ['run', '--rm', '--no-deps', '-T', 'migrator'])
-            assert run(command+query+["SELECT count(*) FROM runtime_migrations.applied"],capture=True).stdout.strip() == '19'
+            assert run(command+query+["SELECT count(*) FROM runtime_migrations.applied"],capture=True).stdout.strip() == '20'
             logs = run(command + ['logs', '--no-color', 'postgres'], capture=True).stdout
             for key in ('R00_INFRA_PASSWORD','R00_OWNER_PASSWORD','R00_APP_PASSWORD'):
                 assert values[key] not in logs, 'secret found in server log'
