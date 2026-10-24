@@ -1,0 +1,2123 @@
+[
+  {
+    "table": "accounting.chart_accounts",
+    "owner": "accounting",
+    "category": "business_configuration",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "Version",
+      "Purpose"
+    ],
+    "definition": {
+      "migration": "0014_accounting",
+      "path": "database/runtime/migrations/0014_accounting.sql",
+      "file_sha256": "247a8ec11169d4e62a0f9f657c8f07e8ba631101eee08296d1941e005f39ea34",
+      "create_sql": "CREATE TABLE IF NOT EXISTS accounting.chart_accounts (\n \"TenantId\" uuid NOT NULL, \"LegalEntityId\" uuid NOT NULL, \"Version\" integer NOT NULL CHECK (\"Version\">0),\n \"Purpose\" varchar(30) NOT NULL CHECK (\"Purpose\" IN ('Receivable','ServiceRevenue','PartRevenue','TaxPayable')),\n \"AccountCode\" varchar(20) NOT NULL CHECK (\"AccountCode\" ~ '^[0-9]{4,20}$'),\n \"AccountDescription\" varchar(100) NOT NULL,\n PRIMARY KEY (\"TenantId\",\"LegalEntityId\",\"Version\",\"Purpose\")\n);",
+      "columns": [
+        "TenantId",
+        "LegalEntityId",
+        "Version",
+        "Purpose",
+        "AccountCode",
+        "AccountDescription"
+      ],
+      "primary_key": [
+        "TenantId",
+        "LegalEntityId",
+        "Version",
+        "Purpose"
+      ]
+    }
+  },
+  {
+    "table": "accounting.journal_entries",
+    "owner": "accounting",
+    "category": "operational_fact",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": {
+      "source": "src/Modules/Accounting/Enginia360.Accounting/AccountingModule.cs",
+      "registration": "routes.MapPost(\"/invoice-journal-entries\", Post);",
+      "purpose": "EXISTING_OPERATION_NOT_IMPORT_AUTHORIZATION"
+    },
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "SiteId",
+      "Id"
+    ],
+    "definition": {
+      "migration": "0014_accounting",
+      "path": "database/runtime/migrations/0014_accounting.sql",
+      "file_sha256": "247a8ec11169d4e62a0f9f657c8f07e8ba631101eee08296d1941e005f39ea34",
+      "create_sql": "CREATE TABLE IF NOT EXISTS accounting.journal_entries (\n \"Id\" uuid PRIMARY KEY CHECK (\"Id\" <> '00000000-0000-0000-0000-000000000000'), \"TenantId\" uuid NOT NULL,\n \"InvoiceId\" uuid NOT NULL UNIQUE, \"OrderId\" uuid NOT NULL, \"LegalEntityId\" uuid NOT NULL, \"SiteId\" uuid NOT NULL,\n \"ChartVersion\" integer NOT NULL CHECK (\"ChartVersion\">0), \"EntryDate\" date NOT NULL,\n \"Currency\" char(3) NOT NULL CHECK (\"Currency\"='EUR'), \"InvoiceReference\" varchar(64) NOT NULL,\n \"TotalDebit\" numeric(20,6) NOT NULL CHECK (\"TotalDebit\">0), \"TotalCredit\" numeric(20,6) NOT NULL CHECK (\"TotalCredit\">0),\n \"PostedAt\" timestamptz NOT NULL, \"PostedBy\" uuid NOT NULL,\n CONSTRAINT \"journal_entries_balanced_check\" CHECK (\"TotalDebit\"=\"TotalCredit\")\n);",
+      "columns": [
+        "Id",
+        "TenantId",
+        "InvoiceId",
+        "OrderId",
+        "LegalEntityId",
+        "SiteId",
+        "ChartVersion",
+        "EntryDate",
+        "Currency",
+        "InvoiceReference",
+        "TotalDebit",
+        "TotalCredit",
+        "PostedAt",
+        "PostedBy"
+      ],
+      "primary_key": [
+        "Id"
+      ]
+    }
+  },
+  {
+    "table": "accounting.journal_entry_lines",
+    "owner": "accounting",
+    "category": "operational_fact",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "EntryId",
+      "LineNumber"
+    ],
+    "definition": {
+      "migration": "0014_accounting",
+      "path": "database/runtime/migrations/0014_accounting.sql",
+      "file_sha256": "247a8ec11169d4e62a0f9f657c8f07e8ba631101eee08296d1941e005f39ea34",
+      "create_sql": "CREATE TABLE IF NOT EXISTS accounting.journal_entry_lines (\n \"EntryId\" uuid NOT NULL REFERENCES accounting.journal_entries(\"Id\"),\n \"LineNumber\" integer NOT NULL CHECK (\"LineNumber\">0), \"TenantId\" uuid NOT NULL,\n \"AccountCode\" varchar(20) NOT NULL, \"AccountDescription\" varchar(100) NOT NULL,\n \"Debit\" numeric(20,6) NOT NULL CHECK (\"Debit\">=0), \"Credit\" numeric(20,6) NOT NULL CHECK (\"Credit\">=0),\n PRIMARY KEY (\"EntryId\",\"LineNumber\"),\n CONSTRAINT \"journal_entry_lines_single_side_check\" CHECK ((\"Debit\"=0) <> (\"Credit\"=0))\n);",
+      "columns": [
+        "EntryId",
+        "LineNumber",
+        "TenantId",
+        "AccountCode",
+        "AccountDescription",
+        "Debit",
+        "Credit"
+      ],
+      "primary_key": [
+        "EntryId",
+        "LineNumber"
+      ]
+    }
+  },
+  {
+    "table": "billing.document_types",
+    "owner": "billing",
+    "category": "business_configuration",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "Id",
+      "Version"
+    ],
+    "definition": {
+      "migration": "0013_billing",
+      "path": "database/runtime/migrations/0013_billing.sql",
+      "file_sha256": "6ad1934b75b9be88bd772a30495bb1b8d5ecb41facafcc05898b317b89a4a55d",
+      "create_sql": "CREATE TABLE IF NOT EXISTS billing.document_types (\n \"TenantId\" uuid NOT NULL, \"LegalEntityId\" uuid NOT NULL, \"Id\" uuid NOT NULL, \"Version\" integer NOT NULL CHECK (\"Version\">0),\n \"Code\" varchar(30) NOT NULL, \"WorkshopSourceAllowed\" boolean NOT NULL, \"ConfirmationAllowed\" boolean NOT NULL,\n PRIMARY KEY (\"TenantId\",\"LegalEntityId\",\"Id\",\"Version\")\n);",
+      "columns": [
+        "TenantId",
+        "LegalEntityId",
+        "Id",
+        "Version",
+        "Code",
+        "WorkshopSourceAllowed",
+        "ConfirmationAllowed"
+      ],
+      "primary_key": [
+        "TenantId",
+        "LegalEntityId",
+        "Id",
+        "Version"
+      ]
+    }
+  },
+  {
+    "table": "billing.invoice_confirmations",
+    "owner": "billing",
+    "category": "operational_fact",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": {
+      "source": "src/Modules/Billing/Enginia360.Billing/BillingModule.cs",
+      "registration": "routes.MapPost(\"/workshop-invoices/{id:guid}/confirmation\", Confirm);",
+      "purpose": "EXISTING_OPERATION_NOT_IMPORT_AUTHORIZATION"
+    },
+    "reconcile_keys": [
+      "TenantId",
+      "InvoiceId"
+    ],
+    "definition": {
+      "migration": "0013_billing",
+      "path": "database/runtime/migrations/0013_billing.sql",
+      "file_sha256": "6ad1934b75b9be88bd772a30495bb1b8d5ecb41facafcc05898b317b89a4a55d",
+      "create_sql": "CREATE TABLE IF NOT EXISTS billing.invoice_confirmations (\n \"InvoiceId\" uuid PRIMARY KEY REFERENCES billing.invoices(\"Id\"),\n \"Id\" uuid NOT NULL UNIQUE CHECK (\"Id\" <> '00000000-0000-0000-0000-000000000000'), \"TenantId\" uuid NOT NULL,\n \"ConfigurationVersion\" integer NOT NULL CHECK (\"ConfigurationVersion\">0), \"Issuer\" jsonb NOT NULL, \"Recipient\" jsonb NOT NULL,\n \"ConfirmedAt\" timestamptz NOT NULL, \"ConfirmedBy\" uuid NOT NULL\n);",
+      "columns": [
+        "InvoiceId",
+        "Id",
+        "TenantId",
+        "ConfigurationVersion",
+        "Issuer",
+        "Recipient",
+        "ConfirmedAt",
+        "ConfirmedBy"
+      ],
+      "primary_key": [
+        "InvoiceId"
+      ]
+    }
+  },
+  {
+    "table": "billing.invoice_journal_links",
+    "owner": "billing",
+    "category": "operational_fact",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "InvoiceId"
+    ],
+    "definition": {
+      "migration": "0013_billing",
+      "path": "database/runtime/migrations/0013_billing.sql",
+      "file_sha256": "6ad1934b75b9be88bd772a30495bb1b8d5ecb41facafcc05898b317b89a4a55d",
+      "create_sql": "CREATE TABLE IF NOT EXISTS billing.invoice_journal_links (\n \"InvoiceId\" uuid PRIMARY KEY REFERENCES billing.invoice_confirmations(\"InvoiceId\"), \"TenantId\" uuid NOT NULL,\n \"JournalEntryId\" uuid NOT NULL UNIQUE, \"LinkedAt\" timestamptz NOT NULL\n);",
+      "columns": [
+        "InvoiceId",
+        "TenantId",
+        "JournalEntryId",
+        "LinkedAt"
+      ],
+      "primary_key": [
+        "InvoiceId"
+      ]
+    }
+  },
+  {
+    "table": "billing.invoices",
+    "owner": "billing",
+    "category": "operational_fact",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": {
+      "source": "src/Modules/Billing/Enginia360.Billing/BillingModule.cs",
+      "registration": "routes.MapPost(\"/workshop-invoices\", Create);",
+      "purpose": "EXISTING_OPERATION_NOT_IMPORT_AUTHORIZATION"
+    },
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "SiteId",
+      "Id"
+    ],
+    "definition": {
+      "migration": "0013_billing",
+      "path": "database/runtime/migrations/0013_billing.sql",
+      "file_sha256": "6ad1934b75b9be88bd772a30495bb1b8d5ecb41facafcc05898b317b89a4a55d",
+      "create_sql": "CREATE TABLE IF NOT EXISTS billing.invoices (\n \"Id\" uuid PRIMARY KEY CHECK (\"Id\" <> '00000000-0000-0000-0000-000000000000'), \"TenantId\" uuid NOT NULL,\n \"OrderId\" uuid NOT NULL UNIQUE, \"LegalEntityId\" uuid NOT NULL, \"SiteId\" uuid NOT NULL, \"PayerId\" uuid NOT NULL,\n \"DocumentTypeId\" uuid NOT NULL, \"ConfigurationVersion\" integer NOT NULL CHECK (\"ConfigurationVersion\">0),\n \"DestinationVersion\" integer NOT NULL CHECK (\"DestinationVersion\">0), \"SourceRevision\" integer NOT NULL CHECK (\"SourceRevision\">=0),\n \"DocumentDate\" date NOT NULL, \"Currency\" char(3) NOT NULL CHECK (\"Currency\"='EUR'), \"Reference\" varchar(64) NOT NULL,\n \"Summary\" jsonb NOT NULL, \"CreatedAt\" timestamptz NOT NULL, \"CreatedBy\" uuid NOT NULL\n);",
+      "columns": [
+        "Id",
+        "TenantId",
+        "OrderId",
+        "LegalEntityId",
+        "SiteId",
+        "PayerId",
+        "DocumentTypeId",
+        "ConfigurationVersion",
+        "DestinationVersion",
+        "SourceRevision",
+        "DocumentDate",
+        "Currency",
+        "Reference",
+        "Summary",
+        "CreatedAt",
+        "CreatedBy"
+      ],
+      "primary_key": [
+        "Id"
+      ]
+    }
+  },
+  {
+    "table": "billing.issuer_profiles",
+    "owner": "billing",
+    "category": "business_configuration",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "Version"
+    ],
+    "definition": {
+      "migration": "0013_billing",
+      "path": "database/runtime/migrations/0013_billing.sql",
+      "file_sha256": "6ad1934b75b9be88bd772a30495bb1b8d5ecb41facafcc05898b317b89a4a55d",
+      "create_sql": "CREATE TABLE IF NOT EXISTS billing.issuer_profiles (\n \"TenantId\" uuid NOT NULL, \"LegalEntityId\" uuid NOT NULL, \"Version\" integer NOT NULL CHECK (\"Version\">0),\n \"LegalName\" varchar(100) NOT NULL, \"FiscalIdentifier\" varchar(40) NOT NULL, \"RegisteredOffice\" varchar(200) NOT NULL,\n PRIMARY KEY (\"TenantId\",\"LegalEntityId\",\"Version\")\n);",
+      "columns": [
+        "TenantId",
+        "LegalEntityId",
+        "Version",
+        "LegalName",
+        "FiscalIdentifier",
+        "RegisteredOffice"
+      ],
+      "primary_key": [
+        "TenantId",
+        "LegalEntityId",
+        "Version"
+      ]
+    }
+  },
+  {
+    "table": "catalog.items",
+    "owner": "catalog",
+    "category": "shared_master",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "Id"
+    ],
+    "definition": {
+      "migration": "0006_catalog_lines",
+      "path": "database/runtime/migrations/0006_catalog_lines.sql",
+      "file_sha256": "f824b8f6b594e43f6a7c3042756bee42ea3c6ef567096b7422126c8cf11db98e",
+      "create_sql": "CREATE TABLE IF NOT EXISTS catalog.items (\n    \"Id\" uuid PRIMARY KEY,\n    \"TenantId\" uuid NOT NULL,\n    \"RegisteredCompanyId\" uuid NOT NULL,\n    \"Kind\" varchar(10) NOT NULL CHECK (\"Kind\" IN ('Service', 'Part')),\n    \"Label\" varchar(100) NOT NULL CHECK (length(btrim(\"Label\")) BETWEEN 1 AND 100),\n    \"Version\" integer NOT NULL CHECK (\"Version\" > 0)\n);",
+      "columns": [
+        "Id",
+        "TenantId",
+        "RegisteredCompanyId",
+        "Kind",
+        "Label",
+        "Version"
+      ],
+      "primary_key": [
+        "Id"
+      ]
+    }
+  },
+  {
+    "table": "counterparties.common_edit_history",
+    "owner": "counterparties",
+    "category": "audit_history",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "CommandId"
+    ],
+    "definition": {
+      "migration": "0017_master_authority_profile",
+      "path": "database/runtime/migrations/0017_master_authority_profile.sql",
+      "file_sha256": "c2b66e0d04c4734931192dbead01f6c11f47fa99dd983d2d34cd99d37c2cdf5b",
+      "create_sql": "CREATE TABLE counterparties.common_edit_history (\n \"CommandId\" uuid PRIMARY KEY,\n \"TenantId\" uuid NOT NULL,\n \"CounterpartyId\" uuid NOT NULL,\n \"LegalEntityId\" uuid NOT NULL,\n \"ActorMembershipId\" uuid NOT NULL,\n \"AuthorityVersion\" integer NOT NULL,\n \"Revision\" integer NOT NULL,\n \"Before\" jsonb NOT NULL,\n \"After\" jsonb NOT NULL,\n \"OccurredAt\" timestamptz NOT NULL DEFAULT clock_timestamp(),\n UNIQUE(\"TenantId\",\"CounterpartyId\",\"Revision\")\n);",
+      "columns": [
+        "CommandId",
+        "TenantId",
+        "CounterpartyId",
+        "LegalEntityId",
+        "ActorMembershipId",
+        "AuthorityVersion",
+        "Revision",
+        "Before",
+        "After",
+        "OccurredAt"
+      ],
+      "primary_key": [
+        "CommandId"
+      ]
+    }
+  },
+  {
+    "table": "counterparties.counterparties",
+    "owner": "counterparties",
+    "category": "shared_master",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": {
+      "source": "src/Modules/Counterparties/Enginia360.Counterparties/CounterpartiesModule.cs",
+      "registration": "routes.MapPut(\"/{id:guid}\", CommonEndpoints.Update);",
+      "purpose": "EXISTING_OPERATION_NOT_IMPORT_AUTHORIZATION"
+    },
+    "reconcile_keys": [
+      "TenantId",
+      "Id"
+    ],
+    "definition": {
+      "migration": "0003_counterparties",
+      "path": "database/runtime/migrations/0003_counterparties.sql",
+      "file_sha256": "fe2823ff96d15d65d0cc6d0bb82dc5458e93852cb71b8e5f5c3926136b853886",
+      "create_sql": "CREATE TABLE IF NOT EXISTS counterparties.counterparties (\n \"Id\" uuid PRIMARY KEY, \"TenantId\" uuid NOT NULL,\n \"LegalName\" varchar(200) NOT NULL CHECK(length(btrim(\"LegalName\")) BETWEEN 1 AND 200),\n \"FiscalIdentifier\" varchar(100) NOT NULL CHECK(length(btrim(\"FiscalIdentifier\")) BETWEEN 1 AND 100),\n \"RegisteredOffice\" varchar(500) NOT NULL CHECK(length(btrim(\"RegisteredOffice\")) BETWEEN 1 AND 500),\n UNIQUE(\"Id\", \"TenantId\")\n);",
+      "columns": [
+        "Id",
+        "TenantId",
+        "LegalName",
+        "FiscalIdentifier",
+        "RegisteredOffice"
+      ],
+      "primary_key": [
+        "Id"
+      ]
+    }
+  },
+  {
+    "table": "counterparties.destinations",
+    "owner": "counterparties",
+    "category": "company_extension",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": {
+      "source": "src/Modules/Counterparties/Enginia360.Counterparties/CounterpartiesModule.cs",
+      "registration": "routes.MapPost(\"/{id:guid}/destinations\", DestinationEndpoints.Create);",
+      "purpose": "EXISTING_OPERATION_NOT_IMPORT_AUTHORIZATION"
+    },
+    "reconcile_keys": [
+      "TenantId",
+      "OwnerLegalEntityId",
+      "Id"
+    ],
+    "definition": {
+      "migration": "0004_destinations",
+      "path": "database/runtime/migrations/0004_destinations.sql",
+      "file_sha256": "25e9be384cb40ed4ed27b3a36355d76b10c1e15f688f8b681163cbe20c5ff6bd",
+      "create_sql": "CREATE TABLE IF NOT EXISTS counterparties.destinations (\n \"Id\" uuid PRIMARY KEY, \"TenantId\" uuid NOT NULL, \"CounterpartyId\" uuid NOT NULL,\n \"OwnerLegalEntityId\" uuid NOT NULL, \"Address\" varchar(500) NOT NULL CHECK(length(btrim(\"Address\")) BETWEEN 1 AND 500),\n \"Published\" boolean NOT NULL DEFAULT false,\n FOREIGN KEY (\"CounterpartyId\", \"TenantId\") REFERENCES counterparties.counterparties(\"Id\", \"TenantId\")\n);",
+      "columns": [
+        "Id",
+        "TenantId",
+        "CounterpartyId",
+        "OwnerLegalEntityId",
+        "Address",
+        "Published"
+      ],
+      "primary_key": [
+        "Id"
+      ]
+    }
+  },
+  {
+    "table": "integrations.administrative_dispatches",
+    "owner": "integrations",
+    "category": "integration_evidence",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "RequestId"
+    ],
+    "definition": {
+      "migration": "0011_administration",
+      "path": "database/runtime/migrations/0011_administration.sql",
+      "file_sha256": "963ce9bec5ad123241bcae98c66dfdfe854016fd276050169c133307e3d1bc64",
+      "create_sql": "CREATE TABLE IF NOT EXISTS integrations.administrative_dispatches (\n \"RequestId\" uuid PRIMARY KEY,\n \"TenantId\" uuid NOT NULL,\n \"State\" varchar(20) NOT NULL CHECK (\"State\" IN ('Queued','Received','Retrying','Completed','Rejected')),\n \"Attempts\" integer NOT NULL CHECK (\"Attempts\">=0),\n \"LastAttemptAt\" timestamptz,\n \"NextAttemptAt\" timestamptz NOT NULL,\n \"LeaseUntil\" timestamptz,\n \"ExternalReference\" varchar(64),\n \"RejectionCode\" varchar(64),\n \"LastError\" varchar(64),\n \"UpdatedAt\" timestamptz NOT NULL\n);",
+      "columns": [
+        "RequestId",
+        "TenantId",
+        "State",
+        "Attempts",
+        "LastAttemptAt",
+        "NextAttemptAt",
+        "LeaseUntil",
+        "ExternalReference",
+        "RejectionCode",
+        "LastError",
+        "UpdatedAt"
+      ],
+      "primary_key": [
+        "RequestId"
+      ]
+    }
+  },
+  {
+    "table": "integrations.administrative_reconciliations",
+    "owner": "integrations",
+    "category": "integration_evidence",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "Id"
+    ],
+    "definition": {
+      "migration": "0012_continuity",
+      "path": "database/runtime/migrations/0012_continuity.sql",
+      "file_sha256": "7890d361eb0dd5bf82d8b6f06167d1413d73a20542676b1bc5c4cfc243f71551",
+      "create_sql": "CREATE TABLE IF NOT EXISTS integrations.administrative_reconciliations (\n \"Id\" uuid PRIMARY KEY CHECK (\"Id\" <> '00000000-0000-0000-0000-000000000000'),\n \"TenantId\" uuid NOT NULL, \"RequestId\" uuid NOT NULL REFERENCES integrations.administrative_dispatches(\"RequestId\"),\n \"OperatorId\" uuid NOT NULL, \"RequestedAt\" timestamptz NOT NULL\n);",
+      "columns": [
+        "Id",
+        "TenantId",
+        "RequestId",
+        "OperatorId",
+        "RequestedAt"
+      ],
+      "primary_key": [
+        "Id"
+      ]
+    }
+  },
+  {
+    "table": "inventory.carcass_locations",
+    "owner": "inventory",
+    "category": "business_configuration",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "SiteId",
+      "WarehouseId",
+      "Version"
+    ],
+    "definition": {
+      "migration": "0010_carcass",
+      "path": "database/runtime/migrations/0010_carcass.sql",
+      "file_sha256": "6a7376f05045502fc59277ddd3552968b6a38e4af0798a7d30915ed4117c902d",
+      "create_sql": "CREATE TABLE IF NOT EXISTS inventory.carcass_locations (\n \"TenantId\" uuid NOT NULL,\n \"LegalEntityId\" uuid NOT NULL,\n \"SiteId\" uuid NOT NULL,\n \"WarehouseId\" uuid NOT NULL,\n \"Version\" integer NOT NULL CHECK (\"Version\">0),\n \"Location\" varchar(100) NOT NULL CHECK (length(btrim(\"Location\"))>0),\n PRIMARY KEY (\"TenantId\",\"LegalEntityId\",\"SiteId\",\"WarehouseId\",\"Version\")\n);",
+      "columns": [
+        "TenantId",
+        "LegalEntityId",
+        "SiteId",
+        "WarehouseId",
+        "Version",
+        "Location"
+      ],
+      "primary_key": [
+        "TenantId",
+        "LegalEntityId",
+        "SiteId",
+        "WarehouseId",
+        "Version"
+      ]
+    }
+  },
+  {
+    "table": "inventory.carcass_return_installations",
+    "owner": "inventory",
+    "category": "operational_fact",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "InstallationId"
+    ],
+    "definition": {
+      "migration": "0010_carcass",
+      "path": "database/runtime/migrations/0010_carcass.sql",
+      "file_sha256": "6a7376f05045502fc59277ddd3552968b6a38e4af0798a7d30915ed4117c902d",
+      "create_sql": "CREATE TABLE IF NOT EXISTS inventory.carcass_return_installations (\n \"InstallationId\" uuid PRIMARY KEY,\n \"ReturnId\" uuid NOT NULL REFERENCES inventory.carcass_returns(\"Id\"),\n \"TenantId\" uuid NOT NULL,\n \"Quantity\" numeric(12,6) NOT NULL CHECK (\"Quantity\">0),\n \"CarcassPolicyVersion\" integer NOT NULL CHECK (\"CarcassPolicyVersion\">0)\n);",
+      "columns": [
+        "InstallationId",
+        "ReturnId",
+        "TenantId",
+        "Quantity",
+        "CarcassPolicyVersion"
+      ],
+      "primary_key": [
+        "InstallationId"
+      ]
+    }
+  },
+  {
+    "table": "inventory.carcass_returns",
+    "owner": "inventory",
+    "category": "operational_fact",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": {
+      "source": "src/Modules/Inventory/Enginia360.Inventory/CarcassReturnEndpoints.cs",
+      "registration": "routes.MapPost(\"/orders/{orderId:guid}/lines/{lineId:guid}/carcass-returns\", Receive);",
+      "purpose": "EXISTING_OPERATION_NOT_IMPORT_AUTHORIZATION"
+    },
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "SiteId",
+      "WarehouseId",
+      "Id"
+    ],
+    "definition": {
+      "migration": "0010_carcass",
+      "path": "database/runtime/migrations/0010_carcass.sql",
+      "file_sha256": "6a7376f05045502fc59277ddd3552968b6a38e4af0798a7d30915ed4117c902d",
+      "create_sql": "CREATE TABLE IF NOT EXISTS inventory.carcass_returns (\n \"Id\" uuid PRIMARY KEY CHECK (\"Id\" <> '00000000-0000-0000-0000-000000000000'),\n \"TenantId\" uuid NOT NULL,\n \"OrderId\" uuid NOT NULL,\n \"WorkingGroupId\" uuid NOT NULL,\n \"LineId\" uuid NOT NULL,\n \"LegalEntityId\" uuid NOT NULL,\n \"SiteId\" uuid NOT NULL,\n \"WarehouseId\" uuid NOT NULL,\n \"CatalogItemId\" uuid NOT NULL,\n \"Location\" varchar(100) NOT NULL,\n \"LocationConfigurationVersion\" integer NOT NULL CHECK (\"LocationConfigurationVersion\">0),\n \"Description\" varchar(200) NOT NULL CHECK (length(\"Description\")>0 AND \"Description\"=btrim(\"Description\")),\n \"Quantity\" numeric(12,6) NOT NULL CHECK (\"Quantity\">0),\n \"ReceivedAt\" timestamptz NOT NULL,\n \"OperatorId\" uuid NOT NULL\n);",
+      "columns": [
+        "Id",
+        "TenantId",
+        "OrderId",
+        "WorkingGroupId",
+        "LineId",
+        "LegalEntityId",
+        "SiteId",
+        "WarehouseId",
+        "CatalogItemId",
+        "Location",
+        "LocationConfigurationVersion",
+        "Description",
+        "Quantity",
+        "ReceivedAt",
+        "OperatorId"
+      ],
+      "primary_key": [
+        "Id"
+      ]
+    }
+  },
+  {
+    "table": "inventory.consumptions",
+    "owner": "inventory",
+    "category": "operational_fact",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "SiteId",
+      "WarehouseId",
+      "InstallationId"
+    ],
+    "definition": {
+      "migration": "0009_installation",
+      "path": "database/runtime/migrations/0009_installation.sql",
+      "file_sha256": "fb4235ea742aaede0b68fa624a8aef3a973d7bda44cd367aa16f7c37dc0c2feb",
+      "create_sql": "CREATE TABLE IF NOT EXISTS inventory.consumptions (\n \"InstallationId\" uuid PRIMARY KEY CHECK (\"InstallationId\" <> '00000000-0000-0000-0000-000000000000'),\n \"TenantId\" uuid NOT NULL,\n \"PickId\" uuid NOT NULL REFERENCES inventory.picks(\"Id\"),\n \"ReservationId\" uuid NOT NULL REFERENCES inventory.reservations(\"Id\"),\n \"LegalEntityId\" uuid NOT NULL,\n \"SiteId\" uuid NOT NULL,\n \"WarehouseId\" uuid NOT NULL,\n \"CatalogItemId\" uuid NOT NULL,\n \"Quantity\" numeric(12,6) NOT NULL CHECK (\"Quantity\">0),\n \"ConsumedAt\" timestamptz NOT NULL\n);",
+      "columns": [
+        "InstallationId",
+        "TenantId",
+        "PickId",
+        "ReservationId",
+        "LegalEntityId",
+        "SiteId",
+        "WarehouseId",
+        "CatalogItemId",
+        "Quantity",
+        "ConsumedAt"
+      ],
+      "primary_key": [
+        "InstallationId"
+      ]
+    }
+  },
+  {
+    "table": "inventory.picking_locations",
+    "owner": "inventory",
+    "category": "business_configuration",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "SiteId",
+      "WarehouseId"
+    ],
+    "definition": {
+      "migration": "0008_picking",
+      "path": "database/runtime/migrations/0008_picking.sql",
+      "file_sha256": "0a84e1d4ba48a4f6212da83e4d700b9f5f53dbe183cba800aac74b8c37b65a25",
+      "create_sql": "CREATE TABLE IF NOT EXISTS inventory.picking_locations (\n    \"TenantId\" uuid NOT NULL,\n    \"LegalEntityId\" uuid NOT NULL,\n    \"SiteId\" uuid NOT NULL,\n    \"WarehouseId\" uuid NOT NULL,\n    \"OriginLocation\" varchar(100) NOT NULL CHECK (length(trim(\"OriginLocation\")) > 0),\n    \"PreparationLocation\" varchar(100) CHECK (length(trim(\"PreparationLocation\")) > 0),\n    PRIMARY KEY (\"TenantId\", \"LegalEntityId\", \"SiteId\", \"WarehouseId\")\n);",
+      "columns": [
+        "TenantId",
+        "LegalEntityId",
+        "SiteId",
+        "WarehouseId",
+        "OriginLocation",
+        "PreparationLocation"
+      ],
+      "primary_key": [
+        "TenantId",
+        "LegalEntityId",
+        "SiteId",
+        "WarehouseId"
+      ]
+    }
+  },
+  {
+    "table": "inventory.picking_policies",
+    "owner": "inventory",
+    "category": "business_configuration",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId"
+    ],
+    "definition": {
+      "migration": "0008_picking",
+      "path": "database/runtime/migrations/0008_picking.sql",
+      "file_sha256": "0a84e1d4ba48a4f6212da83e4d700b9f5f53dbe183cba800aac74b8c37b65a25",
+      "create_sql": "CREATE TABLE IF NOT EXISTS inventory.picking_policies (\n    \"TenantId\" uuid NOT NULL,\n    \"LegalEntityId\" uuid NOT NULL,\n    \"Version\" integer NOT NULL CHECK (\"Version\" > 0),\n    \"PreparationEnabled\" boolean NOT NULL,\n    PRIMARY KEY (\"TenantId\", \"LegalEntityId\")\n);",
+      "columns": [
+        "TenantId",
+        "LegalEntityId",
+        "Version",
+        "PreparationEnabled"
+      ],
+      "primary_key": [
+        "TenantId",
+        "LegalEntityId"
+      ]
+    }
+  },
+  {
+    "table": "inventory.picks",
+    "owner": "inventory",
+    "category": "operational_fact",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": {
+      "source": "src/Modules/Inventory/Enginia360.Inventory/PickingEndpoints.cs",
+      "registration": "routes.MapPost(\"/orders/{orderId:guid}/lines/{lineId:guid}/reservations/{reservationId:guid}/picks\", Pick);",
+      "purpose": "EXISTING_OPERATION_NOT_IMPORT_AUTHORIZATION"
+    },
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "SiteId",
+      "WarehouseId",
+      "Id"
+    ],
+    "definition": {
+      "migration": "0008_picking",
+      "path": "database/runtime/migrations/0008_picking.sql",
+      "file_sha256": "0a84e1d4ba48a4f6212da83e4d700b9f5f53dbe183cba800aac74b8c37b65a25",
+      "create_sql": "CREATE TABLE IF NOT EXISTS inventory.picks (\n    \"Id\" uuid PRIMARY KEY CHECK (\"Id\" <> '00000000-0000-0000-0000-000000000000'),\n    \"TenantId\" uuid NOT NULL,\n    \"ReservationId\" uuid NOT NULL REFERENCES inventory.reservations (\"Id\"),\n    \"OrderId\" uuid NOT NULL,\n    \"WorkingGroupId\" uuid NOT NULL,\n    \"LineId\" uuid NOT NULL,\n    \"LegalEntityId\" uuid NOT NULL,\n    \"SiteId\" uuid NOT NULL,\n    \"WarehouseId\" uuid NOT NULL,\n    \"CatalogItemId\" uuid NOT NULL,\n    \"CatalogVersion\" integer NOT NULL CHECK (\"CatalogVersion\" > 0),\n    \"Quantity\" numeric(12,6) NOT NULL CHECK (\"Quantity\" > 0),\n    \"ConfigurationVersion\" integer NOT NULL CHECK (\"ConfigurationVersion\" > 0),\n    \"OriginLocation\" varchar(100) NOT NULL,\n    \"PlacementLocation\" varchar(100),\n    \"PickingListId\" uuid NOT NULL,\n    \"PickedAt\" timestamptz NOT NULL,\n    \"OperatorId\" uuid NOT NULL\n);",
+      "columns": [
+        "Id",
+        "TenantId",
+        "ReservationId",
+        "OrderId",
+        "WorkingGroupId",
+        "LineId",
+        "LegalEntityId",
+        "SiteId",
+        "WarehouseId",
+        "CatalogItemId",
+        "CatalogVersion",
+        "Quantity",
+        "ConfigurationVersion",
+        "OriginLocation",
+        "PlacementLocation",
+        "PickingListId",
+        "PickedAt",
+        "OperatorId"
+      ],
+      "primary_key": [
+        "Id"
+      ]
+    }
+  },
+  {
+    "table": "inventory.reservations",
+    "owner": "inventory",
+    "category": "operational_fact",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": {
+      "source": "src/Modules/Inventory/Enginia360.Inventory/InventoryModule.cs",
+      "registration": "routes.MapPost(\"/orders/{orderId:guid}/lines/{lineId:guid}/reservations\", Reserve);",
+      "purpose": "EXISTING_OPERATION_NOT_IMPORT_AUTHORIZATION"
+    },
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "SiteId",
+      "WarehouseId",
+      "Id"
+    ],
+    "definition": {
+      "migration": "0007_inventory",
+      "path": "database/runtime/migrations/0007_inventory.sql",
+      "file_sha256": "39634f7bb58a99395f7ffc07713fc1754305f39499c7743081deb3ce589b768a",
+      "create_sql": "CREATE TABLE IF NOT EXISTS inventory.reservations (\n \"Id\" uuid PRIMARY KEY CHECK (\"Id\"<>'00000000-0000-0000-0000-000000000000'),\n \"TenantId\" uuid NOT NULL, \"OrderId\" uuid NOT NULL, \"LineId\" uuid NOT NULL,\n \"LegalEntityId\" uuid NOT NULL, \"SiteId\" uuid NOT NULL, \"WarehouseId\" uuid NOT NULL,\n \"CatalogItemId\" uuid NOT NULL, \"CatalogVersion\" integer NOT NULL CHECK (\"CatalogVersion\">0),\n \"Quantity\" numeric(12,6) NOT NULL CHECK (\"Quantity\">0)\n);",
+      "columns": [
+        "Id",
+        "TenantId",
+        "OrderId",
+        "LineId",
+        "LegalEntityId",
+        "SiteId",
+        "WarehouseId",
+        "CatalogItemId",
+        "CatalogVersion",
+        "Quantity"
+      ],
+      "primary_key": [
+        "Id"
+      ]
+    }
+  },
+  {
+    "table": "inventory.stock",
+    "owner": "inventory",
+    "category": "stock_state",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "SiteId",
+      "WarehouseId",
+      "CatalogItemId"
+    ],
+    "definition": {
+      "migration": "0007_inventory",
+      "path": "database/runtime/migrations/0007_inventory.sql",
+      "file_sha256": "39634f7bb58a99395f7ffc07713fc1754305f39499c7743081deb3ce589b768a",
+      "create_sql": "CREATE TABLE IF NOT EXISTS inventory.stock (\n \"TenantId\" uuid NOT NULL, \"LegalEntityId\" uuid NOT NULL, \"SiteId\" uuid NOT NULL,\n \"WarehouseId\" uuid NOT NULL, \"CatalogItemId\" uuid NOT NULL,\n \"Physical\" numeric(12,6) NOT NULL CHECK (\"Physical\">=0),\n PRIMARY KEY (\"TenantId\",\"LegalEntityId\",\"SiteId\",\"WarehouseId\",\"CatalogItemId\")\n);",
+      "columns": [
+        "TenantId",
+        "LegalEntityId",
+        "SiteId",
+        "WarehouseId",
+        "CatalogItemId",
+        "Physical"
+      ],
+      "primary_key": [
+        "TenantId",
+        "LegalEntityId",
+        "SiteId",
+        "WarehouseId",
+        "CatalogItemId"
+      ]
+    }
+  },
+  {
+    "table": "organization_access.capability_activations",
+    "owner": "organization_access",
+    "category": "business_configuration",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "LegalEntityId",
+      "Capability"
+    ],
+    "definition": {
+      "migration": "0001_organization_access",
+      "path": "database/runtime/migrations/0001_organization_access.sql",
+      "file_sha256": "505d714b4e46cbf99a711a76db66c4070860563aa3bd216ae10319c0c5949800",
+      "create_sql": "CREATE TABLE IF NOT EXISTS organization_access.capability_activations (\n    \"LegalEntityId\" uuid NOT NULL REFERENCES organization_access.legal_entities (\"Id\") ON DELETE CASCADE,\n    \"Capability\" varchar(100) NOT NULL,\n    \"Enabled\" boolean NOT NULL,\n    PRIMARY KEY (\"LegalEntityId\", \"Capability\")\n);",
+      "columns": [
+        "LegalEntityId",
+        "Capability",
+        "Enabled"
+      ],
+      "primary_key": [
+        "LegalEntityId",
+        "Capability"
+      ]
+    }
+  },
+  {
+    "table": "organization_access.common_edit_permissions",
+    "owner": "organization_access",
+    "category": "security_binding",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "RESTORE_ONBOARDING_ONLY",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "MembershipId"
+    ],
+    "definition": {
+      "migration": "0004_destinations",
+      "path": "database/runtime/migrations/0004_destinations.sql",
+      "file_sha256": "25e9be384cb40ed4ed27b3a36355d76b10c1e15f688f8b681163cbe20c5ff6bd",
+      "create_sql": "CREATE TABLE IF NOT EXISTS organization_access.common_edit_permissions (\n \"MembershipId\" uuid NOT NULL, \"TenantId\" uuid NOT NULL,\n PRIMARY KEY (\"MembershipId\", \"TenantId\"),\n FOREIGN KEY (\"MembershipId\", \"TenantId\") REFERENCES organization_access.memberships(\"Id\", \"TenantId\")\n);",
+      "columns": [
+        "MembershipId",
+        "TenantId"
+      ],
+      "primary_key": [
+        "MembershipId",
+        "TenantId"
+      ]
+    }
+  },
+  {
+    "table": "organization_access.company_permissions",
+    "owner": "organization_access",
+    "category": "security_binding",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "RESTORE_ONBOARDING_ONLY",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "SiteId",
+      "WarehouseId",
+      "Id"
+    ],
+    "definition": {
+      "migration": "0002_company_permissions",
+      "path": "database/runtime/migrations/0002_company_permissions.sql",
+      "file_sha256": "b60395e35aa2649ead4df72479219dc1a5b6f28d13fe30873888b0118249954e",
+      "create_sql": "CREATE TABLE IF NOT EXISTS organization_access.company_permissions (\n \"Id\" uuid PRIMARY KEY, \"MembershipId\" uuid NOT NULL, \"TenantId\" uuid NOT NULL,\n \"LegalEntityId\" uuid NOT NULL, \"Permission\" varchar(100) NOT NULL,\n \"SiteId\" uuid NULL, \"WarehouseId\" uuid NULL,\n FOREIGN KEY (\"MembershipId\", \"TenantId\") REFERENCES organization_access.memberships(\"Id\", \"TenantId\"),\n FOREIGN KEY (\"LegalEntityId\", \"TenantId\") REFERENCES organization_access.legal_entities(\"Id\", \"TenantId\")\n);",
+      "columns": [
+        "Id",
+        "MembershipId",
+        "TenantId",
+        "LegalEntityId",
+        "Permission",
+        "SiteId",
+        "WarehouseId"
+      ],
+      "primary_key": [
+        "Id"
+      ]
+    }
+  },
+  {
+    "table": "organization_access.company_stock_profiles",
+    "owner": "organization_access",
+    "category": "authority_evidence",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "CommandId"
+    ],
+    "definition": {
+      "migration": "0021_company_stock_profile",
+      "path": "database/runtime/migrations/0021_company_stock_profile.sql",
+      "file_sha256": "c9a64b9d3e42f7ddec5399f136e255f4c882e33464ff323c6be03bc87491f040",
+      "create_sql": "CREATE TABLE organization_access.company_stock_profiles (\n \"CommandId\" uuid PRIMARY KEY CHECK (\"CommandId\"<>'00000000-0000-0000-0000-000000000000'),\n \"TenantId\" uuid NOT NULL REFERENCES organization_access.tenants(\"Id\"),\n \"LegalEntityId\" uuid NOT NULL,\n \"Domain\" text NOT NULL CHECK (\"Domain\"='stock'),\n \"Version\" integer NOT NULL CHECK (\"Version\"=1),\n \"Direction\" text NOT NULL CHECK (\"Direction\" IN ('Enginia360ToExternal','ExternalToEnginia360')),\n \"SourceId\" uuid NOT NULL CHECK (\"SourceId\"<>'00000000-0000-0000-0000-000000000000'),\n \"ProfileId\" uuid NOT NULL CHECK (\"ProfileId\"<>'00000000-0000-0000-0000-000000000000'),\n \"ActorMembershipId\" uuid NOT NULL,\n \"VerificationReference\" uuid NOT NULL CHECK (\"VerificationReference\"<>'00000000-0000-0000-0000-000000000000'),\n \"EffectiveFrom\" timestamptz NOT NULL DEFAULT clock_timestamp(),\n UNIQUE(\"TenantId\",\"LegalEntityId\"),\n FOREIGN KEY(\"ActorMembershipId\",\"TenantId\") REFERENCES organization_access.memberships(\"Id\",\"TenantId\"),\n FOREIGN KEY(\"LegalEntityId\",\"TenantId\") REFERENCES organization_access.legal_entities(\"Id\",\"TenantId\")\n);",
+      "columns": [
+        "CommandId",
+        "TenantId",
+        "LegalEntityId",
+        "Domain",
+        "Version",
+        "Direction",
+        "SourceId",
+        "ProfileId",
+        "ActorMembershipId",
+        "VerificationReference",
+        "EffectiveFrom"
+      ],
+      "primary_key": [
+        "CommandId"
+      ]
+    }
+  },
+  {
+    "table": "organization_access.context_notes",
+    "owner": "organization_access",
+    "category": "operational_fact",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "SiteId",
+      "WarehouseId",
+      "Id"
+    ],
+    "definition": {
+      "migration": "0001_organization_access",
+      "path": "database/runtime/migrations/0001_organization_access.sql",
+      "file_sha256": "505d714b4e46cbf99a711a76db66c4070860563aa3bd216ae10319c0c5949800",
+      "create_sql": "CREATE TABLE IF NOT EXISTS organization_access.context_notes (\n    \"Id\" uuid PRIMARY KEY,\n    \"TenantId\" uuid NOT NULL,\n    \"LegalEntityId\" uuid NOT NULL,\n    \"SiteId\" uuid NOT NULL,\n    \"WarehouseId\" uuid NOT NULL,\n    \"Message\" varchar(200) NOT NULL CHECK (length(btrim(\"Message\")) BETWEEN 1 AND 200),\n    FOREIGN KEY (\"WarehouseId\", \"SiteId\", \"LegalEntityId\", \"TenantId\") REFERENCES organization_access.warehouses (\"Id\", \"SiteId\", \"LegalEntityId\", \"TenantId\") ON DELETE CASCADE\n);",
+      "columns": [
+        "Id",
+        "TenantId",
+        "LegalEntityId",
+        "SiteId",
+        "WarehouseId",
+        "Message"
+      ],
+      "primary_key": [
+        "Id"
+      ]
+    }
+  },
+  {
+    "table": "organization_access.delegated_scopes",
+    "owner": "organization_access",
+    "category": "security_binding",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "RESTORE_ONBOARDING_ONLY",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "SiteId",
+      "WarehouseId",
+      "Id"
+    ],
+    "definition": {
+      "migration": "0016_limited_grant_administration",
+      "path": "database/runtime/migrations/0016_limited_grant_administration.sql",
+      "file_sha256": "0277df5036d79b4933a2e7c0a90b8e5fb8a6ad675ccd354f37dc1582155ee55b",
+      "create_sql": "CREATE TABLE organization_access.delegated_scopes (\n    \"Id\" uuid PRIMARY KEY,\n    \"MembershipId\" uuid NOT NULL,\n    \"TenantId\" uuid NOT NULL,\n    \"LegalEntityId\" uuid NOT NULL,\n    \"SiteId\" uuid NOT NULL,\n    \"WarehouseId\" uuid NOT NULL,\n    \"Permission\" text NOT NULL CHECK (\"Permission\" IN ('organization-context.read','organization-context.write')),\n    \"MandateId\" uuid NOT NULL REFERENCES organization_access.delegation_mandates(\"Id\") ON DELETE CASCADE,\n    UNIQUE (\"MembershipId\",\"LegalEntityId\",\"SiteId\",\"WarehouseId\",\"Permission\"),\n    FOREIGN KEY (\"MembershipId\",\"TenantId\") REFERENCES organization_access.memberships(\"Id\",\"TenantId\") ON DELETE CASCADE,\n    FOREIGN KEY (\"WarehouseId\",\"SiteId\",\"LegalEntityId\",\"TenantId\") REFERENCES organization_access.warehouses(\"Id\",\"SiteId\",\"LegalEntityId\",\"TenantId\") ON DELETE CASCADE\n);",
+      "columns": [
+        "Id",
+        "MembershipId",
+        "TenantId",
+        "LegalEntityId",
+        "SiteId",
+        "WarehouseId",
+        "Permission",
+        "MandateId"
+      ],
+      "primary_key": [
+        "Id"
+      ]
+    }
+  },
+  {
+    "table": "organization_access.delegation_audit",
+    "owner": "organization_access",
+    "category": "security_evidence",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "SiteId",
+      "WarehouseId",
+      "Id"
+    ],
+    "definition": {
+      "migration": "0016_limited_grant_administration",
+      "path": "database/runtime/migrations/0016_limited_grant_administration.sql",
+      "file_sha256": "0277df5036d79b4933a2e7c0a90b8e5fb8a6ad675ccd354f37dc1582155ee55b",
+      "create_sql": "CREATE TABLE organization_access.delegation_audit (\n    \"Id\" uuid PRIMARY KEY DEFAULT gen_random_uuid(),\n    \"OccurredAt\" timestamptz NOT NULL DEFAULT clock_timestamp(),\n    \"TenantId\" uuid NOT NULL,\n    \"ActorId\" uuid NOT NULL,\n    \"CommandId\" uuid,\n    \"MandateId\" uuid NOT NULL,\n    \"TargetMembershipId\" uuid NOT NULL,\n    \"LegalEntityId\" uuid NOT NULL,\n    \"SiteId\" uuid NOT NULL,\n    \"WarehouseId\" uuid NOT NULL,\n    \"Action\" text NOT NULL CHECK (\"Action\" IN ('organization-context.read','organization-context.write','unsupported')),\n    \"Operation\" text NOT NULL CHECK (\"Operation\" IN ('grant','revoke','mandate-create','mandate-revoke')),\n    \"Result\" text NOT NULL CHECK (\"Result\" IN ('applied','replayed','conflict','forbidden'))\n);",
+      "columns": [
+        "Id",
+        "OccurredAt",
+        "TenantId",
+        "ActorId",
+        "CommandId",
+        "MandateId",
+        "TargetMembershipId",
+        "LegalEntityId",
+        "SiteId",
+        "WarehouseId",
+        "Action",
+        "Operation",
+        "Result"
+      ],
+      "primary_key": [
+        "Id"
+      ]
+    }
+  },
+  {
+    "table": "organization_access.delegation_mandates",
+    "owner": "organization_access",
+    "category": "security_binding",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "RESTORE_ONBOARDING_ONLY",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "SiteId",
+      "WarehouseId",
+      "Id"
+    ],
+    "definition": {
+      "migration": "0016_limited_grant_administration",
+      "path": "database/runtime/migrations/0016_limited_grant_administration.sql",
+      "file_sha256": "0277df5036d79b4933a2e7c0a90b8e5fb8a6ad675ccd354f37dc1582155ee55b",
+      "create_sql": "CREATE TABLE organization_access.delegation_mandates (\n    \"Id\" uuid PRIMARY KEY CHECK (\"Id\" <> '00000000-0000-0000-0000-000000000000'),\n    \"TenantId\" uuid NOT NULL,\n    \"AdminMembershipId\" uuid NOT NULL,\n    \"LegalEntityId\" uuid NOT NULL,\n    \"SiteId\" uuid NOT NULL,\n    \"WarehouseId\" uuid NOT NULL,\n    \"Action\" text NOT NULL CHECK (\"Action\" IN ('organization-context.read','organization-context.write')),\n    \"ValidFrom\" timestamptz NOT NULL,\n    \"ValidUntil\" timestamptz NOT NULL CHECK (\"ValidUntil\" > \"ValidFrom\"),\n    \"RevokedAt\" timestamptz,\n    FOREIGN KEY (\"AdminMembershipId\",\"TenantId\") REFERENCES organization_access.memberships(\"Id\",\"TenantId\") ON DELETE CASCADE,\n    FOREIGN KEY (\"WarehouseId\",\"SiteId\",\"LegalEntityId\",\"TenantId\") REFERENCES organization_access.warehouses(\"Id\",\"SiteId\",\"LegalEntityId\",\"TenantId\") ON DELETE CASCADE\n);",
+      "columns": [
+        "Id",
+        "TenantId",
+        "AdminMembershipId",
+        "LegalEntityId",
+        "SiteId",
+        "WarehouseId",
+        "Action",
+        "ValidFrom",
+        "ValidUntil",
+        "RevokedAt"
+      ],
+      "primary_key": [
+        "Id"
+      ]
+    }
+  },
+  {
+    "table": "organization_access.external_identity_bindings",
+    "owner": "organization_access",
+    "category": "security_binding",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "RESTORE_ONBOARDING_ONLY",
+    "available_command": null,
+    "reconcile_keys": [
+      "InternalIdentityId"
+    ],
+    "definition": {
+      "migration": "0015_external_identity_binding",
+      "path": "database/runtime/migrations/0015_external_identity_binding.sql",
+      "file_sha256": "c0c2b3616fd4cecb88c99a034a82f583f4d28f39ca1da19f06a727f3a83f11ef",
+      "create_sql": "CREATE TABLE organization_access.external_identity_bindings (\n    \"InternalIdentityId\" uuid PRIMARY KEY CHECK (\n        \"InternalIdentityId\" <> '00000000-0000-0000-0000-000000000000'::uuid\n    ),\n    \"Issuer\" text COLLATE \"C\" NOT NULL CHECK (\n        octet_length(\"Issuer\") BETWEEN 9 AND 2048\n        AND \"Issuer\" ~ '^https://[^[:space:]?#]+$'\n    ),\n    \"Subject\" varchar(255) COLLATE \"C\" NOT NULL CHECK (\n        octet_length(\"Subject\") BETWEEN 1 AND 255\n        AND \"Subject\" ~ '^[ -~]+$'\n    ),\n    UNIQUE (\"Issuer\", \"Subject\")\n);",
+      "columns": [
+        "InternalIdentityId",
+        "Issuer",
+        "Subject"
+      ],
+      "primary_key": [
+        "InternalIdentityId"
+      ]
+    }
+  },
+  {
+    "table": "organization_access.grant_commands",
+    "owner": "organization_access",
+    "category": "security_evidence",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "SiteId",
+      "WarehouseId",
+      "CommandId"
+    ],
+    "definition": {
+      "migration": "0016_limited_grant_administration",
+      "path": "database/runtime/migrations/0016_limited_grant_administration.sql",
+      "file_sha256": "0277df5036d79b4933a2e7c0a90b8e5fb8a6ad675ccd354f37dc1582155ee55b",
+      "create_sql": "CREATE TABLE organization_access.grant_commands (\n    \"CommandId\" uuid PRIMARY KEY,\n    \"TenantId\" uuid NOT NULL,\n    \"ActorMembershipId\" uuid NOT NULL,\n    \"MandateId\" uuid NOT NULL,\n    \"TargetMembershipId\" uuid NOT NULL,\n    \"LegalEntityId\" uuid NOT NULL,\n    \"SiteId\" uuid NOT NULL,\n    \"WarehouseId\" uuid NOT NULL,\n    \"Action\" text NOT NULL,\n    \"Operation\" text NOT NULL CHECK (\"Operation\" IN ('grant','revoke'))\n);",
+      "columns": [
+        "CommandId",
+        "TenantId",
+        "ActorMembershipId",
+        "MandateId",
+        "TargetMembershipId",
+        "LegalEntityId",
+        "SiteId",
+        "WarehouseId",
+        "Action",
+        "Operation"
+      ],
+      "primary_key": [
+        "CommandId"
+      ]
+    }
+  },
+  {
+    "table": "organization_access.legal_entities",
+    "owner": "organization_access",
+    "category": "organization_structure",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "Id"
+    ],
+    "definition": {
+      "migration": "0001_organization_access",
+      "path": "database/runtime/migrations/0001_organization_access.sql",
+      "file_sha256": "505d714b4e46cbf99a711a76db66c4070860563aa3bd216ae10319c0c5949800",
+      "create_sql": "CREATE TABLE IF NOT EXISTS organization_access.legal_entities (\n    \"Id\" uuid PRIMARY KEY,\n    \"TenantId\" uuid NOT NULL REFERENCES organization_access.tenants (\"Id\") ON DELETE CASCADE,\n    \"Name\" varchar(100) NOT NULL,\n    UNIQUE (\"Id\", \"TenantId\")\n);",
+      "columns": [
+        "Id",
+        "TenantId",
+        "Name"
+      ],
+      "primary_key": [
+        "Id"
+      ]
+    }
+  },
+  {
+    "table": "organization_access.master_authority_history",
+    "owner": "organization_access",
+    "category": "authority_evidence",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "CommandId"
+    ],
+    "definition": {
+      "migration": "0017_master_authority_profile",
+      "path": "database/runtime/migrations/0017_master_authority_profile.sql",
+      "file_sha256": "c2b66e0d04c4734931192dbead01f6c11f47fa99dd983d2d34cd99d37c2cdf5b",
+      "create_sql": "CREATE TABLE organization_access.master_authority_history (\n \"CommandId\" uuid PRIMARY KEY CHECK (\"CommandId\"<>'00000000-0000-0000-0000-000000000000'),\n \"TenantId\" uuid NOT NULL REFERENCES organization_access.tenants(\"Id\"),\n \"Domain\" text NOT NULL DEFAULT 'counterparties' CHECK (\"Domain\"='counterparties'),\n \"Version\" integer NOT NULL CHECK (\"Version\">0),\n \"Direction\" text NOT NULL CHECK (\"Direction\" IN ('Enginia360ToExternal','ExternalToEnginia360')),\n \"SourceId\" uuid NOT NULL CHECK (\"SourceId\"<>'00000000-0000-0000-0000-000000000000'),\n \"ProfileId\" uuid NOT NULL CHECK (\"ProfileId\"<>'00000000-0000-0000-0000-000000000000'),\n \"CompanyIds\" uuid[] NOT NULL CHECK (cardinality(\"CompanyIds\")>0),\n \"ActorMembershipId\" uuid NOT NULL,\n \"VerificationReference\" uuid NOT NULL CHECK (\"VerificationReference\"<>'00000000-0000-0000-0000-000000000000'),\n \"EffectiveFrom\" timestamptz NOT NULL DEFAULT clock_timestamp(),\n UNIQUE(\"TenantId\",\"Version\"),\n FOREIGN KEY(\"ActorMembershipId\",\"TenantId\") REFERENCES organization_access.memberships(\"Id\",\"TenantId\")\n);",
+      "columns": [
+        "CommandId",
+        "TenantId",
+        "Domain",
+        "Version",
+        "Direction",
+        "SourceId",
+        "ProfileId",
+        "CompanyIds",
+        "ActorMembershipId",
+        "VerificationReference",
+        "EffectiveFrom"
+      ],
+      "primary_key": [
+        "CommandId"
+      ]
+    }
+  },
+  {
+    "table": "organization_access.membership_scopes",
+    "owner": "organization_access",
+    "category": "security_binding",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "RESTORE_ONBOARDING_ONLY",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "SiteId",
+      "WarehouseId",
+      "Id"
+    ],
+    "definition": {
+      "migration": "0001_organization_access",
+      "path": "database/runtime/migrations/0001_organization_access.sql",
+      "file_sha256": "505d714b4e46cbf99a711a76db66c4070860563aa3bd216ae10319c0c5949800",
+      "create_sql": "CREATE TABLE IF NOT EXISTS organization_access.membership_scopes (\n    \"Id\" uuid PRIMARY KEY,\n    \"MembershipId\" uuid NOT NULL,\n    \"TenantId\" uuid NOT NULL,\n    \"LegalEntityId\" uuid NOT NULL,\n    \"SiteId\" uuid NOT NULL,\n    \"WarehouseId\" uuid NOT NULL,\n    \"Permission\" varchar(100) NOT NULL,\n    UNIQUE (\"MembershipId\", \"LegalEntityId\", \"SiteId\", \"WarehouseId\", \"Permission\"),\n    FOREIGN KEY (\"MembershipId\", \"TenantId\") REFERENCES organization_access.memberships (\"Id\", \"TenantId\") ON DELETE CASCADE,\n    FOREIGN KEY (\"WarehouseId\", \"SiteId\", \"LegalEntityId\", \"TenantId\") REFERENCES organization_access.warehouses (\"Id\", \"SiteId\", \"LegalEntityId\", \"TenantId\") ON DELETE CASCADE\n);",
+      "columns": [
+        "Id",
+        "MembershipId",
+        "TenantId",
+        "LegalEntityId",
+        "SiteId",
+        "WarehouseId",
+        "Permission"
+      ],
+      "primary_key": [
+        "Id"
+      ]
+    }
+  },
+  {
+    "table": "organization_access.memberships",
+    "owner": "organization_access",
+    "category": "security_binding",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "RESTORE_ONBOARDING_ONLY",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "Id"
+    ],
+    "definition": {
+      "migration": "0001_organization_access",
+      "path": "database/runtime/migrations/0001_organization_access.sql",
+      "file_sha256": "505d714b4e46cbf99a711a76db66c4070860563aa3bd216ae10319c0c5949800",
+      "create_sql": "CREATE TABLE IF NOT EXISTS organization_access.memberships (\n    \"Id\" uuid PRIMARY KEY,\n    \"TenantId\" uuid NOT NULL REFERENCES organization_access.tenants (\"Id\") ON DELETE CASCADE,\n    \"IdentitySubject\" varchar(200) NOT NULL,\n    UNIQUE (\"Id\", \"TenantId\")\n);",
+      "columns": [
+        "Id",
+        "TenantId",
+        "IdentitySubject"
+      ],
+      "primary_key": [
+        "Id"
+      ]
+    }
+  },
+  {
+    "table": "organization_access.sites",
+    "owner": "organization_access",
+    "category": "organization_structure",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "Id"
+    ],
+    "definition": {
+      "migration": "0001_organization_access",
+      "path": "database/runtime/migrations/0001_organization_access.sql",
+      "file_sha256": "505d714b4e46cbf99a711a76db66c4070860563aa3bd216ae10319c0c5949800",
+      "create_sql": "CREATE TABLE IF NOT EXISTS organization_access.sites (\n    \"Id\" uuid PRIMARY KEY,\n    \"LegalEntityId\" uuid NOT NULL,\n    \"TenantId\" uuid NOT NULL,\n    \"Name\" varchar(100) NOT NULL,\n    UNIQUE (\"Id\", \"LegalEntityId\", \"TenantId\"),\n    FOREIGN KEY (\"LegalEntityId\", \"TenantId\") REFERENCES organization_access.legal_entities (\"Id\", \"TenantId\") ON DELETE CASCADE\n);",
+      "columns": [
+        "Id",
+        "LegalEntityId",
+        "TenantId",
+        "Name"
+      ],
+      "primary_key": [
+        "Id"
+      ]
+    }
+  },
+  {
+    "table": "organization_access.tenants",
+    "owner": "organization_access",
+    "category": "organization_structure",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "Id"
+    ],
+    "definition": {
+      "migration": "0001_organization_access",
+      "path": "database/runtime/migrations/0001_organization_access.sql",
+      "file_sha256": "505d714b4e46cbf99a711a76db66c4070860563aa3bd216ae10319c0c5949800",
+      "create_sql": "CREATE TABLE IF NOT EXISTS organization_access.tenants (\n    \"Id\" uuid PRIMARY KEY,\n    \"Name\" varchar(100) NOT NULL\n);",
+      "columns": [
+        "Id",
+        "Name"
+      ],
+      "primary_key": [
+        "Id"
+      ]
+    }
+  },
+  {
+    "table": "organization_access.warehouses",
+    "owner": "organization_access",
+    "category": "organization_structure",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "SiteId",
+      "Id"
+    ],
+    "definition": {
+      "migration": "0001_organization_access",
+      "path": "database/runtime/migrations/0001_organization_access.sql",
+      "file_sha256": "505d714b4e46cbf99a711a76db66c4070860563aa3bd216ae10319c0c5949800",
+      "create_sql": "CREATE TABLE IF NOT EXISTS organization_access.warehouses (\n    \"Id\" uuid PRIMARY KEY,\n    \"SiteId\" uuid NOT NULL,\n    \"LegalEntityId\" uuid NOT NULL,\n    \"TenantId\" uuid NOT NULL,\n    \"Name\" varchar(100) NOT NULL,\n    UNIQUE (\"Id\", \"SiteId\", \"LegalEntityId\", \"TenantId\"),\n    FOREIGN KEY (\"SiteId\", \"LegalEntityId\", \"TenantId\") REFERENCES organization_access.sites (\"Id\", \"LegalEntityId\", \"TenantId\") ON DELETE CASCADE\n);",
+      "columns": [
+        "Id",
+        "SiteId",
+        "LegalEntityId",
+        "TenantId",
+        "Name"
+      ],
+      "primary_key": [
+        "Id"
+      ]
+    }
+  },
+  {
+    "table": "vehicles.vehicles",
+    "owner": "vehicles",
+    "category": "shared_master",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "Id"
+    ],
+    "definition": {
+      "migration": "0005_workshop",
+      "path": "database/runtime/migrations/0005_workshop.sql",
+      "file_sha256": "e1c0c26ad3fd5439876db1dc6c9b1240c65ea88afc56eaa441f256e2ad80f958",
+      "create_sql": "CREATE TABLE IF NOT EXISTS vehicles.vehicles (\n    \"Id\" uuid PRIMARY KEY,\n    \"TenantId\" uuid NOT NULL,\n    \"RegisteredCompanyId\" uuid NOT NULL,\n    \"HolderId\" uuid NOT NULL,\n    \"Label\" varchar(100) NOT NULL CHECK (length(btrim(\"Label\")) BETWEEN 1 AND 100),\n    UNIQUE (\"Id\", \"TenantId\")\n);",
+      "columns": [
+        "Id",
+        "TenantId",
+        "RegisteredCompanyId",
+        "HolderId",
+        "Label"
+      ],
+      "primary_key": [
+        "Id"
+      ]
+    }
+  },
+  {
+    "table": "workshop.actual_time_group_references",
+    "owner": "workshop",
+    "category": "derived_projection",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "OrderId",
+      "WorkingGroupId"
+    ],
+    "definition": {
+      "migration": "0022_workshop_own_actual_time",
+      "path": "database/runtime/migrations/0022_workshop_own_actual_time.sql",
+      "file_sha256": "4d673fbbb1d0475c510f21b3656453e88144c7ade77462a74b057df4ebccf651",
+      "create_sql": "CREATE TABLE workshop.actual_time_group_references (\n \"TenantId\" uuid NOT NULL, \"OrderId\" uuid NOT NULL, \"WorkingGroupId\" uuid NOT NULL,\n PRIMARY KEY (\"TenantId\",\"OrderId\",\"WorkingGroupId\"),\n FOREIGN KEY (\"TenantId\",\"OrderId\",\"WorkingGroupId\") REFERENCES workshop.working_groups (\"TenantId\",\"OrderId\",\"Id\")\n);",
+      "columns": [
+        "TenantId",
+        "OrderId",
+        "WorkingGroupId"
+      ],
+      "primary_key": [
+        "TenantId",
+        "OrderId",
+        "WorkingGroupId"
+      ]
+    }
+  },
+  {
+    "table": "workshop.administrative_closures",
+    "owner": "workshop",
+    "category": "operational_fact",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": {
+      "source": "src/Modules/Workshop/Enginia360.Workshop/AdministrativeEndpoints.cs",
+      "registration": "routes.MapPost(\"/orders/{id:guid}/administrative-closure\", CloseAdministratively);",
+      "purpose": "EXISTING_OPERATION_NOT_IMPORT_AUTHORIZATION"
+    },
+    "reconcile_keys": [
+      "TenantId",
+      "OrderId"
+    ],
+    "definition": {
+      "migration": "0011_administration",
+      "path": "database/runtime/migrations/0011_administration.sql",
+      "file_sha256": "963ce9bec5ad123241bcae98c66dfdfe854016fd276050169c133307e3d1bc64",
+      "create_sql": "CREATE TABLE IF NOT EXISTS workshop.administrative_closures (\n \"OrderId\" uuid PRIMARY KEY REFERENCES workshop.technical_closures(\"OrderId\"),\n \"Id\" uuid NOT NULL UNIQUE CHECK (\"Id\" <> '00000000-0000-0000-0000-000000000000'),\n \"TenantId\" uuid NOT NULL,\n \"RequestId\" uuid NOT NULL UNIQUE REFERENCES workshop.administrative_outcomes(\"RequestId\"),\n \"ExternalReference\" varchar(64) NOT NULL,\n \"ClosedAt\" timestamptz NOT NULL,\n \"OperatorId\" uuid NOT NULL\n);",
+      "columns": [
+        "OrderId",
+        "Id",
+        "TenantId",
+        "RequestId",
+        "ExternalReference",
+        "ClosedAt",
+        "OperatorId"
+      ],
+      "primary_key": [
+        "OrderId"
+      ]
+    }
+  },
+  {
+    "table": "workshop.administrative_destinations",
+    "owner": "workshop",
+    "category": "business_configuration",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "Version"
+    ],
+    "definition": {
+      "migration": "0011_administration",
+      "path": "database/runtime/migrations/0011_administration.sql",
+      "file_sha256": "963ce9bec5ad123241bcae98c66dfdfe854016fd276050169c133307e3d1bc64",
+      "create_sql": "CREATE TABLE IF NOT EXISTS workshop.administrative_destinations (\n \"TenantId\" uuid NOT NULL,\n \"LegalEntityId\" uuid NOT NULL,\n \"Version\" integer NOT NULL CHECK (\"Version\">0),\n \"Destination\" varchar(30) NOT NULL CHECK (\"Destination\" IN ('External')),\n PRIMARY KEY (\"TenantId\",\"LegalEntityId\",\"Version\")\n);",
+      "columns": [
+        "TenantId",
+        "LegalEntityId",
+        "Version",
+        "Destination"
+      ],
+      "primary_key": [
+        "TenantId",
+        "LegalEntityId",
+        "Version"
+      ]
+    }
+  },
+  {
+    "table": "workshop.administrative_outbox",
+    "owner": "workshop",
+    "category": "integration_evidence",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "RequestId"
+    ],
+    "definition": {
+      "migration": "0011_administration",
+      "path": "database/runtime/migrations/0011_administration.sql",
+      "file_sha256": "963ce9bec5ad123241bcae98c66dfdfe854016fd276050169c133307e3d1bc64",
+      "create_sql": "CREATE TABLE IF NOT EXISTS workshop.administrative_outbox (\n \"RequestId\" uuid PRIMARY KEY REFERENCES workshop.administrative_requests(\"Id\"),\n \"TenantId\" uuid NOT NULL,\n \"CreatedAt\" timestamptz NOT NULL\n);",
+      "columns": [
+        "RequestId",
+        "TenantId",
+        "CreatedAt"
+      ],
+      "primary_key": [
+        "RequestId"
+      ]
+    }
+  },
+  {
+    "table": "workshop.administrative_outcomes",
+    "owner": "workshop",
+    "category": "integration_evidence",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "RequestId"
+    ],
+    "definition": {
+      "migration": "0011_administration",
+      "path": "database/runtime/migrations/0011_administration.sql",
+      "file_sha256": "963ce9bec5ad123241bcae98c66dfdfe854016fd276050169c133307e3d1bc64",
+      "create_sql": "CREATE TABLE IF NOT EXISTS workshop.administrative_outcomes (\n \"RequestId\" uuid PRIMARY KEY REFERENCES workshop.administrative_requests(\"Id\"),\n \"TenantId\" uuid NOT NULL,\n \"Status\" varchar(20) NOT NULL CHECK (\"Status\" IN ('Confirmed','Rejected')),\n \"ExternalReference\" varchar(64),\n \"RejectionCode\" varchar(64),\n \"RecordedAt\" timestamptz NOT NULL,\n CHECK ((\"Status\"='Confirmed' AND \"ExternalReference\" IS NOT NULL AND \"RejectionCode\" IS NULL)\n     OR (\"Status\"='Rejected' AND \"ExternalReference\" IS NULL AND \"RejectionCode\" IS NOT NULL))\n);",
+      "columns": [
+        "RequestId",
+        "TenantId",
+        "Status",
+        "ExternalReference",
+        "RejectionCode",
+        "RecordedAt"
+      ],
+      "primary_key": [
+        "RequestId"
+      ]
+    }
+  },
+  {
+    "table": "workshop.administrative_requests",
+    "owner": "workshop",
+    "category": "integration_evidence",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": {
+      "source": "src/Modules/Workshop/Enginia360.Workshop/AdministrativeEndpoints.cs",
+      "registration": "routes.MapPost(\"/orders/{id:guid}/administrative-requests\", Request);",
+      "purpose": "EXISTING_OPERATION_NOT_IMPORT_AUTHORIZATION"
+    },
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "SiteId",
+      "Id"
+    ],
+    "definition": {
+      "migration": "0011_administration",
+      "path": "database/runtime/migrations/0011_administration.sql",
+      "file_sha256": "963ce9bec5ad123241bcae98c66dfdfe854016fd276050169c133307e3d1bc64",
+      "create_sql": "CREATE TABLE IF NOT EXISTS workshop.administrative_requests (\n \"Id\" uuid PRIMARY KEY CHECK (\"Id\" <> '00000000-0000-0000-0000-000000000000'),\n \"TenantId\" uuid NOT NULL,\n \"OrderId\" uuid NOT NULL UNIQUE REFERENCES workshop.technical_closures(\"OrderId\"),\n \"LegalEntityId\" uuid NOT NULL,\n \"SiteId\" uuid NOT NULL,\n \"Destination\" varchar(30) NOT NULL,\n \"DestinationVersion\" integer NOT NULL CHECK (\"DestinationVersion\">0),\n \"ContractVersion\" integer NOT NULL CHECK (\"ContractVersion\"=1),\n \"Revision\" integer NOT NULL CHECK (\"Revision\">=0),\n \"NetAmount\" numeric(18,6) NOT NULL CHECK (\"NetAmount\">=0),\n \"TaxAmount\" numeric(18,6) NOT NULL CHECK (\"TaxAmount\">=0),\n \"Total\" numeric(18,6) NOT NULL CHECK (\"Total\"=\"NetAmount\"+\"TaxAmount\"),\n \"Currency\" char(3) NOT NULL,\n \"Summary\" jsonb NOT NULL,\n \"RequestedAt\" timestamptz NOT NULL,\n \"OperatorId\" uuid NOT NULL\n);",
+      "columns": [
+        "Id",
+        "TenantId",
+        "OrderId",
+        "LegalEntityId",
+        "SiteId",
+        "Destination",
+        "DestinationVersion",
+        "ContractVersion",
+        "Revision",
+        "NetAmount",
+        "TaxAmount",
+        "Total",
+        "Currency",
+        "Summary",
+        "RequestedAt",
+        "OperatorId"
+      ],
+      "primary_key": [
+        "Id"
+      ]
+    }
+  },
+  {
+    "table": "workshop.carcass_policies",
+    "owner": "workshop",
+    "category": "business_configuration",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "DocumentTypeId",
+      "CatalogItemId",
+      "Version"
+    ],
+    "definition": {
+      "migration": "0010_carcass",
+      "path": "database/runtime/migrations/0010_carcass.sql",
+      "file_sha256": "6a7376f05045502fc59277ddd3552968b6a38e4af0798a7d30915ed4117c902d",
+      "create_sql": "CREATE TABLE IF NOT EXISTS workshop.carcass_policies (\n \"TenantId\" uuid NOT NULL,\n \"LegalEntityId\" uuid NOT NULL,\n \"DocumentTypeId\" uuid NOT NULL,\n \"CatalogItemId\" uuid NOT NULL,\n \"Version\" integer NOT NULL CHECK (\"Version\">0),\n \"ReturnRequired\" boolean NOT NULL,\n PRIMARY KEY (\"TenantId\",\"LegalEntityId\",\"DocumentTypeId\",\"CatalogItemId\",\"Version\")\n);",
+      "columns": [
+        "TenantId",
+        "LegalEntityId",
+        "DocumentTypeId",
+        "CatalogItemId",
+        "Version",
+        "ReturnRequired"
+      ],
+      "primary_key": [
+        "TenantId",
+        "LegalEntityId",
+        "DocumentTypeId",
+        "CatalogItemId",
+        "Version"
+      ]
+    }
+  },
+  {
+    "table": "workshop.commercial_lines",
+    "owner": "workshop",
+    "category": "operational_fact",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": {
+      "source": "src/Modules/Workshop/Enginia360.Workshop/CommercialEndpoints.cs",
+      "registration": "routes.MapPost(\"/orders/{id:guid}/lines\", Add);",
+      "purpose": "EXISTING_OPERATION_NOT_IMPORT_AUTHORIZATION"
+    },
+    "reconcile_keys": [
+      "TenantId",
+      "Id"
+    ],
+    "definition": {
+      "migration": "0006_catalog_lines",
+      "path": "database/runtime/migrations/0006_catalog_lines.sql",
+      "file_sha256": "f824b8f6b594e43f6a7c3042756bee42ea3c6ef567096b7422126c8cf11db98e",
+      "create_sql": "CREATE TABLE IF NOT EXISTS workshop.commercial_lines (\n \"Id\" uuid PRIMARY KEY CHECK (\"Id\" <> '00000000-0000-0000-0000-000000000000'),\n \"TenantId\" uuid NOT NULL, \"OrderId\" uuid NOT NULL, \"CatalogItemId\" uuid NOT NULL,\n \"CatalogVersion\" integer NOT NULL CHECK (\"CatalogVersion\">0), \"CatalogLabel\" varchar(100) NOT NULL,\n \"Kind\" varchar(10) NOT NULL CHECK (\"Kind\" IN ('Service','Part')),\n \"Quantity\" numeric(12,6) NOT NULL CHECK (\"Quantity\">0), \"UnitPrice\" numeric(12,6) NOT NULL CHECK (\"UnitPrice\">=0),\n \"DiscountPercent\" numeric(5,2) NOT NULL CHECK (\"DiscountPercent\" BETWEEN 0 AND 100),\n \"NetAmount\" numeric(18,6) NOT NULL CHECK (\"NetAmount\">=0), \"TaxRate\" numeric(3,0) NOT NULL CHECK (\"TaxRate\"=22),\n \"PayerId\" uuid NOT NULL, \"WorkingGroupId\" uuid NOT NULL, \"ConfigurationVersion\" integer NOT NULL,\n \"ExpectedRevision\" integer NOT NULL CHECK (\"ExpectedRevision\">=0),\n UNIQUE (\"TenantId\",\"OrderId\",\"Kind\"),\n FOREIGN KEY (\"TenantId\",\"OrderId\") REFERENCES workshop.orders (\"TenantId\",\"Id\"),\n CHECK (\"WorkingGroupId\"=\"OrderId\")\n);",
+      "columns": [
+        "Id",
+        "TenantId",
+        "OrderId",
+        "CatalogItemId",
+        "CatalogVersion",
+        "CatalogLabel",
+        "Kind",
+        "Quantity",
+        "UnitPrice",
+        "DiscountPercent",
+        "NetAmount",
+        "TaxRate",
+        "PayerId",
+        "WorkingGroupId",
+        "ConfigurationVersion",
+        "ExpectedRevision"
+      ],
+      "primary_key": [
+        "Id"
+      ]
+    }
+  },
+  {
+    "table": "workshop.document_types",
+    "owner": "workshop",
+    "category": "business_configuration",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "Id",
+      "Version"
+    ],
+    "definition": {
+      "migration": "0005_workshop",
+      "path": "database/runtime/migrations/0005_workshop.sql",
+      "file_sha256": "e1c0c26ad3fd5439876db1dc6c9b1240c65ea88afc56eaa441f256e2ad80f958",
+      "create_sql": "CREATE TABLE IF NOT EXISTS workshop.document_types (\n    \"Id\" uuid NOT NULL,\n    \"TenantId\" uuid NOT NULL,\n    \"LegalEntityId\" uuid NOT NULL,\n    \"Version\" integer NOT NULL CHECK (\"Version\" > 0),\n    \"Name\" varchar(100) NOT NULL,\n    \"DirectCreationEnabled\" boolean NOT NULL DEFAULT false,\n    PRIMARY KEY (\"TenantId\", \"LegalEntityId\", \"Id\", \"Version\")\n);",
+      "columns": [
+        "Id",
+        "TenantId",
+        "LegalEntityId",
+        "Version",
+        "Name",
+        "DirectCreationEnabled"
+      ],
+      "primary_key": [
+        "TenantId",
+        "LegalEntityId",
+        "Id",
+        "Version"
+      ]
+    }
+  },
+  {
+    "table": "workshop.editor_commands",
+    "owner": "workshop",
+    "category": "technical_ledger",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "CommandId"
+    ],
+    "definition": {
+      "migration": "0018_workshop_order_workspace",
+      "path": "database/runtime/migrations/0018_workshop_order_workspace.sql",
+      "file_sha256": "a52874259440f65b5d85960627138a607f2e1428371c20f2c5f3fca8438bfffe",
+      "create_sql": "CREATE TABLE workshop.editor_commands (\n \"CommandId\" uuid PRIMARY KEY CHECK (\"CommandId\" <> '00000000-0000-0000-0000-000000000000'),\n \"TenantId\" uuid NOT NULL, \"OrderId\" uuid NOT NULL,\n \"Type\" varchar(30) NOT NULL,\n \"Canonical\" jsonb NOT NULL,\n \"TargetId\" uuid NOT NULL,\n \"InitialRevision\" integer NOT NULL CHECK (\"InitialRevision\" >= 0),\n \"AppliedRevision\" integer NOT NULL CHECK (\"AppliedRevision\" > \"InitialRevision\"),\n \"ResultKind\" varchar(10) NOT NULL CHECK (\"ResultKind\" IN ('Created','Updated','Removed')),\n \"LinePolicyVersion\" integer, \"StructurePolicyVersion\" integer NOT NULL,\n FOREIGN KEY (\"TenantId\",\"OrderId\") REFERENCES workshop.orders (\"TenantId\",\"Id\")\n);",
+      "columns": [
+        "CommandId",
+        "TenantId",
+        "OrderId",
+        "Type",
+        "Canonical",
+        "TargetId",
+        "InitialRevision",
+        "AppliedRevision",
+        "ResultKind",
+        "LinePolicyVersion",
+        "StructurePolicyVersion"
+      ],
+      "primary_key": [
+        "CommandId"
+      ]
+    }
+  },
+  {
+    "table": "workshop.installations",
+    "owner": "workshop",
+    "category": "operational_fact",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": {
+      "source": "src/Modules/Workshop/Enginia360.Workshop/InstallationEndpoints.cs",
+      "registration": "routes.MapPost(\"/orders/{orderId:guid}/lines/{lineId:guid}/picks/{pickId:guid}/installations\", Install);",
+      "purpose": "EXISTING_OPERATION_NOT_IMPORT_AUTHORIZATION"
+    },
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "SiteId",
+      "WarehouseId",
+      "Id"
+    ],
+    "definition": {
+      "migration": "0009_installation",
+      "path": "database/runtime/migrations/0009_installation.sql",
+      "file_sha256": "fb4235ea742aaede0b68fa624a8aef3a973d7bda44cd367aa16f7c37dc0c2feb",
+      "create_sql": "CREATE TABLE IF NOT EXISTS workshop.installations (\n \"Id\" uuid PRIMARY KEY CHECK (\"Id\" <> '00000000-0000-0000-0000-000000000000'),\n \"TenantId\" uuid NOT NULL,\n \"PickId\" uuid NOT NULL,\n \"ReservationId\" uuid NOT NULL,\n \"OrderId\" uuid NOT NULL REFERENCES workshop.orders(\"Id\"),\n \"WorkingGroupId\" uuid NOT NULL,\n \"LineId\" uuid NOT NULL REFERENCES workshop.commercial_lines(\"Id\"),\n \"LegalEntityId\" uuid NOT NULL,\n \"SiteId\" uuid NOT NULL,\n \"WarehouseId\" uuid NOT NULL,\n \"CatalogItemId\" uuid NOT NULL,\n \"CatalogVersion\" integer NOT NULL CHECK (\"CatalogVersion\">0),\n \"Quantity\" numeric(12,6) NOT NULL CHECK (\"Quantity\">0),\n \"PickingConfigurationVersion\" integer NOT NULL CHECK (\"PickingConfigurationVersion\">0),\n \"DocumentTypeId\" uuid NOT NULL,\n \"ConfigurationVersion\" integer NOT NULL CHECK (\"ConfigurationVersion\">0),\n \"InstalledAt\" timestamptz NOT NULL,\n \"OperatorId\" uuid NOT NULL\n);",
+      "columns": [
+        "Id",
+        "TenantId",
+        "PickId",
+        "ReservationId",
+        "OrderId",
+        "WorkingGroupId",
+        "LineId",
+        "LegalEntityId",
+        "SiteId",
+        "WarehouseId",
+        "CatalogItemId",
+        "CatalogVersion",
+        "Quantity",
+        "PickingConfigurationVersion",
+        "DocumentTypeId",
+        "ConfigurationVersion",
+        "InstalledAt",
+        "OperatorId"
+      ],
+      "primary_key": [
+        "Id"
+      ]
+    }
+  },
+  {
+    "table": "workshop.internal_billing_claims",
+    "owner": "workshop",
+    "category": "operational_fact",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "InvoiceId"
+    ],
+    "definition": {
+      "migration": "0013_billing",
+      "path": "database/runtime/migrations/0013_billing.sql",
+      "file_sha256": "6ad1934b75b9be88bd772a30495bb1b8d5ecb41facafcc05898b317b89a4a55d",
+      "create_sql": "CREATE TABLE IF NOT EXISTS workshop.internal_billing_claims (\n \"InvoiceId\" uuid PRIMARY KEY CHECK (\"InvoiceId\" <> '00000000-0000-0000-0000-000000000000'),\n \"TenantId\" uuid NOT NULL,\n \"OrderId\" uuid NOT NULL UNIQUE REFERENCES workshop.technical_closures(\"OrderId\"),\n \"DestinationVersion\" integer NOT NULL CHECK (\"DestinationVersion\">0),\n \"Revision\" integer NOT NULL CHECK (\"Revision\">=0),\n \"AllocatedAt\" timestamptz NOT NULL\n);",
+      "columns": [
+        "InvoiceId",
+        "TenantId",
+        "OrderId",
+        "DestinationVersion",
+        "Revision",
+        "AllocatedAt"
+      ],
+      "primary_key": [
+        "InvoiceId"
+      ]
+    }
+  },
+  {
+    "table": "workshop.line_policies",
+    "owner": "workshop",
+    "category": "business_configuration",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "DocumentTypeId",
+      "Version"
+    ],
+    "definition": {
+      "migration": "0006_catalog_lines",
+      "path": "database/runtime/migrations/0006_catalog_lines.sql",
+      "file_sha256": "f824b8f6b594e43f6a7c3042756bee42ea3c6ef567096b7422126c8cf11db98e",
+      "create_sql": "CREATE TABLE IF NOT EXISTS workshop.line_policies (\n \"TenantId\" uuid NOT NULL, \"LegalEntityId\" uuid NOT NULL, \"DocumentTypeId\" uuid NOT NULL,\n \"Version\" integer NOT NULL CHECK (\"Version\">0), \"Policy\" varchar(30) NOT NULL, \"SameWorkingGroup\" boolean NOT NULL,\n PRIMARY KEY (\"TenantId\",\"LegalEntityId\",\"DocumentTypeId\",\"Version\")\n);",
+      "columns": [
+        "TenantId",
+        "LegalEntityId",
+        "DocumentTypeId",
+        "Version",
+        "Policy",
+        "SameWorkingGroup"
+      ],
+      "primary_key": [
+        "TenantId",
+        "LegalEntityId",
+        "DocumentTypeId",
+        "Version"
+      ]
+    }
+  },
+  {
+    "table": "workshop.order_notes",
+    "owner": "workshop",
+    "category": "operational_fact",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": {
+      "source": "src/Modules/Workshop/Enginia360.Workshop/EditorEndpoints.cs",
+      "registration": "routes.MapPost(\"/orders/{id:guid}/editor/commands\", Command);",
+      "purpose": "EXISTING_OPERATION_NOT_IMPORT_AUTHORIZATION"
+    },
+    "reconcile_keys": [
+      "TenantId",
+      "Id"
+    ],
+    "definition": {
+      "migration": "0018_workshop_order_workspace",
+      "path": "database/runtime/migrations/0018_workshop_order_workspace.sql",
+      "file_sha256": "a52874259440f65b5d85960627138a607f2e1428371c20f2c5f3fca8438bfffe",
+      "create_sql": "CREATE TABLE workshop.order_notes (\n \"Id\" uuid PRIMARY KEY CHECK (\"Id\" <> '00000000-0000-0000-0000-000000000000'),\n \"TenantId\" uuid NOT NULL, \"OrderId\" uuid NOT NULL, \"WorkingGroupId\" uuid NOT NULL,\n \"Description\" varchar(500) NOT NULL CHECK (length(\"Description\") BETWEEN 1 AND 500),\n \"State\" varchar(10) NOT NULL CHECK (\"State\" IN ('Active','Removed')),\n \"Version\" integer NOT NULL CHECK (\"Version\" > 0),\n \"CreatedRevision\" integer NOT NULL CHECK (\"CreatedRevision\" >= 0),\n FOREIGN KEY (\"TenantId\",\"OrderId\",\"WorkingGroupId\") REFERENCES workshop.working_groups (\"TenantId\",\"OrderId\",\"Id\")\n);",
+      "columns": [
+        "Id",
+        "TenantId",
+        "OrderId",
+        "WorkingGroupId",
+        "Description",
+        "State",
+        "Version",
+        "CreatedRevision"
+      ],
+      "primary_key": [
+        "Id"
+      ]
+    }
+  },
+  {
+    "table": "workshop.orders",
+    "owner": "workshop",
+    "category": "operational_fact",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": {
+      "source": "src/Modules/Workshop/Enginia360.Workshop/WorkshopModule.cs",
+      "registration": "routes.MapPost(\"/orders\", Create);",
+      "purpose": "EXISTING_OPERATION_NOT_IMPORT_AUTHORIZATION"
+    },
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "SiteId",
+      "Id"
+    ],
+    "definition": {
+      "migration": "0005_workshop",
+      "path": "database/runtime/migrations/0005_workshop.sql",
+      "file_sha256": "e1c0c26ad3fd5439876db1dc6c9b1240c65ea88afc56eaa441f256e2ad80f958",
+      "create_sql": "CREATE TABLE IF NOT EXISTS workshop.orders (\n    \"Id\" uuid PRIMARY KEY CHECK (\"Id\" <> '00000000-0000-0000-0000-000000000000'),\n    \"TenantId\" uuid NOT NULL,\n    \"LegalEntityId\" uuid NOT NULL,\n    \"SiteId\" uuid NOT NULL,\n    \"DocumentTypeId\" uuid NOT NULL,\n    \"ConfigurationVersion\" integer NOT NULL,\n    \"PayerId\" uuid NOT NULL,\n    \"VehicleId\" uuid NOT NULL,\n    \"VehicleHolderId\" uuid NOT NULL,\n    \"CreatedByMembershipId\" uuid NOT NULL,\n    FOREIGN KEY (\"TenantId\", \"LegalEntityId\", \"DocumentTypeId\", \"ConfigurationVersion\")\n        REFERENCES workshop.document_types (\"TenantId\", \"LegalEntityId\", \"Id\", \"Version\")\n);",
+      "columns": [
+        "Id",
+        "TenantId",
+        "LegalEntityId",
+        "SiteId",
+        "DocumentTypeId",
+        "ConfigurationVersion",
+        "PayerId",
+        "VehicleId",
+        "VehicleHolderId",
+        "CreatedByMembershipId"
+      ],
+      "primary_key": [
+        "Id"
+      ]
+    }
+  },
+  {
+    "table": "workshop.own_actual_time_commands",
+    "owner": "workshop",
+    "category": "technical_ledger",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "CommandId"
+    ],
+    "definition": {
+      "migration": "0022_workshop_own_actual_time",
+      "path": "database/runtime/migrations/0022_workshop_own_actual_time.sql",
+      "file_sha256": "4d673fbbb1d0475c510f21b3656453e88144c7ade77462a74b057df4ebccf651",
+      "create_sql": "CREATE TABLE workshop.own_actual_time_commands (\n \"CommandId\" uuid PRIMARY KEY CHECK (\"CommandId\" <> '00000000-0000-0000-0000-000000000000'),\n \"TenantId\" uuid NOT NULL, \"OrderId\" uuid NOT NULL, \"MembershipId\" uuid NOT NULL, \"InternalIdentityId\" uuid NOT NULL,\n \"EntryId\" uuid NOT NULL, \"Canonical\" jsonb NOT NULL, \"Receipt\" jsonb NOT NULL,\n FOREIGN KEY (\"TenantId\",\"OrderId\",\"MembershipId\",\"EntryId\",\"InternalIdentityId\") REFERENCES workshop.own_actual_time_entries (\"TenantId\",\"OrderId\",\"MembershipId\",\"Id\",\"InternalIdentityId\")\n);",
+      "columns": [
+        "CommandId",
+        "TenantId",
+        "OrderId",
+        "MembershipId",
+        "InternalIdentityId",
+        "EntryId",
+        "Canonical",
+        "Receipt"
+      ],
+      "primary_key": [
+        "CommandId"
+      ]
+    }
+  },
+  {
+    "table": "workshop.own_actual_time_entries",
+    "owner": "workshop",
+    "category": "operational_fact",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": {
+      "source": "src/Modules/Workshop/Enginia360.Workshop/ActualTimeEndpoints.cs",
+      "registration": "routes.MapPost(\"/orders/{id:guid}/actual-time/own\", Record);",
+      "purpose": "EXISTING_OPERATION_NOT_IMPORT_AUTHORIZATION"
+    },
+    "reconcile_keys": [
+      "TenantId",
+      "Id"
+    ],
+    "definition": {
+      "migration": "0022_workshop_own_actual_time",
+      "path": "database/runtime/migrations/0022_workshop_own_actual_time.sql",
+      "file_sha256": "4d673fbbb1d0475c510f21b3656453e88144c7ade77462a74b057df4ebccf651",
+      "create_sql": "CREATE TABLE workshop.own_actual_time_entries (\n \"Id\" uuid PRIMARY KEY CHECK (\"Id\" <> '00000000-0000-0000-0000-000000000000'),\n \"TenantId\" uuid NOT NULL, \"OrderId\" uuid NOT NULL, \"MembershipId\" uuid NOT NULL,\n \"InternalIdentityId\" uuid NOT NULL CHECK (\"InternalIdentityId\" <> '00000000-0000-0000-0000-000000000000'),\n \"WorkingGroupId\" uuid NOT NULL,\n UNIQUE (\"TenantId\",\"OrderId\",\"MembershipId\",\"Id\",\"InternalIdentityId\"),\n FOREIGN KEY (\"TenantId\",\"OrderId\",\"MembershipId\") REFERENCES workshop.own_actual_time_streams (\"TenantId\",\"OrderId\",\"MembershipId\"),\n FOREIGN KEY (\"TenantId\",\"OrderId\",\"WorkingGroupId\") REFERENCES workshop.actual_time_group_references (\"TenantId\",\"OrderId\",\"WorkingGroupId\")\n);",
+      "columns": [
+        "Id",
+        "TenantId",
+        "OrderId",
+        "MembershipId",
+        "InternalIdentityId",
+        "WorkingGroupId"
+      ],
+      "primary_key": [
+        "Id"
+      ]
+    }
+  },
+  {
+    "table": "workshop.own_actual_time_streams",
+    "owner": "workshop",
+    "category": "technical_ledger",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "OrderId",
+      "MembershipId"
+    ],
+    "definition": {
+      "migration": "0022_workshop_own_actual_time",
+      "path": "database/runtime/migrations/0022_workshop_own_actual_time.sql",
+      "file_sha256": "4d673fbbb1d0475c510f21b3656453e88144c7ade77462a74b057df4ebccf651",
+      "create_sql": "CREATE TABLE workshop.own_actual_time_streams (\n \"TenantId\" uuid NOT NULL, \"OrderId\" uuid NOT NULL, \"MembershipId\" uuid NOT NULL CHECK (\"MembershipId\" <> '00000000-0000-0000-0000-000000000000'),\n \"Revision\" integer NOT NULL CHECK (\"Revision\">=0),\n PRIMARY KEY (\"TenantId\",\"OrderId\",\"MembershipId\"),\n FOREIGN KEY (\"TenantId\",\"OrderId\") REFERENCES workshop.orders (\"TenantId\",\"Id\")\n);",
+      "columns": [
+        "TenantId",
+        "OrderId",
+        "MembershipId",
+        "Revision"
+      ],
+      "primary_key": [
+        "TenantId",
+        "OrderId",
+        "MembershipId"
+      ]
+    }
+  },
+  {
+    "table": "workshop.own_actual_time_versions",
+    "owner": "workshop",
+    "category": "operational_fact",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": {
+      "source": "src/Modules/Workshop/Enginia360.Workshop/ActualTimeEndpoints.cs",
+      "registration": "routes.MapPost(\"/orders/{id:guid}/actual-time/own/{entryId:guid}/corrections\", Correct);",
+      "purpose": "EXISTING_OPERATION_NOT_IMPORT_AUTHORIZATION"
+    },
+    "reconcile_keys": [
+      "TenantId",
+      "EntryId",
+      "Version"
+    ],
+    "definition": {
+      "migration": "0022_workshop_own_actual_time",
+      "path": "database/runtime/migrations/0022_workshop_own_actual_time.sql",
+      "file_sha256": "4d673fbbb1d0475c510f21b3656453e88144c7ade77462a74b057df4ebccf651",
+      "create_sql": "CREATE TABLE workshop.own_actual_time_versions (\n \"EntryId\" uuid NOT NULL, \"Version\" integer NOT NULL CHECK (\"Version\">0),\n \"TenantId\" uuid NOT NULL, \"OrderId\" uuid NOT NULL, \"MembershipId\" uuid NOT NULL, \"InternalIdentityId\" uuid NOT NULL,\n \"WorkDate\" date NOT NULL CHECK (\"WorkDate\" BETWEEN DATE '0001-01-01' AND DATE '9999-12-31'),\n \"DurationSeconds\" integer NOT NULL CHECK (\"DurationSeconds\">0), \"Note\" text NOT NULL CHECK (length(\"Note\")<=500 AND \"Note\" !~ '[[:cntrl:]]'),\n \"CorrectionNote\" text CHECK (\"CorrectionNote\" IS NULL OR length(\"CorrectionNote\")<=500 AND \"CorrectionNote\" !~ '[[:cntrl:]]'),\n \"CommandId\" uuid NOT NULL UNIQUE CHECK (\"CommandId\" <> '00000000-0000-0000-0000-000000000000'),\n \"OwnRevision\" integer NOT NULL CHECK (\"OwnRevision\">0), \"RecordedAt\" timestamptz NOT NULL DEFAULT clock_timestamp(),\n PRIMARY KEY (\"EntryId\",\"Version\"),\n UNIQUE (\"TenantId\",\"OrderId\",\"MembershipId\",\"OwnRevision\"),\n FOREIGN KEY (\"TenantId\",\"OrderId\",\"MembershipId\",\"EntryId\",\"InternalIdentityId\") REFERENCES workshop.own_actual_time_entries (\"TenantId\",\"OrderId\",\"MembershipId\",\"Id\",\"InternalIdentityId\")\n);",
+      "columns": [
+        "EntryId",
+        "Version",
+        "TenantId",
+        "OrderId",
+        "MembershipId",
+        "InternalIdentityId",
+        "WorkDate",
+        "DurationSeconds",
+        "Note",
+        "CorrectionNote",
+        "CommandId",
+        "OwnRevision",
+        "RecordedAt"
+      ],
+      "primary_key": [
+        "EntryId",
+        "Version"
+      ]
+    }
+  },
+  {
+    "table": "workshop.technical_closures",
+    "owner": "workshop",
+    "category": "operational_fact",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": {
+      "source": "src/Modules/Workshop/Enginia360.Workshop/AdministrativeEndpoints.cs",
+      "registration": "routes.MapPost(\"/orders/{id:guid}/technical-closure\", CloseTechnically);",
+      "purpose": "EXISTING_OPERATION_NOT_IMPORT_AUTHORIZATION"
+    },
+    "reconcile_keys": [
+      "TenantId",
+      "OrderId"
+    ],
+    "definition": {
+      "migration": "0011_administration",
+      "path": "database/runtime/migrations/0011_administration.sql",
+      "file_sha256": "963ce9bec5ad123241bcae98c66dfdfe854016fd276050169c133307e3d1bc64",
+      "create_sql": "CREATE TABLE IF NOT EXISTS workshop.technical_closures (\n \"OrderId\" uuid PRIMARY KEY,\n \"Id\" uuid NOT NULL UNIQUE CHECK (\"Id\" <> '00000000-0000-0000-0000-000000000000'),\n \"TenantId\" uuid NOT NULL,\n \"Revision\" integer NOT NULL CHECK (\"Revision\">=0),\n \"ClosedAt\" timestamptz NOT NULL,\n \"OperatorId\" uuid NOT NULL\n);",
+      "columns": [
+        "OrderId",
+        "Id",
+        "TenantId",
+        "Revision",
+        "ClosedAt",
+        "OperatorId"
+      ],
+      "primary_key": [
+        "OrderId"
+      ]
+    }
+  },
+  {
+    "table": "workshop.working_groups",
+    "owner": "workshop",
+    "category": "operational_fact",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": {
+      "source": "src/Modules/Workshop/Enginia360.Workshop/EditorEndpoints.cs",
+      "registration": "routes.MapPost(\"/orders/{id:guid}/editor/commands\", Command);",
+      "purpose": "EXISTING_OPERATION_NOT_IMPORT_AUTHORIZATION"
+    },
+    "reconcile_keys": [
+      "TenantId",
+      "Id"
+    ],
+    "definition": {
+      "migration": "0018_workshop_order_workspace",
+      "path": "database/runtime/migrations/0018_workshop_order_workspace.sql",
+      "file_sha256": "a52874259440f65b5d85960627138a607f2e1428371c20f2c5f3fca8438bfffe",
+      "create_sql": "CREATE TABLE workshop.working_groups (\n \"Id\" uuid PRIMARY KEY CHECK (\"Id\" <> '00000000-0000-0000-0000-000000000000'),\n \"TenantId\" uuid NOT NULL, \"OrderId\" uuid NOT NULL,\n \"Title\" varchar(100) NOT NULL CHECK (length(btrim(\"Title\")) BETWEEN 1 AND 100),\n \"State\" varchar(10) NOT NULL CHECK (\"State\" IN ('Active','Removed')),\n \"Version\" integer NOT NULL CHECK (\"Version\" > 0),\n \"CreatedRevision\" integer NOT NULL CHECK (\"CreatedRevision\" >= 0),\n UNIQUE (\"TenantId\",\"OrderId\",\"Id\"),\n FOREIGN KEY (\"TenantId\",\"OrderId\") REFERENCES workshop.orders (\"TenantId\",\"Id\")\n);",
+      "columns": [
+        "Id",
+        "TenantId",
+        "OrderId",
+        "Title",
+        "State",
+        "Version",
+        "CreatedRevision"
+      ],
+      "primary_key": [
+        "Id"
+      ]
+    }
+  },
+  {
+    "table": "workshop.workspace_history",
+    "owner": "workshop",
+    "category": "audit_history",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "TargetKind",
+      "TargetId",
+      "Version"
+    ],
+    "definition": {
+      "migration": "0018_workshop_order_workspace",
+      "path": "database/runtime/migrations/0018_workshop_order_workspace.sql",
+      "file_sha256": "a52874259440f65b5d85960627138a607f2e1428371c20f2c5f3fca8438bfffe",
+      "create_sql": "CREATE TABLE workshop.workspace_history (\n \"TargetKind\" varchar(10) NOT NULL CHECK (\"TargetKind\" IN ('Group','Line','Note')),\n \"TargetId\" uuid NOT NULL, \"Version\" integer NOT NULL CHECK (\"Version\" > 0),\n \"TenantId\" uuid NOT NULL, \"OrderId\" uuid NOT NULL,\n \"Revision\" integer NOT NULL CHECK (\"Revision\" >= 0),\n \"Operation\" varchar(12) NOT NULL CHECK (\"Operation\" IN ('Baseline','Created','Updated','Removed')),\n \"CommandId\" uuid,\n \"Snapshot\" jsonb NOT NULL,\n PRIMARY KEY (\"TargetKind\",\"TargetId\",\"Version\"),\n FOREIGN KEY (\"TenantId\",\"OrderId\") REFERENCES workshop.orders (\"TenantId\",\"Id\")\n);",
+      "columns": [
+        "TargetKind",
+        "TargetId",
+        "Version",
+        "TenantId",
+        "OrderId",
+        "Revision",
+        "Operation",
+        "CommandId",
+        "Snapshot"
+      ],
+      "primary_key": [
+        "TargetKind",
+        "TargetId",
+        "Version"
+      ]
+    }
+  }
+]

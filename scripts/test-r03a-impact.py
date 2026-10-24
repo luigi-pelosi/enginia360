@@ -49,9 +49,15 @@ class R03aImpact(unittest.TestCase):
         if not base:
             self.skipTest('no origin/main in this checkout')
         paths = subprocess.run(['git', 'diff', '--name-only', base, 'HEAD'], cwd=ROOT, capture_output=True, text=True).stdout.split()
-        self.assertTrue(paths)
         result = module.selection(paths)
-        self.assertTrue(result['r03a'] and result['ui01b'] and result['migrations'])
+        self.assertEqual(result['changed_paths'], sorted(set(paths)))
+        self.assertFalse(result['full_architecture'])
+        # This guard also runs for later offline-only increments and on clean main.
+        # Actual R03.a owners retain their positive acceptance contract above.
+        if set(paths) & set(OWNERS):
+            offline_wiring_only = result.get('r06_offline') and set(paths) <= module.R06_OFFLINE_FILES | module.R06_WIRING
+            if not offline_wiring_only:
+                self.assertTrue(result['r03a'] and result['ui01b'] and result['migrations'])
 
     def test_unrelated_paths_do_not_select_r03a(self):
         for path in ('docs/r03a-order-workspace.md', 'web/src/ui01/App.tsx', 'scripts/test-c00-consistency.py',
