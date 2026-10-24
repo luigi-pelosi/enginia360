@@ -7,7 +7,7 @@ ROOT=Path(__file__).resolve().parents[1]
 spec=importlib.util.spec_from_file_location('impact',ROOT/'scripts/select-ci-impact.py')
 impact=importlib.util.module_from_spec(spec); spec.loader.exec_module(impact)
 OWN=('scripts/run-r03c-tests.py','scripts/run-r03c-api-tests.py','scripts/test-r03c-impact.py','scripts/test-r03c-lifecycle.py','tests/browser/r03c-acceptance.cjs','compose.r03c-test.yaml','r03c-api-test.Dockerfile',
-     'tests/Enginia360.Api.Tests/WorkshopClosureActionTests.cs','tests/Enginia360.Api.Tests/WorkshopClosureSnapshotTests.cs','simulator/administrative-simulator.py',
+     'tests/Enginia360.Api.Tests/WorkshopClosureActionTests.cs','tests/Enginia360.Api.Tests/WorkshopClosureSnapshotTests.cs','tests/Enginia360.Api.Tests/WorkshopClosureContractTests.cs','simulator/administrative-simulator.py',
      'web/src/ui01/runtime/AdministrativeWorkspace.tsx','web/src/ui01/runtime/AdministrativeWorkspace.test.tsx','web/src/ui01/runtime/administrativeContracts.ts','web/src/ui01/runtime/administrativeFixtures.ts')
 SHARED=('src/Modules/Workshop/Enginia360.Workshop/ClosureActionEndpoints.cs','src/Modules/Workshop/Enginia360.Workshop/AdministrativeEndpoints.cs','src/Modules/Workshop/Enginia360.Workshop.Contracts/ClosureActionContracts.cs',
         'src/Modules/Workshop/Enginia360.Workshop/WorkshopModule.cs','src/Modules/Integrations/Enginia360.Integrations/IntegrationsModule.cs','src/Modules/Integrations/Enginia360.Integrations/AdministrativeDispatcher.cs',

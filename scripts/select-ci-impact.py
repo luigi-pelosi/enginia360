@@ -54,7 +54,7 @@ R03B_FILES = {'scripts/run-r03b-tests.py','scripts/test-r03b-impact.py','scripts
 R03B_WEB = ('web/src/ui01/runtime/OwnActualTime','web/src/ui01/runtime/actualTimeContracts')
 # R03.c closure panel: its own runner/acceptance/tests, plus the shared producers whose change alters the panel's direct runtime contracts.
 R03C_FILES = {'scripts/run-r03c-tests.py','scripts/run-r03c-api-tests.py','scripts/test-r03c-impact.py','scripts/test-r03c-lifecycle.py','tests/browser/r03c-acceptance.cjs',
-    'compose.r03c-test.yaml','r03c-api-test.Dockerfile','tests/Enginia360.Api.Tests/WorkshopClosureActionTests.cs','tests/Enginia360.Api.Tests/WorkshopClosureSnapshotTests.cs','simulator/administrative-simulator.py'}
+    'compose.r03c-test.yaml','r03c-api-test.Dockerfile','tests/Enginia360.Api.Tests/WorkshopClosureActionTests.cs','tests/Enginia360.Api.Tests/WorkshopClosureSnapshotTests.cs','tests/Enginia360.Api.Tests/WorkshopClosureContractTests.cs','simulator/administrative-simulator.py'}
 R03C_WEB = ('web/src/ui01/runtime/AdministrativeWorkspace','web/src/ui01/runtime/administrative')
 R03C_SHARED = {'src/Enginia360.Api/Program.cs','web/src/ui01/runtime/WorkshopRuntime.tsx','web/src/ui01/runtime/workshopApi.ts','web/src/ui01/runtime/contracts.ts','web/src/ui01/runtime/editorContracts.ts'}
 R03C_PREFIXES = ('src/Modules/Workshop/','src/Modules/Integrations/')
