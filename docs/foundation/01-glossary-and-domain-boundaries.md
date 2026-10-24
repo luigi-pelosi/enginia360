@@ -942,3 +942,15 @@ D01 e D02 restano issue aperte In verifica; B00 non viene completata o sbloccata
 **Motivo:** separare la radice iniziale di fiducia dall'operatività ordinaria e impedire escalation o provisioning implicito dal primo login. La procedura offline non è un privilegio del processo web, un endpoint o un comando business già implementato; richiede identità verificata e tracciamento minimizzato prima dell'uso reale.
 
 **Gate risolto solo in questo scope:** non manca più la scelta del concedente iniziale/delega limitata. R01.a legge esclusivamente il proprio contesto. R01.b, separata e non consegnata da questa decisione, deve provare un singolo grant operativo allowlistato ad altra membership trusted nello stesso tenant, mandato valido/revocabile, scope entro mandato, atomicità/idempotenza e audit. Nessuna directory completa, onboarding, attivazione capability, entitlement, CRUD R02 o policy di lifecycle ulteriore approvata. Nessun tenant/utente reale creato, go-live o ambiente persistente autorizzato.
+
+### D78 — R03.b: consuntivo manuale del proprio tempo per lavorazione
+
+**Fonte:** risposta del proprietario al modulo di chiarimento nella conversazione principale successiva alla consegna verificata R03.a.2; risposta ricevuta, non deduzione dal legacy: «Sì: parti dal consuntivo manuale del proprio tempo per lavorazione.»
+
+**Contratto approvato:** l'operatore verificato registra il proprio tempo effettivo per una lavorazione, con data, durata e nota; correzioni tracciate. Nessuna modifica automatica delle ore commerciali/fatturate o dello stock. Non approva inserimento per altri operatori, appuntamenti, accettazione, autorizzazione cliente o riconsegna. Implementazione separata R03.b; R04.a non aggiunge codice di consuntivazione.
+
+### D79 — R05: risultato desiderato bozza di fattura vendita in Giobby
+
+**Fonte:** risposta del proprietario allo stesso chiarimento nella conversazione principale: «Bozza di fattura vendita, da verificare ed emettere in Giobby.»
+
+**Contratto approvato:** risultato amministrativo desiderato del primo percorso pilota, non attestazione di capacità del provider. Restano da verificare endpoint/versione, schema risposta, semantica di bozza senza effetti fiscali/stock, acknowledgement business, lookup dopo timeout e idempotenza. Nessuna autorizzazione di fattura reale, emissione/trasmissione fiscale, account operativo o chiamate ERP; nessun campo provider inventato. Implementazione R05 separata, non parte di R04.a.

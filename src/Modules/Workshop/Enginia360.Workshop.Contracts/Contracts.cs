@@ -78,4 +78,4 @@ public interface IInstallationStockEffects
     Task<ConsumptionContract?> Consume(string subject, Guid installationId, CancellationToken ct);
 }
 public sealed record InstallationResult(InstallationContract Installation, string StockEffect, ConsumptionContract? Consumption);
-public sealed record InstallationState(string Picked, string Installed, string RemainingToInstall, IReadOnlyList<InstallationResult> Installations);
+public sealed record InstallationState(string Picked, string Installed, string RemainingToInstall, IReadOnlyList<InstallationResult> Installations, bool CanInstall = false, bool CanRecoverConsumption = false);

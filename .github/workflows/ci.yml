@@ -31,6 +31,7 @@ jobs:
       ui01b: ${{ steps.selection.outputs.ui01b }}
       r03a: ${{ steps.selection.outputs.r03a }}
       r03a2: ${{ steps.selection.outputs.r03a2 }}
+      r04a: ${{ steps.selection.outputs.r04a }}
       migrations: ${{ steps.selection.outputs.migrations }}
     steps:
       - uses: actions/checkout@v4
@@ -38,7 +39,7 @@ jobs:
       - name: Initialize private impact scratch directory
         run: printf 'TMPDIR=%s\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
       - name: Verify impact selection and direct runtime contracts
-        run: python3 scripts/test-ci-impact.py && python3 scripts/test-ui01b-impact.py && python3 scripts/test-r03a-impact.py && python3 scripts/test-r03a2-impact.py && python3 scripts/test-r03a-contract.py && python3 scripts/test-ui01b-wiring.py && python3 scripts/test-r00a-ci.py && python3 scripts/test-r00b-migration-tls.py && python3 scripts/test-r00b-lifecycle.py && python3 scripts/test-ci-runtime.py && python3 scripts/test-c00-consistency.py && python3 scripts/test-productization-consistency.py
+        run: python3 scripts/test-ci-impact.py && python3 scripts/test-ui01b-impact.py && python3 scripts/test-r03a-impact.py && python3 scripts/test-r03a2-impact.py && python3 scripts/test-r04a-impact.py && python3 scripts/test-r03a-contract.py && python3 scripts/test-ui01b-wiring.py && python3 scripts/test-r00a-ci.py && python3 scripts/test-r00b-migration-tls.py && python3 scripts/test-r00b-lifecycle.py && python3 scripts/test-ci-runtime.py && python3 scripts/test-c00-consistency.py && python3 scripts/test-productization-consistency.py
       - name: Select exact changed-file impact
         id: selection
         env:
@@ -149,6 +150,23 @@ jobs:
         run: R03A2_POOL_SIZE=1 timeout 600 python3 scripts/run-r03a2-tests.py
       - name: Actual TERM with held SQL barrier and Chromium alive
         run: timeout 300 python3 scripts/test-r03a2-lifecycle.py
+  affected-r04a:
+    needs: impact
+    if: github.event_name == 'workflow_dispatch' && needs.impact.outputs.r04a == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Initialize private R04.a scratch directory
+        run: printf 'TMPDIR=%s\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+      - name: Build separate opt-in runtime editor
+        run: docker run --rm -v "$PWD:/source" -w /source/web node:24.22.0-alpine3.24@sha256:44fce696f38ba8c987c4db89954051000bbd05ffd8d8659ba15ed4a8602e937f sh -c 'npm ci --no-audit --no-fund && npm run build:ui01-runtime'
+      - name: Actual material UI TLS OIDC API PostgreSQL acceptance pool4
+        run: timeout 600 python3 scripts/run-r04a-tests.py
+      - name: Actual material public contracts and UI pool1
+        run: R04A_POOL_SIZE=1 timeout 600 python3 scripts/run-r04a-tests.py
+      - name: Actual material TERM with Chromium and a held SQL stock lock
+        run: timeout 300 python3 scripts/test-r04a-lifecycle.py
   runtime-migrations:
     if: github.event_name == 'workflow_dispatch' && inputs.full_architecture
     runs-on: ubuntu-24.04

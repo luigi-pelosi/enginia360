@@ -36,7 +36,7 @@ def marker(process, expected):
     raise TimeoutError('SQL barrier readiness not observed')
 
 
-def fixtures(state, secret):
+def fixtures(state, secret, stock_setup=True):
     sql, identities = r00.fixtures(state, secret)
     browser = json.loads((state/'browser.json').read_text())
     browser['workshop'] = []
@@ -93,6 +93,10 @@ def fixtures(state, secret):
                                f"INSERT INTO catalog.items VALUES ('{uuid.uuid4()}','{tenant}','{registered_company}','Service','Page {n:02d}',8);"]
             for action in ('workshop.orders.read','counterparties.read'):
                 statements.append(f"INSERT INTO organization_access.company_permissions VALUES ('{uuid.uuid4()}','{browser['grantTargetMembershipId']}','{tenant}','{company}','{action}',NULL,NULL);")
+    # Explicit synthetic owner-verified company STOCK setup; unrelated to master authority.
+    if stock_setup:
+        context=browser['contexts'][0]
+        statements.append(f"SET ROLE runtime_owner; BEGIN; SELECT set_config('app.tenant_id','{context['tenantId']}',true); SELECT organization_access.establish_stock_profile('{uuid.uuid4()}','{context['tenantId']}','{context['legalEntityId']}','{browser['adminMembershipId']}','{uuid.uuid4()}','Enginia360ToExternal','{uuid.uuid4()}','{uuid.uuid4()}'); COMMIT; RESET ROLE;")
     # R00 seals its completed fixture read-only. Extend it as its owner, then reseal before any mount.
     (state/'browser.json').chmod(0o600)
     (state/'browser.json').write_text(json.dumps(browser))
@@ -128,7 +132,7 @@ def main():
             run(command+['up','-d','--wait','--wait-timeout','180','postgres','identity'],timeout=210)
             run(command+['run','--rm','--no-deps','-T','migrator'],timeout=90)
             query=command+['exec','-T','postgres','psql','-X','-qAt','-U','postgres','-d','runtime','-v','ON_ERROR_STOP=1']
-            assert run(query+['-c','SELECT count(*) FROM runtime_migrations.applied']).strip()=='20'
+            assert run(query+['-c','SELECT count(*) FROM runtime_migrations.applied']).strip()=='21'
             assert run(query+['-c','SELECT count(*) FROM workshop.orders']).strip()=='0'
             run(query,input=sql)
             run(command+['up','-d','api','web'],timeout=120)

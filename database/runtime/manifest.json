@@ -98,5 +98,10 @@
     "id": "0020_material_structure_fence",
     "path": "migrations/0020_material_structure_fence.sql",
     "sha256": "20169101030799531e840b36db35b89f00fe4ab105cc4a1197f48231a1362d9a"
+  },
+  {
+    "id": "0021_company_stock_profile",
+    "path": "migrations/0021_company_stock_profile.sql",
+    "sha256": "c9a64b9d3e42f7ddec5399f136e255f4c882e33464ff323c6be03bc87491f040"
   }
 ]

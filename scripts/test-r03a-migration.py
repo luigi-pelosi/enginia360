@@ -69,7 +69,7 @@ class WorkspaceSqlTests(unittest.TestCase):
         data, orders, lines = self.seed_baseline()
         code, _, error = self.migrate()
         self.assertEqual(code, 0, error)
-        self.assertEqual(self.sql('SELECT count(*) FROM runtime_migrations.applied'), '20')
+        self.assertEqual(self.sql('SELECT count(*) FROM runtime_migrations.applied'), '21')
         tenant = data['tenant']
         scope = f"SELECT set_config('app.tenant_id','{tenant}',false);"
         revisions = self.sql(scope+'SELECT "Id"::text||\'|\'||"CommercialRevision" FROM workshop.orders ORDER BY "Id"').splitlines()[1:]

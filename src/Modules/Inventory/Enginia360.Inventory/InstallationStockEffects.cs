@@ -18,6 +18,7 @@ internal sealed class WorkshopPickedParts(InventoryDbContext db, IWorkshopAccess
             await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.tenant_id', {member.TenantId.ToString()}, true)", ct);
             row = await db.Picks.AsNoTracking().SingleOrDefaultAsync(x => x.TenantId == member.TenantId && x.Id == pickId
                 && x.OrderId == orderId && x.LineId == lineId, ct);
+            if (write && row is not null && await InventoryModule.StockProfile(db, member.TenantId, row.LegalEntityId, ct) != "local") row = null;
             await tx.CommitAsync(ct);
         }
         if (row is null || await workshop.Authorize(subject, row.LegalEntityId, row.SiteId, "workshop.orders.read", write, ct) is null
@@ -42,6 +43,7 @@ internal sealed class InstallationStockEffects(InventoryDbContext db, IWorkshopI
         var existing = await db.Consumptions.AsNoTracking().SingleOrDefaultAsync(x => x.InstallationId == id, ct);
         if (existing is not null) return existing.Contract();
         if (!write) return null;
+        if (await InventoryModule.StockProfile(db, installation.TenantId, installation.LegalEntityId, ct) != "local") return null;
         var pick = await db.Picks.AsNoTracking().SingleOrDefaultAsync(x => x.TenantId == installation.TenantId && x.Id == installation.PickId
             && x.ReservationId == installation.ReservationId && x.OrderId == installation.OrderId && x.LineId == installation.LineId
             && x.LegalEntityId == installation.LegalEntityId && x.SiteId == installation.SiteId && x.WarehouseId == installation.WarehouseId

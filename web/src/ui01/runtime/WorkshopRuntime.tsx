@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { request, ApiError } from './workshopApi';
 import CreateOrder from './CreateOrder';
 import OrderWorkspace from './OrderWorkspace';
+import MaterialOperations from './MaterialOperations';
 import OrderList from './OrderList';
 import OwnContexts from './OwnContexts';
 import MasterAuthority from './MasterAuthority';
@@ -42,8 +43,9 @@ export default function WorkshopRuntime() {
     <form onSubmit={e => { e.preventDefault(); void load(locator); }}><label>UUID commessa<input value={locator} onChange={e => setLocator(e.target.value)} /></label><button disabled={busy || !authenticated}>Rileggi commessa</button></form>
     <div className="ui01-body"><aside className="ui01-context">{authenticated && <OwnContexts onError={optionalFailed} />}{authenticated && <OrderList onOpen={id => { setLocator(id); void load(id); }} onError={optionalFailed} />}{order ? <details open><summary>Testata salvata · sola lettura</summary><p>Società: {order.legalEntityId}</p><p>Sede: {order.siteId}</p><p>Tipo documento: {order.documentTypeId}</p><p>Configurazione documento: {order.configurationVersion}</p><p>Ordine cliente: {order.isCustomerOrder ? 'Sì' : 'No'}</p><p>Pagante: {order.payerId}</p><p>Veicolo: {order.vehicleId}</p><p>Intestatario: {order.vehicleHolderId}</p></details> : authenticated && !busy && !locator && <CreateOrder onCreated={async id => { setLocator(id); window.location.hash = 'order='+id; await load(id, true); }} onError={failed} />}</aside><section className="ui01-document">
     <h1>{order ? 'Commessa '+order.id : 'Nessuna commessa caricata'}</h1>
-    <div className="ui01-operations">{['Prenotazione','Prelievo','Preparazione','Installazione / consumo','Carcassa','Esito amministrativo esterno'].map(name => <div key={name}><span>{name}</span><strong>Non collegato in UI01.b</strong><button disabled aria-label={'Gestisci '+name}>Non disponibile</button></div>)}</div>
+    <div className="ui01-operations">{['Prenotazione','Prelievo','Preparazione','Installazione / consumo','Carcassa','Esito amministrativo esterno'].map(name => <div key={name}><span>{name}</span><strong>{name === 'Esito amministrativo esterno' ? 'Non collegato in UI01.b' : 'Disponibile nel pannello Materiali'}</strong>{name === 'Esito amministrativo esterno' && <button disabled aria-label={'Gestisci '+name}>Non disponibile</button>}</div>)}</div>
     {authenticated && editor && <OrderWorkspace key={editor.order.id} editor={editor} onApplied={async () => { await load(editor.order.id, true); }} onError={optionalFailed} />}
+    {authenticated && editor && <MaterialOperations key={'materials:'+editor.order.id} editor={editor} onError={optionalFailed} />}
     {authenticated && order && <MasterAuthority key={'authority:'+order.legalEntityId} companyId={order.legalEntityId} counterpartyId={order.payerId} onError={optionalFailed} />}
     </section></div><footer className="ui01-summary">{summary ? <><span>Imponibile {summary.netAmount}</span><span>IVA {summary.taxAmount}</span><strong>{summary.total} EUR</strong></> : 'Riepilogo non verificato'}</footer></main>;
 }

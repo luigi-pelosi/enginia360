@@ -10,7 +10,11 @@ class UI01bImpact(unittest.TestCase):
         paths=['web/src/ui01/runtime/WorkshopRuntime.tsx','web/ui01-runtime.html','web/vite.ui01-runtime.config.ts','web/nginx.ui01b-test.conf','compose.ui01b-test.yaml','scripts/run-ui01b-tests.py','scripts/test-ui01b-wiring.py','scripts/test-ui01b-impact.py','scripts/test-ui01b-fixture.py','tests/browser/ui01b-acceptance.cjs']
         for path in paths:
             with self.subTest(path=path):
-                result=module.selection([path]); self.assertTrue(result.get('ui01b')); self.assertTrue(result['ui_tests']); self.assertTrue(result['ui_build']); self.assertTrue(result['migrations']); self.assertIn('WorkshopBoundaryTests',result['api_filter']); self.assertIn('CommercialCalculationTests',result['api_filter']); self.assertNotIn('AccountingBoundaryTests',result['api_filter']); self.assertFalse(result['full_architecture'])
+                result=module.selection([path]); self.assertTrue(result.get('ui01b')); self.assertTrue(result['ui_tests']); self.assertTrue(result['ui_build']); self.assertTrue(result['migrations']); self.assertIn('WorkshopBoundaryTests',result['api_filter']); self.assertIn('CommercialCalculationTests',result['api_filter']); self.assertFalse(result['full_architecture'])
+                if path == 'web/src/ui01/runtime/WorkshopRuntime.tsx':
+                    self.assertTrue(result['r04a']); self.assertIn('AccountingBoundaryTests',result['api_filter'])
+                else:
+                    self.assertNotIn('AccountingBoundaryTests',result['api_filter'])
     def test_workflow_executes_new_browser_not_merely_build_or_skip(self):
         text=(ROOT/'.github/workflows/ci.yml').read_text()
         self.assertIn("needs.impact.outputs.ui01b == 'true'",text)
