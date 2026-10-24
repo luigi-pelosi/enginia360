@@ -729,6 +729,50 @@
     }
   },
   {
+    "table": "inventory.reservation_releases",
+    "owner": "inventory",
+    "category": "operational_fact",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": {
+      "source": "src/Modules/Inventory/Enginia360.Inventory/ReleaseEndpoints.cs",
+      "registration": "routes.MapPost(\"/orders/{orderId:guid}/lines/{lineId:guid}/reservations/{reservationId:guid}/releases\", Release);",
+      "purpose": "EXISTING_OPERATION_NOT_IMPORT_AUTHORIZATION"
+    },
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "SiteId",
+      "WarehouseId",
+      "Id"
+    ],
+    "definition": {
+      "migration": "0023_reservation_releases",
+      "path": "database/runtime/migrations/0023_reservation_releases.sql",
+      "file_sha256": "c3678f67ddca298e058543bba971dea8986fb481fe3ba2c6802c109bd88b24cd",
+      "create_sql": "CREATE TABLE inventory.reservation_releases (\n \"Id\" uuid PRIMARY KEY CHECK (\"Id\"<>'00000000-0000-0000-0000-000000000000'),\n \"TenantId\" uuid NOT NULL, \"ReservationId\" uuid NOT NULL REFERENCES inventory.reservations(\"Id\"),\n \"OrderId\" uuid NOT NULL, \"LineId\" uuid NOT NULL, \"WorkingGroupId\" uuid NOT NULL,\n \"LegalEntityId\" uuid NOT NULL, \"SiteId\" uuid NOT NULL, \"WarehouseId\" uuid NOT NULL,\n \"CatalogItemId\" uuid NOT NULL, \"CatalogVersion\" integer NOT NULL CHECK (\"CatalogVersion\">0),\n \"Quantity\" numeric(12,6) NOT NULL CHECK (\"Quantity\">0),\n \"ReleasedAt\" timestamptz NOT NULL, \"OperatorId\" uuid NOT NULL CHECK (\"OperatorId\"<>'00000000-0000-0000-0000-000000000000')\n);",
+      "columns": [
+        "Id",
+        "TenantId",
+        "ReservationId",
+        "OrderId",
+        "LineId",
+        "WorkingGroupId",
+        "LegalEntityId",
+        "SiteId",
+        "WarehouseId",
+        "CatalogItemId",
+        "CatalogVersion",
+        "Quantity",
+        "ReleasedAt",
+        "OperatorId"
+      ],
+      "primary_key": [
+        "Id"
+      ]
+    }
+  },
+  {
     "table": "inventory.reservations",
     "owner": "inventory",
     "category": "operational_fact",

@@ -33,6 +33,7 @@ public static class InventoryModule
         routes.MapGet("/orders/{orderId:guid}/lines/{lineId:guid}", Read);
         routes.MapPost("/orders/{orderId:guid}/lines/{lineId:guid}/reservations", Reserve);
         PickingEndpoints.Map(routes);
+        ReleaseEndpoints.Map(routes);
         CarcassReturnEndpoints.Map(routes);
         return app;
     }
@@ -65,14 +66,17 @@ public static class InventoryModule
         var consumed = await db.Consumptions.Where(x => x.TenantId == member.TenantId && x.LegalEntityId == line.LegalEntityId
             && x.SiteId == line.SiteId && x.WarehouseId == warehouseId && x.CatalogItemId == line.CatalogItemId).SumAsync(x => x.Quantity, ct);
         var reserved = reservations.Sum(x => x.Quantity);
+        var released = await db.Releases.Where(x => x.TenantId == member.TenantId && x.LineId == lineId).SumAsync(x => x.Quantity, ct);
+        var poolReleased = await db.Releases.Where(x => x.TenantId == member.TenantId && x.LegalEntityId == line.LegalEntityId
+            && x.SiteId == line.SiteId && x.WarehouseId == warehouseId && x.CatalogItemId == line.CatalogItemId).SumAsync(x => x.Quantity, ct);
         var stockProfile = await StockProfile(db, member.TenantId, line.LegalEntityId, ct);
         await tx.CommitAsync(ct);
         // Release the read connection before authorization adapters (shared pool may be one).
         await tx.DisposeAsync();
         var canReserve = stockProfile == "local" && await workshop.Authorize(Subject(user), line.LegalEntityId, line.SiteId, "workshop.orders.read", true, ct) is not null
             && await access.Authorize(Subject(user), line.LegalEntityId, line.SiteId, warehouseId, "inventory.reservations.create", true, ct);
-        return Results.Ok(new ReservationState(orderId, lineId, warehouseId, Value(physical), Value(physical - (committed-consumed)),
-            Value(reserved), Value(line.Quantity - reserved), reservations.Where(x => x.WarehouseId == warehouseId).Select(x => x.Contract()).ToArray(), Value(committed-consumed), Value(consumed), canReserve, stockProfile));
+        return Results.Ok(new ReservationState(orderId, lineId, warehouseId, Value(physical), Value(physical - (committed-poolReleased-consumed)),
+            Value(reserved-released), Value(line.Quantity - reserved+released), reservations.Where(x => x.WarehouseId == warehouseId).Select(x => x.Contract()).ToArray(), Value(committed-poolReleased-consumed), Value(consumed), canReserve, stockProfile));
     }
     private static async Task<IResult> Reserve(Guid orderId, Guid lineId, ReserveRequest request, ClaimsPrincipal user,
         IWorkshopAccess workshop, IInventoryAccess access, IWorkshopReservationLines lines, InventoryDbContext db, CancellationToken ct)
@@ -99,7 +103,8 @@ public static class InventoryModule
             return existing.OrderId == orderId && existing.LineId == lineId && existing.WarehouseId == request.WarehouseId
                 && existing.CatalogVersion == request.CatalogVersion && existing.Quantity == quantity
                 ? Results.Ok(existing.Contract()) : Results.Conflict();
-        // Lock order is command -> line -> stock pool. Every command takes only one of each.
+        // Canonical command -> order -> line -> stock order also fences closure/P2.
+        await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({orderId.ToString()}, 0))", ct);
         // Line lock deliberately excludes warehouse: partials across warehouses share one residual.
         var lineLock = $"inventory:line:{member.TenantId}:{lineId}";
         await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({lineLock}, 0))", ct);
@@ -110,7 +115,9 @@ public static class InventoryModule
         if (line.Kind != "Part") return Results.BadRequest();
         if (request.CatalogVersion != line.CatalogVersion) return Results.Conflict();
         var reserved = await db.Reservations.Where(x => x.TenantId == member.TenantId && x.LineId == lineId).SumAsync(x => x.Quantity, ct);
-        if (quantity > line.Quantity - reserved)
+        var released = await db.Releases.Where(x => x.TenantId == member.TenantId && x.LineId == lineId).SumAsync(x => x.Quantity, ct);
+        // Consumption never restores commercial allocation; only explicit release does.
+        if (quantity > line.Quantity - reserved + released)
             return Results.Conflict(new { code = "exceeds_remaining", message = "La quantità supera il residuo non prenotato della riga." });
         // Serialize all orders sharing this stock row. READ COMMITTED gives the
         // following aggregate a fresh snapshot after the previous holder commits.
@@ -127,7 +134,9 @@ public static class InventoryModule
             && x.SiteId == line.SiteId && x.WarehouseId == request.WarehouseId && x.CatalogItemId == line.CatalogItemId).SumAsync(x => x.Quantity, ct);
         var consumed = await db.Consumptions.Where(x => x.TenantId == member.TenantId && x.LegalEntityId == line.LegalEntityId
             && x.SiteId == line.SiteId && x.WarehouseId == request.WarehouseId && x.CatalogItemId == line.CatalogItemId).SumAsync(x => x.Quantity, ct);
-        if (quantity > physical - (committed-consumed))
+        var poolReleased = await db.Releases.Where(x => x.TenantId == member.TenantId && x.LegalEntityId == line.LegalEntityId
+            && x.SiteId == line.SiteId && x.WarehouseId == request.WarehouseId && x.CatalogItemId == line.CatalogItemId).SumAsync(x => x.Quantity, ct);
+        if (quantity > physical - (committed-poolReleased-consumed))
             return Results.Conflict(new { code = "insufficient_available", message = "Disponibilità insufficiente per la quantità richiesta. Nessuna prenotazione eseguita." });
         var row = new Reservation { Id = request.Id, TenantId = member.TenantId, OrderId = orderId, LineId = lineId,
             LegalEntityId = line.LegalEntityId, SiteId = line.SiteId, WarehouseId = request.WarehouseId,
@@ -147,6 +156,7 @@ internal sealed class InventoryDbContext(DbContextOptions<InventoryDbContext> op
     internal DbSet<ConsumedPart> Consumptions => Set<ConsumedPart>();
     internal DbSet<Stock> Stock => Set<Stock>();
     internal DbSet<Reservation> Reservations => Set<Reservation>();
+    internal DbSet<ReservationRelease> Releases => Set<ReservationRelease>();
     internal DbSet<PickedPart> Picks => Set<PickedPart>();
     internal DbSet<PickingPolicy> PickingPolicies => Set<PickingPolicy>();
     internal DbSet<PickingLocation> PickingLocations => Set<PickingLocation>();
@@ -161,6 +171,8 @@ internal sealed class InventoryDbContext(DbContextOptions<InventoryDbContext> op
         b.Entity<Stock>().Property(x => x.Physical).HasPrecision(12, 6);
         b.Entity<Reservation>().ToTable("reservations", "inventory").HasKey(x => x.Id);
         b.Entity<Reservation>().Property(x => x.Quantity).HasPrecision(12, 6);
+        b.Entity<ReservationRelease>().ToTable("reservation_releases", "inventory").HasKey(x => x.Id);
+        b.Entity<ReservationRelease>().Property(x => x.Quantity).HasPrecision(12, 6);
         b.Entity<PickedPart>().ToTable("picks", "inventory").HasKey(x => x.Id);
         b.Entity<PickedPart>().Property(x => x.Quantity).HasPrecision(12, 6);
         b.Entity<PickingPolicy>().ToTable("picking_policies", "inventory").HasKey(x => new { x.TenantId, x.LegalEntityId });

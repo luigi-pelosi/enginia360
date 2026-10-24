@@ -83,6 +83,15 @@ afterEach(() => {
     cleanup();
     vi.unstubAllGlobals();
 });
+test("reservation-specific explicit release is available independently from picking", async () => {
+    api(async () => response(state()));
+    render(<MaterialOperations editor={editor} onError={() => undefined} />);
+    await choose();
+    await screen.findByRole("region", { name: "Rilascio prenotazione" });
+    expect(screen.getByLabelText("Prenotazione da rilasciare")).toBeTruthy();
+    expect(screen.getByLabelText("Quantità da rilasciare")).toBeTruthy();
+});
+
 test("warehouse prerequisite failure retries that lookup, including repeated failure", async () => {
     let attempts = 0;
     vi.stubGlobal(

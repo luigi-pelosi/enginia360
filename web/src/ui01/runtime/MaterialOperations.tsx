@@ -4,6 +4,7 @@ import { check, decimal, record, uuid } from "./contracts";
 import type { Editor } from "./editorContracts";
 import MaterialPicking from "./MaterialPicking";
 import MaterialCarcass from "./MaterialCarcass";
+import MaterialRelease from "./MaterialRelease";
 
 type Warehouse = { id: string; name: string };
 type Stock = {
@@ -49,11 +50,12 @@ export default function MaterialOperations({
     const [uncertain, setUncertain] = useState(false);
     const [pickingBlocked, setPickingBlocked] = useState(false),
         [carcassBlocked, setCarcassBlocked] = useState(false);
+    const [releaseBlocked, setReleaseBlocked] = useState(false);
     const [choices, setChoices] = useState<{
         key: string;
         items: { id: string; quantity: string }[];
     }>();
-    const locked = busy || uncertain || pickingBlocked || carcassBlocked;
+    const locked = busy || uncertain || pickingBlocked || carcassBlocked || releaseBlocked;
     const generation = useRef(0),
         quantityInput = useRef<HTMLInputElement>(null);
     const rows = editor.rows.filter((r) => r.kind === "Part");
@@ -324,6 +326,7 @@ export default function MaterialOperations({
                     !warehouseId ||
                     busy ||
                     pickingBlocked ||
+                    releaseBlocked ||
                     carcassBlocked
                 }
                 onClick={() =>
@@ -343,7 +346,7 @@ export default function MaterialOperations({
                         choices?.key === url + warehouseId ? choices.items : []
                     }
                     closed={editor.capabilities.closed}
-                    blocked={busy || uncertain || carcassBlocked}
+                    blocked={busy || uncertain || carcassBlocked || releaseBlocked}
                     onBlocked={setPickingBlocked}
                     onApplied={async () => {
                         setStock(undefined);
@@ -358,12 +361,24 @@ export default function MaterialOperations({
                     url={url}
                     warehouseId={warehouseId}
                     closed={editor.capabilities.closed}
-                    blocked={busy || uncertain || pickingBlocked}
+                    blocked={busy || uncertain || pickingBlocked || releaseBlocked}
                     onBlocked={setCarcassBlocked}
                     onApplied={async () => {
                         setStock(undefined);
                         await read();
                     }}
+                    onError={onError}
+                />
+            )}
+            {row && warehouseId && (
+                <MaterialRelease
+                    key={"release:" + url + warehouseId}
+                    url={url}
+                    reservations={choices?.key === url + warehouseId ? choices.items : []}
+                    closed={editor.capabilities.closed}
+                    blocked={busy || uncertain || pickingBlocked || carcassBlocked}
+                    onBlocked={setReleaseBlocked}
+                    onApplied={async () => { setStock(undefined); await read(); }}
                     onError={onError}
                 />
             )}
