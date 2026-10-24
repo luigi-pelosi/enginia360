@@ -47,15 +47,16 @@ export default function AdministrativeWorkspace({ editor, onError, onChanged, po
     for (const r of [a, gt]) if (r.status === 'rejected' && failed(r.reason)) return 'stale';
     setActions(a.status === 'fulfilled' ? a.value : undefined); setActionsError(a.status === 'rejected' ? (a.reason as Error).message : '');
     setGate(gt.status === 'fulfilled' ? gt.value : undefined); setGateError(gt.status === 'rejected' ? (gt.reason as Error).message : '');
-    setClosure(undefined); setStateError(''); setInconsistent(false);
+    setInconsistent(false);
+    if (!(a.status === 'fulfilled' && a.value.canReadAdministrativeState)) { setClosure(undefined); setStateError(''); }
     if (a.status === 'fulfilled' && a.value.canReadAdministrativeState) {
       try {
         const s = parseClosureState(await request(base + '/closure-state'), id);
         if (g !== gen.current) return 'stale';
         // Two public reads are not one transaction: incompatible closures are never merged; one bounded re-read, then writes stay off.
-        if (!compatible(a.value, s)) { if (attempt < 1) return readAll(attempt + 1); setInconsistent(true); return 'ok'; }
-        setClosure(s);
-      } catch (e) { if (g !== gen.current || failed(e)) return 'stale'; setStateError((e as Error).message); }
+        if (!compatible(a.value, s)) { if (attempt < 1) return readAll(attempt + 1); setClosure(undefined); setInconsistent(true); return 'ok'; }
+        setClosure(s); setStateError('');
+      } catch (e) { if (g !== gen.current || failed(e)) return 'stale'; setClosure(undefined); setStateError((e as Error).message); }
     }
     return a.status === 'fulfilled' ? 'ok' : 'failed';
   }

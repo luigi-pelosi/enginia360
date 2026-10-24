@@ -1,0 +1,60 @@
+# Opt-in synthetic closure/administrative-wait acceptance only; no published ports, no persistent volumes.
+# The only external system is the deterministic in-memory simulator on the private runtime network (never Giobby).
+services:
+  postgres:
+    extends: {file: compose.r00b-test.yaml, service: postgres}
+  migrator:
+    extends: {file: compose.r00b-test.yaml, service: migrator}
+  identity:
+    extends: {file: compose.r00b-test.yaml, service: identity}
+    environment:
+      JAVA_OPTS_APPEND: "-XX:TieredStopAtLevel=1"
+  admin-simulator:
+    image: python:3.14.0-alpine3.22@sha256:8373231e1e906ddfb457748bfc032c4c06ada8c759b7b62d9c73ec2a3c56e710
+    user: "65534:65534"
+    command: ["python3", "-I", "/simulator/administrative-simulator.py"]
+    volumes: ["./simulator:/simulator:ro"]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=8m"]
+    mem_limit: 64m
+    cpus: 0.5
+    pids_limit: 32
+    logging: {driver: json-file, options: {max-size: "5m", max-file: "2"}}
+    networks: [runtime]
+    healthcheck:
+      test: ["CMD", "python3", "-I", "-S", "-c", "import socket; s=socket.create_connection(('127.0.0.1',8080),2); s.sendall(b'GET /health HTTP/1.0\\r\\n\\r\\n'); assert b' 200 ' in s.recv(64)"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+      start_period: 3s
+  api:
+    extends: {file: compose.r00b-test.yaml, service: api}
+    environment:
+      Counterparties__Enabled: "true"
+      Workshop__Enabled: "true"
+      Inventory__Enabled: "true"
+      InternalBilling__Enabled: "true"
+      TechnicalAccounting__Enabled: "true"
+      ExternalAdministration__Enabled: "true"
+      ExternalAdministration__SimulatorBaseUrl: "http://admin-simulator:8080/"
+      ExternalAdministration__PollMilliseconds: "200"
+      ExternalAdministration__RetryMilliseconds: "1500"
+      ExternalAdministration__TimeoutMilliseconds: "2000"
+      ExternalAdministration__LeaseMilliseconds: "8000"
+    depends_on:
+      admin-simulator: {condition: service_healthy}
+      migrator: {condition: service_completed_successfully}
+      identity: {condition: service_healthy}
+  web:
+    extends: {file: compose.r00b-test.yaml, service: web}
+    volumes:
+      - ./web/nginx.ui01b-test.conf:/etc/nginx/nginx.conf:ro
+      - ./web/dist-ui01-runtime:/usr/share/nginx/editor:ro
+  browser:
+    extends: {file: compose.r00b-test.yaml, service: browser}
+    entrypoint: [sh, -c, 'mkdir -p "$$HOME/.pki/nssdb" && certutil -N -d sql:$$HOME/.pki/nssdb --empty-password && certutil -A -d sql:$$HOME/.pki/nssdb -n runtime-ephemeral-ca -t C,, -i /run/tls/ca.crt && exec node r03c-acceptance.cjs']
+networks:
+  runtime:
+    internal: true
