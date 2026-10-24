@@ -197,8 +197,8 @@ async function control(action) {
         const reader=await browser.newPage();await reader.goto(origin+"/");await reader.getByRole("button",{name:"Accedi",exact:true}).click();
         await reader.locator("#username").fill(fixture.users[5].username);await reader.locator("#password").fill(fixture.users[5].password);
         await Promise.all([reader.waitForURL(u=>u.hostname==="app.r00.test"),reader.locator("#kc-login").click()]);
-        for(const scope of ["read","common","site","warehouse"]){await control("target-return-scope:"+scope);assert.equal((await get(reader,historyUrl)).value.canReturn,false);assert.equal((await post(reader,historyUrl,{id:crypto.randomUUID(),quantity:"0.1"})).status,403,scope);}
-        await control("target-return-scope:exact");assert.equal((await get(reader,historyUrl)).value.canReturn,true);
+        for(const scope of ["read","common","site","warehouse"]){await control("target-return-scope:"+scope);assert.equal((await get(reader,historyUrl)).value.canReturn,false);assert.equal((await post(reader,historyUrl,{id:crypto.randomUUID(),quantity:"0.1"})).status,403,scope);assert.equal((await post(reader,historyUrl,{id:returnId,quantity:"1"})).status,403,"historical replay still requires exact current action: "+scope);}
+        await control("target-return-scope:exact");assert.equal((await get(reader,historyUrl)).value.canReturn,true);assert.deepEqual((await post(reader,historyUrl,{id:returnId,quantity:"1.000000"})).value,receipt,"another authorized membership replays original actor/membership/time, never reattributes receipt");
         for(const axis of ["company","site","warehouse"]){
             await control("target-return:"+axis);
             const h=await get(reader,historyUrl);
@@ -315,10 +315,30 @@ async function control(action) {
         await returnPanel.getByText("Esito reso incerto: riprova solo il comando identico.").waitFor();
         for(const label of ["Riga ricambio","Magazzino materiali","Prenotazione da prelevare"])assert(await materialPanel.getByLabel(label).isDisabled(),"frozen ancestor "+label);
         assert(await returnPanel.getByLabel("Prelievo da restituire").isDisabled());
+        assert(await page.getByLabel("UUID commessa",{exact:true}).isDisabled(),"unknown accepted return must freeze the owning order selector, not just material descendants");
+        assert(await page.getByRole("button",{name:"Rileggi commessa",exact:true}).isDisabled());
+        assert(await page.getByRole("button",{name:"Riprova sessione",exact:true}).isDisabled());
+        assert(await page.getByLabel("Contesto elenco",{exact:true}).isDisabled());
+        assert(await page.locator("#new-group-title").isDisabled(),"P2/editor commands cannot unmount a pending return");
+        const materialSummary=page.locator("summary",{hasText:"Operazioni materiali"});await materialSummary.focus();await page.keyboard.press("Enter");
+        assert(await materialSummary.evaluate(e=>e.parentElement.open),"pending return panel cannot be dismissed and lose its original envelope");
+        for(const [width,height] of [[1920,1080],[1366,768]]){
+            await page.setViewportSize({width,height});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),"pending root fence has no horizontal overflow at "+width);
+            const retry=returnPanel.getByRole("button",{name:"Riprova reso identico"});await retry.scrollIntoViewIfNeeded();
+            const box=await retry.boundingBox(),footer=await page.locator("footer").boundingBox();
+            assert(box&&footer&&box.y>=0&&box.y+box.height<=footer.y+1&&footer.y+footer.height<=height+1,"pending retry and sticky footer reachable at "+width);
+        }
+        await page.setViewportSize({width:1920,height:1080});
+
+
         assert(await materialPanel.getByLabel("Prelievo da installare").isDisabled());
         await returnPanel.getByRole("button",{name:"Riprova reso identico"}).click();
         await returnPanel.getByText("Reso registrato e riletto; fisico e riga commerciale invariati.").waitFor();
         assert.equal(envelopes.length,2);assert.deepEqual(envelopes[0],envelopes[1],"lost accepted response retries byte-identical URL UUID/payload");
+        await page.waitForFunction(()=>document.querySelector(".ui01-workspace > form input")?.disabled===false);
+        assert(!(await page.getByLabel("Contesto elenco",{exact:true}).isDisabled()),"resolved receipt releases context fence");
+        assert(!(await page.locator("#new-group-title").isDisabled()),"editor reenabled after immutable retry and authoritative readback");
+
         const uiReturnId=JSON.parse(envelopes[0].body).id;
         assert.equal((await get(page,freePath)).value.returns.filter(x=>x.id===uiReturnId).length,1);
         pass("actual browser accepted-response loss freezes child and every ancestor, byte-identical retry, authoritative GET one immutable effect");

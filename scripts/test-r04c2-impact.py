@@ -11,7 +11,7 @@ m = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(m)
 class NewReturnImpactTests(unittest.TestCase):
     def test_return_direct_dependencies(self):
-        for path in ('scripts/test-r04c2-impact.py','scripts/test-r04c2-guard-mutation.py','scripts/run-r04c2-tests.py','tests/browser/r04c2-acceptance.cjs','compose.r04c2-test.yaml','src/Modules/Inventory/Enginia360.Inventory/NewPartReturnEndpoints.cs','database/runtime/migrations/0024_new_part_returns.sql','web/src/ui01/runtime/MaterialNewReturn.tsx'):
+        for path in ('scripts/test-r04c2-impact.py','scripts/test-r04c2-guard-mutation.py','scripts/run-r04c2-tests.py','tests/browser/r04c2-acceptance.cjs','compose.r04c2-test.yaml','src/Modules/Inventory/Enginia360.Inventory/NewPartReturnEndpoints.cs','database/runtime/migrations/0024_new_part_returns.sql','web/src/ui01/runtime/MaterialNewReturn.tsx','web/src/ui01/runtime/WorkshopRuntime.tsx','web/src/ui01/runtime/runtime.css'):
             with self.subTest(path=path):
                 s=m.selection([path])
                 self.assertTrue(s.get('r04c2'),path)

@@ -114,7 +114,7 @@ def selection(paths):
         path.startswith('database/runtime/') for path in paths)
     offline_only = r06_offline and set(paths) <= R06_OFFLINE_FILES | R06B1_FILES | R06_WIRING
     r04c1 = bool(set(paths) & R04C1_FILES) or any(path.startswith(('src/Modules/Inventory/','web/src/ui01/runtime/MaterialRelease')) for path in paths)
-    r04c2 = bool(set(paths) & R04C2_FILES) or any(path.startswith(('src/Modules/Inventory/','web/src/ui01/runtime/Material')) for path in paths) or 'src/Modules/Workshop/Enginia360.Workshop/InstallationEndpoints.cs' in paths
+    r04c2 = bool(set(paths) & (R04C2_FILES | {'web/src/ui01/runtime/WorkshopRuntime.tsx','web/src/ui01/runtime/runtime.css'})) or any(path.startswith(('src/Modules/Inventory/','web/src/ui01/runtime/Material')) for path in paths) or 'src/Modules/Workshop/Enginia360.Workshop/InstallationEndpoints.cs' in paths
     auth = ui = ui01b = r03a = r04a = r04c1 or r04c2
     r03b = r03c = r03c_full = False
     r06_offline = r06_offline or r04c1 or r04c2
