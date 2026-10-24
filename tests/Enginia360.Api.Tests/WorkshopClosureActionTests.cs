@@ -184,4 +184,93 @@ public sealed class WorkshopClosureActionTests
         Assert.DoesNotContain(request.ToString(), raw);
         Assert.DoesNotContain("already_requested", raw);
     }
+
+    private static Task Dispatch(NpgsqlDataSource admin, WorkshopClosureSnapshotTests.Scope scope, Guid request, string state) =>
+        Exec(admin, """
+            INSERT INTO integrations.administrative_dispatches ("RequestId","TenantId","State","Attempts","LastAttemptAt","NextAttemptAt","LeaseUntil","LastError","UpdatedAt","Failures")
+            VALUES (@request,@tenant,@state,4,clock_timestamp(),clock_timestamp(),NULL,NULL,clock_timestamp(),CASE WHEN @state='NeedsReconciliation' THEN 4 ELSE 0 END)
+            """, ("request", request), ("tenant", scope.Tenant), ("state", state));
+
+    private static Task Outcome(NpgsqlDataSource admin, WorkshopClosureSnapshotTests.Scope scope, Guid request, bool confirmed) =>
+        Exec(admin, "INSERT INTO workshop.administrative_outcomes VALUES (@request,@tenant,@status,@reference,@code,clock_timestamp())",
+            ("request", request), ("tenant", scope.Tenant), ("status", confirmed ? "Confirmed" : "Rejected"),
+            ("reference", confirmed ? "AMM-SIM-000001" : DBNull.Value), ("code", confirmed ? DBNull.Value : "synthetic_refusal"));
+
+    [RuntimePostgreSqlTheory]
+    [InlineData(1)]
+    [InlineData(4)]
+    public async Task Reconciliation_may_be_attempted_only_for_needs_reconciliation_with_read_reconcile_grants_and_capability(int poolSize)
+    {
+        await using var admin = Admin();
+        var ok = await WorkshopClosureSnapshotTests.Seed(admin, "workshop.orders.read", "workshop.administrative-requests.read", "workshop.administrative-requests.reconcile");
+        await Dispatch(admin, ok, await Closed(admin, ok, request: true), "NeedsReconciliation");
+        var queued = await WorkshopClosureSnapshotTests.Seed(admin, "workshop.orders.read", "workshop.administrative-requests.read", "workshop.administrative-requests.reconcile");
+        await Dispatch(admin, queued, await Closed(admin, queued, request: true), "Uncertain");
+        var noGrant = await WorkshopClosureSnapshotTests.Seed(admin, "workshop.orders.read", "workshop.administrative-requests.read");
+        await Dispatch(admin, noGrant, await Closed(admin, noGrant, request: true), "NeedsReconciliation");
+        var off = await WorkshopClosureSnapshotTests.Seed(admin, "workshop.orders.read", "workshop.administrative-requests.read", "workshop.administrative-requests.reconcile");
+        await Dispatch(admin, off, await Closed(admin, off, request: true), "NeedsReconciliation");
+        await Exec(admin, "UPDATE organization_access.capability_activations SET \"Enabled\"=false WHERE \"LegalEntityId\"=@company AND \"Capability\"='external-administration'", ("company", off.Company));
+        using var factory = new ClosureApiFactory(poolSize);
+        var granted = (await Read(factory, ok)).Body;
+        Assert.True(granted.GetProperty("mayRequestReconciliation").GetBoolean());
+        Assert.Empty(Reasons(granted, "reconcile"));
+        Assert.Equal(["reconciliation_not_available"], Reasons((await Read(factory, queued)).Body, "reconcile"));
+        Assert.Equal(["not_authorized"], Reasons((await Read(factory, noGrant)).Body, "reconcile"));
+        var disabled = (await Read(factory, off)).Body;
+        Assert.True(disabled.GetProperty("canReadAdministrativeState").GetBoolean()); // history stays readable with the capability off
+        Assert.Equal(["capability_disabled"], Reasons(disabled, "reconcile"));
+        foreach (var scope in new[] { queued, noGrant, off })
+            Assert.False((await Read(factory, scope)).Body.GetProperty("mayRequestReconciliation").GetBoolean());
+    }
+
+    [RuntimePostgreSqlTheory]
+    [InlineData(1)]
+    [InlineData(4)]
+    public async Task Administrative_closure_needs_a_workshop_confirmed_outcome_never_a_completed_delivery_alone(int poolSize)
+    {
+        await using var admin = Admin();
+        var grants = new[] { "workshop.orders.read", "workshop.administrative-requests.read", "workshop.orders.complete-administrative" };
+        var confirmed = await WorkshopClosureSnapshotTests.Seed(admin, grants);
+        var confirmedRequest = await Closed(admin, confirmed, request: true);
+        await Dispatch(admin, confirmed, confirmedRequest, "Completed"); await Outcome(admin, confirmed, confirmedRequest, confirmed: true);
+        var lagging = await WorkshopClosureSnapshotTests.Seed(admin, grants);
+        await Dispatch(admin, lagging, await Closed(admin, lagging, request: true), "Completed");
+        var rejected = await WorkshopClosureSnapshotTests.Seed(admin, grants);
+        var rejectedRequest = await Closed(admin, rejected, request: true);
+        await Dispatch(admin, rejected, rejectedRequest, "Rejected"); await Outcome(admin, rejected, rejectedRequest, confirmed: false);
+        var noGrant = await WorkshopClosureSnapshotTests.Seed(admin, "workshop.orders.read", "workshop.administrative-requests.read");
+        var noGrantRequest = await Closed(admin, noGrant, request: true);
+        await Dispatch(admin, noGrant, noGrantRequest, "Completed"); await Outcome(admin, noGrant, noGrantRequest, confirmed: true);
+        var done = await WorkshopClosureSnapshotTests.Seed(admin, grants);
+        var doneRequest = await Closed(admin, done, request: true);
+        await Dispatch(admin, done, doneRequest, "Completed"); await Outcome(admin, done, doneRequest, confirmed: true);
+        await Exec(admin, "INSERT INTO workshop.administrative_closures VALUES (@order,@id,@tenant,@request,'AMM-SIM-000001',clock_timestamp(),@operator)",
+            ("order", done.Order), ("id", Guid.NewGuid()), ("tenant", done.Tenant), ("request", doneRequest), ("operator", done.Identity));
+        using var factory = new ClosureApiFactory(poolSize);
+        var yes = (await Read(factory, confirmed)).Body;
+        Assert.True(yes.GetProperty("canCompleteAdministrative").GetBoolean()); Assert.Empty(Reasons(yes, "completeAdministrative"));
+        var lag = (await Read(factory, lagging)).Body;
+        Assert.False(lag.GetProperty("canCompleteAdministrative").GetBoolean()); Assert.Equal(["external_confirmation_required"], Reasons(lag, "completeAdministrative"));
+        var refused = (await Read(factory, rejected)).Body;
+        Assert.False(refused.GetProperty("canCompleteAdministrative").GetBoolean()); Assert.Equal(["external_confirmation_required"], Reasons(refused, "completeAdministrative"));
+        Assert.Equal(["not_authorized"], Reasons((await Read(factory, noGrant)).Body, "completeAdministrative"));
+        var closed = (await Read(factory, done)).Body;
+        Assert.False(closed.GetProperty("canCompleteAdministrative").GetBoolean()); Assert.Equal(["already_closed"], Reasons(closed, "completeAdministrative"));
+    }
+
+    [RuntimePostgreSqlTheory]
+    [InlineData(1)]
+    [InlineData(4)]
+    public async Task Without_the_external_connector_only_technical_closure_is_available_and_the_runtime_is_unavailable(int poolSize)
+    {
+        await using var admin = Admin();
+        var scope = await WorkshopClosureSnapshotTests.Seed(admin, "workshop.orders.read", "workshop.orders.complete-technical", "workshop.administrative-requests.read");
+        using var factory = new ClosureApiFactory(poolSize, external: false);
+        var (body, _) = await Read(factory, scope);
+        Flags(body, read: false, technical: true, request: false, reconcile: false, administrative: false);
+        Assert.Equal(["route_unavailable"], Reasons(body, "readAdministrativeState"));
+        Assert.Equal("Unavailable", body.GetProperty("administrativeRuntime").GetProperty("kind").GetString());
+        Assert.Equal(0, body.GetProperty("administrativeRuntime").GetProperty("contractVersion").GetInt32());
+    }
 }
