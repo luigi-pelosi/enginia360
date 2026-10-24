@@ -76,7 +76,11 @@ R03C_MINIMAL = 'FullyQualifiedName~WorkshopClosure|FullyQualifiedName~Administra
 
 R06_OFFLINE_FILES = {'scripts/r06_inventory.py', 'scripts/r06_synthetic.py', 'scripts/r06_reconcile.py',
     'scripts/test-r06-inventory.py', 'scripts/test-r06-reconcile.py', 'scripts/test-r06-impact.py',
-    'docs/r06-migration-inventory.json', 'docs/r06-migration-inventory.md'}
+    'docs/r06-migration-inventory.json', 'docs/r06-migration-inventory.md',
+    'scripts/r06_readiness.py', 'scripts/test-r06-readiness.py', 'scripts/test-r06b2-impact.py',
+    'docs/r06-readiness-registry.json', 'docs/r06-recovery-runbook.md',
+    'docs/r06-restore-rehearsal.md', 'docs/productization-plan.md', 'docs/productization-backlog.json',
+    'docs/foundation/12-costs-and-operations.md'}
 # The existing changed-path guard must not assume every later increment is R03.a.
 # Its standalone changes still use R03.a acceptance; only this finite offline set is exempt.
 R06_WIRING = {'scripts/select-ci-impact.py', '.github/workflows/ci.yml', 'scripts/test-r03a-impact.py'}

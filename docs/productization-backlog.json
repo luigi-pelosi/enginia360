@@ -114,7 +114,8 @@
     "gate": "OPE01–OPE05, responsabili, validazioni specialistiche e target effettivo; go-live/dati reali/acquisti/ambiente persistente richiedono incarico separato.",
     "slices": [
       "R06.a: inventario e mapping di migrazione senza estrarre dati reali, prova import/export con dataset sintetico e riconciliazione.",
-      "R06.b: rehearsal effimero completo, backup/restore e rollback misurati, runbook e checklist con evidenze e gap."
+      "R06.b: rehearsal effimero completo, backup/restore e rollback misurati, runbook e checklist con evidenze e gap.",
+      "R06.b.2: registro evidenze OPE01–OPE05 e runbook con guardie offline; gate operativi OPEN, parent #46 aperta, nessuna readiness o approvazione nuova."
     ],
     "criteria": "Conteggi/provenienze/importi/stock riconciliati secondo autorità approvata, retry migrazione senza duplicati, entrambi i profili esterno/interno preservati; sicurezza/API/UI/build/audit/Compose/smoke e CI exact-head/main solo se eseguite; relazione readiness non equivale a rilascio operativo."
   }

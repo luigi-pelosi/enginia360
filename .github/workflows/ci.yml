@@ -44,7 +44,7 @@ jobs:
       - name: Initialize private impact scratch directory
         run: printf 'TMPDIR=%s\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
       - name: Verify impact selection and direct runtime contracts
-        run: python3 scripts/test-ci-impact.py && python3 scripts/test-ui01b-impact.py && python3 scripts/test-r03a-impact.py && python3 scripts/test-r03a2-impact.py && python3 scripts/test-r04a-impact.py && python3 scripts/test-r04c1-impact.py && python3 scripts/test-r04c1-guard-mutation.py && python3 scripts/test-r06b1-impact.py && python3 scripts/test-r06b1-guards.py && python3 scripts/test-r03b-impact.py && python3 scripts/test-r03c-impact.py && python3 scripts/test-r03b-migration.py && python3 scripts/test-r03a-contract.py && python3 scripts/test-ui01b-wiring.py && python3 scripts/test-r00a-ci.py && python3 scripts/test-r00b-migration-tls.py && python3 scripts/test-r00b-lifecycle.py && python3 scripts/test-ci-runtime.py && python3 scripts/test-c00-consistency.py && python3 scripts/test-productization-consistency.py
+        run: python3 scripts/test-ci-impact.py && python3 scripts/test-ui01b-impact.py && python3 scripts/test-r03a-impact.py && python3 scripts/test-r03a2-impact.py && python3 scripts/test-r04a-impact.py && python3 scripts/test-r04c1-impact.py && python3 scripts/test-r04c1-guard-mutation.py && python3 scripts/test-r06b1-impact.py && python3 scripts/test-r06b2-impact.py && python3 scripts/test-r06b1-guards.py && python3 scripts/test-r03b-impact.py && python3 scripts/test-r03c-impact.py && python3 scripts/test-r03b-migration.py && python3 scripts/test-r03a-contract.py && python3 scripts/test-ui01b-wiring.py && python3 scripts/test-r00a-ci.py && python3 scripts/test-r00b-migration-tls.py && python3 scripts/test-r00b-lifecycle.py && python3 scripts/test-ci-runtime.py && python3 scripts/test-c00-consistency.py && python3 scripts/test-productization-consistency.py
       - name: Select exact changed-file impact
         id: selection
         env:
@@ -64,8 +64,8 @@ jobs:
     timeout-minutes: 3
     steps:
       - uses: actions/checkout@v4
-      - name: Offline inventory and synthetic reconciliation only
-        run: python3 -I scripts/test-r06-impact.py && python3 -I scripts/test-r06-inventory.py && python3 -I scripts/test-r06-reconcile.py
+      - name: Offline inventory, reconciliation and readiness registry (not operational approval)
+        run: python3 -I scripts/test-r06-impact.py && python3 -I scripts/test-r06-inventory.py && python3 -I scripts/test-r06-reconcile.py && python3 -I scripts/test-r06b2-impact.py && python3 -I scripts/test-r06-readiness.py && python3 -I scripts/r06_readiness.py
   affected-api:
     needs: impact
     if: needs.impact.outputs.api_filter != ''

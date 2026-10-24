@@ -1,5 +1,7 @@
 # Productizzazione finita — P00 / UI01 / R00–R06
 
+**Stato corrente R06.b.2:** R06.a.1 (PR #77) e R06.b.1 (PR #81) consegnate nei limiti sintetici; [registro OPE OPEN](r06-readiness-registry.json) e [runbook/decisioni residue](r06-recovery-runbook.md). #46 resta aperta: vero import/export con replay, target operativo, off-host, identity e validazioni specialistiche non provati. Nessuna readiness o go-live; nessuna nuova approvazione.
+
 ## Stato e autorizzazione
 
 22 ottobre 2026. D74 (sviluppo), D75 (Giobby/esclusione SAP), D76 (direzione e scope), D77 (primo accesso offline/delega limitata) sono le decisioni attive. Sviluppo autonomo autorizzato fino a R06 per operatività officina pilota con amministrazione ERP esterna; capability contabile interna preservata, non deprecata. P00 (documenti/test, nessun codice applicativo), UI01.a isolata e R00.a/R00.b sono consegnate; R00 #40 chiusa dopo readback CI e smoke bootstrap read-only. R01.a #56 è consegnata; R01.b #58 implementa il percorso limitato D77 con verifiche/delivery tracciate nella PR/issue e nel [contratto operativo](r01b-limited-grant-administration.md). UI01.b resta separata. Nessun go-live. Baseline storica C00 `2ba4d273686854870b1a7806103bf1c096fcd0be`, CI 39592416386 success.
@@ -108,11 +110,13 @@ La matrice strutturata `productization-backlog.json` è verificata dal test C00 
 - Gate: OPE01–OPE05, responsabili, validazioni specialistiche e target effettivo; go-live/dati reali/acquisti/ambiente persistente richiedono incarico separato.
 - R06.a: inventario e mapping di migrazione senza estrarre dati reali, prova import/export con dataset sintetico e riconciliazione.
 - R06.b: rehearsal effimero completo, backup/restore e rollback misurati, runbook e checklist con evidenze e gap.
+- R06.b.2: registro evidenze OPE01–OPE05 e runbook con guardie offline; gate operativi OPEN, parent #46 aperta, nessuna readiness o approvazione nuova.
+- R06.a.1 #76 / PR #77: inventario e matching sintetici consegnati; non roundtrip import/export o idempotenza d'import. R06.b.1 #80 / PR #81: restore effimero single-host consegnato, IdP superstite e gate dispatcher temporaneo espliciti; non off-host/IdP DR/RPO/RTO. R06.b.2 #82 raccoglie registro e runbook, non chiude R06 o i residui OPE/specialistici.
 - Accettazione/evidenze: Conteggi/provenienze/importi/stock riconciliati secondo autorità approvata, retry migrazione senza duplicati, entrambi i profili esterno/interno preservati; sicurezza/API/UI/build/audit/Compose/smoke e CI exact-head/main solo se eseguite; relazione readiness non equivale a rilascio operativo.
 
 ## Tracking GitHub verificato
 
-Project privato esistente n. 3 riutilizzato (nessun nuovo Project). P00 #39, UI01.a #49, R00 #40 e sue sottoissue sono consegnate; #41/R01.a #56 è il WIP corrente. UI01 #5 resta aperta per UI01.b; #37 resta differita. La tabella è una mappa stabile, non una copia immutabile dello stato live: transizioni, SHA e readback sono evidenze nei thread GitHub. R02–R06 conservano le dipendenze e Backlog.
+Project privato esistente n. 3 riutilizzato (nessun nuovo Project). La tabella è una mappa stabile degli ID, non lo stato live: riferimenti P00/UI01/R00/R01 iniziali conservati nelle rispettive issue; transizioni e SHA nei thread GitHub. Per R06: #76/PR #77 e #80/PR #81 consegnate, #82 è il subincremento R06.b.2; #46 resta aperta. UI01 #5 resta aperta per i residui, #37 differita. Non dedurre il completamento di R02–R06 da questa mappa.
 
 | ID | Issue | Dipendenze |
 | --- | --- | --- |

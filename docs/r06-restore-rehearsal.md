@@ -1,5 +1,7 @@
 # R06.b.1 — rehearsal di restore current-runtime (sintetico, effimero)
 
+**Stato corrente R06.b.2:** prova tecnica R06.b.1 consegnata (PR #81); [registro OPE OPEN](r06-readiness-registry.json) e [runbook/limiti correnti](r06-recovery-runbook.md). Parent #46 aperta; nessuna readiness operativa. Le sezioni sotto conservano l'evidenza storica e il contratto della prova.
+
 Refs #80, parent #46 (resta aperta). **Prova tecnica opt-in su un singolo host, dati sintetici; non è una procedura di backup di produzione, non approva migrazione, go-live, dati reali né eleggibilità di tabelle.** La classificazione R06.a.1 resta `UNDECIDED`.
 
 ## Cosa fa

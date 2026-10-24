@@ -1,0 +1,199 @@
+{
+  "version": 1,
+  "purpose": "ACTUAL",
+  "requirements": [
+    {
+      "id": "OPE01",
+      "remit": "Dominio e spesa, proprietario",
+      "condition": "Prima di qualsiasi acquisto: nome/estensione/registrar, prezzo iniziale e rinnovo, IVA/extra e autorizzazione esplicita; controllo DNS prima dell'accesso pubblico tramite dominio"
+    },
+    {
+      "id": "OPE02",
+      "remit": "Identity, responsabile tecnico e proprietario",
+      "condition": "B00 e scope prima di implementare B01; risorse, trasporto protetto, protocolli/MFA, revoca, recupero e manutenzione verificati prima di completare B01; nessun login reale sul bootstrap HTTP anonimo"
+    },
+    {
+      "id": "OPE03",
+      "remit": "Backup, responsabile da assegnare dal proprietario",
+      "condition": "Destinazione, quote, cifratura/chiavi, checkpoint giornaliero, retention e guasti da definire prima dell'uso dello stato persistente della demo; ripristino end-to-end misurato prima di completare B14 e prima del pilota con dati reali"
+    },
+    {
+      "id": "OPE04",
+      "remit": "Allarmi/manutenzione, proprietario assegna i ruoli residui",
+      "condition": "Prima della messa in servizio: fuso/festività/fine fascia, estremi RTO, canali SMTP e ricezione verificata; assegnare controllo backup, patch host/container e amministrazione identity senza estendere implicitamente D50"
+    },
+    {
+      "id": "OPE05",
+      "remit": "Target e costi pilota, proprietario",
+      "condition": "Prima del pilota: paese/contratti del target e destinazioni dati pertinenti, quote/costi effettivi e capacità, risorse di recupero e test; nessuna deroga UE dedotta da D54"
+    }
+  ],
+  "parent": {
+    "issue": 46,
+    "state": "OPEN"
+  },
+  "gates": [
+    {
+      "id": "OPE01",
+      "state": "OPEN",
+      "target": null,
+      "scope": null,
+      "proof_ids": [],
+      "approval_ids": []
+    },
+    {
+      "id": "OPE02",
+      "state": "OPEN",
+      "target": null,
+      "scope": null,
+      "proof_ids": [],
+      "approval_ids": []
+    },
+    {
+      "id": "OPE03",
+      "state": "OPEN",
+      "target": null,
+      "scope": null,
+      "proof_ids": [],
+      "approval_ids": []
+    },
+    {
+      "id": "OPE04",
+      "state": "OPEN",
+      "target": null,
+      "scope": null,
+      "proof_ids": [],
+      "approval_ids": []
+    },
+    {
+      "id": "OPE05",
+      "state": "OPEN",
+      "target": null,
+      "scope": null,
+      "proof_ids": [],
+      "approval_ids": []
+    }
+  ],
+  "evidence": [
+    {
+      "id": "R06.a.1",
+      "kind": "synthetic",
+      "target": "offline-synthetic-probes",
+      "scope": "matching-only-not-import",
+      "pr": 77,
+      "pr_url": "https://github.com/luigi-pelosi/enginia360/pull/77",
+      "head": "03bed79af6ffd9a6495c09dbeaafc1ae185a9a9c",
+      "head_url": "https://github.com/luigi-pelosi/enginia360/commit/03bed79af6ffd9a6495c09dbeaafc1ae185a9a9c",
+      "merge": "fe6ea5c1403056b4069f57ecd8050cb7f65c80a9",
+      "merge_url": "https://github.com/luigi-pelosi/enginia360/commit/fe6ea5c1403056b4069f57ecd8050cb7f65c80a9",
+      "tree": "d03cf6b58ef951d5f80fc00cbdfa8a8c504cc4b7",
+      "tree_url": "https://github.com/luigi-pelosi/enginia360/tree/d03cf6b58ef951d5f80fc00cbdfa8a8c504cc4b7",
+      "verification_url": "https://github.com/luigi-pelosi/enginia360/issues/46#issuecomment-6381666054",
+      "runs": [
+        {
+          "id": 40075451477,
+          "head": "03bed79af6ffd9a6495c09dbeaafc1ae185a9a9c",
+          "event": "pull_request",
+          "conclusion": "success",
+          "url": "https://github.com/luigi-pelosi/enginia360/actions/runs/40075451477",
+          "successful_jobs": [
+            "affected-r06-offline",
+            "impact"
+          ]
+        }
+      ],
+      "claims": [
+        "manifest-inventory",
+        "deterministic-probes",
+        "in-memory-reconciliation"
+      ],
+      "exclusions": [
+        "import-export-roundtrip",
+        "migration-import-idempotence",
+        "fiscal-validity",
+        "operational-readiness"
+      ]
+    },
+    {
+      "id": "R06.b.1",
+      "kind": "synthetic",
+      "target": "ephemeral-single-host-surviving-idp",
+      "scope": "all-table-restore-paused-dispatcher-not-DR",
+      "pr": 81,
+      "pr_url": "https://github.com/luigi-pelosi/enginia360/pull/81",
+      "head": "da332f36985b37bd0d5396e214815e2f8bdcd792",
+      "head_url": "https://github.com/luigi-pelosi/enginia360/commit/da332f36985b37bd0d5396e214815e2f8bdcd792",
+      "merge": "1761688f4710c373179f5d6087999d13744a3f26",
+      "merge_url": "https://github.com/luigi-pelosi/enginia360/commit/1761688f4710c373179f5d6087999d13744a3f26",
+      "tree": "bc7b9d606e51cd54f9af810b34a4300c96922dab",
+      "tree_url": "https://github.com/luigi-pelosi/enginia360/tree/bc7b9d606e51cd54f9af810b34a4300c96922dab",
+      "verification_url": "https://github.com/luigi-pelosi/enginia360/issues/46#issuecomment-6385112475",
+      "runs": [
+        {
+          "id": 40099590231,
+          "head": "da332f36985b37bd0d5396e214815e2f8bdcd792",
+          "event": "pull_request",
+          "conclusion": "success",
+          "url": "https://github.com/luigi-pelosi/enginia360/actions/runs/40099590231",
+          "successful_jobs": [
+            "affected-api",
+            "affected-r06-offline",
+            "affected-ui",
+            "impact"
+          ]
+        },
+        {
+          "id": 40099603224,
+          "head": "da332f36985b37bd0d5396e214815e2f8bdcd792",
+          "event": "workflow_dispatch",
+          "conclusion": "success",
+          "url": "https://github.com/luigi-pelosi/enginia360/actions/runs/40099603224",
+          "successful_jobs": [
+            "affected-api",
+            "affected-browser",
+            "affected-editor",
+            "affected-migrations",
+            "affected-r06-offline",
+            "affected-r06-restore",
+            "affected-ui",
+            "impact"
+          ]
+        }
+      ],
+      "claims": [
+        "custom-archive-hash-toc",
+        "fresh-cluster",
+        "strict-all-table-readback",
+        "ledger-catalog-prefix-checks",
+        "scratch-forward-fix",
+        "TERM-cleanup"
+      ],
+      "exclusions": [
+        "offhost",
+        "idp-disaster-recovery",
+        "RPO",
+        "RTO",
+        "PITR",
+        "SLA",
+        "normal-active-dispatcher-recovery",
+        "SIGKILL-orchestrator-cleanup",
+        "production-backup",
+        "fiscal-validity",
+        "migration-import-idempotence"
+      ]
+    }
+  ],
+  "approvals": [],
+  "summary": {
+    "parent_state": "OPEN",
+    "r06_complete": false,
+    "operational_ready": false,
+    "ope_states": {
+      "OPE01": "OPEN",
+      "OPE02": "OPEN",
+      "OPE03": "OPEN",
+      "OPE04": "OPEN",
+      "OPE05": "OPEN"
+    }
+  }
+}
