@@ -84,10 +84,11 @@ Log durevoli in scratch `r04c2-logs/`:
 | UI401/403 scarta advisory autorizzante vecchio | 39: pulsante rimasto abilitato | 41 e successive |
 | Residuo tecnico sottrae anche installazione Pending | 40: 1 invece di 0.5 | 45/47 |
 | Audit tecnico indica ricevuta committed | 43: ID ricevuta assente | 45/47 |
+| GET installazioni non mescola resi vecchi e installazioni nuove | 54: installed1/remaining1 incoerenti dopo return1+install1 | 55: snapshot unico RepeatableRead, barriera SQL fisica |
 
 12 e 15 erano **errori di fixture**, non RED; riparati prima dei validi 13/16. 44 era errore del test nel riaprire il pannello (toggle same-document già aperto), non difetto del comando; corretto con reload autorevole. Impact RED 02 contiene sia rifiuti fail-closed/mancanza selection-job, sia file non ancora presenti: non è prova della feature business. Mutation guard: rimozione job/output/pool1/TERM, dispatch boundary, mapping migration, tabella/classificazione/eleggibilità/ownership devono fallire; control non mutato verde. Il guard D81 conserva unico registro D1–D81.
 
-Prove latest locali: pool4 53 (15 named browser checks) e pool1 50 (13), readback SQL anche dei downstream interni/esterni; lifecycle TERM 48 con Chromium e lock SQL vivi; migrazioni fixture-free/restart/hardening/RLS/pool 49 (34 Python + 13 .NET, zero skip); build/typecheck/UI affected/audit 51 (141 pass) e API affected/publish/NuGet audit 52 (113 pass, 13 runtime skip: non contati come pass; job runtime espliciti obbligatori). Warning Vite di direttive dependency preesistenti conservati, npm audit zero vulnerabilità. Il simulatore è isolato e confronta summary persistito: non è Giobby né compatibilità API provider.
+Prove latest locali: pool4 55 (16 named browser checks) e pool1 50 (13), readback SQL anche dei downstream interni/esterni; lifecycle TERM 48 con Chromium e lock SQL vivi; migrazioni fixture-free/restart/hardening/RLS/pool 49 (34 Python + 13 .NET, zero skip); build/typecheck/UI affected/audit 51 (141 pass) e API affected/publish/NuGet audit 52 (113 pass, 13 runtime skip: non contati come pass; job runtime espliciti obbligatori). Warning Vite di direttive dependency preesistenti conservati, npm audit zero vulnerabilità. Il simulatore è isolato e confronta summary persistito: non è Giobby né compatibilità API provider.
 
 ## Gate di consegna e limiti
 

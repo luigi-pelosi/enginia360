@@ -394,6 +394,15 @@ async function control(action) {
                 const otherReserve=()=>post(page,other.b+"/reservations",{id:crypto.randomUUID(),warehouseId:ctx.warehouseId,quantity:"1",catalogVersion:8});
                 assert.deepEqual(statuses(await ordered(shared,...(reverse?[otherReserve,ret(shared)]:[ret(shared),otherReserve]),"stock")),reverse?[409,201]:[201,201],"shared physical stock pool across OTHER orders, both arrivals");
             }
+            {
+                const readCase=await fresh({lineQuantity:"2",quantity:"2"});
+                await control("hold-return-read");const inFlight=get(page,readCase.ip);await control("wait-lock:1");
+                assert.equal((await ret(readCase,"1")()).status,201);assert.equal((await install(readCase,"1")()).status,201);
+                await control("release-lock");const projected=await inFlight;assert.equal(projected.status,200);
+                assert([["0","2"],["1","0"]].some(([installed,remaining])=>projected.value.installed===installed&&projected.value.remainingToInstall===remaining),"installation GET must not mix an old returned quota with later installations: "+JSON.stringify(projected));
+                await control("restore-return-read");
+                pass("owning installation GET uses one coherent snapshot while return and installation commit between its source queries");
+            }
             pass("real separate physical SQL barriers BOTH serializations return/return/sameUUID/install+Pending/release/reserve/shared-pool-other-order/P2/remove/technicalclosure");
         }
         await control("race-stock");

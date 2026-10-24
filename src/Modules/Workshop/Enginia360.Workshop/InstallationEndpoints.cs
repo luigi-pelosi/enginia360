@@ -144,7 +144,8 @@ internal static class InstallationEndpoints
             return Results.NotFound();
         List<InstalledPart> rows;
         decimal returned;
-        await using (var tx = await db.Database.BeginTransactionAsync(ct))
+        // Compensation and persisted installations must describe the same snapshot.
+        await using (var tx = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.RepeatableRead, ct))
         {
             await SetTenant(db, pick.TenantId, ct);
             returned = await db.Database.SqlQuery<decimal>($"SELECT inventory.pick_returned({pick.TenantId},{pickId}) AS \"Value\"").SingleAsync(ct);

@@ -377,7 +377,7 @@ BEGIN; SET LOCAL session_replication_role=replica; INSERT INTO inventory.new_par
                             other = fixture["deniedContexts"][0]
                             t, c = ctx["tenantId"], other["legalEntityId"]
                             run(query, input=f"SET ROLE runtime_owner; BEGIN; SELECT set_config('app.tenant_id','{t}',true); SELECT organization_access.establish_stock_profile('{uuid.uuid4()}','{t}','{c}','{fixture['adminMembershipId']}','{uuid.uuid4()}','ExternalToEnginia360','{uuid.uuid4()}','{uuid.uuid4()}'); COMMIT;")
-                        elif action == "hold-stock" or action.startswith(("hold-line:", "hold-order:")):
+                        elif action in ("hold-stock","hold-return-read") or action.startswith(("hold-line:", "hold-order:")):
                             holder = subprocess.Popen(
                                 query + ["-f", "-"],
                                 stdin=subprocess.PIPE,
@@ -385,7 +385,11 @@ BEGIN; SET LOCAL session_replication_role=replica; INSERT INTO inventory.new_par
                                 text=True,
                             )
                             holders.append(holder)
-                            if action == "hold-stock":
+                            if action == "hold-return-read":
+                                run(query,input='''CREATE SEQUENCE inventory.synthetic_return_read_sequence; GRANT USAGE,SELECT ON SEQUENCE inventory.synthetic_return_read_sequence TO runtime_app;
+CREATE OR REPLACE FUNCTION inventory.pick_returned(tenant uuid,pick uuid) RETURNS numeric LANGUAGE plpgsql VOLATILE SECURITY INVOKER SET search_path=pg_catalog,inventory AS $$ DECLARE q numeric; BEGIN SELECT coalesce(sum("Quantity"),0) INTO q FROM inventory.new_part_returns WHERE "TenantId"=tenant AND "PickId"=pick AND tenant::text=current_setting('app.tenant_id',true); IF nextval('inventory.synthetic_return_read_sequence')=1 THEN PERFORM pg_advisory_xact_lock(hashtextextended('inventory:synthetic:return-read',0)); END IF; RETURN q; END $$;''')
+                                lock="BEGIN; SELECT pg_advisory_lock(hashtextextended('inventory:synthetic:return-read',0));"
+                            elif action == "hold-stock":
                                 lock = f"""BEGIN; SELECT "Physical" FROM inventory.stock WHERE "TenantId"='{ctx["tenantId"]}' AND "WarehouseId"='{ctx["warehouseId"]}' AND "CatalogItemId"='{data["partId"]}' FOR UPDATE;"""
                             elif action.startswith("hold-order:"):
                                 order = str(uuid.UUID(action.split(":")[1]))
@@ -427,6 +431,11 @@ BEGIN; SET LOCAL session_replication_role=replica; INSERT INTO inventory.new_par
                                 f"PASS R04A PostgreSQL barrier observed {count} separate physical app connections",
                                 flush=True,
                             )
+                        elif action == "restore-return-read":
+                            import re
+                            original=re.search(r'CREATE FUNCTION inventory.pick_returned\(.*?\$\$;', (ROOT/'database/runtime/migrations/0024_new_part_returns.sql').read_text(),re.S)
+                            assert original
+                            run(query,input=original.group(0).replace('CREATE FUNCTION','CREATE OR REPLACE FUNCTION',1)+" DROP SEQUENCE inventory.synthetic_return_read_sequence;")
                         elif action == "release-lock":
                             holder.stdin.write("ROLLBACK;\n\\q\n")
                             holder.stdin.flush()
