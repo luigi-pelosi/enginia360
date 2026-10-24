@@ -293,6 +293,14 @@ class RunnerContractTests(unittest.TestCase):
         self.assertNotIn('run', names, 'binary archive cannot use the text-mode run helper')
         self.assertIn('verify_dump', names)
 
+    def test_restore_hands_the_remaining_archive_to_communicate_instead_of_closing_stdin_first(self):
+        # CI regression (older CPython): closing process.stdin and then communicate() raises 'flush of closed file'.
+        text = (ROOT/'scripts/run-r06b1-tests.py').read_text()
+        function = next(n for n in ast.parse(text).body if isinstance(n, ast.FunctionDef) and n.name == 'restore_cluster')
+        source = ast.get_source_segment(text, function)
+        self.assertNotIn('process.stdin.close()', source)
+        self.assertIn('communicate(input=', source)
+
     def test_destruction_removes_the_real_container_and_cleanup_uses_the_guarded_primitive(self):
         text = (ROOT/'scripts/run-r06b1-tests.py').read_text()
         tree = ast.parse(text)

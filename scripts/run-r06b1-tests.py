@@ -381,9 +381,7 @@ def restore_cluster(rig):
     process.stdin.flush()
     if HOLD == 'restore':
         hold_until_term('hold-restore')
-    process.stdin.write(payload[4096:])
-    process.stdin.close()
-    stdout, stderr = process.communicate(timeout=240)
+    stdout, stderr = process.communicate(input=payload[4096:], timeout=240)
     guard.stdin.write('\\q\n')
     guard.stdin.flush()
     guard.wait(timeout=10)
