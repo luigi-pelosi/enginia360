@@ -16,6 +16,7 @@ ROOT=Path(__file__).resolve().parents[1]
 R03A='--r03a' in sys.argv
 EDITOR='--editor' in sys.argv or R03A
 RUNNER=ROOT/('scripts/run-r03a-tests.py' if R03A else 'scripts/run-ui01b-tests.py' if EDITOR else 'scripts/run-r00b-tests.py')
+PROBE_DEADLINE_SECONDS=240
 MARKER=b'R03A_LIFECYCLE database-outage' if R03A else b'UI01B_LIFECYCLE database-outage' if EDITOR else b'R00B_LIFECYCLE database-outage'
 spec=importlib.util.spec_from_file_location('r00b_runner',RUNNER)
 assert spec is not None and spec.loader is not None
@@ -75,7 +76,7 @@ def actual_term_probe():
     before_running=set(runner.run(['docker','ps','-q','--no-trunc']).splitlines())
     process=subprocess.Popen([sys.executable,str(RUNNER)],cwd=ROOT,
         stdout=subprocess.PIPE,stderr=subprocess.STDOUT,bufsize=0)
-    deadline=time.monotonic()+240
+    deadline=time.monotonic()+PROBE_DEADLINE_SECONDS
     terminated=False
     pending=b''
     try:

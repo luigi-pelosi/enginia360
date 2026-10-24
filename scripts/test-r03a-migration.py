@@ -11,6 +11,7 @@ import unittest
 import uuid
 
 ROOT = Path(__file__).resolve().parents[1]
+manifest_count = str(len(json.loads((ROOT/'database/runtime/manifest.json').read_text())))
 spec = importlib.util.spec_from_file_location('migration_tests', ROOT/'scripts/test-r00-migrations.py')
 legacy = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(legacy)
@@ -69,7 +70,7 @@ class WorkspaceSqlTests(unittest.TestCase):
         data, orders, lines = self.seed_baseline()
         code, _, error = self.migrate()
         self.assertEqual(code, 0, error)
-        self.assertEqual(self.sql('SELECT count(*) FROM runtime_migrations.applied'), '22')
+        self.assertEqual(self.sql('SELECT count(*) FROM runtime_migrations.applied'), manifest_count)
         tenant = data['tenant']
         scope = f"SELECT set_config('app.tenant_id','{tenant}',false);"
         revisions = self.sql(scope+'SELECT "Id"::text||\'|\'||"CommercialRevision" FROM workshop.orders ORDER BY "Id"').splitlines()[1:]

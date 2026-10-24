@@ -38,13 +38,14 @@ internal static class PickingEndpoints
         var picks = await db.Picks.AsNoTracking().Where(x => x.ReservationId == reservationId && x.TenantId == member.TenantId)
             .OrderBy(x => x.Id).ToListAsync(ct);
         var picked = picks.Sum(x => x.Quantity);
+        var released = await db.Releases.Where(x => x.TenantId == member.TenantId && x.ReservationId == reservationId).SumAsync(x => x.Quantity, ct);
         var stockProfile = await InventoryModule.StockProfile(db, member.TenantId, reservation.LegalEntityId, ct);
         await tx.CommitAsync(ct);
         await tx.DisposeAsync();
         var canPick = stockProfile == "local" && await workshop.Authorize(Subject(user), reservation.LegalEntityId, reservation.SiteId, "workshop.orders.read", true, ct) is not null
             && await access.Authorize(Subject(user), reservation.LegalEntityId, reservation.SiteId, reservation.WarehouseId, "inventory.picks.create", true, ct);
         return Results.Ok(new PickingState(reservationId, InventoryModule.Value(reservation.Quantity), InventoryModule.Value(picked),
-            InventoryModule.Value(reservation.Quantity - picked), picks.Select(x => x.Contract()).ToArray(), canPick));
+            InventoryModule.Value(reservation.Quantity - released - picked), picks.Select(x => x.Contract()).ToArray(), canPick));
     }
 
     private static async Task<IResult> Pick(Guid orderId, Guid lineId, Guid reservationId, PickRequest request, ClaimsPrincipal user,
@@ -72,10 +73,21 @@ internal static class PickingEndpoints
         if (existing is not null)
             return existing.ReservationId == reservationId && existing.Quantity == quantity
                 ? Results.Ok(existing.Contract()) : Results.Conflict();
+        await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({orderId.ToString()}, 0))", ct);
+        var lineLock = $"inventory:line:{member.TenantId}:{lineId}";
+        await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({lineLock}, 0))", ct);
+        if (await db.Database.SqlQuery<ReservationLine>($"SELECT * FROM workshop.reservation_line({member.TenantId},{orderId},{lineId})").SingleOrDefaultAsync(ct) is null)
+            return Results.Conflict(new { code = "order_or_line_not_open" });
+        await db.Database.SqlQuery<decimal>($"""
+            SELECT "Physical" AS "Value" FROM inventory.stock WHERE "TenantId"={member.TenantId}
+            AND "LegalEntityId"={reservation.LegalEntityId} AND "SiteId"={reservation.SiteId}
+            AND "WarehouseId"={reservation.WarehouseId} AND "CatalogItemId"={reservation.CatalogItemId} FOR UPDATE
+            """).ToListAsync(ct);
         var reservationLock = $"inventory:pick:{member.TenantId}:{reservationId}";
         await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({reservationLock}, 0))", ct);
         var picked = await db.Picks.Where(x => x.TenantId == member.TenantId && x.ReservationId == reservationId).SumAsync(x => x.Quantity, ct);
-        if (quantity > reservation.Quantity - picked)
+        var released = await db.Releases.Where(x => x.TenantId == member.TenantId && x.ReservationId == reservationId).SumAsync(x => x.Quantity, ct);
+        if (quantity > reservation.Quantity - released - picked)
             return Results.Conflict(new { code = "exceeds_unpicked", message = "Quantità superiore al residuo prenotato da prelevare. Nessun prelievo eseguito." });
         var policy = await db.PickingPolicies.AsNoTracking().SingleOrDefaultAsync(x => x.TenantId == member.TenantId
             && x.LegalEntityId == reservation.LegalEntityId, ct);

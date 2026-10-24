@@ -13,6 +13,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 ROOT = Path(__file__).resolve().parents[1]
+manifest_count = str(len(json.loads((ROOT/'database/runtime/manifest.json').read_text())))
 CONFIG = ROOT / 'compose.r00b-test.yaml'
 # Pinned helper used only to apply container-side ownership; hosted runners cannot chown directly.
 OWNERSHIP_IMAGE = 'python:3.14.3-alpine3.23@sha256:faee120f7885a06fcc9677922331391fa690d911c020abb9e8025ff3d908e510'
@@ -186,7 +187,7 @@ def main():
             run(command+['up','-d','--wait','--wait-timeout','180','postgres','identity'],timeout=210)
             run(command+['run','--rm','--no-deps','-T','migrator'],timeout=90)
             query = command+['exec','-T','postgres','psql','-X','-qAt','-U','postgres','-d','runtime','-v','ON_ERROR_STOP=1']
-            assert run(query+['-c','SELECT count(*) FROM runtime_migrations.applied']).strip() == '22'
+            assert run(query+['-c','SELECT count(*) FROM runtime_migrations.applied']).strip() == manifest_count
             empty = """DO $$ DECLARE r record; n bigint; BEGIN FOR r IN SELECT schemaname,tablename FROM pg_tables WHERE schemaname NOT IN ('pg_catalog','information_schema','runtime_migrations') LOOP EXECUTE format('SELECT count(*) FROM %I.%I',r.schemaname,r.tablename) INTO n; IF n <> 0 THEN RAISE EXCEPTION 'business data before fixture'; END IF; END LOOP; END $$;"""
             run(query, input=empty)
             run(query, input=sql)

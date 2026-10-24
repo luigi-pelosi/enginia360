@@ -12,7 +12,9 @@ read = lambda path: (ROOT/path).read_text()
 class R03aContract(unittest.TestCase):
     def test_manifest_hashes_match_bytes_and_published_prefix_is_untouched(self):
         entries = json.loads(read('database/runtime/manifest.json'))
-        self.assertEqual(len(entries), 22)
+        self.assertGreaterEqual(len(entries), 23)
+        published = hashlib.sha256(json.dumps(entries[:22], sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+        self.assertEqual(published, 'c392e575f49498d0b46eb8dd6e1e2ece941f01540d58061491c73de909e8ed52')
         for entry in entries:
             self.assertEqual(hashlib.sha256((ROOT/'database/runtime'/entry['path']).read_bytes()).hexdigest(), entry['sha256'], entry['id'])
         digest = hashlib.sha256(json.dumps(entries[:17], sort_keys=True, separators=(',', ':')).encode()).hexdigest()
@@ -28,9 +30,10 @@ class R03aContract(unittest.TestCase):
         self.assertIn('FORCE ROW LEVEL SECURITY', text)
 
     def test_readiness_constants_and_suites_follow_the_manifest(self):
-        for path in ('scripts/run-r00a-tests.py', 'scripts/run-r00b-tests.py', 'scripts/run-ui01b-tests.py', 'scripts/run-r03a-tests.py'):
-            self.assertRegex(read(path), r"== ?'22'", path)
-            self.assertNotRegex(read(path), r"== ?'17'", path)
+        for path in ('scripts/run-r00a-tests.py', 'scripts/run-r00b-tests.py', 'scripts/run-ui01b-tests.py', 'scripts/run-r03a-tests.py', 'scripts/run-r03a2-tests.py'):
+            self.assertIn('manifest_count', read(path), path)
+            self.assertRegex(read(path), r'manifest_count\s*=\s*str\(len\(json.loads', path)
+            self.assertNotRegex(read(path), r"== ?'(17|22)'", path)
         self.assertIn('scripts/test-r03a-migration.py', read('scripts/run-r00a-tests.py'))
         self.assertIn('scripts/test-r03a-migration.py', read('migrator.runtime.Dockerfile'))
 

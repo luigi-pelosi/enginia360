@@ -1,5 +1,11 @@
 namespace Enginia360.Inventory.Contracts;
 
+[System.Text.Json.Serialization.JsonUnmappedMemberHandling(System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow)]
+public sealed record ReleaseRequest(Guid Id, string Quantity);
+public sealed record ReleaseState(Guid ReservationId, string Reserved, string Released, string RemainingReleasable,
+    IReadOnlyList<ReleaseContract> Releases, bool CanRelease);
+public sealed record ReleaseContract(Guid Id, Guid ReservationId, Guid OrderId, Guid LineId, Guid WorkingGroupId,
+    Guid WarehouseId, Guid CatalogItemId, int CatalogVersion, string Quantity, DateTimeOffset ReleasedAt, Guid OperatorId);
 public sealed record WarehouseChoice(Guid Id, string Name);
 public interface IInventoryAccess
 {

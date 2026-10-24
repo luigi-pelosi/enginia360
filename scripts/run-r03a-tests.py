@@ -14,6 +14,7 @@ import uuid
 from decimal import Decimal, ROUND_HALF_UP
 
 ROOT = Path(__file__).resolve().parents[1]
+manifest_count = str(len(json.loads((ROOT/'database/runtime/manifest.json').read_text())))
 spec = importlib.util.spec_from_file_location('r00_helpers', ROOT/'scripts/run-r00b-tests.py')
 r00 = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(r00)
@@ -100,7 +101,7 @@ def main():
             run(command+['up','-d','--wait','--wait-timeout','180','postgres','identity'],timeout=210)
             run(command+['run','--rm','--no-deps','-T','migrator'],timeout=90)
             query=command+['exec','-T','postgres','psql','-X','-qAt','-U','postgres','-d','runtime','-v','ON_ERROR_STOP=1']
-            assert run(query+['-c','SELECT count(*) FROM runtime_migrations.applied']).strip()=='22'
+            assert run(query+['-c','SELECT count(*) FROM runtime_migrations.applied']).strip()==manifest_count
             assert run(query+['-c','SELECT count(*) FROM workshop.orders']).strip()=='0'
             run(query,input=sql)
             run(command+['up','-d','api','web'],timeout=120)

@@ -90,6 +90,7 @@ La matrice strutturata `productization-backlog.json` è verificata dal test C00 
 - R04.a: rendere operabili prenotazione, picking, installazione/consumo e carcassa esistenti preservando D69–D73.
 - R04.b: fabbisogno → richiesta/ordine fornitore tecnico → ricevimento collegato, un effetto alla volta, secondo autorità e policy approvate.
 - R04.c: reso del nuovo o rilascio solo dopo policy esplicita, distinti dalla carcassa.
+- R04.c.1 / D80 (24 ottobre 2026): «Approvo A» risolve soltanto il rilascio parziale esplicito di una prenotazione mai prelevata su commessa aperta. Prenotati 2, rilascio 1: fisico invariato, impegno residuo 1, disponibilità +1 e quota riprenotabile; originale e commerciale invariati. Compensazione append-only, azione esatta distinta, nessuna nuova delega D77. Implementazione/prove necessarie; ricevimento, reso nuovo, rilascio dopo pick e dopo chiusura, undo installazione e automatismi restano esclusi. #44 e #5 restano aperte.
 - Accettazione/evidenze: Nessun doppio movimento o impegno e concorrenza reale; provenienza/residui verificabili, ricevimento non prova fattura passiva/pagamento; niente ordine reale al fornitore o acquisto; regression stock/restore e UI/API/SQL.
 
 ### R05 — Integrazione Giobby

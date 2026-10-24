@@ -15,6 +15,7 @@ import uuid
 from decimal import Decimal, ROUND_HALF_UP
 
 ROOT = Path(__file__).resolve().parents[1]
+manifest_count = str(len(json.loads((ROOT/'database/runtime/manifest.json').read_text())))
 spec = importlib.util.spec_from_file_location('r00_helpers', ROOT/'scripts/run-r00b-tests.py')
 r00 = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(r00)
@@ -132,7 +133,7 @@ def main():
             run(command+['up','-d','--wait','--wait-timeout','180','postgres','identity'],timeout=210)
             run(command+['run','--rm','--no-deps','-T','migrator'],timeout=90)
             query=command+['exec','-T','postgres','psql','-X','-qAt','-U','postgres','-d','runtime','-v','ON_ERROR_STOP=1']
-            assert run(query+['-c','SELECT count(*) FROM runtime_migrations.applied']).strip()=='22'
+            assert run(query+['-c','SELECT count(*) FROM runtime_migrations.applied']).strip()==manifest_count
             assert run(query+['-c','SELECT count(*) FROM workshop.orders']).strip()=='0'
             run(query,input=sql)
             run(command+['up','-d','api','web'],timeout=120)
@@ -162,7 +163,7 @@ def main():
                         elif action.startswith('wait-line:'):
                             required=int(action.split(':')[1]); stop=time.monotonic()+10
                             while True:
-                                count=int(run(query+['-c',f"SELECT count(DISTINCT w.pid) FROM pg_locks w JOIN pg_locks h ON (w.database,w.classid,w.objid,w.objsubid)=(h.database,h.classid,h.objid,h.objsubid) WHERE w.locktype='advisory' AND NOT w.granted AND h.granted AND h.pid={holder_pid}"]).strip())
+                                count=int(run(query+['-c',f"WITH RECURSIVE chain(pid,blocker) AS (SELECT pid,unnest(pg_blocking_pids(pid)) FROM pg_stat_activity WHERE usename='runtime_app' UNION SELECT chain.pid,unnest(pg_blocking_pids(chain.blocker)) FROM chain) SELECT count(DISTINCT pid) FROM chain WHERE blocker={holder_pid}"]).strip())
                                 if count>=required: break
                                 if time.monotonic()>stop: raise TimeoutError('expected PostgreSQL advisory waiters absent')
                                 time.sleep(0.02)
