@@ -4,6 +4,7 @@ const { chromium } = require("playwright");
 const fixture = JSON.parse(fs.readFileSync("/run/fixture.json", "utf8"));
 const origin = "https://app.r00.test:8443";
 const checks = [];
+const aSeeded = [];
 function pass(name) {
     checks.push(name);
     console.log("PASS R04A " + name);
@@ -34,6 +35,16 @@ async function post(page, path, body) {
         { path, body, token },
     );
 }
+async function rawPost(page, path, text, contentType) {
+    const token = (await get(page, "/auth/csrf")).value.requestToken;
+    return page.evaluate(async ({ path, text, contentType, token }) => {
+        const headers = { "X-CSRF-TOKEN": token };
+        if (contentType) headers["Content-Type"] = contentType;
+        const r = await fetch(path, { method: "POST", headers, body: text });
+        return { status: r.status };
+    }, { path, text, contentType, token });
+}
+const controlled4xx = (status, label) => assert(status >= 400 && status < 500, label + " must be a controlled 4xx, got " + status);
 async function control(action) {
     fs.writeFileSync("/run/control/request.tmp", action);
     fs.renameSync("/run/control/request.tmp", "/run/control/request");
@@ -176,8 +187,31 @@ async function control(action) {
         await Promise.all([reader.waitForURL(u=>u.hostname==="app.r00.test"),reader.locator("#kc-login").click()]);
         for(const scope of ["read","common","site","warehouse"]){await control("target-stock:"+scope);assert.equal((await get(reader,historyUrl)).value.canRelease,false);assert.equal((await post(reader,historyUrl,{id:crypto.randomUUID(),quantity:"0.1"})).status,403,scope);}
         await control("target-stock:exact");assert.equal((await get(reader,historyUrl)).value.canRelease,true);
+        for(const axis of ["company","site","warehouse"]){
+            await control("target-release:"+axis);
+            const h=await get(reader,historyUrl);
+            assert.equal(h.status,200,"read stays available with wrong "+axis);assert.equal(h.value.canRelease,false,"wrong "+axis);
+            assert.equal((await post(reader,historyUrl,{id:crypto.randomUUID(),quantity:"0.1"})).status,403,"release grant on wrong "+axis+" alone must not authorize");
+        }
         await control("target-stock:revoke");assert.equal((await post(reader,historyUrl,{id:crypto.randomUUID(),quantity:"0.1"})).status,403);
         await reader.close();
+        {
+            const stateUrl=base+`?warehouseId=${ctx.warehouseId}`;
+            const beforeHistory=(await get(page,historyUrl)).value, beforeStock=(await get(page,stateUrl)).value;
+            const bad=[["remaining overflow",{id:crypto.randomUUID(),quantity:"999999.999999"},409],["remaining+1 micro",{id:crypto.randomUUID(),quantity:"1.000001"},409],
+                ["zero q6",{id:crypto.randomUUID(),quantity:"0.000000"},400],["negative",{id:crypto.randomUUID(),quantity:"-0.5"},400],
+                ["7 decimals",{id:crypto.randomUUID(),quantity:"0.1234567"},400],["7 integer digits",{id:crypto.randomUUID(),quantity:"1000000.5"},400],
+                ["14 chars",{id:crypto.randomUUID(),quantity:"00000000000001"},400],["leading plus",{id:crypto.randomUUID(),quantity:"+1"},400],
+                ["trailing dot",{id:crypto.randomUUID(),quantity:"1."},400],["leading dot",{id:crypto.randomUUID(),quantity:".5"},400],
+                ["null quantity",{id:crypto.randomUUID(),quantity:null},400],["numeric quantity",{id:crypto.randomUUID(),quantity:1},400],
+                ["bad uuid",{id:"not-a-guid",quantity:"1"},400],["missing id",{quantity:"1"},400],["int64 overflow digits",{id:crypto.randomUUID(),quantity:"9223372036854775807"},400]];
+            for(const [label,body,expected] of bad) assert.equal((await post(page,historyUrl,body)).status,expected,label);
+            for(const [label,text,type] of [["empty body","","application/json"],["array","[]","application/json"],["json null","null","application/json"],["truncated json","{\"id\":","application/json"],["plain text","x","text/plain"]])
+                controlled4xx((await rawPost(page,historyUrl,text,type)).status,label);
+            controlled4xx((await post(page,base+`/reservations/${crypto.randomUUID()}/releases`,{id:crypto.randomUUID(),quantity:"1"})).status,"unknown reservation");
+            assert.deepEqual((await get(page,historyUrl)).value,beforeHistory,"rejected inputs leave no partial release row");
+            assert.deepEqual((await get(page,stateUrl)).value,beforeStock,"rejected inputs leave stock and reservation state unchanged");
+        }
         pass("strict q6/input UUID/payload replay, capability-off history/receipt, CSRF, exact independent read/common/site/warehouse scopes and revocation");
         const picksUrl=base+`/reservations/${reservationId}/picks`;
         assert.equal((await get(page,picksUrl)).value.remainingToPick,"1","release leaves exactly1 pickable");
@@ -209,6 +243,42 @@ async function control(action) {
         const releasePanel=page.getByRole("region",{name:"Rilascio prenotazione"});
         await releasePanel.getByLabel("Prenotazione da rilasciare").selectOption(freed);
         await releasePanel.getByText("Residuo mai prelevato rilasciabile: 1").waitFor();
+        {
+            const panelsOpen=async()=>page.locator(".ui01-panels > details[open]").count();
+            for(const name of ["Tempo effettivo mio","Chiusura e attesa amministrativa"]) await page.locator("summary",{hasText:name}).click();
+            assert.equal(await panelsOpen(),3,"all three material panels expanded");
+            const focused=(locator)=>locator.evaluate(e=>e===document.activeElement);
+            const select=releasePanel.getByLabel("Prenotazione da rilasciare"), input=releasePanel.getByLabel("Quantità da rilasciare");
+            const submit=releasePanel.getByRole("button",{name:"Rilascia quantità esplicita",exact:true}), reread=releasePanel.getByRole("button",{name:"Rileggi rilasci",exact:true});
+            for(const [width,height] of [[1920,1080],[1366,768]]){
+                await page.setViewportSize({width,height});
+                assert.equal(await panelsOpen(),3);
+                assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),"no horizontal page overflow at "+width);
+                const footerBox=await page.locator("footer").boundingBox();
+                assert(footerBox&&footerBox.y>=0&&footerBox.y+footerBox.height<=height+1,"sticky footer visible at "+width);
+                for(const [name,control] of [["select",select],["quantity",input],["release",submit],["reread",reread]]){
+                    await control.scrollIntoViewIfNeeded();
+                    const box=await control.boundingBox();
+                    assert(box&&box.x>=0&&box.x+box.width<=width&&box.y>=0&&box.y+box.height<=footerBox.y+1,"release "+name+" reachable above sticky footer at "+width+JSON.stringify([box,footerBox]));
+                }
+                const editorControl=page.locator(".ui01-group").first();
+                await editorControl.scrollIntoViewIfNeeded();
+                const editorBox=await editorControl.boundingBox();
+                assert(editorBox&&editorBox.y>=0&&editorBox.y<footerBox.y,"editor group reachable at "+width);
+                await select.focus();
+                await page.keyboard.press("Tab");assert(await focused(input),"Tab from reservation goes to quantity at "+width);
+                await page.keyboard.press("Tab");assert(await focused(submit),"Tab from quantity goes to release at "+width);
+                await page.keyboard.press("Tab");assert(await focused(reread),"Tab from release goes to reread at "+width);
+                await input.fill("0");await input.press("Enter");
+                await releasePanel.getByText("Quantità positiva con massimo 6 decimali.").waitFor();
+                assert(await focused(input),"invalid quantity returns focus to the field at "+width);
+                await page.screenshot({path:"/run/control/release-"+width+".png"});
+            }
+            await page.setViewportSize({width:1920,height:1080});
+            for(const name of ["Tempo effettivo mio","Chiusura e attesa amministrativa"]) await page.locator("summary",{hasText:name}).click();
+            assert.equal(await panelsOpen(),1);
+            pass("real release panel keyboard order, error focus, three panels expanded, editor/sticky footer reachable at 1920x1080 and 1366x768");
+        }
         await releasePanel.getByLabel("Quantità da rilasciare").fill("1");
         const envelopes=[];
         let dropped=false;
@@ -229,8 +299,47 @@ async function control(action) {
         const uiReceipt=JSON.parse(envelopes[0].body).id;
         assert.equal((await get(page,freeBase+`/reservations/${freed}/releases`)).value.releases.filter(r=>r.id===uiReceipt).length,1);
         pass("real release UI accepted-response loss freezes URL UUID body and ancestors; immutable retry one effect");
+        const freeHistoryUrl=freeBase+`/reservations/${freed}/releases`;
+        const uiReceiptRow=(await get(page,freeHistoryUrl)).value.releases.find(r=>r.id===uiReceipt);
+        assert(uiReceiptRow);
         const removed=await post(page,`/api/v1/workshop/orders/${order}/editor/commands`,{type:"RemoveLine",commandId:crypto.randomUUID(),expectedRevision:revision,expectedLinePolicyVersion:9,expectedStructurePolicyVersion:1,lineId:lines[1]});
         assert.equal(removed.status,200,"fully compensated never-picked Part removal must preserve history without false commitment fence: "+JSON.stringify(removed));
+        {
+            const replay=await post(page,freeHistoryUrl,{id:uiReceipt,quantity:"1.000000"});
+            assert.equal(replay.status,200);assert.deepEqual(replay.value,uiReceiptRow,"post-P2 replay returns the original immutable receipt");
+            assert.equal((await post(page,freeHistoryUrl,{id:uiReceipt,quantity:"0.5"})).status,409,"changed quantity for an accepted UUID conflicts");
+            assert.equal((await post(page,historyUrl,{id:uiReceipt,quantity:"1"})).status,409,"same UUID cannot be retargeted to another reservation");
+            assert([404,409].includes((await post(page,freeBase+`/reservations/${reservationId}/releases`,{id:uiReceipt,quantity:"1"})).status),"mismatched line/reservation path cannot retarget");
+            const after=(await get(page,freeHistoryUrl));
+            assert.equal(after.status,200);assert.deepEqual(after.value.releases,[uiReceiptRow]);assert.equal(after.value.remainingReleasable,"0");assert.equal(after.value.canRelease,false);
+            assert(!(await get(page,historyUrl)).value.releases.some(r=>r.id===uiReceipt),"no retargeted row under another reservation");
+            const stale=removed.value.appliedRevision;
+            for(const [label,expected] of [["max int32",2147483647],["int32 overflow",2147483648],["int64 max",9223372036854775807n],["negative",-1]]){
+                const r=await rawPost(page,`/api/v1/workshop/orders/${order}/editor/commands`,'{"type":"AddGroup","commandId":"'+crypto.randomUUID()+'","expectedRevision":'+expected+',"expectedLinePolicyVersion":9,"expectedStructurePolicyVersion":1,"groupId":"'+crypto.randomUUID()+'","title":"SYNTHETIC revision bound"}',"application/json");
+                controlled4xx(r.status,label);
+            }
+            assert.equal((await get(page,`/api/v1/workshop/orders/${order}/editor`)).value.revision,stale,"bad revisions leave the document unchanged");
+            pass("post-P2 old release UUID replays original receipt; changed/retargeted payload conflicts; max-revision overflow is controlled with no write");
+        }
+        {
+            const aOrder=crypto.randomUUID(),aLine=crypto.randomUUID(),aGroup=crypto.randomUUID(),aRes=crypto.randomUUID(),aRel=crypto.randomUUID();
+            const aUrl=`/api/v1/inventory/orders/${aOrder}/lines/${aLine}/reservations/${aRes}/releases`;
+            await control(`authority-seed:${aOrder}:${aLine}:${aGroup}:${aRes}:${aRel}`);
+            for(const mode of ["missing","external"]){
+                if(mode==="external") await control("authority-external");
+                const h=await get(page,aUrl);
+                assert.equal(h.status,200,mode+" authority keeps release history readable");assert.equal(h.value.canRelease,false,mode);
+                assert.equal(h.value.releases.length,1);assert.equal(h.value.released,"0.25");assert.equal(h.value.remainingReleasable,"0.75");
+                const denied=await post(page,aUrl,{id:crypto.randomUUID(),quantity:"0.1"});
+                assert.equal(denied.status,409,mode+" authority refuses release writes");assert.equal(denied.value.code,"stock_profile_"+mode);
+                const replay=await post(page,aUrl,{id:aRel,quantity:"0.25"});
+                assert.equal(replay.status,200);assert.deepEqual(replay.value,h.value.releases[0],mode+" exact replay of an accepted receipt stays readable");
+                assert.equal((await post(page,aUrl,{id:aRel,quantity:"0.1"})).status,409);
+                assert.deepEqual((await get(page,aUrl)).value,h.value,mode+" refusals wrote no ledger row");
+            }
+            pass("missing and external company stock authority refuse release writes while history and exact replay stay readable");
+            aSeeded.push(aRes);
+        }
         if(process.env.RELEASE_POOL==="4") {
             async function ordered(first,second){
                 await control("hold-line:"+lines[0]);
@@ -319,6 +428,6 @@ async function control(action) {
         assert(JSON.stringify(externalState).includes('Completed'),"actual isolated simulator must acknowledge pinned administrative snapshot after release flow");
         pass("cross-tenant invisibility/RLS-hidden UUID collision, external release consumer and actual simulator pinned snapshot");
         await foreign.close();
-        fs.writeFileSync("/run/control/result.json", JSON.stringify({order,groups,lines,reservationId,releaseId,primaryPickId,installId,carcassId,invoiceId,journalId,externalId,fo,fsnapshot,checks}));
+        fs.writeFileSync("/run/control/result.json", JSON.stringify({authorityReservations:aSeeded,order,groups,lines,reservationId,releaseId,primaryPickId,installId,carcassId,invoiceId,journalId,externalId,fo,fsnapshot,checks}));
     } finally { await browser.close(); }
 })().catch(e=>{console.error(e);process.exitCode=1;});

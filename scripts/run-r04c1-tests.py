@@ -353,6 +353,38 @@ INSERT INTO workshop.installations VALUES ('{installation}','{t}','{pick}','{res
                             if scope == "common":
                                 grant += f"INSERT INTO organization_access.common_edit_permissions VALUES ('{target}','{t}') ON CONFLICT DO NOTHING;"
                             run(query, input=grant)
+                        elif action.startswith("target-release:"):
+                            axis = action.split(":")[1]
+                            denied = fixture["deniedContexts"][{"company": 0, "site": 1, "warehouse": 2}[axis]]
+                            target = fixture["grantTargetMembershipId"]
+                            t, c, s, w = [ctx[k] for k in ("tenantId", "legalEntityId", "siteId", "warehouseId")]
+                            # Correct read scope; ONLY the release grant is moved along exactly one wrong axis.
+                            grant = f"DELETE FROM organization_access.company_permissions WHERE \"MembershipId\"='{target}' AND \"Permission\" LIKE 'inventory.%';"
+                            grant += f"INSERT INTO organization_access.company_permissions VALUES ('{uuid.uuid4()}','{target}','{t}','{c}','inventory.reservations.read','{s}','{w}');"
+                            grant += f"INSERT INTO organization_access.company_permissions VALUES ('{uuid.uuid4()}','{target}','{t}','{denied['legalEntityId']}','inventory.reservations.release','{denied['siteId']}','{denied['warehouseId']}');"
+                            if axis == "site":
+                                grant += f"INSERT INTO organization_access.company_permissions VALUES ('{uuid.uuid4()}','{target}','{t}','{c}','inventory.reservations.release','{denied['siteId']}',NULL);"
+                            assert (denied["legalEntityId"] != c) == (axis == "company")
+                            assert (denied["siteId"] != s) == (axis in ("company", "site"))
+                            assert denied["warehouseId"] != w
+                            run(query, input=grant)
+                        elif action.startswith("authority-seed:"):
+                            a_order, a_line, a_group, a_res, a_rel = [str(uuid.UUID(v)) for v in action.split(":")[1:]]
+                            other = fixture["deniedContexts"][0]
+                            t, c, s, w = ctx["tenantId"], other["legalEntityId"], other["siteId"], other["warehouseId"]
+                            admin = fixture["adminMembershipId"]
+                            seed = f"INSERT INTO organization_access.capability_activations VALUES ('{c}','workshop',true),('{c}','inventory',true);"
+                            seed += f"INSERT INTO organization_access.company_permissions VALUES ('{uuid.uuid4()}','{admin}','{t}','{c}','workshop.orders.read',NULL,NULL);"
+                            for permission in ("read", "release"):
+                                seed += f"INSERT INTO organization_access.company_permissions VALUES ('{uuid.uuid4()}','{admin}','{t}','{c}','inventory.reservations.{permission}','{s}','{w}');"
+                            # Synthetic pre-existing receipt: owner-seeded with triggers off because no local authority can create one.
+                            seed += f"INSERT INTO inventory.reservations VALUES ('{a_res}','{t}','{a_order}','{a_line}','{c}','{s}','{w}','{data['partId']}',8,1,'{a_group}');"
+                            seed += f"BEGIN; SET LOCAL session_replication_role=replica; INSERT INTO inventory.reservation_releases VALUES ('{a_rel}','{t}','{a_res}','{a_order}','{a_line}','{a_group}','{c}','{s}','{w}','{data['partId']}',8,0.25,clock_timestamp(),'{uuid.uuid4()}'); COMMIT;"
+                            run(query, input=seed)
+                        elif action == "authority-external":
+                            other = fixture["deniedContexts"][0]
+                            t, c = ctx["tenantId"], other["legalEntityId"]
+                            run(query, input=f"SET ROLE runtime_owner; BEGIN; SELECT set_config('app.tenant_id','{t}',true); SELECT organization_access.establish_stock_profile('{uuid.uuid4()}','{t}','{c}','{fixture['adminMembershipId']}','{uuid.uuid4()}','ExternalToEnginia360','{uuid.uuid4()}','{uuid.uuid4()}'); COMMIT;")
                         elif action == "hold-stock" or action.startswith(("hold-line:", "hold-order:")):
                             holder = subprocess.Popen(
                                 query + ["-f", "-"],
@@ -432,6 +464,9 @@ INSERT INTO workshop.installations VALUES ('{installation}','{t}','{pick}','{res
             assert scalar(f'SELECT "Quantity" FROM inventory.consumptions WHERE "InstallationId"=\'{result["installId"]}\'') == "1.000000"
             assert scalar(f'SELECT "WorkingGroupId" FROM workshop.installations WHERE "Id"=\'{result["installId"]}\'') == result["groups"][0]
             assert scalar(f'SELECT "SourceRevision" FROM billing.invoices WHERE "Id"=\'{result["invoiceId"]}\'') == "5"
+            for authority_reservation in result["authorityReservations"]:
+                assert scalar(f'SELECT count(*)||\'|\'||coalesce(sum("Quantity"),0) FROM inventory.reservation_releases WHERE "ReservationId"=\'{authority_reservation}\'') == "1|0.250000", "missing/external authority must leave exactly the seeded receipt"
+            print("PASS R04C1 SQL missing/external authority wrote no release ledger row", flush=True)
             forged = subprocess.run(query, input=f'''SET ROLE runtime_app; BEGIN; SELECT set_config('app.tenant_id','{ctx['tenantId']}',true);
 INSERT INTO inventory.reservation_releases SELECT '{uuid.uuid4()}',r."TenantId",r."Id",r."OrderId",r."LineId",r."WorkingGroupId",r."LegalEntityId",r."SiteId",r."WarehouseId",r."CatalogItemId",r."CatalogVersion",999,clock_timestamp(),'{uuid.uuid4()}' FROM inventory.reservations r WHERE r."Id"='{result['reservationId']}'; COMMIT;''', text=True, capture_output=True, timeout=30)
             assert forged.returncode != 0, 'SQL must reject release exceeding original quantity / picked source; not application-only validation'
