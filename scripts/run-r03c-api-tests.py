@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import secrets
 import signal
+import subprocess
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -48,7 +49,11 @@ def main():
                                      'SELECT count(*) FROM runtime_migrations.applied'], capture=True).stdout.strip()
             assert applied == expected, (applied, expected)
             image = project + '-r03c'
-            run(['docker', 'build', '-f', 'r03c-api-test.Dockerfile', '-t', image, '.'], capture=True, timeout=300)
+            try:
+                run(['docker', 'build', '-f', 'r03c-api-test.Dockerfile', '-t', image, '.'], capture=True, timeout=300)
+            except subprocess.CalledProcessError as error:
+                print((error.stdout or '')[-4000:] + (error.stderr or '')[-4000:], flush=True)
+                raise
             env['R00_POOL_CONNECTION'] = f"Host=postgres;Database=runtime;Username={values['R00_APP_USER']};Password={values['R00_APP_PASSWORD']};Timeout=5"
             env['R00_POOL_ADMIN_CONNECTION'] = f"Host=postgres;Database=runtime;Username=postgres;Password={values['R00_INFRA_PASSWORD']};Timeout=5"
             run(['docker', 'run', '--rm', '--name', project + '-r03c', '--label', 'com.docker.compose.project=' + project,

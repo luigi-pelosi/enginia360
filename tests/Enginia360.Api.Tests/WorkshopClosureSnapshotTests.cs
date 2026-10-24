@@ -51,7 +51,7 @@ public sealed class WorkshopClosureSnapshotTests
         return scope;
     }
 
-    internal static async Task Close(NpgsqlConnection connection, NpgsqlTransaction? tx, Scope scope, bool request)
+    internal static async Task<Guid> Close(NpgsqlConnection connection, NpgsqlTransaction? tx, Scope scope, bool request)
     {
         await using var insert = new NpgsqlCommand("""
             INSERT INTO workshop.technical_closures ("OrderId","Id","TenantId","Revision","ClosedAt","OperatorId") VALUES (@order,@closure,@tenant,0,clock_timestamp(),@operator);
@@ -62,13 +62,15 @@ public sealed class WorkshopClosureSnapshotTests
             """ : ""), connection, tx);
         insert.Parameters.AddWithValue("order", scope.Order); insert.Parameters.AddWithValue("closure", Guid.NewGuid());
         insert.Parameters.AddWithValue("tenant", scope.Tenant); insert.Parameters.AddWithValue("operator", scope.Identity);
+        var requestId = request ? Guid.NewGuid() : Guid.Empty;
         if (request)
         {
-            insert.Parameters.AddWithValue("request", Guid.NewGuid()); insert.Parameters.AddWithValue("company", scope.Company); insert.Parameters.AddWithValue("site", scope.Site);
+            insert.Parameters.AddWithValue("request", requestId); insert.Parameters.AddWithValue("company", scope.Company); insert.Parameters.AddWithValue("site", scope.Site);
             insert.Parameters.AddWithValue("summary", JsonSerializer.Serialize(new { orderId = scope.Order, payerId = scope.Order, revision = 0, lines = Array.Empty<object>(),
                 netAmount = "0.000000", taxAmount = "0.000000", total = "0.000000", currency = "EUR", policy = "Case001" }));
         }
         await insert.ExecuteNonQueryAsync();
+        return requestId;
     }
 
     internal static async Task WaitForBlockedReader(NpgsqlDataSource admin, string relation)
