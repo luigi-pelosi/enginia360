@@ -124,3 +124,54 @@ test('a refused command (409) drops the frozen id; the next attempt starts from 
   await waitFor(() => expect(s.posts()).toHaveLength(2));
   expect(JSON.parse(s.posts()[1].options!.body as string).id).toBe('abababab-abab-4bab-8bab-abababababab');
 });
+
+const closed = (over: Record<string, unknown> = {}) => actions({ technicalClosure: technical, canCompleteTechnical: false, canRequestAdministrative: true, actionReasons: [], ...over });
+const awaiting = (delivery_: Record<string, unknown> = {}, over: Record<string, unknown> = {}) => state('AwaitingAdministrativeConfirmation', { request: request({ delivery: delivery(String(delivery_.state ?? 'Queued'), delivery_), ...over }) });
+const serve = (a: unknown, st: unknown, extra: Record<string, Handler | unknown> = {}) => server({ ['GET ' + base + '/closure-actions']: a, ['GET ' + base + '/technical-closure-gate']: gate(), ['GET ' + base + '/closure-state']: st, ...extra });
+
+test('administrative request posts the frozen technical-closure revision, not the current commercial or row count', async () => {
+  vi.spyOn(crypto, 'randomUUID').mockReturnValue(requestId as `${string}-${string}-${string}-${string}-${string}`);
+  let requested = false;
+  const s = server({
+    ['GET ' + base + '/closure-actions']: () => json(requested ? closed({ canRequestAdministrative: false, actionReasons: [{ action: 'requestAdministrative', code: 'already_requested' }] }) : closed({ commercialRevision: 10 })),
+    ['GET ' + base + '/technical-closure-gate']: gate(),
+    ['GET ' + base + '/closure-state']: () => json(requested ? awaiting() : state('TechnicallyClosed')),
+    ['POST ' + base + '/administrative-requests']: () => { requested = true; return json(request(), 201); },
+  });
+  render(<AdministrativeWorkspace editor={editor} onError={noop} onChanged={async () => { }} />);
+  fireEvent.click(await screen.findByRole('button', { name: 'Richiedi registrazione amministrativa' }));
+  await screen.findByText('In coda: richiesta salvata, nessuna conferma di business.');
+  expect(s.posts()[0].options?.body).toBe(JSON.stringify({ id: requestId, expectedRevision: 9 }));
+  expect(screen.queryByRole('button', { name: 'Richiedi registrazione amministrativa' })).toBeNull();
+  expect(screen.getByText('Simulatore amministrativo v1 · nessun collegamento Giobby')).toBeTruthy();
+});
+
+test.each([
+  ['Queued', {}, 'In coda: richiesta salvata, nessuna conferma di business.'],
+  ['Received', {}, 'Ricevuta dal simulatore: solo acquisizione, non conferma di business.'],
+  ['Retrying', { attempts: 1 }, 'Nuovo tentativo programmato: nessuna conferma di business.'],
+  ['Uncertain', { attempts: 1 }, 'Esito non verificato: verifica in corso, nessun nuovo invio.'],
+  ['NeedsReconciliation', { attempts: 4, failures: 4 }, 'Tentativi automatici esauriti: serve verifica e ripresa.'],
+  ['Completed', {}, 'Consegna completata; conferma di business locale non ancora verificata.'],
+  ['Rejected', {}, 'Rifiuto ricevuto dal simulatore; esito di business locale non ancora verificato.'],
+])('pending request with delivery %s is shown truthfully and never as confirmed', async (name, extra, text) => {
+  serve(closed({ canRequestAdministrative: false }), awaiting({ state: name, ...extra }));
+  render(<AdministrativeWorkspace editor={editor} onError={noop} onChanged={async () => { }} />);
+  await screen.findByText(text);
+  expect(screen.queryByText(/Confermata/)).toBeNull();
+  expect(screen.getByText('Simulatore amministrativo v1 · nessun collegamento Giobby')).toBeTruthy();
+  expect(screen.queryByRole('button', { name: 'Chiudi amministrativamente' })).toBeNull();
+});
+
+test('confirmed and rejected business outcomes carry the stable reference or the code and keep the pinned snapshot visible', async () => {
+  const confirmed = request({ status: 'Confirmed', externalReference: 'AMM-SIM-000001', outcomeAt: '2026-10-24T08:02:00+00:00', delivery: delivery('Completed') });
+  serve(closed({ canRequestAdministrative: false }), state('AdministrativelyConfirmed', { request: confirmed }));
+  const view = render(<AdministrativeWorkspace editor={editor} onError={noop} onChanged={async () => { }} />);
+  await screen.findByText('Confermata dal simulatore · riferimento AMM-SIM-000001 (nessuna fattura fiscale, nessun incasso).');
+  expect(screen.getByText(/Snapshot richiesta: revisione 9 · 4 righe · 2 lavorazioni/)).toBeTruthy();
+  expect(screen.getByText('44.835000 EUR')).toBeTruthy();
+  view.unmount();
+  serve(closed({ canRequestAdministrative: false }), state('AdministrativeRejected', { request: request({ status: 'Rejected', rejectionCode: 'synthetic_refusal', outcomeAt: '2026-10-24T08:02:00+00:00', delivery: delivery('Rejected') }) }));
+  render(<AdministrativeWorkspace editor={editor} onError={noop} onChanged={async () => { }} />);
+  await screen.findByText('Rifiutata dal simulatore · codice synthetic_refusal. Nessun nuovo invio né conferma forzata.');
+});

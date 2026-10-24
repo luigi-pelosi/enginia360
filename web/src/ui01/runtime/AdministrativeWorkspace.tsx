@@ -2,12 +2,27 @@ import { useEffect, useRef, useState } from 'react';
 import { ApiError, request } from './workshopApi';
 import { check, record } from './contracts';
 import type { Editor } from './editorContracts';
-import { parseActions, parseClosureState, parseGate, parseTechnical, type Actions, type ClosureState, type Gate } from './administrativeContracts';
+import { parseActions, parseClosureState, parseGate, parseRequest, parseTechnical, type Actions, type AdministrativeRequest, type ClosureState, type Gate } from './administrativeContracts';
 
 // R03.c: the EXISTING closure commands, read advice and states. Provider truth: the registered adapter is a synthetic simulator, never Giobby.
-type Frozen = Readonly<{ kind: 'technical'; url: string; body: string; commandId: string; orderId: string; revision: number }>;
+type Frozen = Readonly<{ kind: 'technical' | 'request'; url: string; body: string; commandId: string; orderId: string; revision: number }>;
 const PROVIDER = 'Simulatore amministrativo v1 · nessun collegamento Giobby';
 const NO_PROVIDER = 'Connettore amministrativo non registrato · nessun collegamento Giobby';
+const DELIVERY: Record<string, string> = {
+  Queued: 'In coda: richiesta salvata, nessuna conferma di business.',
+  Received: 'Ricevuta dal simulatore: solo acquisizione, non conferma di business.',
+  Retrying: 'Nuovo tentativo programmato: nessuna conferma di business.',
+  Uncertain: 'Esito non verificato: verifica in corso, nessun nuovo invio.',
+  NeedsReconciliation: 'Tentativi automatici esauriti: serve verifica e ripresa.',
+  Completed: 'Consegna completata; conferma di business locale non ancora verificata.',
+  Rejected: 'Rifiuto ricevuto dal simulatore; esito di business locale non ancora verificato.',
+};
+// Business status first; transport state only explains a still pending request (D40).
+function describe(r: AdministrativeRequest): string {
+  if (r.status === 'Confirmed') return 'Confermata dal simulatore · riferimento ' + r.externalReference + ' (nessuna fattura fiscale, nessun incasso).';
+  if (r.status === 'Rejected') return 'Rifiutata dal simulatore · codice ' + r.rejectionCode + '. Nessun nuovo invio né conferma forzata.';
+  return DELIVERY[r.delivery.state];
+}
 
 export default function AdministrativeWorkspace({ editor, onError, onChanged }: Readonly<{ editor: Editor; onError: (e: unknown) => void; onChanged: () => Promise<void> }>) {
   const id = editor.order.id, base = '/api/v1/workshop/orders/' + id;
@@ -47,14 +62,18 @@ export default function AdministrativeWorkspace({ editor, onError, onChanged }: 
       if (g !== epoch.current) return;
       const response = await fetch(command.url, { method: 'POST', credentials: 'same-origin', cache: 'no-store', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf.requestToken as string }, body: command.body });
       if (!response.ok) { const failure = await response.json().catch(() => null); throw new ApiError(response.status, failure?.code ?? failure?.error); }
-      const receipt = parseTechnical(await response.json(), id);
-      check(receipt.id === command.commandId && receipt.revision === command.revision);
+      const body = await response.json();
+      // Dynamic delivery may have progressed on replay: verify identity and the pinned snapshot, never byte equality of the response.
+      const receipt = command.kind === 'technical' ? parseTechnical(body, id) : parseRequest(body, id);
+      if (command.kind === 'technical') check(receipt.id === command.commandId && (receipt as { revision: number }).revision === command.revision);
+      else check(receipt.id === command.commandId && (receipt as AdministrativeRequest).summary.revision === command.revision);
       if (g !== epoch.current) return;
       frozen.current = undefined; setUncertain(false);
-      setMessage('Chiusa tecnicamente alla revisione ' + receipt.revision + '; rilettura in corso.');
+      const done = command.kind === 'technical' ? 'Chiusa tecnicamente alla revisione ' + command.revision : 'Richiesta amministrativa registrata sullo snapshot della revisione ' + command.revision;
+      setMessage(done + '; rilettura in corso.');
       try { await onChanged(); } catch { /* the editor reports its own reread */ }
       const reread = await readAll();
-      if (reread === 'ok') setMessage('Chiusa tecnicamente alla revisione ' + receipt.revision + '; stato riletto dal server.');
+      if (reread === 'ok') setMessage(done + '; stato riletto dal server.');
       else if (reread === 'failed' && g === epoch.current) setMessage('Comando registrato; stato attuale non verificato. Rileggi stato.');
     } catch (e) {
       if (g !== epoch.current) return;
@@ -66,6 +85,13 @@ export default function AdministrativeWorkspace({ editor, onError, onChanged }: 
     if (pending.current || uncertain || !actions) return;
     const commandId = crypto.randomUUID();
     frozen.current = Object.freeze({ kind: 'technical', url: base + '/technical-closure', body: JSON.stringify({ id: commandId, expectedRevision: actions.commercialRevision }), commandId, orderId: id, revision: actions.commercialRevision });
+    void post(frozen.current);
+  }
+
+  function requestAdministrative() {
+    if (pending.current || uncertain || !actions?.technicalClosure) return;
+    const commandId = crypto.randomUUID(), revision = actions.technicalClosure.revision;
+    frozen.current = Object.freeze({ kind: 'request', url: base + '/administrative-requests', body: JSON.stringify({ id: commandId, expectedRevision: revision }), commandId, orderId: id, revision });
     void post(frozen.current);
   }
 
@@ -82,6 +108,10 @@ export default function AdministrativeWorkspace({ editor, onError, onChanged }: 
       {uncertain && frozen.current && <button disabled={busy} onClick={() => void post(frozen.current!)}>Riprova comando identico</button>}
       {actions && !technical && <button disabled={busy || uncertain || !fresh || !actions.canCompleteTechnical || gate?.status !== 'Clear'} onClick={closeTechnically}>Chiudi tecnicamente</button>}
 </section>
-    {stateError && <p role="alert">{stateError}</p>}{closure && null}
+    <section aria-label="Richiesta amministrativa">{stateError ? <p role="alert">{stateError}</p> : closure?.request ? <>
+      <p>{describe(closure.request)}</p>
+      <p>Snapshot richiesta: revisione {closure.request.summary.revision} · {closure.request.summary.lines.length} righe · {new Set(closure.request.summary.lines.map(l => l.workingGroupId)).size} lavorazioni</p>
+      <p>Imponibile {closure.request.summary.netAmount} · IVA {closure.request.summary.taxAmount} · <strong>{closure.request.summary.total} EUR</strong></p></> : closure ? <p>Richiesta amministrativa non registrata.</p> : null}
+      {actions?.canRequestAdministrative && !closure?.request && <button disabled={busy || uncertain} onClick={requestAdministrative}>Richiedi registrazione amministrativa</button>}</section>
   </section>;
 }
