@@ -96,6 +96,8 @@ R06_COMMAND_SOURCES = {
 
 R04C1_FILES = {'scripts/test-r04c1-impact.py','scripts/test-r04c1-guard-mutation.py','scripts/run-r04c1-tests.py','scripts/test-r04c1-lifecycle.py','tests/browser/r04c1-acceptance.cjs','compose.r04c1-test.yaml','database/runtime/migrations/0023_reservation_releases.sql'}
 
+R04C2_FILES = {'scripts/test-r04c2-impact.py','scripts/test-r04c2-guard-mutation.py','scripts/run-r04c2-tests.py','scripts/test-r04c2-lifecycle.py','tests/browser/r04c2-acceptance.cjs','compose.r04c2-test.yaml','database/runtime/migrations/0024_new_part_returns.sql'}
+
 # R06.b.1 ephemeral restore rehearsal: its own files, plus the direct producers it composes at runtime.
 R06B1_FILES = {'scripts/run-r06b1-tests.py','scripts/r06b1_restore.py','scripts/test-r06b1-impact.py','scripts/test-r06b1-guards.py',
     'scripts/test-r06b1-lifecycle.py','tests/browser/r06b1-acceptance.cjs','compose.r06b1-test.yaml'}
@@ -112,15 +114,16 @@ def selection(paths):
         path.startswith('database/runtime/') for path in paths)
     offline_only = r06_offline and set(paths) <= R06_OFFLINE_FILES | R06B1_FILES | R06_WIRING
     r04c1 = bool(set(paths) & R04C1_FILES) or any(path.startswith(('src/Modules/Inventory/','web/src/ui01/runtime/MaterialRelease')) for path in paths)
-    auth = ui = ui01b = r03a = r04a = r04c1
+    r04c2 = bool(set(paths) & R04C2_FILES) or any(path.startswith(('src/Modules/Inventory/','web/src/ui01/runtime/Material')) for path in paths) or 'src/Modules/Workshop/Enginia360.Workshop/InstallationEndpoints.cs' in paths
+    auth = ui = ui01b = r03a = r04a = r04c1 or r04c2
     r03b = r03c = r03c_full = False
-    r06_offline = r06_offline or r04c1
+    r06_offline = r06_offline or r04c1 or r04c2
     unknown = []
     for path in paths:
         parsed = PurePosixPath(path)
         if not path or parsed.is_absolute() or '..' in parsed.parts or '\\' in path or str(parsed) != path:
             raise ValueError('invalid changed path')
-        if path in R04C1_FILES or path in R06_OFFLINE_FILES or path in R06B1_FILES or (offline_only and path in R06_WIRING):
+        if path in R04C2_FILES or path in R04C1_FILES or path in R06_OFFLINE_FILES or path in R06B1_FILES or (offline_only and path in R06_WIRING):
             continue
         if path.startswith('docs/') and parsed.suffix in {'.py', '.sh', '.js', '.cjs', '.ts', '.cs'}:
             unknown.append(path)
@@ -180,7 +183,7 @@ def selection(paths):
     if r03b: filters.append('FullyQualifiedName~WorkshopOwnActualTimeTests')
     if r03c: filters.append(R03C_FILTER if r03c_full else R03C_MINIMAL)
     return {'changed_paths':paths,'api_filter':'|'.join(filters),'r06_offline':r06_offline,
-            'browser':auth,'ui01b':ui01b,'r03a':r03a,'r03a2':r03a,'r04a':r04a,'r04c1':r04c1,'r06b1':r06b1,'r03b':r03b,'r03c':r03c,'migrations':auth or ui01b,'ui_build':auth or ui,'ui_tests':ui,
+            'browser':auth,'ui01b':ui01b,'r03a':r03a,'r03a2':r03a,'r04a':r04a,'r04c1':r04c1,'r04c2':r04c2,'r06b1':r06b1,'r03b':r03b,'r03c':r03c,'migrations':auth or ui01b,'ui_build':auth or ui,'ui_tests':ui,
             'full_architecture':False}
 
 

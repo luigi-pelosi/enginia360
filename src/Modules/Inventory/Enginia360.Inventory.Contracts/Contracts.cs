@@ -34,3 +34,10 @@ public sealed record CarcassReturnContract(Guid Id, Guid OrderId, Guid WorkingGr
     IReadOnlyList<CoveredInstallation> Installations, DateTimeOffset ReceivedAt, Guid OperatorId);
 public sealed record CarcassReturnState(Guid OrderId, Guid LineId, Guid WarehouseId, string RequiredInstalled, string Returned,
     string Outstanding, IReadOnlyList<CarcassReturnContract> Returns, bool CanReceiveCarcass = false);
+
+[System.Text.Json.Serialization.JsonUnmappedMemberHandling(System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow)]
+public sealed record NewPartReturnRequest(Guid Id, string Quantity);
+public sealed record NewPartReturnState(Guid ReservationId, Guid PickId, string Picked, string Returned, string RemainingWithTechnician,
+    IReadOnlyList<NewPartReturnContract> Returns, bool CanReturn, string Reason);
+public sealed record NewPartReturnContract(Guid Id, Guid ReservationId, Guid PickId, Guid MembershipId, Guid OrderId, Guid LineId, Guid WorkingGroupId,
+    Guid WarehouseId, Guid CatalogItemId, int CatalogVersion, string Quantity, DateTimeOffset ReturnedAt, Guid OperatorId);

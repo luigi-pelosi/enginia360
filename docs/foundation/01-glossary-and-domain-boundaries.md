@@ -10,6 +10,8 @@ Nessun runtime manuale persistente B02–B06 attivo; bootstrap web/API, Tailscal
 
 **D77 — accesso iniziale e delega limitata:** il proprietario/operatore trusted inizializza fuori dall'applicazione, previa verifica dell'identità e tracciamento, binding, membership e mandato limitato. L'amministratore tenant assegna/revoca ad altri utenti già trusted soltanto grant operativi su azioni/scope esplicitamente delegati; niente self-grant, subdelega, creazione di altri amministratori o primo utente amministratore automatico. Binding e concessione/rinnovo/revoca del mandato restano al proprietario. Policy confermata, non provisioning eseguito né completamento R01.b/R02.
 
+**D81 — R04.c.2 reso parziale esplicito del nuovo:** «Approvo A», 24 ottobre 2026: prelevati 2 ricambi entrambi integri e mai installati, reso esplicito di 1 al magazzino originale, altro 1 all’operatore. Fisico e commerciale/revisione invariati; impegno −1 e disponibilità/riprenotabilità +1, fatti immutabili. Il prelievo selezionato non deve avere alcuna installazione persistita, Pending inclusa. D80 rimane solo mai-prelevato; nessuna nuova delega D77. Implementazione e prove ancora necessarie.
+
 **D80 — R04.c.1 rilascio parziale esplicito:** il proprietario ha risposto «Approvo A» il 24 ottobre 2026: commessa aperta, prenotati 2 mai prelevati, rilascio esplicito 1; fisico invariato, 1 ancora impegnato, 1 disponibile e riprenotabile. Prenotazione originale e riga commerciale preservate. Risolto soltanto il gate della policy di questo rilascio, non reso nuovo/ricevimento. Nessuna nuova delega D77; implementazione e prove ancora necessarie.
 
 ## Archivio storico — decisioni e stati al momento della loro registrazione
@@ -964,3 +966,12 @@ D01 e D02 restano issue aperte In verifica; B00 non viene completata o sbloccata
 **Fonte:** risposta del proprietario allo stesso chiarimento nella conversazione principale: «Bozza di fattura vendita, da verificare ed emettere in Giobby.»
 
 **Contratto approvato:** risultato amministrativo desiderato del primo percorso pilota, non attestazione di capacità del provider. Restano da verificare endpoint/versione, schema risposta, semantica di bozza senza effetti fiscali/stock, acknowledgement business, lookup dopo timeout e idempotenza. Nessuna autorizzazione di fattura reale, emissione/trasmissione fiscale, account operativo o chiamate ERP; nessun campo provider inventato. Implementazione R05 separata, non parte di R04.a.
+
+
+### D81 — R04.c.2 reso parziale esplicito del ricambio nuovo integro mai installato
+
+**Fonte:** Luigi Pelosi, 24 ottobre 2026, risposta esatta «Approvo A» al NUOVO caso: «Ho prelevato 2 ricambi, entrambi integri e mai installati. Posso restituirne soltanto 1 al magazzino di origine, lasciando l’altro all’operatore: sì.» Fonte ricevuta in `R04c2-owner-approval.json`, distinta dal precedente D80. Registro completo verificato: ultimo ID D80.
+
+**Decisione:** prelevati 2 ricambi entrambi integri e mai installati, reso esplicito di 1 al magazzino originale, altro 1 all’operatore. Fisico e commerciale/revisione invariati; impegno −1 e disponibilità/riprenotabilità +1, fatti immutabili. Il prelievo selezionato non deve avere alcuna installazione persistita, Pending inclusa. D80 rimane solo mai-prelevato; nessuna nuova delega D77. Implementazione e prove ancora necessarie.
+
+**Confini:** commessa aperta, autorità stock locale esplicita, nuova azione esatta non implicita in reserve/pick/release/admin. Magazzino derivato dal pick originale, non dal client. Nessun undo installazione/consumo, reso di pick parzialmente installato, danno/quarantena, destinazione diversa, fornitore/ricevimento, post-chiusura, automatismo o provisioning/delega D77. R06/OPE restano OPEN, eleggibilità migrazione UNDECIDED. #44 e #5 restano aperte.

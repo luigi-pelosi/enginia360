@@ -22,6 +22,7 @@ internal sealed class TechnicalAuditFilter(ILogger<TechnicalAuditFilter> logger)
             status = (result as IStatusCodeHttpResult)?.StatusCode ?? 200;
             if (result is IValueHttpResult { Value: ReservationContract reservation }) resource = reservation.Id;
             if (result is IValueHttpResult { Value: PickContract pick }) resource = pick.Id;
+            if (result is IValueHttpResult { Value: NewPartReturnContract newReturn }) resource = newReturn.Id;
             if (result is IValueHttpResult { Value: CarcassReturnContract carcass }) resource = carcass.Id;
             return result;
         }

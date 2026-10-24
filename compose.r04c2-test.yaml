@@ -1,0 +1,26 @@
+# Synthetic ephemeral acceptance only; no host ports or persistent volumes.
+services:
+  postgres:
+    extends: {file: compose.r03a2-test.yaml, service: postgres}
+  migrator:
+    extends: {file: compose.r03a2-test.yaml, service: migrator}
+  identity:
+    extends: {file: compose.r03a2-test.yaml, service: identity}
+  api:
+    extends: {file: compose.r03a2-test.yaml, service: api}
+    environment:
+      ExternalAdministration__SimulatorBaseUrl: "http://admin-simulator:8080/"
+      ExternalAdministration__PollMilliseconds: "200"
+      ExternalAdministration__RetryMilliseconds: "1500"
+    depends_on:
+      admin-simulator: {condition: service_healthy}
+  admin-simulator:
+    extends: {file: compose.r03c-test.yaml, service: admin-simulator}
+  web:
+    extends: {file: compose.r03a2-test.yaml, service: web}
+  browser:
+    extends: {file: compose.r03a2-test.yaml, service: browser}
+    entrypoint: [sh, -c, 'mkdir -p "$$HOME/.pki/nssdb" && certutil -N -d sql:$$HOME/.pki/nssdb --empty-password && certutil -A -d sql:$$HOME/.pki/nssdb -n runtime-ephemeral-ca -t C,, -i /run/tls/ca.crt && exec node r04c2-acceptance.cjs']
+networks:
+  runtime:
+    internal: true
