@@ -175,3 +175,112 @@ test('confirmed and rejected business outcomes carry the stable reference or the
   render(<AdministrativeWorkspace editor={editor} onError={noop} onChanged={async () => { }} />);
   await screen.findByText('Rifiutata dal simulatore · codice synthetic_refusal. Nessun nuovo invio né conferma forzata.');
 });
+
+const reconcileCommand = '12121212-1212-4212-8212-121212121212';
+test('reconciliation is a bounded retry of verification: advisory-gated, frozen, replayable, never a forced confirmation', async () => {
+  vi.spyOn(crypto, 'randomUUID').mockReturnValue(reconcileCommand as `${string}-${string}-${string}-${string}-${string}`);
+  let verified = false;
+  const s = server({
+    ['GET ' + base + '/closure-actions']: () => json(closed({ canRequestAdministrative: false, mayRequestReconciliation: !verified })),
+    ['GET ' + base + '/technical-closure-gate']: gate(),
+    ['GET ' + base + '/closure-state']: () => json(verified ? awaiting({ state: 'Uncertain' }) : awaiting({ state: 'NeedsReconciliation', attempts: 4, failures: 4 })),
+    ['POST ' + base + '/administrative-requests/' + requestId + '/reconciliation']: () => { verified = true; return json({ replayed: false }, 202); },
+  });
+  render(<AdministrativeWorkspace editor={editor} onError={noop} onChanged={async () => { }} />);
+  fireEvent.click(await screen.findByRole('button', { name: 'Verifica e riprendi richiesta' }));
+  await screen.findByText('Esito non verificato: verifica in corso, nessun nuovo invio.');
+  expect(s.posts()[0].options?.body).toBe(JSON.stringify({ id: reconcileCommand }));
+  expect(screen.queryByRole('button', { name: /forza|conferma ricevuta/i })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Verifica e riprendi richiesta' })).toBeNull();
+});
+
+test('without the reconcile advice the exhausted state offers no recovery button', async () => {
+  serve(closed({ canRequestAdministrative: false, mayRequestReconciliation: false, actionReasons: [{ action: 'reconcile', code: 'not_authorized' }] }), awaiting({ state: 'NeedsReconciliation', attempts: 4, failures: 4 }));
+  render(<AdministrativeWorkspace editor={editor} onError={noop} onChanged={async () => { }} />);
+  await screen.findByText('Tentativi automatici esauriti: serve verifica e ripresa.');
+  expect(screen.queryByRole('button', { name: 'Verifica e riprendi richiesta' })).toBeNull();
+  expect(screen.getByText('Ripresa non disponibile: permesso mancante.')).toBeTruthy();
+});
+
+const confirmed = () => request({ status: 'Confirmed', externalReference: 'AMM-SIM-000001', outcomeAt: '2026-10-24T08:02:00+00:00', delivery: delivery('Completed') });
+test('administrative closure needs the Workshop-confirmed outcome, posts only the command id and validates the stable reference', async () => {
+  const closeId = '13131313-1313-4313-8313-131313131313';
+  vi.spyOn(crypto, 'randomUUID').mockReturnValue(closeId as `${string}-${string}-${string}-${string}-${string}`);
+  let done = false;
+  const s = server({
+    ['GET ' + base + '/closure-actions']: () => json(closed({ canRequestAdministrative: false, canCompleteAdministrative: !done })),
+    ['GET ' + base + '/technical-closure-gate']: gate(),
+    ['GET ' + base + '/closure-state']: () => json(done ? state('AdministrativelyClosed', { request: confirmed(), administrativeClosure: { ...administrativeClosure, id: closeId } }) : state('AdministrativelyConfirmed', { request: confirmed() })),
+    ['POST ' + base + '/administrative-closure']: () => { done = true; return json({ ...administrativeClosure, id: closeId }, 201); },
+  });
+  render(<AdministrativeWorkspace editor={editor} onError={noop} onChanged={async () => { }} />);
+  fireEvent.click(await screen.findByRole('button', { name: 'Chiudi amministrativamente' }));
+  await screen.findByText('Chiusa amministrativamente · riferimento AMM-SIM-000001; stato riletto dal server.');
+  expect(s.posts()[0].options?.body).toBe(JSON.stringify({ id: closeId }));
+  expect(screen.getByText(/nessun incasso né riconsegna/)).toBeTruthy();
+  expect(screen.queryByRole('button', { name: 'Chiudi amministrativamente' })).toBeNull();
+});
+
+test('a closure receipt for another request or reference is rejected as an unverified outcome', async () => {
+  vi.spyOn(crypto, 'randomUUID').mockReturnValue('13131313-1313-4313-8313-131313131313' as `${string}-${string}-${string}-${string}-${string}`);
+  serve(closed({ canRequestAdministrative: false, canCompleteAdministrative: true }), state('AdministrativelyConfirmed', { request: confirmed() }),
+    { ['POST ' + base + '/administrative-closure']: () => json({ ...administrativeClosure, id: '13131313-1313-4313-8313-131313131313', externalReference: 'AMM-SIM-999999' }, 201) });
+  render(<AdministrativeWorkspace editor={editor} onError={noop} onChanged={async () => { }} />);
+  fireEvent.click(await screen.findByRole('button', { name: 'Chiudi amministrativamente' }));
+  await screen.findByText('Esito incerto: riprova solo il comando identico.');
+});
+
+test('write grants without the administrative read leave the technical panel usable and never call the administrative reads', async () => {
+  const s = serve(actions({ canReadAdministrativeState: false, canRequestAdministrative: false, actionReasons: [{ action: 'readAdministrativeState', code: 'not_authorized' }, { action: 'requestAdministrative', code: 'administrative_read_required' }] }), state('Open'));
+  render(<AdministrativeWorkspace editor={editor} onError={noop} onChanged={async () => { }} />);
+  await screen.findByText('Stato amministrativo non autorizzato.');
+  expect(screen.getByRole('button', { name: 'Chiudi tecnicamente' })).toBeTruthy();
+  expect(screen.getByText('Per richiedere o chiudere serve la lettura dello stato amministrativo.')).toBeTruthy();
+  expect(s.calls.some(c => c.path.endsWith('/closure-state') || c.path.endsWith('/administrative-requests'))).toBe(false);
+  expect(screen.queryByText('Richiesta amministrativa non registrata.')).toBeNull();
+});
+
+test('each section fails alone: a state error keeps the gate and technical closure, a gate error never reads as Clear', async () => {
+  serve(closed({ canRequestAdministrative: false }), () => json({}, 503), {});
+  const view = render(<AdministrativeWorkspace editor={editor} onError={noop} onChanged={async () => { }} />);
+  await screen.findByText('Servizio non disponibile o richiesta non valida. Riprova.');
+  expect(screen.getByText('Requisito carcassa: Clear')).toBeTruthy();
+  expect(screen.getByText('Chiusa tecnicamente alla revisione 9')).toBeTruthy();
+  view.unmount();
+  server({ ['GET ' + base + '/closure-actions']: actions(), ['GET ' + base + '/technical-closure-gate']: () => json({}, 503), ['GET ' + base + '/closure-state']: state('Open') });
+  render(<AdministrativeWorkspace editor={editor} onError={noop} onChanged={async () => { }} />);
+  await screen.findByText('Requisito carcassa non verificato.');
+  expect(screen.queryByText(/Requisito carcassa: Clear/)).toBeNull();
+  expect((screen.getByRole('button', { name: 'Chiudi tecnicamente' }) as HTMLButtonElement).disabled).toBe(true);
+});
+
+test('incompatible advice and state disable every write instead of merging them', async () => {
+  serve(actions(), state('TechnicallyClosed'));
+  render(<AdministrativeWorkspace editor={editor} onError={noop} onChanged={async () => { }} />);
+  await screen.findByText('Letture non coerenti: nessuna azione finché lo stato non è riletto.');
+  expect(screen.queryByRole('button', { name: 'Chiudi tecnicamente' })).toBeNull();
+});
+
+test('after a command the status is focused for keyboard users', async () => {
+  vi.spyOn(crypto, 'randomUUID').mockReturnValue(closureId as `${string}-${string}-${string}-${string}-${string}`);
+  serve(actions(), state('Open'), { ['POST ' + base + '/technical-closure']: () => json({}, 409) });
+  render(<AdministrativeWorkspace editor={editor} onError={noop} onChanged={async () => { }} />);
+  const button = await screen.findByRole('button', { name: 'Chiudi tecnicamente' });
+  button.focus(); fireEvent.click(button);
+  await screen.findByText(/Conflitto/);
+  expect(document.activeElement).toBe(screen.getByRole('status'));
+});
+
+test('a pending request is polled by reads only, finitely, and stops at the terminal business outcome', async () => {
+  let reads = 0;
+  const s = server({
+    ['GET ' + base + '/closure-actions']: closed({ canRequestAdministrative: false }),
+    ['GET ' + base + '/technical-closure-gate']: gate(),
+    ['GET ' + base + '/closure-state']: () => { reads++; return json(reads < 3 ? awaiting({ state: 'Queued' }) : state('AdministrativelyConfirmed', { request: confirmed() })); },
+  });
+  render(<AdministrativeWorkspace editor={editor} onError={noop} onChanged={async () => { }} pollMs={5} />);
+  await screen.findByText(/Confermata dal simulatore/);
+  const after = reads; await new Promise(r => setTimeout(r, 60));
+  expect(reads).toBe(after);
+  expect(s.posts()).toHaveLength(0);
+});
