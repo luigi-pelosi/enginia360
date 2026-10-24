@@ -55,8 +55,11 @@ export function parseAdministrativeClosure(value: unknown, orderId: string): Adm
 export type Gate = Readonly<{ orderId: string; status: 'Clear' | 'Blocked'; requirements: readonly Readonly<{ lineId: string; catalogItemId: string; requiredInstalled: string; returned: string; outstanding: string }>[] }>;
 export function parseGate(value: unknown, orderId: string): Gate {
   const g = record(value);
-  check(g.orderId === orderId && (g.status === 'Clear' || g.status === 'Blocked') && Array.isArray(g.requirements) && (g.status === 'Blocked') === (g.requirements.length > 0));
-  for (const item of g.requirements as unknown[]) { const r = record(item); check(uuid(r.lineId) && uuid(r.catalogItemId) && ['requiredInstalled', 'returned', 'outstanding'].every(k => decimal(r[k]))); }
+  check(g.orderId === orderId && (g.status === 'Clear' || g.status === 'Blocked') && Array.isArray(g.requirements) && Array.isArray(g.requirements));
+  let outstanding = false;
+  for (const item of g.requirements as unknown[]) { const r = record(item); check(uuid(r.lineId) && uuid(r.catalogItemId) && ['requiredInstalled', 'returned', 'outstanding'].every(k => decimal(r[k]))); if (Number(r.outstanding) > 0) outstanding = true; }
+  // Clear keeps covered requirements listed with nothing outstanding; Blocked always has something outstanding.
+  check((g.status === 'Blocked') === outstanding);
   return g as unknown as Gate;
 }
 

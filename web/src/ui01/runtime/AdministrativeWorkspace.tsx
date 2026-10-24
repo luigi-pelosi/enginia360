@@ -41,8 +41,10 @@ export default function AdministrativeWorkspace({ editor, onError, onChanged, po
 
   async function readAll(attempt = 0): Promise<'ok' | 'failed' | 'stale'> {
     const g = ++gen.current;
-    const a = await request(base + '/closure-actions').then(v => ({ status: 'fulfilled' as const, value: parseActions(v, id) }), reason => ({ status: 'rejected' as const, reason }));
-    const gt = await request(base + '/technical-closure-gate').then(v => ({ status: 'fulfilled' as const, value: parseGate(v, id) }), reason => ({ status: 'rejected' as const, reason }));
+    // A malformed contract is a section error exactly like a failed request.
+    const settle = <T,>(path: string, parse: (v: unknown) => T) => request(path).then(parse).then(value => ({ status: 'fulfilled' as const, value }), reason => ({ status: 'rejected' as const, reason }));
+    const a = await settle(base + '/closure-actions', v => parseActions(v, id));
+    const gt = await settle(base + '/technical-closure-gate', v => parseGate(v, id));
     if (g !== gen.current) return 'stale';
     for (const r of [a, gt]) if (r.status === 'rejected' && failed(r.reason)) return 'stale';
     setActions(a.status === 'fulfilled' ? a.value : undefined); setActionsError(a.status === 'rejected' ? (a.reason as Error).message : '');
@@ -60,7 +62,7 @@ export default function AdministrativeWorkspace({ editor, onError, onChanged, po
     }
     return a.status === 'fulfilled' ? 'ok' : 'failed';
   }
-  const reread = () => void readAll().then(r => { if (r === 'ok') setMessage('Stato riletto dal server.'); });
+  const reread = () => void readAll().then(r => { if (r === 'ok') setMessage('Stato riletto dal server.'); }).catch(() => setMessage('Lettura non riuscita: stato non verificato.'));
   useEffect(() => { polls.current = 0; void readAll().then(r => { if (r === 'ok') setMessage('Stato riletto dal server.'); }).catch(() => { }); return () => { gen.current++; epoch.current++; }; }, [id]);
 
   // Finite read-only polling while a request is pending; suspended by commands, errors, 401 and terminal outcomes.

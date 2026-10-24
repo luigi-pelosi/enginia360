@@ -80,3 +80,9 @@ test('closure state binds the request snapshot to the frozen technical revision 
     state('AdministrativelyClosed', { request: confirmed, administrativeClosure: { ...administrativeClosure, requestId: id } }),
   ]) expect(() => parseClosureState(bad, id)).toThrow();
 });
+test('a Clear gate may still list its covered requirement, with nothing outstanding; Blocked needs something outstanding', () => {
+  const covered = { orderId: id, status: 'Clear', requirements: [{ lineId: id, catalogItemId: id, requiredInstalled: '2', returned: '2', outstanding: '0' }] };
+  expect((parseGate(covered, id) as any).requirements).toHaveLength(1);
+  expect(() => parseGate({ ...covered, status: 'Blocked' }, id)).toThrow();
+  expect(() => parseGate({ ...covered, requirements: [{ ...covered.requirements[0], outstanding: '1' }] }, id)).toThrow();
+});

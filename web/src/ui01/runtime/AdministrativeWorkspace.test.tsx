@@ -284,3 +284,25 @@ test('a pending request is polled by reads only, finitely, and stops at the term
   expect(reads).toBe(after);
   expect(s.posts()).toHaveLength(0);
 });
+
+test('regression: an explicit reread replaces a Blocked carcass requirement with the new server Clear', async () => {
+  let cleared = false;
+  server({ ...open(), ['GET ' + base + '/technical-closure-gate']: () => json(gate(cleared ? 'Clear' : 'Blocked')) });
+  render(<AdministrativeWorkspace editor={editor} onError={noop} onChanged={async () => { }} />);
+  await screen.findByText('Requisito carcassa: Blocked');
+  expect((screen.getByRole('button', { name: 'Chiudi tecnicamente' }) as HTMLButtonElement).disabled).toBe(true);
+  cleared = true;
+  fireEvent.click(screen.getByRole('button', { name: 'Rileggi stato' }));
+  await screen.findByText('Requisito carcassa: Clear');
+  expect((screen.getByRole('button', { name: 'Chiudi tecnicamente' }) as HTMLButtonElement).disabled).toBe(false);
+});
+
+test('a malformed read is a visible section error, never a silent no-op', async () => {
+  server({ ...open(), ['GET ' + base + '/closure-actions']: { orderId: id } });
+  render(<AdministrativeWorkspace editor={editor} onError={noop} onChanged={async () => { }} />);
+  await screen.findByText('Contratto server non valido o non supportato.');
+  expect(screen.getByText('Requisito carcassa: Clear')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Rileggi stato' }));
+  await screen.findByText('Contratto server non valido o non supportato.');
+  expect(screen.queryByRole('button', { name: 'Chiudi tecnicamente' })).toBeNull();
+});

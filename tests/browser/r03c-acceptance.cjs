@@ -222,6 +222,8 @@ async function lostResponse(page, urlPattern, label) {
     assert.equal(refused.status, 409); assert.equal(refused.value.code, 'technical_requirements_pending');
     assert.equal((await state(page, blocked)).value.status, 'Open');
     assert.equal((await post(page, `/api/v1/inventory/orders/${blocked}/lines/${bl}/carcass-returns`, { id: uid(), warehouseId: ctx.warehouseId, quantity: '2', description: 'Sintetico' })).status, 201);
+    const clearGate = await json(page, `${base}/orders/${blocked}/technical-closure-gate`);
+    assert.equal(clearGate.value.status, 'Clear', 'accepted carcass receipt clears the server requirement: ' + JSON.stringify(clearGate));
     await blockedPanel.getByRole('button', { name: 'Rileggi stato' }).click();
     await blockedPanel.getByText('Requisito carcassa: Clear', { exact: true }).waitFor();
     await blockedPanel.getByRole('button', { name: 'Chiudi tecnicamente' }).click();
@@ -329,5 +331,12 @@ async function lostResponse(page, urlPattern, label) {
     pass('401 clears the closure panel data in the real browser');
 
     fs.writeFileSync('/run/control/result.json', JSON.stringify({ checks, orders, requests, technical, reference, mainSnapshot: byIdOf(before.summary), journalId, invoiceId }));
+  } catch (error) {
+    // Diagnostics only: visible text of every open synthetic page, never credentials.
+    let n = 0;
+    for (const context of browser.contexts()) for (const page of context.pages()) {
+      try { fs.writeFileSync('/run/control/failure-' + (++n) + '.txt', (await page.locator('body').innerText({ timeout: 3000 })).slice(0, 6000)); await page.screenshot({ path: '/run/control/failure-' + n + '.png' }); } catch { }
+    }
+    throw error;
   } finally { await browser.close(); }
 })().catch(e => { console.error(e); process.exitCode = 1; });

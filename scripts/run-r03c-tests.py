@@ -193,6 +193,7 @@ def main():
             (evidence/'result.json').write_text(json.dumps(result, indent=2))
             print('PASS R03C completed declared runtime and SQL assertions', flush=True)
         except BaseException:
+            for item in (state/'control').glob('failure-*'): shutil.copyfile(item, evidence/item.name)
             diagnostic = subprocess.run(command+['logs', '--no-color', '--tail', '100', 'identity', 'api', 'postgres', 'admin-simulator'], cwd=ROOT, capture_output=True, text=True, timeout=20)
             text = diagnostic.stdout+diagnostic.stderr
             for key, value in values.items():
