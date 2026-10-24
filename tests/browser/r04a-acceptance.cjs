@@ -172,6 +172,7 @@ async function control(action) {
         await page.goto(origin + "/ui01-runtime.html#order=" + order);
         await page.getByLabel("Workspace commessa").waitFor();
     await page.getByText("Operazioni materiali", { exact: true }).click();
+    await page.getByRole("region", { name: "Operazioni materiali" }).waitFor();
         assert.equal(
             await page
                 .getByRole("region", { name: "Operazioni materiali" })
@@ -439,6 +440,7 @@ async function control(action) {
         await page.reload();
         await page.getByLabel("Workspace commessa").waitFor();
     await page.getByText("Operazioni materiali", { exact: true }).click();
+    await page.getByRole("region", { name: "Operazioni materiali" }).waitFor();
         await panel.getByLabel("Riga ricambio").selectOption(lines[0]);
         await panel
             .getByLabel("Magazzino materiali")
