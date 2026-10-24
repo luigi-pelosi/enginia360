@@ -20,6 +20,8 @@ def load(name, path):
 legacy = load("lifecycle", "scripts/test-r00b-lifecycle.py")
 acceptance = load("r04c1", "scripts/run-r04c1-tests.py")
 legacy.RUNNER = ROOT / "scripts/run-r04c1-tests.py"
+# Cold build and startup alone take ~220s on a loaded host; the first held line lock follows.
+legacy.PROBE_DEADLINE_SECONDS = 420
 legacy.MARKER = b"R04A_LIFECYCLE hold-line:"
 legacy.runner = acceptance.r00
 with contextlib.redirect_stdout(io.StringIO()):

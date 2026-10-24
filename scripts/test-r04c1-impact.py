@@ -26,7 +26,7 @@ class ReleaseImpactTests(unittest.TestCase):
         self.assertIn("github.event_name == 'workflow_dispatch' && needs.impact.outputs.r04c1 == 'true'",b)
         self.assertIn('timeout 600 python3 scripts/run-r04c1-tests.py',b)
         self.assertIn('R04A_POOL_SIZE=1 timeout 600 python3 scripts/run-r04c1-tests.py',b)
-        self.assertIn('timeout 300 python3 scripts/test-r04c1-lifecycle.py',b)
+        self.assertIn('timeout 420 python3 scripts/test-r04c1-lifecycle.py',b)
         self.assertIn('npm run build:ui01-runtime',b)
         self.assertNotIn('continue-on-error',b)
     def test_owning_module_declares_only_new_operative_release(self):
@@ -35,6 +35,10 @@ class ReleaseImpactTests(unittest.TestCase):
         self.assertIn('inventory.reservations.release',module['providedActions'])
         self.assertIn('inventory.reservation_releases',module['ownedTables'])
         self.assertNotIn('inventory.reservations.release',(ROOT/'database/runtime/migrations/0016_limited_grant_administration.sql').read_text())
+    def test_lifecycle_probe_budget_covers_cold_build_and_stays_within_command_limit(self):
+        text=(ROOT/'scripts/test-r04c1-lifecycle.py').read_text()
+        self.assertIn('legacy.PROBE_DEADLINE_SECONDS = 420',text)
+        self.assertIn('PROBE_DEADLINE_SECONDS=240',(ROOT/'scripts/test-r00b-lifecycle.py').read_text())
     def test_term_wording_matches_actual_held_line_lock(self):
         text=(ROOT/'scripts/test-r04c1-lifecycle.py').read_text()
         self.assertIn('hold-line:',text)
