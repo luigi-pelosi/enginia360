@@ -10,7 +10,7 @@ public interface IInventoryAccess
 public sealed record ReserveRequest(Guid Id, Guid WarehouseId, string Quantity, int CatalogVersion);
 public sealed record ReservationContract(Guid Id, Guid OrderId, Guid LineId, Guid WarehouseId, string Quantity, int CatalogVersion);
 public sealed record ReservationState(Guid OrderId, Guid LineId, Guid WarehouseId, string Physical, string Available,
-    string Reserved, string Remaining, IReadOnlyList<ReservationContract> Reservations, string ActiveCommitted, string Consumed);
+    string Reserved, string Remaining, IReadOnlyList<ReservationContract> Reservations, string ActiveCommitted, string Consumed, bool CanReserve = false, string StockProfile = "missing");
 
 [System.Text.Json.Serialization.JsonUnmappedMemberHandling(System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow)]
 public sealed record PickRequest(Guid Id, string Quantity);
@@ -18,7 +18,7 @@ public sealed record PickContract(Guid Id, Guid ReservationId, Guid OrderId, Gui
     Guid WarehouseId, Guid CatalogItemId, int CatalogVersion, string Quantity, int ConfigurationVersion,
     string OriginLocation, string? PlacementLocation, Guid PickingListId, DateTimeOffset PickedAt, Guid OperatorId);
 public sealed record PickingState(Guid ReservationId, string Reserved, string Picked, string RemainingToPick,
-    IReadOnlyList<PickContract> Picks);
+    IReadOnlyList<PickContract> Picks, bool CanPick = false);
 
 [System.Text.Json.Serialization.JsonUnmappedMemberHandling(System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow)]
 public sealed record CarcassReturnRequest(Guid Id, Guid WarehouseId, string Quantity, string Description);
@@ -27,4 +27,4 @@ public sealed record CarcassReturnContract(Guid Id, Guid OrderId, Guid WorkingGr
     Guid CatalogItemId, string Location, int LocationConfigurationVersion, string Description, string Quantity,
     IReadOnlyList<CoveredInstallation> Installations, DateTimeOffset ReceivedAt, Guid OperatorId);
 public sealed record CarcassReturnState(Guid OrderId, Guid LineId, Guid WarehouseId, string RequiredInstalled, string Returned,
-    string Outstanding, IReadOnlyList<CarcassReturnContract> Returns);
+    string Outstanding, IReadOnlyList<CarcassReturnContract> Returns, bool CanReceiveCarcass = false);

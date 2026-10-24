@@ -153,8 +153,10 @@ internal static class InstallationEndpoints
             results.Add(new(row.Contract(), effect is null ? "Pending" : "Consumed", effect));
         }
         var installed = rows.Sum(x => x.Quantity);
+        var canInstall = await access.Authorize(subject, pick.LegalEntityId, pick.SiteId, "workshop.installations.create", true, ct) is not null
+            && await picks.Find(subject, orderId, lineId, pickId, true, ct) is not null;
         return Results.Ok(new InstallationState(pick.Quantity.ToString("0.######", CultureInfo.InvariantCulture),
-            installed.ToString("0.######", CultureInfo.InvariantCulture), (pick.Quantity-installed).ToString("0.######", CultureInfo.InvariantCulture), results));
+            installed.ToString("0.######", CultureInfo.InvariantCulture), (pick.Quantity-installed).ToString("0.######", CultureInfo.InvariantCulture), results, canInstall, canInstall));
     }
 }
 internal sealed class WorkshopInstallations(WorkshopDbContext db, IWorkshopAccess access) : IWorkshopInstallations

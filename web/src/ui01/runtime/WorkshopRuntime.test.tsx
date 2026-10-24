@@ -17,7 +17,8 @@ test('known UUID URL reopens server order even with empty create scopes; immutab
   expect(screen.getByText(/Documento v7 · Policy righe v9 · Struttura v1 · Revisione 0/)).toBeTruthy();
   for (const name of ['Cambia testata', 'Cambia pagante', 'Cambia veicolo']) expect((screen.getByRole('button', { name }) as HTMLButtonElement).disabled).toBe(true);
   for (const name of ['Prenotazione','Prelievo','Preparazione','Installazione / consumo','Carcassa','Esito amministrativo esterno']) expect(screen.getByText(name)).toBeTruthy();
-  expect(screen.getAllByText('Non collegato in UI01.b').length).toBe(6);
+  expect(screen.getAllByText('Non collegato in UI01.b').length).toBe(1);
+  expect(screen.getAllByText('Disponibile nel pannello Materiali').length).toBe(5);
   fireEvent.click(screen.getByRole('button', { name: 'Rileggi commessa' }));
   expect(await screen.findByText('Valori salvati riletti — revisione 0')).toBeTruthy();
 });

@@ -252,7 +252,12 @@ async function createOrder(page, documentTypeId = data.documentTypeId, configura
     assert((await json(page, `${base}/orders?${scope}&limit=50`)).value.length === 50);
     assert((await json(page, `${base}/orders?${scope}&limit=1`)).value.length === 1);
     for (const query of ['limit=0', 'limit=51', 'limit=x', 'after=broken']) assert.equal((await json(page, `${base}/orders?${scope}&${query}`)).status, 400, query);
-    const item = (await json(page, `${base}/orders?${scope}&limit=50`)).value.find(x => x.id === order);
+    // Random UUID keyset position: locate the proven order by the same stable cursor, not by assuming it is within the first 50 of 56.
+    let item; let itemCursor = '';
+    for (let n = 0; n < 3 && !item; n++) {
+      const pageResult = await json(page, `${base}/orders?${scope}&limit=50${itemCursor ? '&after=' + itemCursor : ''}`); assert.equal(pageResult.status, 200);
+      item = pageResult.value.find(x => x.id === order); if (!pageResult.value.length) break; itemCursor = pageResult.value.at(-1).id;
+    }
     assert(item && item.revision === revision && item.closed === false);
     assert.equal((await json(page, `${base}/orders?legalEntityId=${fixture.deniedContexts[0].legalEntityId}&siteId=${fixture.deniedContexts[0].siteId}`)).status, 403);
     const other = await login(browser, 1);

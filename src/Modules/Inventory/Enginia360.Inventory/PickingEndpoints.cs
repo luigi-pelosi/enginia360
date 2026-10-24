@@ -38,9 +38,13 @@ internal static class PickingEndpoints
         var picks = await db.Picks.AsNoTracking().Where(x => x.ReservationId == reservationId && x.TenantId == member.TenantId)
             .OrderBy(x => x.Id).ToListAsync(ct);
         var picked = picks.Sum(x => x.Quantity);
+        var stockProfile = await InventoryModule.StockProfile(db, member.TenantId, reservation.LegalEntityId, ct);
         await tx.CommitAsync(ct);
+        await tx.DisposeAsync();
+        var canPick = stockProfile == "local" && await workshop.Authorize(Subject(user), reservation.LegalEntityId, reservation.SiteId, "workshop.orders.read", true, ct) is not null
+            && await access.Authorize(Subject(user), reservation.LegalEntityId, reservation.SiteId, reservation.WarehouseId, "inventory.picks.create", true, ct);
         return Results.Ok(new PickingState(reservationId, InventoryModule.Value(reservation.Quantity), InventoryModule.Value(picked),
-            InventoryModule.Value(reservation.Quantity - picked), picks.Select(x => x.Contract()).ToArray()));
+            InventoryModule.Value(reservation.Quantity - picked), picks.Select(x => x.Contract()).ToArray(), canPick));
     }
 
     private static async Task<IResult> Pick(Guid orderId, Guid lineId, Guid reservationId, PickRequest request, ClaimsPrincipal user,
@@ -60,6 +64,8 @@ internal static class PickingEndpoints
                 "inventory.picks.create", true, ct)) return Results.StatusCode(403);
         await using var tx = await db.Database.BeginTransactionAsync(ct);
         await SetTenant(db, member.TenantId, ct);
+        var stockProfile = await InventoryModule.StockProfile(db, member.TenantId, reservation.LegalEntityId, ct);
+        if (stockProfile != "local") return Results.Conflict(new { code = "stock_profile_" + stockProfile });
         // Global command lock, then reservation lock; one reservation per command.
         await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({request.Id.ToString()}, 0))", ct);
         var existing = await db.Picks.AsNoTracking().SingleOrDefaultAsync(x => x.Id == request.Id, ct);

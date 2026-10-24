@@ -8,7 +8,7 @@ import type { Editor, Row } from './editorContracts';
 type Fields = Record<string, unknown>;
 const discountOk = (v: string) => /^\d{1,3}(?:\.\d{1,2})?$/.test(v) && Number(v) <= 100;
 const NOT_SUPPORTED = 'Non supportato in questo incremento: ';
-const unsupported = ['Cambia testata', 'Cambia pagante', 'Cambia veicolo', 'Sposta riga tra lavorazioni (trascinamento)', 'Ripartizione / garanzia', 'Appuntamenti e autorizzazioni', 'Logistica ricambi (prenotazione, prelievo, installazione, carcassa)'];
+const unsupported = ['Cambia testata', 'Cambia pagante', 'Cambia veicolo', 'Sposta riga tra lavorazioni (trascinamento)', 'Ripartizione / garanzia', 'Appuntamenti e autorizzazioni'];
 
 // Every write is a closed server command. A transport-uncertain command is frozen and can only be replayed byte-identically.
 export default function OrderWorkspace({ editor, onApplied, onError }: Readonly<{ editor: Editor; onApplied: () => Promise<void>; onError: (error: unknown) => void }>) {

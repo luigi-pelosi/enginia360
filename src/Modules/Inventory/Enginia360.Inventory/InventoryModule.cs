@@ -38,6 +38,9 @@ public static class InventoryModule
     }
     private static string Subject(ClaimsPrincipal user) => user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
     internal static string Value(decimal value) => value.ToString("0.######", CultureInfo.InvariantCulture);
+    // Public OrganizationAccess contract, on the caller's existing transaction/connection.
+    internal static Task<string> StockProfile(InventoryDbContext db, Guid tenant, Guid company, CancellationToken ct) =>
+        db.Database.SqlQuery<string>($"SELECT organization_access.company_stock_profile({tenant},{company}) AS \"Value\"").SingleAsync(ct);
     private static async Task SetTenant(InventoryDbContext db, Guid tenant, CancellationToken ct) =>
         await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.tenant_id', {tenant.ToString()}, true)", ct);
     private static async Task<IResult> Read(Guid orderId, Guid lineId, Guid warehouseId, ClaimsPrincipal user,
@@ -62,9 +65,14 @@ public static class InventoryModule
         var consumed = await db.Consumptions.Where(x => x.TenantId == member.TenantId && x.LegalEntityId == line.LegalEntityId
             && x.SiteId == line.SiteId && x.WarehouseId == warehouseId && x.CatalogItemId == line.CatalogItemId).SumAsync(x => x.Quantity, ct);
         var reserved = reservations.Sum(x => x.Quantity);
+        var stockProfile = await StockProfile(db, member.TenantId, line.LegalEntityId, ct);
         await tx.CommitAsync(ct);
+        // Release the read connection before authorization adapters (shared pool may be one).
+        await tx.DisposeAsync();
+        var canReserve = stockProfile == "local" && await workshop.Authorize(Subject(user), line.LegalEntityId, line.SiteId, "workshop.orders.read", true, ct) is not null
+            && await access.Authorize(Subject(user), line.LegalEntityId, line.SiteId, warehouseId, "inventory.reservations.create", true, ct);
         return Results.Ok(new ReservationState(orderId, lineId, warehouseId, Value(physical), Value(physical - (committed-consumed)),
-            Value(reserved), Value(line.Quantity - reserved), reservations.Where(x => x.WarehouseId == warehouseId).Select(x => x.Contract()).ToArray(), Value(committed-consumed), Value(consumed)));
+            Value(reserved), Value(line.Quantity - reserved), reservations.Where(x => x.WarehouseId == warehouseId).Select(x => x.Contract()).ToArray(), Value(committed-consumed), Value(consumed), canReserve, stockProfile));
     }
     private static async Task<IResult> Reserve(Guid orderId, Guid lineId, ReserveRequest request, ClaimsPrincipal user,
         IWorkshopAccess workshop, IInventoryAccess access, IWorkshopReservationLines lines, InventoryDbContext db, CancellationToken ct)
@@ -83,6 +91,8 @@ public static class InventoryModule
             return Results.StatusCode(403);
         await using var tx = await db.Database.BeginTransactionAsync(ct);
         await SetTenant(db, member.TenantId, ct);
+        var stockProfile = await StockProfile(db, member.TenantId, line.LegalEntityId, ct);
+        if (stockProfile != "local") return Results.Conflict(new { code = "stock_profile_" + stockProfile });
         await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({request.Id.ToString()}, 0))", ct);
         var existing = await db.Reservations.AsNoTracking().SingleOrDefaultAsync(x => x.Id == request.Id, ct);
         if (existing is not null)

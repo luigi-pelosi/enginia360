@@ -51,6 +51,8 @@ internal static class CarcassReturnEndpoints
         var required = (await installations.RequiredCarcass(member.TenantId, orderId, ct)).Where(x => x.LineId == lineId).ToArray();
         await using var tx = await db.Database.BeginTransactionAsync(ct);
         await SetTenant(db, member.TenantId, ct);
+        var stockProfile = await InventoryModule.StockProfile(db, member.TenantId, line.LegalEntityId, ct);
+        if (stockProfile != "local") return Results.Conflict(new { code = "stock_profile_" + stockProfile });
         await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({request.Id.ToString()}, 0))", ct);
         var existing = await db.CarcassReturns.AsNoTracking().SingleOrDefaultAsync(x => x.Id == request.Id, ct);
         if (existing is not null)
@@ -130,13 +132,17 @@ internal static class CarcassReturnEndpoints
             .OrderBy(x => x.ReceivedAt).ThenBy(x => x.Id).ToListAsync(ct);
         var returnIds = rows.Select(x => x.Id).ToArray();
         var links = await db.CarcassReturnInstallations.AsNoTracking().Where(x => returnIds.Contains(x.ReturnId)).ToListAsync(ct);
+        var stockProfile = await InventoryModule.StockProfile(db, member.TenantId, line.LegalEntityId, ct);
         await tx.CommitAsync(ct);
+        await tx.DisposeAsync();
+        var canReceive = stockProfile == "local" && await workshop.Authorize(subject, line.LegalEntityId, line.SiteId, "workshop.orders.read", true, ct) is not null
+            && await access.Authorize(subject, line.LegalEntityId, line.SiteId, warehouseId, "inventory.carcass-returns.create", true, ct);
         var total = required.Sum(x => x.Quantity);
         var returned = rows.Sum(x => x.Quantity);
         var covered = required.Where(x => links.Any(link => link.InstallationId == x.InstallationId)).Sum(x => x.Quantity);
         return Results.Ok(new CarcassReturnState(orderId, lineId, warehouseId, InventoryModule.Value(total), InventoryModule.Value(returned),
             InventoryModule.Value(total - covered), rows.Where(x => x.WarehouseId == warehouseId)
-                .Select(x => x.Contract(links.Where(link => link.ReturnId == x.Id).ToList())).ToArray()));
+                .Select(x => x.Contract(links.Where(link => link.ReturnId == x.Id).ToList())).ToArray(), canReceive));
     }
 }
 

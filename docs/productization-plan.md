@@ -79,7 +79,7 @@ La matrice strutturata `productization-backlog.json` è verificata dal test C00 
 - Gate: Dettagli appuntamento/accettazione/autorizzazione cliente/tempi/riconsegna non già decisi da confermare prima della relativa transizione; nessuna chiusura universale inventata.
 - R03.a: collegare apertura e gestione commessa/lavorazioni/valori al percorso operatore, preservando D67.
 - Contratto R03.a.1 #66: [workspace commessa persistito](r03a-order-workspace.md) — più lavorazioni e righe ripetute, Note, modifica/rimozione tracciata di Service/Note e di prezzo/sconto/descrizione dei ricambi, revisione persistita monotona, ricevute esatte, elenco/riapertura; limite storico strutturale R03.a.1 registrato. [R03.a.2 #68](r03a2-safe-material-corrections.md) attua la fence P2 già approvata, modifica/rimozione Part senza impegni e prova runtime dei consumer diretti (logistica gruppi non-ordine, Billing/Accounting interni e snapshot esterno), con gate CI exact-head separato. #43 e #5 restano aperte.
-- R03.b: un passaggio operativo mancante alla volta (pianificazione/accettazione/autorizzazione/consuntivo), con contratto e policy confermati.
+- R03.b: un passaggio operativo mancante alla volta (pianificazione/accettazione/autorizzazione/consuntivo), con contratto e policy confermati. Primo passaggio D78 già approvato: consuntivo manuale del proprio tempo per lavorazione (data, durata, nota e correzioni tracciate), senza effetti automatici sulle ore fatturate o sullo stock; altri passaggi e tempi di altri operatori restano separati e D78 non va richiesta di nuovo. Nessun codice R03.b nella consegna R04.a.
 - R03.c: chiusura tecnica ed attesa amministrativa visibili, senza incasso o riconsegna impliciti.
 - Accettazione/evidenze: Percorso finito attraversabile, tempi pianificati/effettivi distinti ove introdotti, ruoli distinti, customizing versionato, retry/concorrenza; regressioni B04–B13 inclusa contabilità interna e D37/D40; ogni subincremento ha RED/GREEN e DoD propria.
 
@@ -96,7 +96,7 @@ La matrice strutturata `productization-backlog.json` è verificata dal test C00 
 
 - Dipende da: R04.
 - Gate: AUTHORITY: configurabilità unilaterale societaria D76, master unico tenant-wide e profilo concreto al setup prima della sincronizzazione dipendente. Contratto ufficiale da verificare: autenticazione, permessi account, endpoint/versione, idempotenza/esiti/limiti. Nessuna credenziale o connessione reale in questo incarico.
-- R05.a: dossier contratto Giobby e matrice campo/transizione/autorità con gap documentati.
+- R05.a: dossier contratto Giobby e matrice campo/transizione/autorità con gap documentati. D79 conferma il risultato desiderato «bozza di fattura vendita, da verificare ed emettere in Giobby»; non prova schema/semantica provider, idempotenza o assenza di effetti fiscali/stock e non autorizza chiamate ERP reali.
 - R05.b: adattatore anti-corruption del percorso amministrativo minimo contro fixture contrattuali sintetiche, non risposta inventata come prova live.
 - R05.c: esercitare coda, timeout incerto, ricerca esito, retry e riconciliazione; prova esterna solo con separato scope sicuro.
 - Accettazione/evidenze: SDK/API proprietari fuori dal dominio; business acknowledgement distinto da ricezione, ID stabili e mapping societario, conflitti/errori visibili, nessun duplicato economico; capacità non documentate restano gap, non emulazioni di compatibilità; SAP custom BTP esplicitamente escluso.
