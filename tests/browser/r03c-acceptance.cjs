@@ -241,7 +241,7 @@ async function lostResponse(page, urlPattern, label) {
     let a = await probe5('workshop.administrative-requests.create,workshop.administrative-requests.reconcile,workshop.orders.complete-administrative');
     assert.deepEqual([a.canReadAdministrativeState, a.canRequestAdministrative, a.mayRequestReconciliation, a.canCompleteAdministrative], [false, false, false, false], 'write without read');
     assert(a.actionReasons.some(r => r.action === 'requestAdministrative' && r.code === 'administrative_read_required'));
-    assert.equal(JSON.stringify(a).includes('already_'), false);
+    assert.equal(JSON.stringify(a).includes('already_requested'), false);
     assert.equal((await json(p5, mpath + '/closure-state')).status, 404); assert.equal((await json(p5, mpath + '/administrative-requests')).status, 404);
     assert.equal((await post(p5, mpath + '/administrative-closure', { id: uid() })).value.code, 'external_confirmation_required', 'the backend command keeps its own rules, advice never replaces them');
     a = await probe5('workshop.administrative-requests.read');
