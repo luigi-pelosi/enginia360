@@ -17,7 +17,8 @@ test('known UUID URL reopens server order even with empty create scopes; immutab
   expect(screen.getByText(/Documento v7 · Policy righe v9 · Struttura v1 · Revisione 0/)).toBeTruthy();
   for (const name of ['Cambia testata', 'Cambia pagante', 'Cambia veicolo']) expect((screen.getByRole('button', { name }) as HTMLButtonElement).disabled).toBe(true);
   for (const name of ['Prenotazione','Prelievo','Preparazione','Installazione / consumo','Carcassa','Esito amministrativo esterno']) expect(screen.getByText(name)).toBeTruthy();
-  expect(screen.getAllByText('Non collegato in UI01.b').length).toBe(1);
+  expect(screen.queryByText('Non collegato in UI01.b')).toBeNull();
+  expect(screen.getAllByText('Disponibile nel pannello Chiusura e attesa amministrativa').length).toBe(1);
   expect(screen.getAllByText('Disponibile nel pannello Materiali').length).toBe(5);
   fireEvent.click(screen.getByRole('button', { name: 'Rileggi commessa' }));
   expect(await screen.findByText('Valori salvati riletti — revisione 0')).toBeTruthy();
@@ -115,4 +116,24 @@ test('pending catalog response cannot restore choices after session expiry',asyn
  await act(async()=>{release(new Response(JSON.stringify([{id,kind:'Service',label:'Late secret choice',version:8}])));});
  expect(screen.queryByRole('option',{name:/Late secret choice/})).toBeNull();
  expect(screen.queryByLabelText('Workspace commessa')).toBeNull();
+});
+
+test('closure panel is lazy, keeps editor, footer and sibling panels reachable, and its 401 ends the shared session', async () => {
+  window.location.hash = 'order='+id; let revoked = false;
+  const fetch = server();
+  const closureActions = { orderId: id, commercialRevision: 0, technicalClosure: null, canReadAdministrativeState: false, canCompleteTechnical: true, canRequestAdministrative: false, mayRequestReconciliation: false, canCompleteAdministrative: false, actionReasons: [], administrativeRuntime: { kind: 'SimulatorV1', contractVersion: 1 } };
+  fetch.mockImplementation(async (path: string) => path === '/api/v1/workshop/orders/'+id+'/closure-actions' ? (revoked ? new Response(null, { status: 401 }) : new Response(JSON.stringify(closureActions)))
+    : path.endsWith('/technical-closure-gate') ? new Response(JSON.stringify({ orderId: id, status: 'Clear', requirements: [] }))
+    : new Response(JSON.stringify(path === '/auth/session' ? { authenticated: true } : path === '/auth/csrf' ? { requestToken: 'test-only' } : path.endsWith('/editor') ? editorView : [])));
+  render(<WorkshopRuntime />);
+  await screen.findByLabelText('Workspace commessa');
+  expect(fetch.mock.calls.some(([p]) => String(p).includes('closure-actions'))).toBe(false);
+  fireEvent.click(screen.getByText('Chiusura e attesa amministrativa'));
+  await screen.findByText('Requisito carcassa: Clear');
+  expect(screen.getByText('Simulatore amministrativo v1 · nessun collegamento Giobby')).toBeTruthy();
+  expect(screen.getByText('Operazioni materiali')).toBeTruthy(); expect(screen.getByText('Tempo effettivo mio')).toBeTruthy();
+  expect(screen.getByText('0.000000 EUR')).toBeTruthy(); expect(screen.getByLabelText('Workspace commessa')).toBeTruthy();
+  revoked = true; fireEvent.click(screen.getByRole('button', { name: 'Rileggi stato' }));
+  await screen.findByText('Sessione terminata. Accedi nuovamente.');
+  expect(screen.queryByLabelText('Workspace commessa')).toBeNull();
 });

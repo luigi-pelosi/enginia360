@@ -43,7 +43,7 @@ internal static partial class AdministrativeEndpoints
     private static Task Lock(WorkshopDbContext db, Guid orderId, CancellationToken ct) =>
         db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({orderId.ToString()}, 0))", ct);
 
-    private static async Task<(WorkshopGrant Member, WorkOrder Order)?> Find(Guid id, string subject, IWorkshopAccess access,
+    internal static async Task<(WorkshopGrant Member, WorkOrder Order)?> Find(Guid id, string subject, IWorkshopAccess access,
         WorkshopDbContext db, CancellationToken ct)
     {
         var member = await access.ResolveMembership(subject, ct);
@@ -198,18 +198,11 @@ internal static partial class AdministrativeEndpoints
         if (await access.Authorize(subject, order.LegalEntityId, order.SiteId, "workshop.orders.read", false, ct) is null
             || await access.Authorize(subject, order.LegalEntityId, order.SiteId, "workshop.administrative-requests.read", false, ct) is null)
             return Results.NotFound();
-        TechnicalClosure? technical;
-        AdministrativeClosure? administrative;
-        List<AdministrativeRequest> rows;
-        await using (var tx = await db.Database.BeginTransactionAsync(ct))
-        {
-            await InstallationEndpoints.SetTenant(db, member.TenantId, ct);
-            technical = await db.TechnicalClosures.AsNoTracking().SingleOrDefaultAsync(x => x.TenantId == member.TenantId && x.OrderId == id, ct);
-            administrative = await db.AdministrativeClosures.AsNoTracking().SingleOrDefaultAsync(x => x.TenantId == member.TenantId && x.OrderId == id, ct);
-            rows = await db.AdministrativeRequests.AsNoTracking().Where(x => x.TenantId == member.TenantId && x.OrderId == id).ToListAsync(ct);
-            await tx.CommitAsync(ct);
-        }
-        var request = (await View(member.TenantId, rows, deliveries, db, ct)).SingleOrDefault();
+        var snapshot = await ReadSnapshot(db, member.TenantId, id, ct);
+        var (technical, administrative) = (snapshot.Technical, snapshot.Administrative);
+        // Delivery is a second, public observation taken after the Workshop connection is closed.
+        var request = snapshot.Request is null ? null
+            : (await Contracts([snapshot.Request], snapshot.Outcome is null ? [] : [snapshot.Outcome], member.TenantId, deliveries, ct))[0];
         var status = administrative is not null ? "AdministrativelyClosed"
             : technical is null ? "Open"
             : request is null ? "TechnicallyClosed"
@@ -271,6 +264,36 @@ internal static partial class AdministrativeEndpoints
         var result = await recovery.Reconcile(member.TenantId, requestId, command.Id, Guid.Parse(subject), ct);
         if (result is null) return Results.Conflict(new { code = "reconciliation_not_available", message = "Riconciliazione non disponibile: rileggi lo stato. Nessun esito di business modificato." });
         return result.Replayed ? Results.Ok(result) : Results.Json(result, statusCode: 202);
+    }
+
+    // One RepeatableRead Workshop snapshot of the order's closure facts: never a mixture of commits.
+    internal sealed record ClosureSnapshot(TechnicalClosure? Technical, AdministrativeClosure? Administrative,
+        AdministrativeRequest? Request, AdministrativeOutcomeRow? Outcome, int CommercialRevision,
+        bool InternalClaim = false, bool ExternalDestination = false);
+    internal static async Task<ClosureSnapshot> ReadSnapshot(WorkshopDbContext db, Guid tenant, Guid orderId, CancellationToken ct, bool actionFacts = false)
+    {
+        await using var tx = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.RepeatableRead, ct);
+        await InstallationEndpoints.SetTenant(db, tenant, ct);
+        var technical = await db.TechnicalClosures.AsNoTracking().SingleOrDefaultAsync(x => x.TenantId == tenant && x.OrderId == orderId, ct);
+        var administrative = await db.AdministrativeClosures.AsNoTracking().SingleOrDefaultAsync(x => x.TenantId == tenant && x.OrderId == orderId, ct);
+        var request = await db.AdministrativeRequests.AsNoTracking().SingleOrDefaultAsync(x => x.TenantId == tenant && x.OrderId == orderId, ct);
+        var outcome = request is null ? null : await db.AdministrativeOutcomes.AsNoTracking().SingleOrDefaultAsync(x => x.TenantId == tenant && x.RequestId == request.Id, ct);
+        var revision = await db.Orders.AsNoTracking().Where(x => x.TenantId == tenant && x.Id == orderId).Select(x => x.CommercialRevision).SingleAsync(ct);
+        // Advisory facts are read in the same snapshot, only by the action read: the latest destination and any internal claim.
+        var claim = actionFacts && await db.InternalBillingClaims.AnyAsync(x => x.TenantId == tenant && x.OrderId == orderId, ct);
+        var destination = actionFacts && await db.AdministrativeDestinations.AsNoTracking().Where(x => x.TenantId == tenant
+            && x.LegalEntityId == (db.Orders.Where(o => o.Id == orderId && o.TenantId == tenant).Select(o => o.LegalEntityId).First()))
+            .OrderByDescending(x => x.Version).Select(x => x.Destination == "External").FirstOrDefaultAsync(ct);
+        await tx.CommitAsync(ct);
+        return new(technical, administrative, request, outcome, revision, claim, destination);
+    }
+
+    private static async Task<List<AdministrativeRequestContract>> Contracts(IReadOnlyList<AdministrativeRequest> rows,
+        IReadOnlyList<AdministrativeOutcomeRow> outcomes, Guid tenant, IAdministrativeDeliveries deliveries, CancellationToken ct)
+    {
+        var delivered = await deliveries.Read(tenant, rows.Select(x => x.Id).ToArray(), ct);
+        var byRequest = outcomes.ToDictionary(x => x.RequestId);
+        return rows.Select(x => x.Contract(byRequest.GetValueOrDefault(x.Id), delivered.GetValueOrDefault(x.Id) ?? Queued)).ToList();
     }
 
     private static decimal Amount(string value) => decimal.Parse(value, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture);

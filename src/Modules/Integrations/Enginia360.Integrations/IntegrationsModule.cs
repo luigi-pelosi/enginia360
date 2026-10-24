@@ -8,6 +8,9 @@ namespace Enginia360.Integrations;
 // Connector for the simulated external administrative destination (anti-corruption layer + dispatcher).
 public static class IntegrationsModule
 {
+    // Identity of the adapter registered by AddExternalAdministration: the synthetic protocol v1, not any real ERP.
+    public static AdministrativeRuntime Runtime { get; } = new("SimulatorV1", 1);
+
     public static IServiceCollection AddExternalAdministration(this IServiceCollection services, string connection, IConfiguration section)
     {
         var options = ConnectorOptions.From(section);

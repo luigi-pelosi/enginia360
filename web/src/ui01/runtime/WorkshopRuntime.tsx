@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { request, ApiError } from './workshopApi';
 import CreateOrder from './CreateOrder';
 import OrderWorkspace from './OrderWorkspace';
 import MaterialOperations from './MaterialOperations';
 import OwnActualTime from './OwnActualTime';
+const AdministrativeWorkspace = lazy(() => import('./AdministrativeWorkspace'));
 import OrderList from './OrderList';
 import OwnContexts from './OwnContexts';
 import MasterAuthority from './MasterAuthority';
@@ -18,6 +19,7 @@ export default function WorkshopRuntime() {
   const generation = useRef(0);
   const [materialsOpen, setMaterialsOpen] = useState(false);
   const [timeOpen, setTimeOpen] = useState(false);
+  const [closureOpen, setClosureOpen] = useState(false);
   function failed(e: unknown) {
     setStatus(e instanceof Error ? e.message : 'Servizio non disponibile.');
     if (e instanceof ApiError && e.status === 401) { generation.current++; setAuthenticated(false); setCsrf(''); setEditor(undefined); setBusy(false); }
@@ -46,10 +48,11 @@ export default function WorkshopRuntime() {
     <form onSubmit={e => { e.preventDefault(); void load(locator); }}><label>UUID commessa<input value={locator} onChange={e => setLocator(e.target.value)} /></label><button disabled={busy || !authenticated}>Rileggi commessa</button></form>
     <div className="ui01-body"><aside className="ui01-context">{authenticated && <OwnContexts onError={optionalFailed} />}{authenticated && <OrderList onOpen={id => { setLocator(id); void load(id); }} onError={optionalFailed} />}{order ? <details open><summary>Testata salvata · sola lettura</summary><p>Società: {order.legalEntityId}</p><p>Sede: {order.siteId}</p><p>Tipo documento: {order.documentTypeId}</p><p>Configurazione documento: {order.configurationVersion}</p><p>Ordine cliente: {order.isCustomerOrder ? 'Sì' : 'No'}</p><p>Pagante: {order.payerId}</p><p>Veicolo: {order.vehicleId}</p><p>Intestatario: {order.vehicleHolderId}</p></details> : authenticated && !busy && !locator && <CreateOrder onCreated={async id => { setLocator(id); window.location.hash = 'order='+id; await load(id, true); }} onError={failed} />}</aside><section className="ui01-document">
     <h1>{order ? 'Commessa '+order.id : 'Nessuna commessa caricata'}</h1>
-    <div className="ui01-operations">{['Prenotazione','Prelievo','Preparazione','Installazione / consumo','Carcassa','Esito amministrativo esterno'].map(name => <div key={name}><span>{name}</span><strong>{name === 'Esito amministrativo esterno' ? 'Non collegato in UI01.b' : 'Disponibile nel pannello Materiali'}</strong>{name === 'Esito amministrativo esterno' && <button disabled aria-label={'Gestisci '+name}>Non disponibile</button>}</div>)}</div>
+    <div className="ui01-operations">{['Prenotazione','Prelievo','Preparazione','Installazione / consumo','Carcassa','Esito amministrativo esterno'].map(name => <div key={name}><span>{name}</span><strong>{name === 'Esito amministrativo esterno' ? 'Disponibile nel pannello Chiusura e attesa amministrativa' : 'Disponibile nel pannello Materiali'}</strong></div>)}</div>
     {authenticated && editor && <OrderWorkspace key={editor.order.id} editor={editor} onApplied={async () => { await load(editor.order.id, true); }} onError={optionalFailed} />}
     {authenticated && editor && <div className="ui01-panels"><details open={materialsOpen} onToggle={e => setMaterialsOpen(e.currentTarget.open)}><summary>Operazioni materiali</summary>{materialsOpen && <MaterialOperations key={'materials:'+editor.order.id} editor={editor} onError={optionalFailed} />}</details>
-    <details open={timeOpen} onToggle={e => setTimeOpen(e.currentTarget.open)}><summary>Tempo effettivo mio</summary>{timeOpen && <OwnActualTime key={'time:'+editor.order.id} editor={editor} onError={optionalFailed} />}</details></div>}
+    <details open={timeOpen} onToggle={e => setTimeOpen(e.currentTarget.open)}><summary>Tempo effettivo mio</summary>{timeOpen && <OwnActualTime key={'time:'+editor.order.id} editor={editor} onError={optionalFailed} />}</details>
+    <details open={closureOpen} onToggle={e => setClosureOpen(e.currentTarget.open)}><summary>Chiusura e attesa amministrativa</summary>{closureOpen && <Suspense fallback={<p role="status">Caricamento pannello…</p>}><AdministrativeWorkspace key={'closure:'+editor.order.id} editor={editor} onError={optionalFailed} onChanged={() => load(editor.order.id, true)} /></Suspense>}</details></div>}
     {authenticated && order && <MasterAuthority key={'authority:'+order.legalEntityId} companyId={order.legalEntityId} counterpartyId={order.payerId} onError={optionalFailed} />}
     </section></div><footer className="ui01-summary">{summary ? <><span>Imponibile {summary.netAmount}</span><span>IVA {summary.taxAmount}</span><strong>{summary.total} EUR</strong></> : 'Riepilogo non verificato'}</footer></main>;
 }

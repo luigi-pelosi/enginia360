@@ -21,7 +21,7 @@ public static class WorkshopModule
         services.AddScoped<IWorkshopBillingSources, WorkshopBillingSources>();
         return services;
     }
-    public static WebApplication MapWorkshop(this WebApplication app, bool inventoryEnabled = false, bool externalAdministrationEnabled = false)
+    public static WebApplication MapWorkshop(this WebApplication app, bool inventoryEnabled = false, bool externalAdministrationEnabled = false, AdministrativeRuntime? administrativeRuntime = null)
     {
         var routes = app.MapGroup("/api/v1/workshop").RequireAuthorization().AddEndpointFilter<TechnicalAuditFilter>();
         routes.MapGet("/contexts", async (ClaimsPrincipal user, IWorkshopAccess access, CancellationToken ct) =>
@@ -63,6 +63,7 @@ public static class WorkshopModule
         if (inventoryEnabled) InstallationEndpoints.Map(routes);
         // The carcass requirement of technical closure is evaluated with Inventory receipts.
         if (inventoryEnabled) AdministrativeEndpoints.MapClosure(routes);
+        if (inventoryEnabled) ClosureActionEndpoints.Map(routes, externalAdministrationEnabled, administrativeRuntime ?? AdministrativeRuntime.Unavailable);
         if (inventoryEnabled && externalAdministrationEnabled) AdministrativeEndpoints.MapExternal(routes);
         return app;
     }
