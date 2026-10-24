@@ -74,14 +74,38 @@ R03C_FILTER = '|'.join('FullyQualifiedName~'+name for name in (
 R03C_MINIMAL = 'FullyQualifiedName~WorkshopClosure|FullyQualifiedName~AdministrationBoundaryTests'
 
 
+R06_OFFLINE_FILES = {'scripts/r06_inventory.py', 'scripts/r06_synthetic.py', 'scripts/r06_reconcile.py',
+    'scripts/test-r06-inventory.py', 'scripts/test-r06-reconcile.py', 'scripts/test-r06-impact.py',
+    'docs/r06-migration-inventory.json', 'docs/r06-migration-inventory.md'}
+# The existing changed-path guard must not assume every later increment is R03.a.
+# Its standalone changes still use R03.a acceptance; only this finite offline set is exempt.
+R06_WIRING = {'scripts/select-ci-impact.py', '.github/workflows/ci.yml', 'scripts/test-r03a-impact.py'}
+R06_COMMAND_SOURCES = {
+    'src/Modules/'+module+'/Enginia360.'+module+'/'+file
+    for module, files in (
+        ('Workshop', ('WorkshopModule.cs', 'CommercialEndpoints.cs', 'EditorEndpoints.cs', 'InstallationEndpoints.cs',
+                      'AdministrativeEndpoints.cs', 'ActualTimeEndpoints.cs')),
+        ('Inventory', ('InventoryModule.cs', 'PickingEndpoints.cs', 'CarcassReturnEndpoints.cs')),
+        ('Billing', ('BillingModule.cs',)), ('Accounting', ('AccountingModule.cs',)),
+        ('Counterparties', ('CounterpartiesModule.cs',))) for file in files}
+
+
 def selection(paths):
     paths = sorted(set(paths))
+    r06_offline = bool(set(paths) & (R06_OFFLINE_FILES | R06_COMMAND_SOURCES | {'scripts/apply-runtime-migrations.py'})) or any(
+        path.startswith('database/runtime/') for path in paths)
+    offline_only = r06_offline and set(paths) <= R06_OFFLINE_FILES | R06_WIRING
     auth = ui = ui01b = r03a = r04a = r03b = r03c = r03c_full = False
     unknown = []
     for path in paths:
         parsed = PurePosixPath(path)
         if not path or parsed.is_absolute() or '..' in parsed.parts or '\\' in path or str(parsed) != path:
             raise ValueError('invalid changed path')
+        if path in R06_OFFLINE_FILES or (offline_only and path in R06_WIRING):
+            continue
+        if path.startswith('docs/') and parsed.suffix in {'.py', '.sh', '.js', '.cjs', '.ts', '.cs'}:
+            unknown.append(path)
+            continue
         if path in R03C_FILES or path.startswith(R03C_WEB):
             r03c = r03c_full = auth = ui = ui01b = True
             continue
@@ -136,7 +160,7 @@ def selection(paths):
     filters = ([AUTH_FILTER] if auth or ui01b else []) + ([R03A_FILTER if r03a else WORKSHOP_FILTER] if ui01b else [])
     if r03b: filters.append('FullyQualifiedName~WorkshopOwnActualTimeTests')
     if r03c: filters.append(R03C_FILTER if r03c_full else R03C_MINIMAL)
-    return {'changed_paths':paths,'api_filter':'|'.join(filters),
+    return {'changed_paths':paths,'api_filter':'|'.join(filters),'r06_offline':r06_offline,
             'browser':auth,'ui01b':ui01b,'r03a':r03a,'r03a2':r03a,'r04a':r04a,'r03b':r03b,'r03c':r03c,'migrations':auth or ui01b,'ui_build':auth or ui,'ui_tests':ui,
             'full_architecture':False}
 
