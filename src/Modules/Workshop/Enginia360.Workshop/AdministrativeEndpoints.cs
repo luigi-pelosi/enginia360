@@ -198,18 +198,11 @@ internal static partial class AdministrativeEndpoints
         if (await access.Authorize(subject, order.LegalEntityId, order.SiteId, "workshop.orders.read", false, ct) is null
             || await access.Authorize(subject, order.LegalEntityId, order.SiteId, "workshop.administrative-requests.read", false, ct) is null)
             return Results.NotFound();
-        TechnicalClosure? technical;
-        AdministrativeClosure? administrative;
-        List<AdministrativeRequest> rows;
-        await using (var tx = await db.Database.BeginTransactionAsync(ct))
-        {
-            await InstallationEndpoints.SetTenant(db, member.TenantId, ct);
-            technical = await db.TechnicalClosures.AsNoTracking().SingleOrDefaultAsync(x => x.TenantId == member.TenantId && x.OrderId == id, ct);
-            administrative = await db.AdministrativeClosures.AsNoTracking().SingleOrDefaultAsync(x => x.TenantId == member.TenantId && x.OrderId == id, ct);
-            rows = await db.AdministrativeRequests.AsNoTracking().Where(x => x.TenantId == member.TenantId && x.OrderId == id).ToListAsync(ct);
-            await tx.CommitAsync(ct);
-        }
-        var request = (await View(member.TenantId, rows, deliveries, db, ct)).SingleOrDefault();
+        var snapshot = await ReadSnapshot(db, member.TenantId, id, ct);
+        var (technical, administrative) = (snapshot.Technical, snapshot.Administrative);
+        // Delivery is a second, public observation taken after the Workshop connection is closed.
+        var request = snapshot.Request is null ? null
+            : (await Contracts([snapshot.Request], snapshot.Outcome is null ? [] : [snapshot.Outcome], member.TenantId, deliveries, ct))[0];
         var status = administrative is not null ? "AdministrativelyClosed"
             : technical is null ? "Open"
             : request is null ? "TechnicallyClosed"
@@ -271,6 +264,29 @@ internal static partial class AdministrativeEndpoints
         var result = await recovery.Reconcile(member.TenantId, requestId, command.Id, Guid.Parse(subject), ct);
         if (result is null) return Results.Conflict(new { code = "reconciliation_not_available", message = "Riconciliazione non disponibile: rileggi lo stato. Nessun esito di business modificato." });
         return result.Replayed ? Results.Ok(result) : Results.Json(result, statusCode: 202);
+    }
+
+    // One RepeatableRead Workshop snapshot of the order's closure facts: never a mixture of commits.
+    internal sealed record ClosureSnapshot(TechnicalClosure? Technical, AdministrativeClosure? Administrative,
+        AdministrativeRequest? Request, AdministrativeOutcomeRow? Outcome);
+    internal static async Task<ClosureSnapshot> ReadSnapshot(WorkshopDbContext db, Guid tenant, Guid orderId, CancellationToken ct)
+    {
+        await using var tx = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.RepeatableRead, ct);
+        await InstallationEndpoints.SetTenant(db, tenant, ct);
+        var technical = await db.TechnicalClosures.AsNoTracking().SingleOrDefaultAsync(x => x.TenantId == tenant && x.OrderId == orderId, ct);
+        var administrative = await db.AdministrativeClosures.AsNoTracking().SingleOrDefaultAsync(x => x.TenantId == tenant && x.OrderId == orderId, ct);
+        var request = await db.AdministrativeRequests.AsNoTracking().SingleOrDefaultAsync(x => x.TenantId == tenant && x.OrderId == orderId, ct);
+        var outcome = request is null ? null : await db.AdministrativeOutcomes.AsNoTracking().SingleOrDefaultAsync(x => x.TenantId == tenant && x.RequestId == request.Id, ct);
+        await tx.CommitAsync(ct);
+        return new(technical, administrative, request, outcome);
+    }
+
+    private static async Task<List<AdministrativeRequestContract>> Contracts(IReadOnlyList<AdministrativeRequest> rows,
+        IReadOnlyList<AdministrativeOutcomeRow> outcomes, Guid tenant, IAdministrativeDeliveries deliveries, CancellationToken ct)
+    {
+        var delivered = await deliveries.Read(tenant, rows.Select(x => x.Id).ToArray(), ct);
+        var byRequest = outcomes.ToDictionary(x => x.RequestId);
+        return rows.Select(x => x.Contract(byRequest.GetValueOrDefault(x.Id), delivered.GetValueOrDefault(x.Id) ?? Queued)).ToList();
     }
 
     private static decimal Amount(string value) => decimal.Parse(value, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture);
