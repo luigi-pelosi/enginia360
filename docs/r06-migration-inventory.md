@@ -1,5 +1,7 @@
 # R06.a.1 — inventario offline e riconciliazione sintetica
 
+**Stato corrente R06.b.2:** tool R06.a.1 consegnato (PR #77), inventario aggiornato dai successivi incrementi; [registro OPE OPEN](r06-readiness-registry.json), [runbook/limiti correnti](r06-recovery-runbook.md). Import/export applicativo e replay d'import restano da provare; parent #46 aperta. Le prove sotto non sono approvazione della migrazione.
+
 **PROPOSTA tecnica di inventario, NON approvazione della migrazione.** Refs #76, parent #46 aperta. Baseline letta: `6ca042e66a826a1f45e0f7f72a004f1ecc58ade0` (R03.c); non il baseline ormai storico dell'handoff. Questo incremento implementa strumenti offline Python stdlib, non l'intera R06.a né R06.b. Non cambia applicazione, SQL, checksum, manifest, dipendenze o deployment.
 
 ## Inventario verificabile, non schema ipotizzato
