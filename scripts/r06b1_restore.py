@@ -125,7 +125,7 @@ _HASH = "encode(sha256(convert_to(coalesce(string_agg(x, E'\\n' ORDER BY x COLLA
 FINGERPRINT_SQL = {
     'relations': "SELECT %s FROM (SELECT concat_ws('|',n.nspname,c.relname,c.relkind,c.relrowsecurity,c.relforcerowsecurity,c.relpersistence,coalesce(c.reloptions::text,'')) x FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE %s AND c.relkind IN ('r','p','v','m','S','f')) q" % (_HASH, _USER_NS),
     'columns': "SELECT %s FROM (SELECT concat_ws('|',n.nspname,c.relname,a.attnum,a.attname,format_type(a.atttypid,a.atttypmod),a.attnotnull,a.attgenerated,a.attidentity,coalesce(pg_get_expr(d.adbin,d.adrelid),'')) x FROM pg_attribute a JOIN pg_class c ON c.oid=a.attrelid JOIN pg_namespace n ON n.oid=c.relnamespace LEFT JOIN pg_attrdef d ON d.adrelid=a.attrelid AND d.adnum=a.attnum WHERE %s AND a.attnum>0 AND NOT a.attisdropped AND c.relkind IN ('r','p','v','m','f')) q" % (_HASH, _USER_NS),
-    'constraints': "SELECT %s FROM (SELECT concat_ws('|',n.nspname,c.relname,k.conname,k.contype,k.condeferrable,k.condeferred,k.convalidated,CASE WHEN k.contype='c' THEN regexp_replace(regexp_replace(pg_get_constraintdef(k.oid),'::(character varying|text|bpchar)(\\[\\])?','','g'),'[()[:space:]]','','g') ELSE pg_get_constraintdef(k.oid) END) x FROM pg_constraint k JOIN pg_class c ON c.oid=k.conrelid JOIN pg_namespace n ON n.oid=c.relnamespace WHERE %s) q" % (_HASH, _USER_NS),
+    'constraints': "SELECT %s FROM (SELECT concat_ws('|',n.nspname,c.relname,k.conname,k.contype,k.condeferrable,k.condeferred,k.convalidated,CASE WHEN k.contype='c' THEN pg_temp.r06_check_definition(k.conrelid,pg_get_constraintdef(k.oid)) ELSE pg_get_constraintdef(k.oid) END) x FROM pg_constraint k JOIN pg_class c ON c.oid=k.conrelid JOIN pg_namespace n ON n.oid=c.relnamespace WHERE %s) q" % (_HASH, _USER_NS),
     'indexes': "SELECT %s FROM (SELECT concat_ws('|',schemaname,tablename,indexname,indexdef) x FROM pg_indexes WHERE schemaname !~ '^pg_' AND schemaname <> 'information_schema') q" % _HASH,
     'policies': "SELECT %s FROM (SELECT concat_ws('|',schemaname,tablename,policyname,permissive,roles::text,cmd,coalesce(qual,''),coalesce(with_check,'')) x FROM pg_policies WHERE schemaname !~ '^pg_' AND schemaname <> 'information_schema') q" % _HASH,
     'acl': "SELECT %s FROM (SELECT concat_ws('|','rel',n.nspname,c.relname,coalesce(c.relacl,acldefault((CASE c.relkind WHEN 'S' THEN 's' ELSE 'r' END)::\"char\",c.relowner))::text) x FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE %s AND c.relkind IN ('r','p','v','m','S','f') UNION ALL SELECT concat_ws('|','col',n.nspname,c.relname,a.attname,a.attacl::text) FROM pg_attribute a JOIN pg_class c ON c.oid=a.attrelid JOIN pg_namespace n ON n.oid=c.relnamespace WHERE %s AND a.attacl IS NOT NULL UNION ALL SELECT concat_ws('|','schema',n.nspname,coalesce(n.nspacl,acldefault('n'::\"char\",n.nspowner))::text) FROM pg_namespace n WHERE %s UNION ALL SELECT concat_ws('|','fn',n.nspname,p.proname,pg_get_function_identity_arguments(p.oid),coalesce(p.proacl,acldefault('f'::\"char\",p.proowner))::text) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE %s) q" % (_HASH, _USER_NS, _USER_NS, _USER_NS, _USER_NS),
@@ -143,17 +143,30 @@ FINGERPRINT_ROWS_SQL = {name: statement.replace('SELECT ' + _HASH + ' FROM (', '
                         for name, statement in FINGERPRINT_SQL.items()}
 
 
+# Reparse BOTH source and restored CHECK definitions with the same PostgreSQL engine,
+# exactly as logical restore does. No SQL text rewriting: grouping, quotes, literals,
+# identifiers and meaningful casts survive. LIKE copies column types/collations, not
+# CHECKs, defaults, indexes or data. All helper objects are pg_temp and rolled back.
+_CHECK_REPARSE = """BEGIN;
+CREATE FUNCTION pg_temp.r06_check_definition(source_relation regclass, definition text)
+RETURNS text LANGUAGE plpgsql AS $r06$
+DECLARE result text;
+BEGIN
+  EXECUTE format('CREATE TEMP TABLE r06_check_parse (LIKE %s)', source_relation);
+  EXECUTE 'ALTER TABLE pg_temp.r06_check_parse ADD CONSTRAINT r06_normalized_check ' || definition;
+  SELECT pg_get_constraintdef(oid) INTO STRICT result FROM pg_constraint
+    WHERE conrelid='pg_temp.r06_check_parse'::regclass AND conname='r06_normalized_check';
+  DROP TABLE pg_temp.r06_check_parse;
+  RETURN result;
+END
+$r06$;
+"""
+FINGERPRINT_SQL['constraints'] = _CHECK_REPARSE + FINGERPRINT_SQL['constraints'] + '; ROLLBACK;'
+FINGERPRINT_ROWS_SQL['constraints'] = _CHECK_REPARSE + FINGERPRINT_ROWS_SQL['constraints'] + '; ROLLBACK;'
+
+
 def diff_rows(before, after):
     return {'only_before': sorted(set(before) - set(after)), 'only_after': sorted(set(after) - set(before))}
-
-
-# While the API runs, the administrative dispatcher retries an unreachable simulator and rewrites attempt/error state.
-# This is the only table whose CONTENT may move after restore; its row count and every other table must stay identical.
-DISPATCHER_STATE_TABLES = {'integrations.administrative_dispatches'}
-
-
-def unclassified_changes(changed, allowed):
-    return [change for change in changed if not (change.startswith('hash:') and change[5:] in allowed)]
 
 
 def dump_argv():

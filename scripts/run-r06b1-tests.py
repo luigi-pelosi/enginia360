@@ -480,6 +480,41 @@ def rls_checks(rig):
     rig.check('real runtime_app (not superuser, not BYPASSRLS): tenant/own-time RLS per transaction, context reset on one backend, ledger read-only, no role escalation')
 
 
+@contextlib.contextmanager
+def paused_dispatcher(rig):
+    """Scratch-only gate at Claim's unconditional INSERT, before any retry UPDATE.
+
+    AdministrativeDispatcher.Claim always executes INSERT ... ON CONFLICT DO NOTHING
+    first, including for existing RequestIds. PostgreSQL checks INSERT permission even
+    on a conflict. No product configuration, migration, payload or retry state changes.
+    SELECT and column UPDATE permissions are untouched. Fail closed on privilege drift.
+    """
+    harden_check(rig)
+    assert sql(rig, "SELECT count(*) FROM pg_stat_activity WHERE usename='runtime_app'") == '0'
+    acl = snapshot_fingerprints(rig)['acl']
+    privilege = "SELECT has_table_privilege('runtime_app','integrations.administrative_dispatches','INSERT')"
+    assert sql(rig, privilege) == 't'
+    sql(rig, 'REVOKE INSERT ON integrations.administrative_dispatches FROM runtime_app')
+    try:
+        assert sql(rig, privilege) == 'f', 'dispatcher INSERT remains possible via another grant'
+        # Real conflict-path statement: must fail before it could mutate even an existing row.
+        denied = attempt(rig.command + ['exec', '-T', 'postgres', 'psql', '-X', '-qAt', '-U', 'runtime_app', '-d', 'runtime', '-v', 'ON_ERROR_STOP=1', '-c',
+                         'INSERT INTO integrations.administrative_dispatches SELECT * FROM integrations.administrative_dispatches LIMIT 0 ON CONFLICT DO NOTHING'])
+        assert denied.returncode != 0 and b'permission denied for table administrative_dispatches' in denied.stderr
+        assert snapshot_tables(rig) == rig.baseline['tables'], 'pause changed persisted content'
+        rig.evidence['dispatcher_pause'] = {'gate': 'scratch-only REVOKE INSERT at unconditional Claim INSERT', 'denied_exit': denied.returncode,
+                                            'strict_all_columns': True, 'product_configuration_changed': False}
+        rig.check('actual dispatcher INSERT gate denied to runtime_app before service restart; all table content unchanged')
+        yield
+    finally:
+        # authorized_readback stops both services before returning; cleanup still runs on failure.
+        run(rig.command + ['stop', 'api', 'web'], timeout=90)
+        sql(rig, 'GRANT INSERT ON integrations.administrative_dispatches TO runtime_app')
+        assert sql(rig, privilege) == 't'
+        assert snapshot_fingerprints(rig)['acl'] == acl, 'temporary dispatcher gate did not restore the exact ACL'
+        rig.check('temporary dispatcher gate removed; exact pre-gate ACL restored')
+
+
 def authorized_readback(rig):
     expected = {k: rig.evidence['seed'][k] for k in ('ids', 'receipts', 'baseline')}
     (rig.state/'control/expected.json').write_text(json.dumps(expected))
@@ -496,10 +531,9 @@ def authorized_readback(rig):
     final = snapshot_tables(rig)
     changed = lib.compare_table_snapshots(rig.baseline['tables'], final)
     rig.evidence['post_readback_delta'] = changed
-    unclassified = lib.unclassified_changes(changed, lib.DISPATCHER_STATE_TABLES)
-    assert not unclassified, 'readback/replay changed persisted state: ' + ', '.join(unclassified)
+    assert not changed, 'readback/replay changed persisted state: ' + ', '.join(changed)
     assert ledger_rows(rig) == rig.baseline['ledger']
-    rig.check('readback and exact replays created no new row in any table and changed no content except classified live-dispatcher retry state %s; ledger unchanged' % changed)
+    rig.check('readback and exact replays changed no row, count or column in ANY table; dispatcher paused; ledger unchanged')
 
 
 def fault_injection(rig):
@@ -613,6 +647,10 @@ def main():
 
         previous = {sig: signal.signal(sig, interrupted) for sig in (signal.SIGINT, signal.SIGTERM)}
         try:
+            if not HOLD:
+                with rig.phase('real_postgres_comparison_guards'):
+                    run([sys.executable, 'scripts/test-r06b1-guards.py', '--actual'], timeout=120)
+                rig.check('real PostgreSQL CHECK/ACL and strict readback mutation regressions executed')
             with rig.phase('build'):
                 run(command + ['build'], timeout=480)
             populate_cluster(rig)
@@ -634,9 +672,10 @@ def main():
                 compare_cold(rig)
             with rig.phase('migrator_noop'):
                 migrator_noop(rig)
-            with rig.phase('restart_services'):
-                restart_services(rig)
-            authorized_readback(rig)
+            with paused_dispatcher(rig):
+                with rig.phase('restart_services'):
+                    restart_services(rig)
+                authorized_readback(rig)
             with rig.phase('fault_injection'):
                 fault_injection(rig)
             write_report(rig, started)
