@@ -58,6 +58,13 @@ class NewReturnImpactTests(unittest.TestCase):
         self.assertIn('inventory.pick_returned(', (ROOT/'src/Modules/Workshop/Enginia360.Workshop/InstallationEndpoints.cs').read_text())
         self.assertNotIn('inventory.new_part_returns',(ROOT/'src/Modules/Workshop/Enginia360.Workshop/InstallationEndpoints.cs').read_text())
 
+    def test_historical_installation_fixtures_supply_transaction_local_tenant(self):
+        for path in ('scripts/run-r04a-tests.py','scripts/run-r04c1-tests.py'):
+            with self.subTest(path=path):
+                source=(ROOT/path).read_text().split('elif action.startswith("external-history:"):',1)[1].split('legacy_local =',1)[0]
+                self.assertIn("BEGIN; SELECT set_config('app.tenant_id','{t}',true);",source)
+                self.assertIn("COMMIT;",source)
+
     def test_negative(self):
         self.assertFalse(m.selection(['docs/r04c2-release.md']).get('r04c2',False))
         with self.assertRaises(ValueError):m.selection(['scripts/unmapped-release.py'])
