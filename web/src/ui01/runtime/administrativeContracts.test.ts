@@ -6,7 +6,7 @@ import { request, snapshot } from './administrativeFixtures';
 const order = { id, legalEntityId: id, siteId: id, documentTypeId: id, configurationVersion: 7, payerId: id, vehicleId: id, vehicleHolderId: id, isCustomerOrder: true };
 test('legacy single-group parser cannot represent the pinned snapshot, the administrative parser keeps all rows, groups and the persisted revision', () => {
   expect(() => parseSummary(snapshot, order)).toThrow();
-  const parsed = parseRequest(request(), id) as { summary: { revision: number; lines: { kind: string; workingGroupId: string }[] } };
+  const parsed = parseRequest(request(), id) as unknown as { summary: { revision: number; lines: { kind: string; workingGroupId: string }[] } };
   expect(parsed.summary.revision).toBe(9);
   expect(parsed.summary.lines.map(l => l.kind)).toEqual(['Service', 'Service', 'Part', 'Part']);
   expect(new Set(parsed.summary.lines.map(l => l.workingGroupId)).size).toBe(2);
