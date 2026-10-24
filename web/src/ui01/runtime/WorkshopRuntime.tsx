@@ -3,6 +3,7 @@ import { request, ApiError } from './workshopApi';
 import CreateOrder from './CreateOrder';
 import OrderWorkspace from './OrderWorkspace';
 import MaterialOperations from './MaterialOperations';
+import OwnActualTime from './OwnActualTime';
 import OrderList from './OrderList';
 import OwnContexts from './OwnContexts';
 import MasterAuthority from './MasterAuthority';
@@ -16,6 +17,7 @@ export default function WorkshopRuntime() {
   const [authenticated, setAuthenticated] = useState(false), [csrf, setCsrf] = useState('');
   const generation = useRef(0);
   const [materialsOpen, setMaterialsOpen] = useState(false);
+  const [timeOpen, setTimeOpen] = useState(false);
   function failed(e: unknown) {
     setStatus(e instanceof Error ? e.message : 'Servizio non disponibile.');
     if (e instanceof ApiError && e.status === 401) { generation.current++; setAuthenticated(false); setCsrf(''); setEditor(undefined); setBusy(false); }
@@ -46,7 +48,8 @@ export default function WorkshopRuntime() {
     <h1>{order ? 'Commessa '+order.id : 'Nessuna commessa caricata'}</h1>
     <div className="ui01-operations">{['Prenotazione','Prelievo','Preparazione','Installazione / consumo','Carcassa','Esito amministrativo esterno'].map(name => <div key={name}><span>{name}</span><strong>{name === 'Esito amministrativo esterno' ? 'Non collegato in UI01.b' : 'Disponibile nel pannello Materiali'}</strong>{name === 'Esito amministrativo esterno' && <button disabled aria-label={'Gestisci '+name}>Non disponibile</button>}</div>)}</div>
     {authenticated && editor && <OrderWorkspace key={editor.order.id} editor={editor} onApplied={async () => { await load(editor.order.id, true); }} onError={optionalFailed} />}
-    {authenticated && editor && <details open={materialsOpen} onToggle={e => setMaterialsOpen(e.currentTarget.open)}><summary>Operazioni materiali</summary>{materialsOpen && <MaterialOperations key={'materials:'+editor.order.id} editor={editor} onError={optionalFailed} />}</details>}
+    {authenticated && editor && <div className="ui01-panels"><details open={materialsOpen} onToggle={e => setMaterialsOpen(e.currentTarget.open)}><summary>Operazioni materiali</summary>{materialsOpen && <MaterialOperations key={'materials:'+editor.order.id} editor={editor} onError={optionalFailed} />}</details>
+    <details open={timeOpen} onToggle={e => setTimeOpen(e.currentTarget.open)}><summary>Tempo effettivo mio</summary>{timeOpen && <OwnActualTime key={'time:'+editor.order.id} editor={editor} onError={optionalFailed} />}</details></div>}
     {authenticated && order && <MasterAuthority key={'authority:'+order.legalEntityId} companyId={order.legalEntityId} counterpartyId={order.payerId} onError={optionalFailed} />}
     </section></div><footer className="ui01-summary">{summary ? <><span>Imponibile {summary.netAmount}</span><span>IVA {summary.taxAmount}</span><strong>{summary.total} EUR</strong></> : 'Riepilogo non verificato'}</footer></main>;
 }

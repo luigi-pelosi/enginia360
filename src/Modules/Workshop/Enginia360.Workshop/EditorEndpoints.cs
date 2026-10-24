@@ -262,8 +262,9 @@ internal static class EditorEndpoints
             {
                 var group = await ActiveGroup(request.GroupId!.Value);
                 if (group is null) return NotFound("group_not_found");
-                if (activeLines.Any(x => x.WorkingGroupId == group.Id) || await db.Notes.AnyAsync(x => x.WorkingGroupId == group.Id && x.State == "Active", ct))
-                    return Results.Conflict(new { code = "group_not_empty", message = "La lavorazione contiene righe o note: nessuna cascata." });
+                if (activeLines.Any(x => x.WorkingGroupId == group.Id) || await db.Notes.AnyAsync(x => x.WorkingGroupId == group.Id && x.State == "Active", ct)
+                    || await db.Database.SqlQuery<bool>($"SELECT EXISTS (SELECT 1 FROM workshop.actual_time_group_references WHERE \"TenantId\"={member.TenantId} AND \"OrderId\"={id} AND \"WorkingGroupId\"={group.Id}) AS \"Value\"").SingleAsync(ct))
+                    return Results.Conflict(new { code = "group_not_empty", message = "La lavorazione contiene fatti conservati: nessuna cascata." });
                 target = group.Id; resultKind = "Removed";
                 await db.Database.ExecuteSqlInterpolatedAsync($"""UPDATE workshop.working_groups SET "State"='Removed',"Version"={group.Version + 1} WHERE "Id"={target}""", ct);
                 await History(db, "Group", target, group.Version + 1, member.TenantId, id, next, "Removed", request.CommandId, new { id = target, title = group.Title, state = "Removed", version = group.Version + 1 }, ct);

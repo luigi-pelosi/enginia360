@@ -19,3 +19,5 @@ button:disabled { cursor: not-allowed; }
 .ui01-runtime-session { display: flex; align-items: center; gap: 12px; padding: 4px 12px; }
 .ui01-document h1 { font-size: 20px; margin: 8px 0; overflow-wrap: anywhere; }
 .ui01-document h2 { font-size: 15px; }
+.ui01-panels { display: flex; flex-wrap: wrap; gap: 0 16px; }
+.ui01-panels > details[open] { flex: 1 1 100%; }

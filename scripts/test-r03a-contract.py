@@ -12,7 +12,7 @@ read = lambda path: (ROOT/path).read_text()
 class R03aContract(unittest.TestCase):
     def test_manifest_hashes_match_bytes_and_published_prefix_is_untouched(self):
         entries = json.loads(read('database/runtime/manifest.json'))
-        self.assertEqual(len(entries), 21)
+        self.assertEqual(len(entries), 22)
         for entry in entries:
             self.assertEqual(hashlib.sha256((ROOT/'database/runtime'/entry['path']).read_bytes()).hexdigest(), entry['sha256'], entry['id'])
         digest = hashlib.sha256(json.dumps(entries[:17], sort_keys=True, separators=(',', ':')).encode()).hexdigest()
@@ -29,7 +29,7 @@ class R03aContract(unittest.TestCase):
 
     def test_readiness_constants_and_suites_follow_the_manifest(self):
         for path in ('scripts/run-r00a-tests.py', 'scripts/run-r00b-tests.py', 'scripts/run-ui01b-tests.py', 'scripts/run-r03a-tests.py'):
-            self.assertRegex(read(path), r"== ?'21'", path)
+            self.assertRegex(read(path), r"== ?'22'", path)
             self.assertNotRegex(read(path), r"== ?'17'", path)
         self.assertIn('scripts/test-r03a-migration.py', read('scripts/run-r00a-tests.py'))
         self.assertIn('scripts/test-r03a-migration.py', read('migrator.runtime.Dockerfile'))

@@ -50,6 +50,8 @@ R04A_FILES = {'scripts/test-r04a-impact.py','scripts/run-r04a-tests.py','scripts
     'web/src/ui01/runtime/WorkshopRuntime.tsx','src/Enginia360.Api/OrganizationAccess/InventoryAccessAdapter.cs','database/runtime/manifest.json',
     'scripts/owner-stock-profile.py','scripts/test-r04a-lifecycle.py','tests/browser/r04a-acceptance.cjs','compose.r04a-test.yaml',
     'database/runtime/migrations/0021_company_stock_profile.sql'}
+R03B_FILES = {'scripts/run-r03b-tests.py','scripts/test-r03b-impact.py','scripts/test-r03b-migration.py','scripts/test-r03b-lifecycle.py','tests/browser/r03b-acceptance.cjs','compose.r03b-test.yaml','tests/Enginia360.Api.Tests/WorkshopOwnActualTimeTests.cs','database/runtime/migrations/0022_workshop_own_actual_time.sql'}
+R03B_WEB = ('web/src/ui01/runtime/OwnActualTime','web/src/ui01/runtime/actualTimeContracts')
 R03A_EXCLUDED = {'src/Modules/Workshop/Enginia360.Workshop/WorkshopModule.cs'}
 WORKSHOP_FILTER = '|'.join('FullyQualifiedName~'+name for name in (
     'WorkshopBoundaryTests','CommercialCalculationTests','CounterpartyArchitectureTests'))
@@ -61,12 +63,18 @@ R03A_FILTER = '|'.join('FullyQualifiedName~'+name for name in (
 
 def selection(paths):
     paths = sorted(set(paths))
-    auth = ui = ui01b = r03a = r04a = False
+    auth = ui = ui01b = r03a = r04a = r03b = False
     unknown = []
     for path in paths:
         parsed = PurePosixPath(path)
         if not path or parsed.is_absolute() or '..' in parsed.parts or '\\' in path or str(parsed) != path:
             raise ValueError('invalid changed path')
+        if path in R03B_FILES or path.startswith(R03B_WEB) or path.startswith('src/Modules/Workshop/'):
+            r03b = auth = ui = ui01b = True
+            if path not in R03A_EXCLUDED:
+                r03a = True
+            if path in R03B_FILES or path.startswith(R03B_WEB):
+                continue
         if path in R04A_FILES or path.startswith(R04A_WEB) or (path.startswith(R03A_PREFIXES) and path not in R03A_EXCLUDED):
             r04a = True
             r03a = ui01b = ui = True
@@ -102,8 +110,9 @@ def selection(paths):
     if unknown:
         raise ValueError('extend and test direct-dependency impact mapping for: '+', '.join(unknown))
     filters = ([AUTH_FILTER] if auth or ui01b else []) + ([R03A_FILTER if r03a else WORKSHOP_FILTER] if ui01b else [])
+    if r03b: filters.append('FullyQualifiedName~WorkshopOwnActualTimeTests')
     return {'changed_paths':paths,'api_filter':'|'.join(filters),
-            'browser':auth,'ui01b':ui01b,'r03a':r03a,'r03a2':r03a,'r04a':r04a,'migrations':auth or ui01b,'ui_build':auth or ui,'ui_tests':ui,
+            'browser':auth,'ui01b':ui01b,'r03a':r03a,'r03a2':r03a,'r04a':r04a,'r03b':r03b,'migrations':auth or ui01b,'ui_build':auth or ui,'ui_tests':ui,
             'full_architecture':False}
 
 
