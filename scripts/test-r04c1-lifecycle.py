@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Actual TERM of R04.c.1 while Chromium and its separate physical SQL stock barrier are alive."""
+"""Actual TERM of R04.c.1 while Chromium and its separate physical SQL line-lock barrier are alive."""
 
 import contextlib
 import importlib.util
@@ -25,5 +25,5 @@ legacy.runner = acceptance.r00
 with contextlib.redirect_stdout(io.StringIO()):
     legacy.actual_term_probe()
 print(
-    "PASS actual R04.c.1 TERM with Chromium and held SQL stock lock alive; children/resources removed; protected inventory unchanged."
+    "PASS actual R04.c.1 TERM with Chromium and held SQL line lock alive; children/resources removed; protected inventory unchanged."
 )

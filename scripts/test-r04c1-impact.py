@@ -11,7 +11,7 @@ m = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(m)
 class ReleaseImpactTests(unittest.TestCase):
     def test_release_direct_dependencies(self):
-        for path in ('scripts/test-r04c1-impact.py','scripts/run-r04c1-tests.py','tests/browser/r04c1-acceptance.cjs','compose.r04c1-test.yaml','src/Modules/Inventory/Enginia360.Inventory/ReleaseEndpoints.cs','database/runtime/migrations/0023_reservation_releases.sql','web/src/ui01/runtime/MaterialRelease.tsx'):
+        for path in ('scripts/test-r04c1-impact.py','scripts/test-r04c1-guard-mutation.py','scripts/run-r04c1-tests.py','tests/browser/r04c1-acceptance.cjs','compose.r04c1-test.yaml','src/Modules/Inventory/Enginia360.Inventory/ReleaseEndpoints.cs','database/runtime/migrations/0023_reservation_releases.sql','web/src/ui01/runtime/MaterialRelease.tsx'):
             with self.subTest(path=path):
                 s=m.selection([path])
                 self.assertTrue(s.get('r04c1'),path)
@@ -35,6 +35,11 @@ class ReleaseImpactTests(unittest.TestCase):
         self.assertIn('inventory.reservations.release',module['providedActions'])
         self.assertIn('inventory.reservation_releases',module['ownedTables'])
         self.assertNotIn('inventory.reservations.release',(ROOT/'database/runtime/migrations/0016_limited_grant_administration.sql').read_text())
+    def test_term_wording_matches_actual_held_line_lock(self):
+        text=(ROOT/'scripts/test-r04c1-lifecycle.py').read_text()
+        self.assertIn('hold-line:',text)
+        self.assertIn('held SQL line lock',text)
+        self.assertNotIn('SQL stock',text)
     def test_negative(self):
         self.assertFalse(m.selection(['docs/r04c1-release.md']).get('r04c1',False))
         with self.assertRaises(ValueError):m.selection(['scripts/unmapped-release.py'])

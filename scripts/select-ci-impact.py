@@ -90,7 +90,7 @@ R06_COMMAND_SOURCES = {
         ('Counterparties', ('CounterpartiesModule.cs',))) for file in files}
 
 
-R04C1_FILES = {'scripts/test-r04c1-impact.py','scripts/run-r04c1-tests.py','scripts/test-r04c1-lifecycle.py','tests/browser/r04c1-acceptance.cjs','compose.r04c1-test.yaml','database/runtime/migrations/0023_reservation_releases.sql'}
+R04C1_FILES = {'scripts/test-r04c1-impact.py','scripts/test-r04c1-guard-mutation.py','scripts/run-r04c1-tests.py','scripts/test-r04c1-lifecycle.py','tests/browser/r04c1-acceptance.cjs','compose.r04c1-test.yaml','database/runtime/migrations/0023_reservation_releases.sql'}
 
 def selection(paths):
     paths = sorted(set(paths))
