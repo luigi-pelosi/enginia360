@@ -259,9 +259,11 @@ def main():
                             # Synthetic pre-migration history, owned by controller only. App never reads foreign private SQL.
                             run(
                                 query,
-                                input=f"""INSERT INTO inventory.reservations VALUES ('{reservation}','{t}','{order}','{line}','{c}','{s}','{w}','{part}',8,1,'{group}');
+                                input=f"""BEGIN; SELECT set_config('app.tenant_id','{t}',true);
+INSERT INTO inventory.reservations VALUES ('{reservation}','{t}','{order}','{line}','{c}','{s}','{w}','{part}',8,1,'{group}');
 INSERT INTO inventory.picks VALUES ('{pick}','{t}','{reservation}','{order}','{group}','{line}','{c}','{s}','{w}','{part}',8,0.5,1,'External origin',NULL,'{pick}',clock_timestamp(),'{uuid.uuid4()}');
 INSERT INTO workshop.installations VALUES ('{installation}','{t}','{pick}','{reservation}','{order}','{group}','{line}','{c}','{s}','{w}','{part}',8,0.25,1,'{doc}',7,clock_timestamp(),'{uuid.uuid4()}',1,true);
+COMMIT;
 """,
                             )
                             legacy_local = run(

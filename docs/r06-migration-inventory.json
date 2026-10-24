@@ -2163,5 +2163,51 @@
         "Version"
       ]
     }
+  },
+  {
+    "table": "inventory.new_part_returns",
+    "owner": "inventory",
+    "category": "operational_fact",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": {
+      "source": "src/Modules/Inventory/Enginia360.Inventory/NewPartReturnEndpoints.cs",
+      "registration": "routes.MapPost(\"/orders/{orderId:guid}/lines/{lineId:guid}/reservations/{reservationId:guid}/picks/{pickId:guid}/new-part-returns\", Return);",
+      "purpose": "EXISTING_OPERATION_NOT_IMPORT_AUTHORIZATION"
+    },
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "SiteId",
+      "WarehouseId",
+      "Id"
+    ],
+    "definition": {
+      "migration": "0024_new_part_returns",
+      "path": "database/runtime/migrations/0024_new_part_returns.sql",
+      "file_sha256": "877738955a920522037bb9548887a91c374442e0fb978a83e4404ac0a3178244",
+      "create_sql": "CREATE TABLE inventory.new_part_returns (\n \"Id\" uuid PRIMARY KEY CHECK (\"Id\"<>'00000000-0000-0000-0000-000000000000'),\n \"TenantId\" uuid NOT NULL, \"ReservationId\" uuid NOT NULL REFERENCES inventory.reservations(\"Id\"),\n \"PickId\" uuid NOT NULL REFERENCES inventory.picks(\"Id\"), \"MembershipId\" uuid NOT NULL,\n \"OrderId\" uuid NOT NULL, \"LineId\" uuid NOT NULL, \"WorkingGroupId\" uuid NOT NULL,\n \"LegalEntityId\" uuid NOT NULL, \"SiteId\" uuid NOT NULL, \"WarehouseId\" uuid NOT NULL,\n \"CatalogItemId\" uuid NOT NULL, \"CatalogVersion\" integer NOT NULL CHECK (\"CatalogVersion\">0),\n \"Quantity\" numeric(12,6) NOT NULL CHECK (\"Quantity\">0),\n \"ReturnedAt\" timestamptz NOT NULL, \"OperatorId\" uuid NOT NULL CHECK (\"OperatorId\"<>'00000000-0000-0000-0000-000000000000')\n);",
+      "columns": [
+        "Id",
+        "TenantId",
+        "ReservationId",
+        "PickId",
+        "MembershipId",
+        "OrderId",
+        "LineId",
+        "WorkingGroupId",
+        "LegalEntityId",
+        "SiteId",
+        "WarehouseId",
+        "CatalogItemId",
+        "CatalogVersion",
+        "Quantity",
+        "ReturnedAt",
+        "OperatorId"
+      ],
+      "primary_key": [
+        "Id"
+      ]
+    }
   }
 ]

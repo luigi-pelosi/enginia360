@@ -222,3 +222,34 @@ test("invalid explicit quantity focuses its input; Escape discards only the unse
         ).value,
     }).toEqual({ focused: true, unsent: 0, draft: "" });
 });
+
+test("uncertain new-part return stays mounted after an external row tombstone and never retargets its retry", async () => {
+    const reservationId="66666666-6666-4666-8666-666666666666",pickId="77777777-7777-4777-8777-777777777777";
+    const envelopes:{path:string;body:string}[]=[], blocked=vi.fn();
+    vi.stubGlobal("fetch",vi.fn(async(path:string,options?:RequestInit)=>{
+        if(path.includes("/warehouses?"))return response([{id:warehouseId,name:"Magazzino"}]);
+        if(path==="/auth/csrf")return response({requestToken:"unit-only"});
+        if(options?.method==="POST"){
+            envelopes.push({path,body:options.body as string});
+            if(envelopes.length===1)throw new TypeError("synthetic accepted response lost");
+            return response({id:JSON.parse(options.body as string).id});
+        }
+        if(path.endsWith("/new-part-returns"))return response({pickId,remainingWithTechnician:"1",returned:"0",returns:[],canReturn:true,reason:"ready"});
+        if(path.endsWith("/picks"))return response({reservationId,remainingToPick:"0",canPick:true,picks:[{id:pickId,quantity:"1",workingGroupId:groupId,placementLocation:null}]});
+        return response({...state(),reservations:[{id:reservationId,quantity:"1"}]});
+    }));
+    const view=render(<MaterialOperations editor={editor} onError={()=>undefined} onContextBlocked={blocked}/>);
+    await choose();await screen.findByText("Residuo riga (tutti i magazzini): 3");
+    fireEvent.change(screen.getByLabelText("Prenotazione da prelevare"),{target:{value:reservationId}});
+    await screen.findByLabelText("Prelievo da restituire");
+    fireEvent.change(screen.getByLabelText("Prelievo da restituire"),{target:{value:pickId}});
+    await screen.findByText("Residuo presso operatore: 1");
+    fireEvent.change(screen.getByLabelText("Quantità da restituire"),{target:{value:"1"}});
+    fireEvent.click(screen.getByRole("button",{name:"Restituisci quantità esplicita"}));
+    await screen.findByText("Esito reso incerto: riprova solo il comando identico.");
+    expect(blocked).toHaveBeenLastCalledWith(true);
+    view.rerender(<MaterialOperations editor={{...editor,revision:editor.revision+1,rows:[]}} onError={()=>undefined} onContextBlocked={blocked}/>);
+    const retry=await screen.findByRole("button",{name:"Riprova reso identico"});
+    await act(async()=>{fireEvent.click(retry);});
+    expect(envelopes).toHaveLength(2);expect(envelopes[1]).toEqual(envelopes[0]);
+});

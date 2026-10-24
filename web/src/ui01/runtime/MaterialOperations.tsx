@@ -24,7 +24,8 @@ const aggregate = (v: unknown): v is string =>
 export default function MaterialOperations({
     editor,
     onError,
-}: Readonly<{ editor: Editor; onError: (error: unknown) => void }>) {
+    onContextBlocked,
+}: Readonly<{ editor: Editor; onError: (error: unknown) => void; onContextBlocked?: (blocked: boolean) => void }>) {
     const { order } = editor;
     const [lineId, setLineId] = useState(""),
         [warehouseId, setWarehouseId] = useState("");
@@ -56,6 +57,8 @@ export default function MaterialOperations({
         items: { id: string; quantity: string }[];
     }>();
     const locked = busy || uncertain || pickingBlocked || carcassBlocked || releaseBlocked;
+    useEffect(() => { onContextBlocked?.(locked); }, [locked, onContextBlocked]);
+    useEffect(() => () => onContextBlocked?.(false), [onContextBlocked]);
     const generation = useRef(0),
         quantityInput = useRef<HTMLInputElement>(null);
     const rows = editor.rows.filter((r) => r.kind === "Part");
@@ -338,7 +341,7 @@ export default function MaterialOperations({
             >
                 Rileggi materiali
             </button>
-            {row && warehouseId && (
+            {(row || pickingBlocked) && warehouseId && (
                 <MaterialPicking
                     key={url + warehouseId}
                     url={url}

@@ -113,5 +113,10 @@
     "id": "0023_reservation_releases",
     "path": "migrations/0023_reservation_releases.sql",
     "sha256": "c3678f67ddca298e058543bba971dea8986fb481fe3ba2c6802c109bd88b24cd"
+  },
+  {
+    "id": "0024_new_part_returns",
+    "path": "migrations/0024_new_part_returns.sql",
+    "sha256": "877738955a920522037bb9548887a91c374442e0fb978a83e4404ac0a3178244"
   }
 ]

@@ -55,7 +55,10 @@ internal static class InstallationEndpoints
                 await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({orderId.ToString()}, 0))", ct);
                 if (await db.TechnicalClosures.AnyAsync(x => x.OrderId == orderId, ct)) return CommercialEndpoints.Closed();
                 var installed = await db.Installations.Where(x => x.TenantId == pick.TenantId && x.PickId == pickId).SumAsync(x => x.Quantity, ct);
-                if (quantity > pick.Quantity - installed)
+                var lineLock = $"inventory:line:{pick.TenantId}:{lineId}";
+                await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({lineLock},0))", ct);
+                var returned = await db.Database.SqlQuery<decimal>($"SELECT inventory.pick_returned({pick.TenantId},{pickId}) AS \"Value\"").SingleAsync(ct);
+                if (quantity > pick.Quantity - returned - installed)
                     return Results.Conflict(new { code = "exceeds_uninstalled", message = "Quantità superiore al prelevato non installato. Nessuna installazione registrata." });
                 var order = await db.Orders.AsNoTracking().SingleOrDefaultAsync(x => x.TenantId == pick.TenantId && x.Id == orderId
                     && x.LegalEntityId == pick.LegalEntityId && x.SiteId == pick.SiteId, ct);
@@ -140,9 +143,12 @@ internal static class InstallationEndpoints
         if (pick is null || await access.Authorize(subject, pick.LegalEntityId, pick.SiteId, "workshop.installations.read", false, ct) is null)
             return Results.NotFound();
         List<InstalledPart> rows;
-        await using (var tx = await db.Database.BeginTransactionAsync(ct))
+        decimal returned;
+        // Compensation and persisted installations must describe the same snapshot.
+        await using (var tx = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.RepeatableRead, ct))
         {
             await SetTenant(db, pick.TenantId, ct);
+            returned = await db.Database.SqlQuery<decimal>($"SELECT inventory.pick_returned({pick.TenantId},{pickId}) AS \"Value\"").SingleAsync(ct);
             rows = await db.Installations.AsNoTracking().Where(x => x.TenantId == pick.TenantId && x.PickId == pickId).OrderBy(x => x.Id).ToListAsync(ct);
             await tx.CommitAsync(ct);
         }
@@ -156,7 +162,7 @@ internal static class InstallationEndpoints
         var canInstall = await access.Authorize(subject, pick.LegalEntityId, pick.SiteId, "workshop.installations.create", true, ct) is not null
             && await picks.Find(subject, orderId, lineId, pickId, true, ct) is not null;
         return Results.Ok(new InstallationState(pick.Quantity.ToString("0.######", CultureInfo.InvariantCulture),
-            installed.ToString("0.######", CultureInfo.InvariantCulture), (pick.Quantity-installed).ToString("0.######", CultureInfo.InvariantCulture), results, canInstall, canInstall));
+            installed.ToString("0.######", CultureInfo.InvariantCulture), (pick.Quantity-returned-installed).ToString("0.######", CultureInfo.InvariantCulture), results, canInstall, canInstall));
     }
 }
 internal sealed class WorkshopInstallations(WorkshopDbContext db, IWorkshopAccess access) : IWorkshopInstallations

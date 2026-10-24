@@ -21,3 +21,7 @@ button:disabled { cursor: not-allowed; }
 .ui01-document h2 { font-size: 15px; }
 .ui01-panels { display: flex; flex-wrap: wrap; gap: 0 16px; }
 .ui01-panels > details[open] { flex: 1 1 100%; }
+
+/* Native disabled fieldsets freeze context without adding layout boxes/density. */
+.ui01-context > fieldset.ui01-context-freeze,
+.ui01-document > fieldset.ui01-context-freeze { display: contents; margin: 0; padding: 0; border: 0; }

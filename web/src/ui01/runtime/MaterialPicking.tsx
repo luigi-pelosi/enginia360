@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ApiError, request } from "./workshopApi";
 import { check, decimal, record, uuid } from "./contracts";
+import MaterialNewReturn from "./MaterialNewReturn";
 import MaterialInstallation from "./MaterialInstallation";
 
 type Pick = {
@@ -34,9 +35,10 @@ export default function MaterialPicking({
         [busy, setBusy] = useState(false),
         [uncertain, setUncertain] = useState(false);
     const [installationBlocked, setInstallationBlocked] = useState(false);
+    const [returnBlocked, setReturnBlocked] = useState(false);
     useEffect(() => {
-        onBlocked(busy || uncertain || installationBlocked);
-    }, [busy, uncertain, installationBlocked, onBlocked]);
+        onBlocked(busy || uncertain || installationBlocked || returnBlocked);
+    }, [busy, uncertain, installationBlocked, returnBlocked, onBlocked]);
     useEffect(() => () => onBlocked(false), [onBlocked]);
     const generation = useRef(0),
         frozen = useRef<
@@ -145,7 +147,7 @@ export default function MaterialPicking({
                 <select
                     value={reservationId}
                     disabled={
-                        blocked || busy || uncertain || installationBlocked
+                        blocked || busy || uncertain || installationBlocked || returnBlocked
                     }
                     onChange={(e) => setReservationId(e.target.value)}
                 >
@@ -186,7 +188,7 @@ export default function MaterialPicking({
                     <input
                         value={quantity}
                         disabled={
-                            blocked || busy || uncertain || installationBlocked
+                            blocked || busy || uncertain || installationBlocked || returnBlocked
                         }
                         onChange={(e) => setQuantity(e.target.value)}
                     />
@@ -197,6 +199,7 @@ export default function MaterialPicking({
                         busy ||
                         uncertain ||
                         installationBlocked ||
+                        returnBlocked ||
                         closed ||
                         !state?.canPick
                     }
@@ -211,7 +214,7 @@ export default function MaterialPicking({
             )}
             <button
                 disabled={
-                    blocked || busy || installationBlocked || !reservationId
+                    blocked || busy || installationBlocked || returnBlocked || !reservationId
                 }
                 onClick={() =>
                     void read().catch((e) => {
@@ -228,12 +231,24 @@ export default function MaterialPicking({
                     url={url}
                     picks={state.picks}
                     closed={closed}
-                    blocked={blocked || busy || uncertain}
+                    blocked={blocked || busy || uncertain || returnBlocked}
                     onBlocked={setInstallationBlocked}
                     onApplied={async () => {
                         await onApplied();
                         await read();
                     }}
+                    onError={onError}
+                />
+            )}
+            {state && (
+                <MaterialNewReturn
+                    key={"return:" + path}
+                    url={path}
+                    picks={state.picks}
+                    closed={closed}
+                    blocked={blocked || busy || uncertain || installationBlocked}
+                    onBlocked={setReturnBlocked}
+                    onApplied={async () => { await onApplied(); await read(); }}
                     onError={onError}
                 />
             )}
