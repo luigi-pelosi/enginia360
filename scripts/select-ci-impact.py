@@ -52,6 +52,12 @@ R04A_FILES = {'scripts/test-r04a-impact.py','scripts/run-r04a-tests.py','scripts
     'database/runtime/migrations/0021_company_stock_profile.sql'}
 R03B_FILES = {'scripts/run-r03b-tests.py','scripts/test-r03b-impact.py','scripts/test-r03b-migration.py','scripts/test-r03b-lifecycle.py','tests/browser/r03b-acceptance.cjs','compose.r03b-test.yaml','tests/Enginia360.Api.Tests/WorkshopOwnActualTimeTests.cs','database/runtime/migrations/0022_workshop_own_actual_time.sql'}
 R03B_WEB = ('web/src/ui01/runtime/OwnActualTime','web/src/ui01/runtime/actualTimeContracts')
+# R03.c closure panel: its own runner/acceptance/tests, plus the shared producers whose change alters the panel's direct runtime contracts.
+R03C_FILES = {'scripts/run-r03c-tests.py','scripts/run-r03c-api-tests.py','scripts/test-r03c-impact.py','scripts/test-r03c-lifecycle.py','tests/browser/r03c-acceptance.cjs',
+    'compose.r03c-test.yaml','r03c-api-test.Dockerfile','tests/Enginia360.Api.Tests/WorkshopClosureActionTests.cs','tests/Enginia360.Api.Tests/WorkshopClosureSnapshotTests.cs','simulator/administrative-simulator.py'}
+R03C_WEB = ('web/src/ui01/runtime/AdministrativeWorkspace','web/src/ui01/runtime/administrative')
+R03C_SHARED = {'src/Enginia360.Api/Program.cs','web/src/ui01/runtime/WorkshopRuntime.tsx','web/src/ui01/runtime/workshopApi.ts','web/src/ui01/runtime/contracts.ts','web/src/ui01/runtime/editorContracts.ts'}
+R03C_PREFIXES = ('src/Modules/Workshop/','src/Modules/Integrations/')
 R03A_EXCLUDED = {'src/Modules/Workshop/Enginia360.Workshop/WorkshopModule.cs'}
 WORKSHOP_FILTER = '|'.join('FullyQualifiedName~'+name for name in (
     'WorkshopBoundaryTests','CommercialCalculationTests','CounterpartyArchitectureTests'))
@@ -61,14 +67,32 @@ R03A_FILTER = '|'.join('FullyQualifiedName~'+name for name in (
     'InventoryArchitectureTests','AdministrationBoundaryTests','BillingBoundaryTests','AccountingBoundaryTests'))
 
 
+R03C_FILTER = '|'.join('FullyQualifiedName~'+name for name in (
+    'WorkshopClosure','AdministrationBoundaryTests','WorkshopEditorTests','WorkshopBoundaryTests','InstallationBoundaryTests','CarcassBoundaryTests','BillingBoundaryTests','AccountingBoundaryTests'))
+
+
+R03C_MINIMAL = 'FullyQualifiedName~WorkshopClosure|FullyQualifiedName~AdministrationBoundaryTests'
+
+
 def selection(paths):
     paths = sorted(set(paths))
-    auth = ui = ui01b = r03a = r04a = r03b = False
+    auth = ui = ui01b = r03a = r04a = r03b = r03c = r03c_full = False
     unknown = []
     for path in paths:
         parsed = PurePosixPath(path)
         if not path or parsed.is_absolute() or '..' in parsed.parts or '\\' in path or str(parsed) != path:
             raise ValueError('invalid changed path')
+        if path in R03C_FILES or path.startswith(R03C_WEB):
+            r03c = r03c_full = auth = ui = ui01b = True
+            continue
+        if path.startswith('src/Modules/Integrations/'):
+            # Connector code is consumed by the closure panel through the real worker and by the administration boundary tests.
+            r03c = r03c_full = auth = ui = ui01b = r03a = True
+            continue
+        if path in R03C_SHARED or path.startswith(R03C_PREFIXES):
+            r03c = True
+            # Composition/registration and shared transport files need only the administration boundary; producers need all direct consumers.
+            if path not in R03C_SHARED and path not in R03A_EXCLUDED: r03c_full = True
         if path in R03B_FILES or path.startswith(R03B_WEB) or path.startswith('src/Modules/Workshop/'):
             r03b = auth = ui = ui01b = True
             if path not in R03A_EXCLUDED:
@@ -111,8 +135,9 @@ def selection(paths):
         raise ValueError('extend and test direct-dependency impact mapping for: '+', '.join(unknown))
     filters = ([AUTH_FILTER] if auth or ui01b else []) + ([R03A_FILTER if r03a else WORKSHOP_FILTER] if ui01b else [])
     if r03b: filters.append('FullyQualifiedName~WorkshopOwnActualTimeTests')
+    if r03c: filters.append(R03C_FILTER if r03c_full else R03C_MINIMAL)
     return {'changed_paths':paths,'api_filter':'|'.join(filters),
-            'browser':auth,'ui01b':ui01b,'r03a':r03a,'r03a2':r03a,'r04a':r04a,'r03b':r03b,'migrations':auth or ui01b,'ui_build':auth or ui,'ui_tests':ui,
+            'browser':auth,'ui01b':ui01b,'r03a':r03a,'r03a2':r03a,'r04a':r04a,'r03b':r03b,'r03c':r03c,'migrations':auth or ui01b,'ui_build':auth or ui,'ui_tests':ui,
             'full_architecture':False}
 
 

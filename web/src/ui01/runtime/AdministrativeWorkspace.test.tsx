@@ -306,3 +306,10 @@ test('a malformed read is a visible section error, never a silent no-op', async 
   await screen.findByText('Contratto server non valido o non supportato.');
   expect(screen.queryByRole('button', { name: 'Chiudi tecnicamente' })).toBeNull();
 });
+
+test('regression: a commercial revision different from the editor the operator sees disables technical closure', async () => {
+  server({ ...open({ commercialRevision: 10 }) });
+  render(<AdministrativeWorkspace editor={editor} onError={noop} onChanged={async () => { }} />);
+  await screen.findByText('Revisione commessa cambiata: rileggi la commessa prima di chiudere.');
+  expect((screen.getByRole('button', { name: 'Chiudi tecnicamente' }) as HTMLButtonElement).disabled).toBe(true);
+});

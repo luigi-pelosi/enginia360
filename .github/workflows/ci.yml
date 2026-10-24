@@ -33,6 +33,7 @@ jobs:
       r03a2: ${{ steps.selection.outputs.r03a2 }}
       r04a: ${{ steps.selection.outputs.r04a }}
       r03b: ${{ steps.selection.outputs.r03b }}
+      r03c: ${{ steps.selection.outputs.r03c }}
       migrations: ${{ steps.selection.outputs.migrations }}
     steps:
       - uses: actions/checkout@v4
@@ -40,7 +41,7 @@ jobs:
       - name: Initialize private impact scratch directory
         run: printf 'TMPDIR=%s\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
       - name: Verify impact selection and direct runtime contracts
-        run: python3 scripts/test-ci-impact.py && python3 scripts/test-ui01b-impact.py && python3 scripts/test-r03a-impact.py && python3 scripts/test-r03a2-impact.py && python3 scripts/test-r04a-impact.py && python3 scripts/test-r03b-impact.py && python3 scripts/test-r03b-migration.py && python3 scripts/test-r03a-contract.py && python3 scripts/test-ui01b-wiring.py && python3 scripts/test-r00a-ci.py && python3 scripts/test-r00b-migration-tls.py && python3 scripts/test-r00b-lifecycle.py && python3 scripts/test-ci-runtime.py && python3 scripts/test-c00-consistency.py && python3 scripts/test-productization-consistency.py
+        run: python3 scripts/test-ci-impact.py && python3 scripts/test-ui01b-impact.py && python3 scripts/test-r03a-impact.py && python3 scripts/test-r03a2-impact.py && python3 scripts/test-r04a-impact.py && python3 scripts/test-r03b-impact.py && python3 scripts/test-r03c-impact.py && python3 scripts/test-r03b-migration.py && python3 scripts/test-r03a-contract.py && python3 scripts/test-ui01b-wiring.py && python3 scripts/test-r00a-ci.py && python3 scripts/test-r00b-migration-tls.py && python3 scripts/test-r00b-lifecycle.py && python3 scripts/test-ci-runtime.py && python3 scripts/test-c00-consistency.py && python3 scripts/test-productization-consistency.py
       - name: Select exact changed-file impact
         id: selection
         env:
@@ -185,6 +186,25 @@ jobs:
         run: R03B_POOL_SIZE=1 timeout 600 python3 scripts/run-r03b-tests.py
       - name: Actual TERM with Chromium and held canonical order lock
         run: timeout 300 python3 scripts/test-r03b-lifecycle.py
+  affected-r03c:
+    needs: impact
+    if: github.event_name == 'workflow_dispatch' && needs.impact.outputs.r03c == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Initialize private R03.c scratch directory
+        run: printf 'TMPDIR=%s\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+      - name: Build separate opt-in runtime editor
+        run: docker run --rm -v "$PWD:/source" -w /source/web node:24.22.0-alpine3.24@sha256:44fce696f38ba8c987c4db89954051000bbd05ffd8d8659ba15ed4a8602e937f sh -c 'npm ci --no-audit --no-fund && npm run build:ui01-runtime'
+      - name: Closure read model and snapshot consistency against real PostgreSQL pool1 and pool4
+        run: timeout 600 python3 scripts/run-r03c-api-tests.py
+      - name: Actual closure panel TLS OIDC Chromium isolated simulator SQL barriers pool4
+        run: timeout 600 python3 scripts/run-r03c-tests.py
+      - name: Actual closure panel pool1 completion
+        run: R03C_POOL_SIZE=1 timeout 600 python3 scripts/run-r03c-tests.py
+      - name: Actual TERM with Chromium, simulator and held canonical order lock
+        run: timeout 300 python3 scripts/test-r03c-lifecycle.py
   runtime-migrations:
     if: github.event_name == 'workflow_dispatch' && inputs.full_architecture
     runs-on: ubuntu-24.04

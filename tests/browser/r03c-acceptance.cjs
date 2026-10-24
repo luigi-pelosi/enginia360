@@ -87,6 +87,26 @@ async function lostResponse(page, urlPattern, label) {
     for (let i = 0; i < 40; i++) { try { if ((await probe.goto(origin + '/auth/session')).status() === 200) { ready = true; break; } } catch { } await new Promise(r => setTimeout(r, 500)); } assert(ready);
     const { page } = await login(browser, 0);
 
+    // ---- editor commands versus closure: both serializations, separate SQL connections at pool 4, completion at pool 1.
+    const token = await csrf(page);
+    async function serialized(order, first, second) {
+      if (fixture.poolSize >= 4) await control('hold-order:' + order);
+      const one = first(); if (fixture.poolSize >= 4) await control('wait-order:1'); else await one;
+      const two = second(); if (fixture.poolSize >= 4) { await control('wait-order:2'); await control('release-order'); }
+      return Promise.all([one, two]);
+    }
+    for (const closureFirst of [true, false]) {
+      const race = await simpleOrder(page); orders[closureFirst ? 'raceClosureFirst' : 'raceEditFirst'] = race.order;
+      const close = () => post(page, `${base}/orders/${race.order}/technical-closure`, { id: uid(), expectedRevision: 2 }, token);
+      const edit = () => cmd(page, race.order, envelope('AddNote', 2, { lineId: uid(), groupId: race.group, description: 'Concorrenza' }), token);
+      const values = await serialized(race.order, closureFirst ? close : edit, closureFirst ? edit : close);
+      const [closeResult, editResult] = closureFirst ? [values[0], values[1]] : [values[1], values[0]];
+      if (closureFirst) { assert.equal(closeResult.status, 201, JSON.stringify(values)); assert.equal(editResult.value.code, 'order_technically_closed'); technical.raceClosureFirst = 2; }
+      else { assert.equal(editResult.status, 201); assert.equal(closeResult.status, 409); assert.equal(closeResult.value.code, 'revision_changed'); assert.equal((await state(page, race.order)).value.status, 'Open'); assert.equal((await post(page, `${base}/orders/${race.order}/technical-closure`, { id: uid(), expectedRevision: 3 })).status, 201); technical.raceEditFirst = 3; }
+    }
+    pass(fixture.poolSize >= 4 ? 'pool4 separate SQL-connection barriers: closure vs editor command both orders, frozen revision' : 'pool1 completion: closure vs editor command both orders, frozen revision');
+
+
     // ---- main order: two groups, repeated Service/Part, a Note; persisted revision 7 above the 5 rows.
     const main = await createOrder(page); orders.main = main;
     const [gA, gB] = [uid(), uid()];
@@ -281,25 +301,6 @@ async function lostResponse(page, urlPattern, label) {
     assert.equal((await post(page, `${base}/orders/${off.order}/administrative-requests`, { id: uid(), expectedRevision: 2 })).status, 403);
     await control('capability:external-administration:true');
     pass('external capability off: history readable, new request denied with a named reason');
-
-    // ---- editor commands versus closure: both serializations, separate SQL connections at pool 4, completion at pool 1.
-    const token = await csrf(page);
-    async function serialized(order, first, second) {
-      if (fixture.poolSize >= 4) await control('hold-order:' + order);
-      const one = first(); if (fixture.poolSize >= 4) await control('wait-order:1'); else await one;
-      const two = second(); if (fixture.poolSize >= 4) { await control('wait-order:2'); await control('release-order'); }
-      return Promise.all([one, two]);
-    }
-    for (const closureFirst of [true, false]) {
-      const race = await simpleOrder(page); orders[closureFirst ? 'raceClosureFirst' : 'raceEditFirst'] = race.order;
-      const close = () => post(page, `${base}/orders/${race.order}/technical-closure`, { id: uid(), expectedRevision: 2 }, token);
-      const edit = () => cmd(page, race.order, envelope('AddNote', 2, { lineId: uid(), groupId: race.group, description: 'Concorrenza' }), token);
-      const values = await serialized(race.order, closureFirst ? close : edit, closureFirst ? edit : close);
-      const [closeResult, editResult] = closureFirst ? [values[0], values[1]] : [values[1], values[0]];
-      if (closureFirst) { assert.equal(closeResult.status, 201, JSON.stringify(values)); assert.equal(editResult.value.code, 'order_technically_closed'); technical.raceClosureFirst = 2; }
-      else { assert.equal(editResult.status, 201); assert.equal(closeResult.status, 409); assert.equal(closeResult.value.code, 'revision_changed'); assert.equal((await state(page, race.order)).value.status, 'Open'); assert.equal((await post(page, `${base}/orders/${race.order}/technical-closure`, { id: uid(), expectedRevision: 3 })).status, 201); technical.raceEditFirst = 3; }
-    }
-    pass(fixture.poolSize >= 4 ? 'pool4 separate SQL-connection barriers: closure vs editor command both orders, frozen revision' : 'pool1 completion: closure vs editor command both orders, frozen revision');
 
     // ---- internal destination preserved: Billing claim and balanced Accounting, never an external request.
     await control('destination:Internal:15');

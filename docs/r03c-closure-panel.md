@@ -1,0 +1,18 @@
+# R03.c — Chiusura tecnica e attesa amministrativa nel runtime UI01
+
+Collega al workspace runtime i comandi **già esistenti**: chiusura tecnica, richiesta amministrativa persistita, stato di chiusura, chiusura amministrativa e riconciliazione tecnica. Nessun nuovo permesso, nessuna nuova condizione di chiusura (D37/D40), nessun incasso o riconsegna.
+
+## Verità sul provider
+L'adapter registrato nella composizione è il **simulatore protocollo v1** (`AdministrativeRuntime { Kind = SimulatorV1, ContractVersion = 1 }`, dichiarato da `IntegrationsModule`; `Unavailable` se il connettore non è registrato). La UI mostra «Simulatore amministrativo v1 · nessun collegamento Giobby». L'intento D79 (bozza fattura di vendita da verificare ed emettere in Giobby) non è dimostrato dalla documentazione del provider (R05): una conferma del simulatore non è una bozza né un'accettazione Giobby, una fattura fiscale o un incasso.
+
+## Lettura advisory `GET /api/v1/workshop/orders/{id}/closure-actions`
+Richiede `workshop.orders.read`; con Inventory abilitato anche senza ExternalAdministration. Restituisce revisione commerciale persistita, fatto tecnico, flag e motivi (`not_authorized`, `capability_disabled`, `route_unavailable`, `administrative_read_required`, `technical_closure_required`, `already_closed`, `already_requested`, `administrative_destination_missing`, `internal_invoice_already_allocated`, `external_confirmation_required`, `reconciliation_not_available`). I flag sono indicazioni: ogni comando rivaluta grant, capability e fatti sotto il proprio lock. Senza `workshop.administrative-requests.read` nessun dato amministrativo né motivo che lo riveli viene restituito (`administrative_read_required`); `MayRequestReconciliation` è la possibilità di tentare, non la garanzia che il lease sia scaduto. Il fatto tecnico, la richiesta e l'esito sono letti in **un'unica transazione RepeatableRead**; lo stato di consegna (Integrations) è una seconda osservazione pubblica dopo la chiusura della connessione Workshop. `closure-state` usa lo stesso lettore (prima poteva combinare commit diversi tra le query).
+
+## Pannello `AdministrativeWorkspace` (caricamento lazy)
+Requisito carcassa solo informativo; chiusura tecnica con `expectedRevision` = revisione commerciale appena letta; richiesta amministrativa con la revisione **congelata** della chiusura tecnica; stati in coda / incerto / ricevuta / verifica richiesta / confermata / rifiutata / chiusa amministrativamente; «Verifica e riprendi richiesta» solo con consiglio server; «Chiudi amministrativamente» solo con esito confermato nel Workshop. Comando pendente congelato (rotta, corpo, UUID): ritentabile solo identico; 401 azzera tutto; letture obsolete scartate; errori isolati per sezione; polling di sole GET, finito. Parser nuovo `administrativeContracts.ts` (snapshot multigruppo: gruppi ≠ ordine, revisione > righe, Service/Part ripetuti), non `parseSummary`.
+
+## Verifica
+`scripts/run-r03c-api-tests.py` (PostgreSQL reale, barriera tra le query del lettore, matrice grant, pool 1/4), `scripts/run-r03c-tests.py` (Chromium + OIDC TLS + API + PostgreSQL + simulatore isolato, pool 4 e `R03C_POOL_SIZE=1`), `scripts/test-r03c-lifecycle.py`, `scripts/test-r03c-impact.py`. Esecuzione runtime solo su dispatch esatto (`affected-r03c`).
+
+## Limiti e rollback
+Nessuna migrazione, nessuna modifica di protocollo o worker. Il simulatore non certifica Giobby. Il pannello non conosce bozze locali dell'editor (protezione limitata al confronto della revisione). Rollback: ritirare il PR (route advisory, metadata, pannello); chiusure, richieste, outbox, esiti e riconciliazioni persistiti restano e non vengono cancellati.
