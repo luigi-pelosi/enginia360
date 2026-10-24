@@ -39,7 +39,8 @@ class Impact(unittest.TestCase):
         published=json.loads(subprocess.check_output(['git','show','520c9ae3dda6906ab9944d756666c6619b59b394:database/runtime/manifest.json'],cwd=ROOT,text=True))
         current=json.loads((ROOT/'database/runtime/manifest.json').read_text())
         self.assertEqual(current[:19],published)
-        self.assertEqual(len(current),22)
+        self.assertGreaterEqual(len(current),22)
+        self.assertEqual(hashlib.sha256(json.dumps(current[:22],sort_keys=True,separators=(',',':')).encode()).hexdigest(),'c392e575f49498d0b46eb8dd6e1e2ece941f01540d58061491c73de909e8ed52')
         for entry in current:
             self.assertEqual(hashlib.sha256((ROOT/'database/runtime'/entry['path']).read_bytes()).hexdigest(),entry['sha256'])
 if __name__=='__main__': unittest.main()
