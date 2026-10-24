@@ -10,6 +10,8 @@ Nessun runtime manuale persistente B02–B06 attivo; bootstrap web/API, Tailscal
 
 **D77 — accesso iniziale e delega limitata:** il proprietario/operatore trusted inizializza fuori dall'applicazione, previa verifica dell'identità e tracciamento, binding, membership e mandato limitato. L'amministratore tenant assegna/revoca ad altri utenti già trusted soltanto grant operativi su azioni/scope esplicitamente delegati; niente self-grant, subdelega, creazione di altri amministratori o primo utente amministratore automatico. Binding e concessione/rinnovo/revoca del mandato restano al proprietario. Policy confermata, non provisioning eseguito né completamento R01.b/R02.
 
+**D80 — R04.c.1 rilascio parziale esplicito:** il proprietario ha risposto «Approvo A» il 24 ottobre 2026: commessa aperta, prenotati 2 mai prelevati, rilascio esplicito 1; fisico invariato, 1 ancora impegnato, 1 disponibile e riprenotabile. Prenotazione originale e riga commerciale preservate. Risolto soltanto il gate della policy di questo rilascio, non reso nuovo/ricevimento. Nessuna nuova delega D77; implementazione e prove ancora necessarie.
+
 ## Archivio storico — decisioni e stati al momento della loro registrazione
 
 Le sezioni seguenti preservano cronologia, motivazioni e gate. Ogni frase di stato o autorizzazione incompatibile con il riepilogo C00 sopra è storica; i requisiti di dominio e i limiti specialistici restano validi.
@@ -948,6 +950,14 @@ D01 e D02 restano issue aperte In verifica; B00 non viene completata o sbloccata
 **Fonte:** risposta del proprietario al modulo di chiarimento nella conversazione principale successiva alla consegna verificata R03.a.2; risposta ricevuta, non deduzione dal legacy: «Sì: parti dal consuntivo manuale del proprio tempo per lavorazione.»
 
 **Contratto approvato:** l'operatore verificato registra il proprio tempo effettivo per una lavorazione, con data, durata e nota; correzioni tracciate. Nessuna modifica automatica delle ore commerciali/fatturate o dello stock. Non approva inserimento per altri operatori, appuntamenti, accettazione, autorizzazione cliente o riconsegna. Implementazione separata R03.b; R04.a non aggiunge codice di consuntivazione.
+
+### D80 — R04.c.1 rilascio parziale esplicito della prenotazione mai prelevata
+
+**Fonte:** Luigi Pelosi, 24 ottobre 2026, risposta esatta «Approvo A» al caso: commessa aperta con 2 prenotati, entrambi a scaffale e mai prelevati; rilascio esplicito di 1, altro 1 impegnato, primo nuovamente disponibile e riprenotabile, storico conservato e riga commerciale senza modifica automatica. Verificato D79 come ultimo ID prima della registrazione.
+
+**Decisione:** rilascio manuale positivo q6 entro residuo della prenotazione selezionata mai prelevata, prima della chiusura tecnica; compensazione append-only, nessun aumento del fisico né revisione commerciale. Le formule tecniche vanno verificate sugli effetti approvati; consumo non riapre capacità prenotabile. Il primo scope rifiuta nuove release dopo qualsiasi pick della prenotazione, senza affermare un divieto universale di dominio.
+
+**Confini:** non approva rilascio del prelevato, reso fisico nuovo, undo installazione/consumo, ricevimento fornitore, riapertura post-chiusura, automatismi o nuove deleghe D77. Il gate rilascio mancante è superato solo in questo caso; R04.b/c residuali, #44 e UI01 #5 restano aperti. Nessun provisioning reale, ERP reale o deployment.
 
 ### D79 — R05: risultato desiderato bozza di fattura vendita in Giobby
 
