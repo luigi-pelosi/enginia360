@@ -1,0 +1,19 @@
+# Opt-in synthetic EPHEMERAL restore rehearsal only: no host ports, no persistent volumes, no named volumes.
+# PostgreSQL PGDATA lives on tmpfs (inherited), so removing the container really destroys the cluster.
+services:
+  postgres:
+    extends: {file: compose.r03b-test.yaml, service: postgres}
+  migrator:
+    extends: {file: compose.r03b-test.yaml, service: migrator}
+  identity:
+    extends: {file: compose.r03b-test.yaml, service: identity}
+  api:
+    extends: {file: compose.r03b-test.yaml, service: api}
+  web:
+    extends: {file: compose.r03b-test.yaml, service: web}
+  browser:
+    extends: {file: compose.r03b-test.yaml, service: browser}
+    entrypoint: [sh, -c, 'mkdir -p "$$HOME/.pki/nssdb" && certutil -N -d sql:$$HOME/.pki/nssdb --empty-password && certutil -A -d sql:$$HOME/.pki/nssdb -n runtime-ephemeral-ca -t C,, -i /run/tls/ca.crt && exec node r06b1-acceptance.cjs']
+networks:
+  runtime:
+    internal: true
