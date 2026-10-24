@@ -33,6 +33,7 @@ jobs:
       r03a2: ${{ steps.selection.outputs.r03a2 }}
       r04a: ${{ steps.selection.outputs.r04a }}
       r04c1: ${{ steps.selection.outputs.r04c1 }}
+      r06b1: ${{ steps.selection.outputs.r06b1 }}
       r03b: ${{ steps.selection.outputs.r03b }}
       r03c: ${{ steps.selection.outputs.r03c }}
       migrations: ${{ steps.selection.outputs.migrations }}
@@ -43,7 +44,7 @@ jobs:
       - name: Initialize private impact scratch directory
         run: printf 'TMPDIR=%s\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
       - name: Verify impact selection and direct runtime contracts
-        run: python3 scripts/test-ci-impact.py && python3 scripts/test-ui01b-impact.py && python3 scripts/test-r03a-impact.py && python3 scripts/test-r03a2-impact.py && python3 scripts/test-r04a-impact.py && python3 scripts/test-r04c1-impact.py && python3 scripts/test-r04c1-guard-mutation.py && python3 scripts/test-r03b-impact.py && python3 scripts/test-r03c-impact.py && python3 scripts/test-r03b-migration.py && python3 scripts/test-r03a-contract.py && python3 scripts/test-ui01b-wiring.py && python3 scripts/test-r00a-ci.py && python3 scripts/test-r00b-migration-tls.py && python3 scripts/test-r00b-lifecycle.py && python3 scripts/test-ci-runtime.py && python3 scripts/test-c00-consistency.py && python3 scripts/test-productization-consistency.py
+        run: python3 scripts/test-ci-impact.py && python3 scripts/test-ui01b-impact.py && python3 scripts/test-r03a-impact.py && python3 scripts/test-r03a2-impact.py && python3 scripts/test-r04a-impact.py && python3 scripts/test-r04c1-impact.py && python3 scripts/test-r04c1-guard-mutation.py && python3 scripts/test-r06b1-impact.py && python3 scripts/test-r06b1-guards.py && python3 scripts/test-r03b-impact.py && python3 scripts/test-r03c-impact.py && python3 scripts/test-r03b-migration.py && python3 scripts/test-r03a-contract.py && python3 scripts/test-ui01b-wiring.py && python3 scripts/test-r00a-ci.py && python3 scripts/test-r00b-migration-tls.py && python3 scripts/test-r00b-lifecycle.py && python3 scripts/test-ci-runtime.py && python3 scripts/test-c00-consistency.py && python3 scripts/test-productization-consistency.py
       - name: Select exact changed-file impact
         id: selection
         env:
@@ -197,6 +198,27 @@ jobs:
         run: R04A_POOL_SIZE=1 timeout 600 python3 scripts/run-r04c1-tests.py
       - name: Actual release TERM with Chromium and held SQL line lock
         run: timeout 420 python3 scripts/test-r04c1-lifecycle.py
+  affected-r06-restore:
+    needs: impact
+    if: github.event_name == 'workflow_dispatch' && needs.impact.outputs.r06b1 == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Initialize private restore rehearsal scratch
+        run: printf 'TMPDIR=%s\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+      - name: Build separate opt-in runtime editor
+        run: docker run --rm -v "$PWD:/source" -w /source/web node:24.22.0-alpine3.24@sha256:44fce696f38ba8c987c4db89954051000bbd05ffd8d8659ba15ed4a8602e937f sh -c 'npm ci --no-audit --no-fund && npm run build:ui01-runtime'
+      - name: Synthetic ephemeral single-host restore rehearsal (not DR, RPO, RTO, SLA or PITR evidence)
+        run: timeout 600 python3 scripts/run-r06b1-tests.py
+      - name: Offline restore lifecycle guards
+        run: python3 scripts/test-r06b1-lifecycle.py
+      - name: Actual TERM while pg_dump is blocked on a held SQL lock
+        run: timeout 420 python3 scripts/test-r06b1-lifecycle.py --actual dump
+      - name: Actual TERM while pg_restore is in flight under the migration advisory lock
+        run: timeout 420 python3 scripts/test-r06b1-lifecycle.py --actual restore
+      - name: Actual TERM while Chromium and a held SQL lock are alive
+        run: timeout 420 python3 scripts/test-r06b1-lifecycle.py --actual browser
   affected-r03b:
     needs: impact
     if: github.event_name == 'workflow_dispatch' && needs.impact.outputs.r03b == 'true'

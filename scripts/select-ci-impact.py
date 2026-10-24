@@ -92,11 +92,21 @@ R06_COMMAND_SOURCES = {
 
 R04C1_FILES = {'scripts/test-r04c1-impact.py','scripts/test-r04c1-guard-mutation.py','scripts/run-r04c1-tests.py','scripts/test-r04c1-lifecycle.py','tests/browser/r04c1-acceptance.cjs','compose.r04c1-test.yaml','database/runtime/migrations/0023_reservation_releases.sql'}
 
+# R06.b.1 ephemeral restore rehearsal: its own files, plus the direct producers it composes at runtime.
+R06B1_FILES = {'scripts/run-r06b1-tests.py','scripts/r06b1_restore.py','scripts/test-r06b1-impact.py','scripts/test-r06b1-guards.py',
+    'scripts/test-r06b1-lifecycle.py','tests/browser/r06b1-acceptance.cjs','compose.r06b1-test.yaml'}
+R06B1_DEPENDENCIES = {'scripts/run-r00b-tests.py','scripts/run-r03b-tests.py','compose.r00b-test.yaml','compose.r03b-test.yaml',
+    'scripts/apply-runtime-migrations.py','postgres.runtime.Dockerfile','migrator.runtime.Dockerfile','browser.runtime.Dockerfile',
+    'src/Modules/Workshop/Enginia360.Workshop/ActualTimeEndpoints.cs'}
+R06B1_PREFIXES = ('database/runtime/', 'src/Modules/Inventory/')
+
+
 def selection(paths):
     paths = sorted(set(paths))
-    r06_offline = bool(set(paths) & (R06_OFFLINE_FILES | R06_COMMAND_SOURCES | {'scripts/apply-runtime-migrations.py'})) or any(
+    r06b1 = bool(set(paths) & (R06B1_FILES | R06B1_DEPENDENCIES)) or any(path.startswith(R06B1_PREFIXES) for path in paths)
+    r06_offline = bool(set(paths) & (R06_OFFLINE_FILES | R06B1_FILES | R06_COMMAND_SOURCES | {'scripts/apply-runtime-migrations.py'})) or any(
         path.startswith('database/runtime/') for path in paths)
-    offline_only = r06_offline and set(paths) <= R06_OFFLINE_FILES | R06_WIRING
+    offline_only = r06_offline and set(paths) <= R06_OFFLINE_FILES | R06B1_FILES | R06_WIRING
     r04c1 = bool(set(paths) & R04C1_FILES) or any(path.startswith(('src/Modules/Inventory/','web/src/ui01/runtime/MaterialRelease')) for path in paths)
     auth = ui = ui01b = r03a = r04a = r04c1
     r03b = r03c = r03c_full = False
@@ -106,7 +116,7 @@ def selection(paths):
         parsed = PurePosixPath(path)
         if not path or parsed.is_absolute() or '..' in parsed.parts or '\\' in path or str(parsed) != path:
             raise ValueError('invalid changed path')
-        if path in R04C1_FILES or path in R06_OFFLINE_FILES or (offline_only and path in R06_WIRING):
+        if path in R04C1_FILES or path in R06_OFFLINE_FILES or path in R06B1_FILES or (offline_only and path in R06_WIRING):
             continue
         if path.startswith('docs/') and parsed.suffix in {'.py', '.sh', '.js', '.cjs', '.ts', '.cs'}:
             unknown.append(path)
@@ -166,7 +176,7 @@ def selection(paths):
     if r03b: filters.append('FullyQualifiedName~WorkshopOwnActualTimeTests')
     if r03c: filters.append(R03C_FILTER if r03c_full else R03C_MINIMAL)
     return {'changed_paths':paths,'api_filter':'|'.join(filters),'r06_offline':r06_offline,
-            'browser':auth,'ui01b':ui01b,'r03a':r03a,'r03a2':r03a,'r04a':r04a,'r04c1':r04c1,'r03b':r03b,'r03c':r03c,'migrations':auth or ui01b,'ui_build':auth or ui,'ui_tests':ui,
+            'browser':auth,'ui01b':ui01b,'r03a':r03a,'r03a2':r03a,'r04a':r04a,'r04c1':r04c1,'r06b1':r06b1,'r03b':r03b,'r03c':r03c,'migrations':auth or ui01b,'ui_build':auth or ui,'ui_tests':ui,
             'full_architecture':False}
 
 
