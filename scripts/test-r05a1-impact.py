@@ -39,6 +39,8 @@ class ImpactTests(unittest.TestCase):
         self.assertIn("if: needs.impact.outputs.r05a1_offline == 'true'",block)
         self.assertIn('python3 -I scripts/test-r05a1-evidence.py',block)
         self.assertIn('python3 -I scripts/r05a1_evidence.py --check',block)
+        self.assertIn('"$RUNNER_TEMP" >> "$GITHUB_ENV"', block, 'private temporary root must be propagated to offline test process')
+        self.assertIn('TMPDIR=%s', block)
         for forbidden in ('docker','workflow_dispatch','curl','pip install'): self.assertNotIn(forbidden,block)
         self.assertNotIn('  push:',text.split('concurrency:')[0])
 if __name__=='__main__': unittest.main()
