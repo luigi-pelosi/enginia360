@@ -118,5 +118,10 @@
     "id": "0024_new_part_returns",
     "path": "migrations/0024_new_part_returns.sql",
     "sha256": "877738955a920522037bb9548887a91c374442e0fb978a83e4404ac0a3178244"
+  },
+  {
+    "id": "0025_administrative_bindings",
+    "path": "migrations/0025_administrative_bindings.sql",
+    "sha256": "1400bc91aa56430ed601d8cb888aec1d6ddffe978593476f707aa7c6c30903d3"
   }
 ]

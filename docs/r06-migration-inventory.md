@@ -8,7 +8,7 @@
 
 `r06-migration-inventory.json` contiene una voce per ogni `CREATE TABLE` dei soli SQL pubblicati scelti da `database/runtime/manifest.json`. `scripts/r06_inventory.py` riusa **solo il caricatore/validatore** del manifest: nessuna chiamata ad `apply_migrations`, PostgreSQL, API o repository legacy. Ordine, percorso allowlistato e checksum sono verificati prima dell'estrazione. I file esclusi dal manifest non entrano nel conteggio. Commenti, stringhe e corpi dollar-quoted sono ignorati; grammatica CREATE non supportata, definizioni duplicate/incomplete e nuove tabelle non inventariate falliscono chiuso.
 
-Risultato calcolato sul baseline R04.c.2: **24 migrazioni, 65 definizioni CREATE, 9 schemi**. La nuova `inventory.new_part_returns` è classificata `operational_fact`, con eligibilità **UNDECIDED** e `NO_LEGACY_IMPORT_APPROVED`; D81 non approva import o readiness. Non sono costanti nel verificatore: il test aggiunge una migrazione scratch con una tabella nuova e richiede il rifiuto per copertura mancante. Il ledger `runtime_migrations.applied` e le tabelle temporanee del motore non sono CREATE dei file del manifest e quindi sono esplicitamente fuori da questo inventario. Non si dichiara di aver interrogato un database.
+Risultato calcolato sul baseline R05.b.0: **25 migrazioni, 66 definizioni CREATE, 9 schemi**. La nuova `workshop.administrative_bindings` è classificata `integration_evidence`, con eligibilità **UNDECIDED** e `NO_LEGACY_IMPORT_APPROVED`; il binding tecnico sintetico non approva import, Giobby o readiness. Non sono costanti nel verificatore: il test aggiunge una migrazione scratch con una tabella nuova e richiede il rifiuto per copertura mancante. Il ledger `runtime_migrations.applied` e le tabelle temporanee del motore non sono CREATE dei file del manifest e quindi sono esplicitamente fuori da questo inventario. Non si dichiara di aver interrogato un database.
 
 Ogni voce registra:
 
@@ -16,8 +16,8 @@ Ogni voce registra:
 - `definition`: migrazione, percorso, SHA-256 del file, testo CREATE esatto, colonne e chiave primaria di quella definizione;
 - `category`: classificazione tecnica proposta, non decisione fiscale o di migrabilità;
 - `reconcile_keys`: PK e colonne di scope disponibili nel CREATE; quando un figlio eredita scope da riferimenti, il confronto reale richiederà il join autorizzato del modulo, non un tenant inventato;
-- `available_command`: registrazione di un comando operativo esistente con percorso sorgente verificato, **non** autorizzazione/import API. Sono evidenziate 20 associazioni tabella/comando; `null` nelle altre 45 significa «nessun comando diretto identificato in questo inventario», non assenza di ogni writer o prova runtime del comando;
-- `migration_eligibility`: **UNDECIDED per tutte le 65 voci**;
+- `available_command`: registrazione di un comando operativo esistente con percorso sorgente verificato, **non** autorizzazione/import API. Sono evidenziate 20 associazioni tabella/comando; `null` nelle altre 46 significa «nessun comando diretto identificato in questo inventario», non assenza di ogni writer o prova runtime del comando;
+- `migration_eligibility`: **UNDECIDED per tutte le 66 voci**;
 - `handling_constraint`: D77 `RESTORE_ONBOARDING_ONLY` per i sette binding/accessi di sicurezza, altrimenti `NO_LEGACY_IMPORT_APPROVED` (nessuna approvazione acquisita, NON divieto permanente dello storico).
 
 Le definizioni CREATE non ricostruiscono ALTER successivi, RLS, indici, trigger o lo stato corrente del DB. I checksum dei file pubblicati coprono anche quelle istruzioni; questa è una fotografia delle definizioni CREATE pubblicate, non un motore SQL generale né un piano di import.
@@ -33,7 +33,7 @@ Le definizioni CREATE non ricostruiscono ALTER successivi, RLS, indici, trigger 
 | authority_evidence | 2 |
 | operational_fact | 23 |
 | stock_state | 1 |
-| integration_evidence | 5 |
+| integration_evidence | 6 |
 | audit_history | 2 |
 | derived_projection | 1 |
 | technical_ledger | 3 |

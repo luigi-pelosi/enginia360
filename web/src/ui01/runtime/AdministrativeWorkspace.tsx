@@ -25,6 +25,8 @@ const WHY: Record<string, string> = {
 function describe(r: AdministrativeRequest): string {
   if (r.status === 'Confirmed') return 'Confermata dal simulatore · riferimento ' + r.externalReference + ' (nessuna fattura fiscale, nessun incasso).';
   if (r.status === 'Rejected') return 'Rifiutata dal simulatore · codice ' + r.rejectionCode + '. Nessun nuovo invio né conferma forzata.';
+  if (r.delivery.state === 'NeedsReconciliation' && r.delivery.lastError === 'destination_binding_mismatch')
+    return 'Destinazione diversa/non verificata; nessun invio.';
   return DELIVERY[r.delivery.state];
 }
 const compatible = (a: Actions, s: ClosureState) => (a.technicalClosure?.id ?? null) === (s.technicalClosure?.id ?? null) && (a.technicalClosure?.revision ?? null) === (s.technicalClosure?.revision ?? null);

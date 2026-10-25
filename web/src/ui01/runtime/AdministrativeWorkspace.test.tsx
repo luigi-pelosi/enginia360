@@ -163,6 +163,14 @@ test.each([
   expect(screen.queryByRole('button', { name: 'Chiudi amministrativamente' })).toBeNull();
 });
 
+test.each(['destination_binding_mismatch'])('destination hold %s exposes no-send reason instead of exhausted-retries advice', async lastError => {
+  serve(closed({ canRequestAdministrative: false }), awaiting({ state: 'NeedsReconciliation', lastError }));
+  render(<AdministrativeWorkspace editor={editor} onError={noop} onChanged={async () => { }} />);
+  await screen.findByText('Destinazione diversa/non verificata; nessun invio.');
+  expect(screen.queryByText(/Tentativi automatici esauriti/)).toBeNull();
+  expect(screen.queryByText(/Confermata/)).toBeNull();
+});
+
 test('confirmed and rejected business outcomes carry the stable reference or the code and keep the pinned snapshot visible', async () => {
   const confirmed = request({ status: 'Confirmed', externalReference: 'AMM-SIM-000001', outcomeAt: '2026-10-24T08:02:00+00:00', delivery: delivery('Completed') });
   serve(closed({ canRequestAdministrative: false }), state('AdministrativelyConfirmed', { request: confirmed }));

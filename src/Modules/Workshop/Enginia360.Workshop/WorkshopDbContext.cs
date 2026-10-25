@@ -25,6 +25,9 @@ internal sealed class WorkshopDbContext(DbContextOptions<WorkshopDbContext> opti
         b.Entity<TechnicalClosure>().ToTable("technical_closures", "workshop").HasKey(x => x.OrderId);
         b.Entity<AdministrativeDestination>().ToTable("administrative_destinations", "workshop").HasKey(x => new { x.TenantId, x.LegalEntityId, x.Version });
         b.Entity<AdministrativeRequest>().ToTable("administrative_requests", "workshop").HasKey(x => x.Id);
+        b.Entity<AdministrativeBinding>().ToTable("administrative_bindings", "workshop").HasKey(x => x.RequestId);
+        b.Entity<AdministrativeRequest>().HasOne(x => x.Binding).WithOne().HasForeignKey<AdministrativeBinding>(x => x.RequestId);
+        b.Entity<AdministrativeRequest>().Navigation(x => x.Binding).AutoInclude();
         b.Entity<AdministrativeRequest>().Property(x => x.Summary).HasColumnType("jsonb");
         b.Entity<AdministrativeRequest>().Property(x => x.NetAmount).HasPrecision(18, 6);
         b.Entity<AdministrativeRequest>().Property(x => x.TaxAmount).HasPrecision(18, 6);

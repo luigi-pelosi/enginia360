@@ -115,8 +115,24 @@ R05A1_OFFLINE_FILES = {'docs/r05a1-giobby-read-contract.md', 'docs/r05a1-evidenc
     'scripts/test-r05a1-evidence.py', 'scripts/test-r05a1-impact.py'}
 
 
+R05B0_FILES = {'compose.r05b0-test.yaml', 'scripts/run-r05b0-tests.py', 'scripts/test-r05b0-impact.py',
+    'scripts/test-r05b0-lifecycle.py', 'tests/browser/r05b0-acceptance.cjs', 'tests/browser/r05b0-gaps.cjs', 'tests/browser/r05b0-simulator.py',
+    'database/runtime/migrations/0025_administrative_bindings.sql',
+    'src/Modules/Workshop/Enginia360.Workshop/AdministrativeBinding.cs'}
+R05B0_DIRECT = {'src/Modules/Workshop/Enginia360.Workshop/AdministrativeEndpoints.cs',
+    'src/Modules/Workshop/Enginia360.Workshop/WorkshopDbContext.cs',
+    'src/Modules/Workshop/Enginia360.Workshop.Contracts/AdministrativeContracts.cs',
+    'src/Modules/Integrations/Enginia360.Integrations/IntegrationsModule.cs',
+    'src/Modules/Integrations/Enginia360.Integrations/AdministrativeDispatcher.cs',
+    'src/Modules/Integrations/Enginia360.Integrations/AdministrativeRecovery.cs',
+    'src/Enginia360.Api/Program.cs', 'database/runtime/manifest.json',
+    'web/src/ui01/runtime/AdministrativeWorkspace.tsx', 'web/src/ui01/runtime/AdministrativeWorkspace.test.tsx',
+    'web/src/ui01/runtime/administrativeContracts.ts'}
+
+
 def selection(paths):
     paths = sorted(set(paths))
+    r05b0 = bool(set(paths) & (R05B0_FILES | R05B0_DIRECT))
     r05a1_offline = bool(set(paths) & R05A1_OFFLINE_FILES)
     r05a1_only = r05a1_offline and set(paths) <= R05A1_OFFLINE_FILES | R06_WIRING
     r06b1 = bool(set(paths) & (R06B1_FILES | R06B1_DEPENDENCIES)) or any(path.startswith(R06B1_PREFIXES) for path in paths)
@@ -127,12 +143,16 @@ def selection(paths):
     r04c2 = bool(set(paths) & (R04C2_FILES | {'web/src/ui01/runtime/WorkshopRuntime.tsx','web/src/ui01/runtime/runtime.css'})) or any(path.startswith(('src/Modules/Inventory/','web/src/ui01/runtime/Material')) for path in paths) or 'src/Modules/Workshop/Enginia360.Workshop/InstallationEndpoints.cs' in paths
     auth = ui = ui01b = r03a = r04a = r04c1 or r04c2
     r03b = r03c = r03c_full = False
-    r06_offline = r06_offline or r04c1 or r04c2
+    r06_offline = r06_offline or r04c1 or r04c2 or r05b0
+    r06b1 = r06b1 or r05b0
+    if r05b0: auth = ui = ui01b = r03c = True
     unknown = []
     for path in paths:
         parsed = PurePosixPath(path)
         if not path or parsed.is_absolute() or '..' in parsed.parts or '\\' in path or str(parsed) != path:
             raise ValueError('invalid changed path')
+        if path in R05B0_FILES:
+            continue
         if path in R05A1_OFFLINE_FILES or (r05a1_only and path in R06_WIRING):
             continue
         if path in R04C2_FILES or path in R04C1_FILES or path in R06_OFFLINE_FILES or path in R06B1_FILES or (offline_only and path in R06_WIRING):
@@ -194,7 +214,7 @@ def selection(paths):
     filters = ([AUTH_FILTER] if auth or ui01b else []) + ([R03A_FILTER if r03a else WORKSHOP_FILTER] if ui01b else [])
     if r03b: filters.append('FullyQualifiedName~WorkshopOwnActualTimeTests')
     if r03c: filters.append(R03C_FILTER if r03c_full else R03C_MINIMAL)
-    return {'changed_paths':paths,'api_filter':'|'.join(filters),'r06_offline':r06_offline,'r05a1_offline':r05a1_offline,
+    return {'changed_paths':paths,'api_filter':'|'.join(filters),'r06_offline':r06_offline,'r05a1_offline':r05a1_offline,'r05b0':r05b0,
             'browser':auth,'ui01b':ui01b,'r03a':r03a,'r03a2':r03a,'r04a':r04a,'r04c1':r04c1,'r04c2':r04c2,'r06b1':r06b1,'r03b':r03b,'r03c':r03c,'migrations':auth or ui01b,'ui_build':auth or ui,'ui_tests':ui,
             'full_architecture':False}
 
