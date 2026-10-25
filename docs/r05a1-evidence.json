@@ -1,0 +1,1986 @@
+{
+  "increment": "R05.a.1",
+  "status": "BLOCKED_PROVIDER_READ_SCHEMA",
+  "boundary": {
+    "mixed_writer": false,
+    "local_fallback": false,
+    "local_receipt_writer": false,
+    "automatic_switch": false,
+    "retroactive_switch": false,
+    "provider_contract_ready": false,
+    "r04_complete": false,
+    "r05_complete": false,
+    "operational_ready": false,
+    "runtime_setup_enforced": false,
+    "contains_provider_payloads": false,
+    "stock_authority": "same-external-ERP-as-purchasing",
+    "master_authority": "single-tenant-wide-D26-D65",
+    "partial_receipt": "3 ordered / 2 received: conditional on authority, not local ERP-profile write permission"
+  },
+  "sources": [
+    {
+      "url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "final_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "bytes": 476457,
+      "content_type": "application/json",
+      "status": 200,
+      "accessed_at": "2026-10-25T10:19:11.790687+00:00",
+      "private_path": "/root/.hermes/cache/scratch/R05a1-public/0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3.json"
+    },
+    {
+      "url": "https://app.giobby.com/GiobbyApi00554/reference.html",
+      "final_url": "https://app.giobby.com/GiobbyApi00554/reference.html",
+      "sha256": "f81a2f67f6a302ab41dbba959c85097cb7e0032405b1d6fb64a4839aa13ed7aa",
+      "bytes": 70335,
+      "content_type": "text/html",
+      "status": 200,
+      "accessed_at": "2026-10-25T10:19:11.739721+00:00",
+      "private_path": "/root/.hermes/cache/scratch/R05a1-public/f81a2f67f6a302ab41dbba959c85097cb7e0032405b1d6fb64a4839aa13ed7aa.html"
+    },
+    {
+      "url": "https://app.giobby.com/GiobbyApi00554/documentation.html",
+      "final_url": "https://app.giobby.com/GiobbyApi00554/documentation.html",
+      "sha256": "66acacdab80e916233eb1bea3a304bd0e8a89625036ba2755c99820ec34580e4",
+      "bytes": 11094,
+      "content_type": "text/html",
+      "status": 200,
+      "accessed_at": "2026-10-25T10:19:11.681289+00:00",
+      "private_path": "/root/.hermes/cache/scratch/R05a1-public/66acacdab80e916233eb1bea3a304bd0e8a89625036ba2755c99820ec34580e4.html"
+    },
+    {
+      "url": "https://www.giobby.com/guida-gestionale-ecommerce-integrati/visual-report/report-magazzino/report-analisi-disponibilita-magazzino/",
+      "final_url": "https://www.giobby.com/guida-gestionale-ecommerce-integrati/visual-report/report-magazzino/report-analisi-disponibilita-magazzino/",
+      "sha256": "72af6a0e67f3cf56335284be3555503f07e8bbda33713d953d7f40f8269cf774",
+      "bytes": 96107,
+      "content_type": "text/html; charset=UTF-8",
+      "status": 200,
+      "accessed_at": "2026-10-25T10:19:12.480979+00:00",
+      "private_path": "/root/.hermes/cache/scratch/R05a1-public/72af6a0e67f3cf56335284be3555503f07e8bbda33713d953d7f40f8269cf774.html"
+    },
+    {
+      "url": "https://www.giobby.com/guida-gestionale-ecommerce-integrati/acquisti/crea-un-ordine-fornitore/",
+      "final_url": "https://www.giobby.com/guida-gestionale-ecommerce-integrati/acquisti/crea-un-ordine-fornitore/",
+      "sha256": "be8e7acfdde22e3eb483853da3c82953600cb97b92c9f952b2fd5b720de77e93",
+      "bytes": 110656,
+      "content_type": "text/html; charset=UTF-8",
+      "status": 200,
+      "accessed_at": "2026-10-25T10:20:13.499080+00:00",
+      "private_path": "/root/.hermes/cache/scratch/R05a1-public/be8e7acfdde22e3eb483853da3c82953600cb97b92c9f952b2fd5b720de77e93.html"
+    }
+  ],
+  "claims": [
+    {
+      "id": "/stocks/avaibility:operationId",
+      "status": "fact",
+      "scope": "read-request",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1stocks~1avaibility/get/operationId",
+      "extract": "getAllStockAvaibility",
+      "extract_sha256": "6a5b3defe55514c01305fc51fa0272d7cc355ec4a07ee170b85464b6a06d57fa",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "/stocks/avaibility:parameters",
+      "status": "fact",
+      "scope": "read-request",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1stocks~1avaibility/get/parameters",
+      "extract": [
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "type": "integer",
+          "format": "int32"
+        },
+        {
+          "name": "offset",
+          "in": "query",
+          "required": false,
+          "type": "integer",
+          "format": "int32"
+        },
+        {
+          "name": "idMaterial",
+          "in": "query",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "name": "detailLevel",
+          "in": "query",
+          "required": false,
+          "type": "integer",
+          "format": "int32"
+        },
+        {
+          "name": "idStorage",
+          "in": "query",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "name": "zeroQtyRows",
+          "in": "query",
+          "description": "False by default",
+          "required": false,
+          "type": "boolean"
+        },
+        {
+          "name": "idLocation",
+          "in": "query",
+          "description": "To filter by idLocation, the relative idStorage and the detailLevel are required",
+          "required": false,
+          "type": "string"
+        }
+      ],
+      "extract_sha256": "860522f56df714a02cb54b02b46cc112e9071d833db8bf712d07910bda7e7bfc",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "/stocks/avaibility:response",
+      "status": "unknown",
+      "scope": "read-response",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1stocks~1avaibility/get/responses",
+      "extract": {
+        "default": {
+          "description": "successful operation"
+        }
+      },
+      "extract_sha256": "d60a0b3ca42c500156e340496a9b41c772932d87182885283abfac9b5958589c",
+      "meaning": "No schema, examples or response headers published; READ field support unknown."
+    },
+    {
+      "id": "/stocks/avaibility/report:operationId",
+      "status": "fact",
+      "scope": "read-request",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1stocks~1avaibility~1report/get/operationId",
+      "extract": "getAllReportStockAvaibility",
+      "extract_sha256": "d1854fba7e3fb751e2aa97ae9ab3dcc152eec850713e485549e622d6feee0000",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "/stocks/avaibility/report:parameters",
+      "status": "fact",
+      "scope": "read-request",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1stocks~1avaibility~1report/get/parameters",
+      "extract": [
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "type": "integer",
+          "format": "int32"
+        },
+        {
+          "name": "offset",
+          "in": "query",
+          "required": false,
+          "type": "integer",
+          "format": "int32"
+        },
+        {
+          "name": "idMaterial",
+          "in": "query",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "name": "zeroQtyRows",
+          "in": "query",
+          "description": "False by default",
+          "required": false,
+          "type": "boolean"
+        },
+        {
+          "name": "attributesDetail",
+          "in": "query",
+          "description": "False by default",
+          "required": false,
+          "type": "boolean"
+        },
+        {
+          "name": "storageDetail",
+          "in": "query",
+          "description": "False by default",
+          "required": false,
+          "type": "boolean"
+        },
+        {
+          "name": "lotsDetail",
+          "in": "query",
+          "description": "False by default",
+          "required": false,
+          "type": "boolean"
+        },
+        {
+          "name": "idStorage",
+          "in": "query",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "name": "idLocation",
+          "in": "query",
+          "description": "To filter by idLocation, the relative idStorage is required",
+          "required": false,
+          "type": "string"
+        }
+      ],
+      "extract_sha256": "a0867d7e1067b61b6ac9263da72427b55ab919a42d1a17207b70853ee6712b56",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "/stocks/avaibility/report:response",
+      "status": "unknown",
+      "scope": "read-response",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1stocks~1avaibility~1report/get/responses",
+      "extract": {
+        "default": {
+          "description": "successful operation"
+        }
+      },
+      "extract_sha256": "d60a0b3ca42c500156e340496a9b41c772932d87182885283abfac9b5958589c",
+      "meaning": "No schema, examples or response headers published; READ field support unknown."
+    },
+    {
+      "id": "/storages:operationId",
+      "status": "fact",
+      "scope": "read-request",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1storages/get/operationId",
+      "extract": "getAllLots",
+      "extract_sha256": "01d2737361cc9e85b1a56512dc9b3062ff0d03051b787ef4a65f2c27f677ba93",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "/storages:parameters",
+      "status": "fact",
+      "scope": "read-request",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1storages/get/parameters",
+      "extract": [
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "type": "integer",
+          "format": "int32"
+        },
+        {
+          "name": "offset",
+          "in": "query",
+          "required": false,
+          "type": "integer",
+          "format": "int32"
+        },
+        {
+          "name": "id",
+          "in": "query",
+          "description": "query filter on id",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "name": "managed",
+          "in": "query",
+          "description": "query filter on managed storage. if null all storage are returned",
+          "required": false,
+          "type": "boolean"
+        }
+      ],
+      "extract_sha256": "bb4b12cce35fc80680ac8781985049e526976f326b2cc31fda2ab38b1a24be10",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "/storages:response",
+      "status": "unknown",
+      "scope": "read-response",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1storages/get/responses",
+      "extract": {
+        "default": {
+          "description": "successful operation"
+        }
+      },
+      "extract_sha256": "d60a0b3ca42c500156e340496a9b41c772932d87182885283abfac9b5958589c",
+      "meaning": "No schema, examples or response headers published; READ field support unknown."
+    },
+    {
+      "id": "/storageLocations:operationId",
+      "status": "fact",
+      "scope": "read-request",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1storageLocations/get/operationId",
+      "extract": "getAllStorageLocations",
+      "extract_sha256": "93ad782fac846ad8b464e229ea87b0dca62e253e9bf0194f538abf2686bceb68",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "/storageLocations:parameters",
+      "status": "fact",
+      "scope": "read-request",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1storageLocations/get/parameters",
+      "extract": [
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "type": "integer",
+          "format": "int32"
+        },
+        {
+          "name": "offset",
+          "in": "query",
+          "required": false,
+          "type": "integer",
+          "format": "int32"
+        },
+        {
+          "name": "idStorage",
+          "in": "query",
+          "description": "query filter on idStorage",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "name": "managedStorage",
+          "in": "query",
+          "description": "query filter on managed storage",
+          "required": false,
+          "type": "boolean"
+        }
+      ],
+      "extract_sha256": "a5b7bb8da4547f9395c0fc19eae0ceb454a8031e9bf6c07cfcc3517739412448",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "/storageLocations:response",
+      "status": "unknown",
+      "scope": "read-response",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1storageLocations/get/responses",
+      "extract": {
+        "default": {
+          "description": "successful operation"
+        }
+      },
+      "extract_sha256": "d60a0b3ca42c500156e340496a9b41c772932d87182885283abfac9b5958589c",
+      "meaning": "No schema, examples or response headers published; READ field support unknown."
+    },
+    {
+      "id": "/storages/{id}:operationId",
+      "status": "fact",
+      "scope": "read-request",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1storages~1{id}/get/operationId",
+      "extract": "getStorage",
+      "extract_sha256": "cc375da7a3c0ad0b5206d57ec3468a67372e7ca537e0e98a63340ef1a9023009",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "/storages/{id}:parameters",
+      "status": "fact",
+      "scope": "read-request",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1storages~1{id}/get/parameters",
+      "extract": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "type": "string",
+          "pattern": "(.+)?"
+        }
+      ],
+      "extract_sha256": "2f094530771e3ffe9b23c9245a0e071639e81cde1339b9dc5879df23c67f8644",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "/storages/{id}:response",
+      "status": "unknown",
+      "scope": "read-response",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1storages~1{id}/get/responses",
+      "extract": {
+        "default": {
+          "description": "successful operation"
+        }
+      },
+      "extract_sha256": "d60a0b3ca42c500156e340496a9b41c772932d87182885283abfac9b5958589c",
+      "meaning": "No schema, examples or response headers published; READ field support unknown."
+    },
+    {
+      "id": "/products:operationId",
+      "status": "fact",
+      "scope": "read-request",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1products/get/operationId",
+      "extract": "getAllProducts",
+      "extract_sha256": "452595bd6fd5d9adc308430383126ff619616bd772b2b26f585f910e3351607f",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "/products:parameters",
+      "status": "fact",
+      "scope": "read-request",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1products/get/parameters",
+      "extract": [
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "type": "integer",
+          "format": "int32"
+        },
+        {
+          "name": "offset",
+          "in": "query",
+          "required": false,
+          "type": "integer",
+          "format": "int32"
+        },
+        {
+          "name": "description",
+          "in": "query",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "name": "salesEnabled",
+          "in": "query",
+          "required": false,
+          "type": "boolean"
+        },
+        {
+          "name": "locked",
+          "in": "query",
+          "required": false,
+          "type": "boolean"
+        },
+        {
+          "name": "stockEnabled",
+          "in": "query",
+          "required": false,
+          "type": "boolean"
+        },
+        {
+          "name": "pricelistEnabled",
+          "in": "query",
+          "required": false,
+          "type": "boolean"
+        },
+        {
+          "name": "idPlugin",
+          "in": "query",
+          "description": "- BindCommerce : 1\n- Semplisio : 2",
+          "required": false,
+          "type": "string",
+          "enum": [
+            "1",
+            "2"
+          ]
+        },
+        {
+          "name": "createDateMillis",
+          "in": "query",
+          "description": "Date in milliseconds. If inserted, only products created from this date will be returned (>=)",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "name": "modifyDateMillis",
+          "in": "query",
+          "description": "Date in milliseconds. If inserted, only products modified from this date will be returned (>=)",
+          "required": false,
+          "type": "string"
+        }
+      ],
+      "extract_sha256": "13eacf76f6161c158e8f97301bc8b3b5ce2acf7c6f0305a71ce6b617797c2398",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "/products:response",
+      "status": "unknown",
+      "scope": "read-response",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1products/get/responses",
+      "extract": {
+        "default": {
+          "description": "successful operation"
+        }
+      },
+      "extract_sha256": "d60a0b3ca42c500156e340496a9b41c772932d87182885283abfac9b5958589c",
+      "meaning": "No schema, examples or response headers published; READ field support unknown."
+    },
+    {
+      "id": "/products/{id}:operationId",
+      "status": "fact",
+      "scope": "read-request",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1products~1{id}/get/operationId",
+      "extract": "getProduct",
+      "extract_sha256": "4187e2731872fee97411261a09efdd6b34a63b8e4ac7ebc74c36f15968a1cd3b",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "/products/{id}:parameters",
+      "status": "fact",
+      "scope": "read-request",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1products~1{id}/get/parameters",
+      "extract": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "type": "string",
+          "pattern": "(.+)?"
+        }
+      ],
+      "extract_sha256": "2f094530771e3ffe9b23c9245a0e071639e81cde1339b9dc5879df23c67f8644",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "/products/{id}:response",
+      "status": "unknown",
+      "scope": "read-response",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1products~1{id}/get/responses",
+      "extract": {
+        "default": {
+          "description": "successful operation"
+        }
+      },
+      "extract_sha256": "d60a0b3ca42c500156e340496a9b41c772932d87182885283abfac9b5958589c",
+      "meaning": "No schema, examples or response headers published; READ field support unknown."
+    },
+    {
+      "id": "/um:operationId",
+      "status": "fact",
+      "scope": "read-request",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1um/get/operationId",
+      "extract": "getAllUms",
+      "extract_sha256": "2060d002247fd285b6d59e0945b84e4de8e43371b20702b7d3103220da427a0a",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "/um:parameters",
+      "status": "fact",
+      "scope": "read-request",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1um/get/parameters",
+      "extract": [
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "type": "integer",
+          "format": "int32"
+        },
+        {
+          "name": "offset",
+          "in": "query",
+          "required": false,
+          "type": "integer",
+          "format": "int32"
+        },
+        {
+          "name": "description",
+          "in": "query",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "name": "shortdescription",
+          "in": "query",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "name": "showdeleted",
+          "in": "query",
+          "required": false,
+          "type": "boolean"
+        }
+      ],
+      "extract_sha256": "e6672645de2c6716315d5cab004b07c899b83db3c5991340d6d6ec95976d7518",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "/um:response",
+      "status": "unknown",
+      "scope": "read-response",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1um/get/responses",
+      "extract": {
+        "default": {
+          "description": "successful operation"
+        }
+      },
+      "extract_sha256": "d60a0b3ca42c500156e340496a9b41c772932d87182885283abfac9b5958589c",
+      "meaning": "No schema, examples or response headers published; READ field support unknown."
+    },
+    {
+      "id": "/um/{idUm}:operationId",
+      "status": "fact",
+      "scope": "read-request",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1um~1{idUm}/get/operationId",
+      "extract": "getUm",
+      "extract_sha256": "9f2b54a6ab4689c18b792e77876335f6e82d985b4fb3b2dccd35710237fa478f",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "/um/{idUm}:parameters",
+      "status": "fact",
+      "scope": "read-request",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1um~1{idUm}/get/parameters",
+      "extract": [
+        {
+          "name": "idUm",
+          "in": "path",
+          "required": true,
+          "type": "string"
+        },
+        {
+          "name": "showdeleted",
+          "in": "query",
+          "required": false,
+          "type": "boolean"
+        }
+      ],
+      "extract_sha256": "f5fec60b193763b04629d7e416d676a48352f2c6c1c0b27c9614474f2cccffe1",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "/um/{idUm}:response",
+      "status": "unknown",
+      "scope": "read-response",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1um~1{idUm}/get/responses",
+      "extract": {
+        "default": {
+          "description": "successful operation"
+        }
+      },
+      "extract_sha256": "d60a0b3ca42c500156e340496a9b41c772932d87182885283abfac9b5958589c",
+      "meaning": "No schema, examples or response headers published; READ field support unknown."
+    },
+    {
+      "id": "/businessunit/{idBu}/storage:operationId",
+      "status": "fact",
+      "scope": "read-request",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1businessunit~1{idBu}~1storage/get/operationId",
+      "extract": "getAllBuStorages",
+      "extract_sha256": "bdd9f79f016880b35c92ea36a031208e858fea0dd246c828451190ff074d9314",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "/businessunit/{idBu}/storage:parameters",
+      "status": "fact",
+      "scope": "read-request",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1businessunit~1{idBu}~1storage/get/parameters",
+      "extract": [
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "type": "integer",
+          "format": "int32"
+        },
+        {
+          "name": "offset",
+          "in": "query",
+          "required": false,
+          "type": "integer",
+          "format": "int32"
+        },
+        {
+          "name": "idBU",
+          "in": "query",
+          "description": "query filter on idBU",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "name": "idStorage",
+          "in": "query",
+          "description": "query filter on idStorage",
+          "required": false,
+          "type": "string"
+        }
+      ],
+      "extract_sha256": "7e2ea458d69b79f419b155aecc2dbf05d16cb59e1260e28decbb6a7039ab3b18",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "/businessunit/{idBu}/storage:response",
+      "status": "unknown",
+      "scope": "read-response",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1businessunit~1{idBu}~1storage/get/responses",
+      "extract": {
+        "default": {
+          "description": "successful operation"
+        }
+      },
+      "extract_sha256": "d60a0b3ca42c500156e340496a9b41c772932d87182885283abfac9b5958589c",
+      "meaning": "No schema, examples or response headers published; READ field support unknown."
+    },
+    {
+      "id": "/businessunitpoint/{idBup}/storage:operationId",
+      "status": "fact",
+      "scope": "read-request",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1businessunitpoint~1{idBup}~1storage/get/operationId",
+      "extract": "getAllBupStorages",
+      "extract_sha256": "c95e98a8d687a86d0080fc229b8b8a09a7c67a7e4886676ff7ac1bfbcb74b8b6",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "/businessunitpoint/{idBup}/storage:parameters",
+      "status": "fact",
+      "scope": "read-request",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1businessunitpoint~1{idBup}~1storage/get/parameters",
+      "extract": [
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "type": "integer",
+          "format": "int32"
+        },
+        {
+          "name": "offset",
+          "in": "query",
+          "required": false,
+          "type": "integer",
+          "format": "int32"
+        },
+        {
+          "name": "idBUP",
+          "in": "query",
+          "description": "query filter on idBUP",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "name": "idStorage",
+          "in": "query",
+          "description": "query filter on idStorage",
+          "required": false,
+          "type": "string"
+        }
+      ],
+      "extract_sha256": "c22842885876e0b7179549e241e949f2174d645c6c3c2f4e50c53c77bdfac3c0",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "/businessunitpoint/{idBup}/storage:response",
+      "status": "unknown",
+      "scope": "read-response",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1businessunitpoint~1{idBup}~1storage/get/responses",
+      "extract": {
+        "default": {
+          "description": "successful operation"
+        }
+      },
+      "extract_sha256": "d60a0b3ca42c500156e340496a9b41c772932d87182885283abfac9b5958589c",
+      "meaning": "No schema, examples or response headers published; READ field support unknown."
+    },
+    {
+      "id": "/purchases/orders:operationId",
+      "status": "fact",
+      "scope": "read-request",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1purchases~1orders/get/operationId",
+      "extract": "getAllPurchaseOrders",
+      "extract_sha256": "7b206556bf37781ea69f92d8ef5b9d4984d35eb8c9eb018ae7973ef302f0b9d3",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "/purchases/orders:parameters",
+      "status": "fact",
+      "scope": "read-request",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1purchases~1orders/get/parameters",
+      "extract": [
+        {
+          "name": "offset",
+          "in": "query",
+          "required": false,
+          "type": "integer",
+          "format": "int32"
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "type": "integer",
+          "format": "int32"
+        },
+        {
+          "name": "freeText",
+          "in": "query",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "name": "neDocStatus",
+          "in": "query",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "name": "idContact",
+          "in": "query",
+          "required": false,
+          "type": "integer",
+          "format": "int32"
+        },
+        {
+          "name": "docStatus",
+          "in": "query",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "name": "gtDocDateMillins",
+          "in": "query",
+          "required": false,
+          "type": "string"
+        }
+      ],
+      "extract_sha256": "d7e467f33c4908d4a7ae2fad89c3ced5f9557b172e7613fa90aef73f34e00834",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "/purchases/orders:response",
+      "status": "unknown",
+      "scope": "read-response",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1purchases~1orders/get/responses",
+      "extract": {
+        "default": {
+          "description": "successful operation"
+        }
+      },
+      "extract_sha256": "d60a0b3ca42c500156e340496a9b41c772932d87182885283abfac9b5958589c",
+      "meaning": "No schema, examples or response headers published; READ field support unknown."
+    },
+    {
+      "id": "/purchases/{id}/orders:operationId",
+      "status": "fact",
+      "scope": "read-request",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1purchases~1{id}~1orders/get/operationId",
+      "extract": "getPurchaseOrder",
+      "extract_sha256": "cbd1aabf21102068c13ffce71c6db13b62a9d6c03b14de2e20fe6281caa35b4d",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "/purchases/{id}/orders:parameters",
+      "status": "fact",
+      "scope": "read-request",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1purchases~1{id}~1orders/get/parameters",
+      "extract": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "type": "integer",
+          "format": "int32"
+        },
+        {
+          "name": "onlyHeaderData",
+          "in": "query",
+          "required": false,
+          "type": "boolean"
+        }
+      ],
+      "extract_sha256": "607092baa122fa8f2412023d1ab50cab8c9c49ae02a004118f8a3d2d699f118e",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "/purchases/{id}/orders:response",
+      "status": "unknown",
+      "scope": "read-response",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1purchases~1{id}~1orders/get/responses",
+      "extract": {
+        "default": {
+          "description": "successful operation"
+        }
+      },
+      "extract_sha256": "d60a0b3ca42c500156e340496a9b41c772932d87182885283abfac9b5958589c",
+      "meaning": "No schema, examples or response headers published; READ field support unknown."
+    },
+    {
+      "id": "/purchases/goodsreceipt:operationId",
+      "status": "fact",
+      "scope": "read-request",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1purchases~1goodsreceipt/get/operationId",
+      "extract": "getAllGoodsReceipt",
+      "extract_sha256": "9c4dfc01b0c4138c3d3d2de9f95bc70758f13b5cb539f95e0ecb2632a9d16894",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "/purchases/goodsreceipt:parameters",
+      "status": "fact",
+      "scope": "read-request",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1purchases~1goodsreceipt/get/parameters",
+      "extract": [
+        {
+          "name": "offset",
+          "in": "query",
+          "required": false,
+          "type": "integer",
+          "format": "int32"
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "type": "integer",
+          "format": "int32"
+        },
+        {
+          "name": "freeText",
+          "in": "query",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "name": "idContact",
+          "in": "query",
+          "required": false,
+          "type": "integer",
+          "format": "int32"
+        }
+      ],
+      "extract_sha256": "66edea252f47fadfaa8b831aadb2353a470f5a9acbc111a103732297c3fa8600",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "/purchases/goodsreceipt:response",
+      "status": "unknown",
+      "scope": "read-response",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1purchases~1goodsreceipt/get/responses",
+      "extract": {
+        "default": {
+          "description": "successful operation"
+        }
+      },
+      "extract_sha256": "d60a0b3ca42c500156e340496a9b41c772932d87182885283abfac9b5958589c",
+      "meaning": "No schema, examples or response headers published; READ field support unknown."
+    },
+    {
+      "id": "/purchases/{id}/goodsreceipt:operationId",
+      "status": "fact",
+      "scope": "read-request",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1purchases~1{id}~1goodsreceipt/get/operationId",
+      "extract": "getGoodsReceipt",
+      "extract_sha256": "a37754a3962da594beb126149799a14b993c1a78ce5fbf8a1f555e08f11b3b25",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "/purchases/{id}/goodsreceipt:parameters",
+      "status": "fact",
+      "scope": "read-request",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1purchases~1{id}~1goodsreceipt/get/parameters",
+      "extract": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "type": "integer",
+          "format": "int32"
+        },
+        {
+          "name": "onlyHeaderData",
+          "in": "query",
+          "required": false,
+          "type": "boolean"
+        }
+      ],
+      "extract_sha256": "607092baa122fa8f2412023d1ab50cab8c9c49ae02a004118f8a3d2d699f118e",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "/purchases/{id}/goodsreceipt:response",
+      "status": "unknown",
+      "scope": "read-response",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1purchases~1{id}~1goodsreceipt/get/responses",
+      "extract": {
+        "default": {
+          "description": "successful operation"
+        }
+      },
+      "extract_sha256": "d60a0b3ca42c500156e340496a9b41c772932d87182885283abfac9b5958589c",
+      "meaning": "No schema, examples or response headers published; READ field support unknown."
+    },
+    {
+      "id": "ProductApi.id",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/ProductApi/properties/id",
+      "extract": {
+        "type": "string"
+      },
+      "extract_sha256": "00404e686415370f1711c4d7acfa2905444d3cf23cef2e10c47d445ebe690f96",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "ProductApi.barcode",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/ProductApi/properties/barcode",
+      "extract": {
+        "type": "string"
+      },
+      "extract_sha256": "00404e686415370f1711c4d7acfa2905444d3cf23cef2e10c47d445ebe690f96",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "ProductApi.basicCode",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/ProductApi/properties/basicCode",
+      "extract": {
+        "type": "string"
+      },
+      "extract_sha256": "00404e686415370f1711c4d7acfa2905444d3cf23cef2e10c47d445ebe690f96",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "ProductApi.um",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/ProductApi/properties/um",
+      "extract": {
+        "type": "string"
+      },
+      "extract_sha256": "00404e686415370f1711c4d7acfa2905444d3cf23cef2e10c47d445ebe690f96",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "ProductApi.umDescription",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/ProductApi/properties/umDescription",
+      "extract": {
+        "type": "string"
+      },
+      "extract_sha256": "00404e686415370f1711c4d7acfa2905444d3cf23cef2e10c47d445ebe690f96",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "ProductApi.kindOf",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/ProductApi/properties/kindOf",
+      "extract": {
+        "type": "integer",
+        "format": "int32"
+      },
+      "extract_sha256": "2a556bf1f5199d0ac73cf148833f99bab84058b5838b98a9892a22f6fe4939f7",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "ProductApi.defaultStorage",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/ProductApi/properties/defaultStorage",
+      "extract": {
+        "type": "string"
+      },
+      "extract_sha256": "00404e686415370f1711c4d7acfa2905444d3cf23cef2e10c47d445ebe690f96",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "ProductApi.storageLocations",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/ProductApi/properties/storageLocations",
+      "extract": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/ProductStorageLocationApi"
+        }
+      },
+      "extract_sha256": "cfa5eccd6eb618489c95973b73362acefc5923aaac367360a63966bcb7d11a4b",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "ProductApi.createDate",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/ProductApi/properties/createDate",
+      "extract": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "extract_sha256": "4f410cd74c87d8ddd21f20e835e06ed7445481c3aeae3c12085e82c54ea2fb7d",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "ProductApi.modifyDate",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/ProductApi/properties/modifyDate",
+      "extract": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "extract_sha256": "4f410cd74c87d8ddd21f20e835e06ed7445481c3aeae3c12085e82c54ea2fb7d",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "StockApi.idStorage",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/StockApi/properties/idStorage",
+      "extract": {
+        "type": "string",
+        "example": "MB"
+      },
+      "extract_sha256": "b26abf18b52f02ea96eb7ef46ca581b2692c392ad36a32a975469529da458561",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "StockApi.idLocation",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/StockApi/properties/idLocation",
+      "extract": {
+        "type": "string",
+        "example": "M1"
+      },
+      "extract_sha256": "39c3c6c3d18f1ae8b995fb668b31166b131f8fa6999cdb6c2e52e7da613f36de",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "StockApi.idLot",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/StockApi/properties/idLot",
+      "extract": {
+        "type": "string",
+        "example": "12"
+      },
+      "extract_sha256": "c4d45693e4cb1072bde2e9535cb0f87dc379359f4e541e833db67db5d00280bd",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "StockApi.idMaterial",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/StockApi/properties/idMaterial",
+      "extract": {
+        "type": "string",
+        "example": "05ER8"
+      },
+      "extract_sha256": "abc726f9f345c1607b1a78ff18f11463235dc7997cce19ffdaff6363e08a6d54",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "StockApi.um",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/StockApi/properties/um",
+      "extract": {
+        "type": "string",
+        "example": "PZ"
+      },
+      "extract_sha256": "7c2c2dc8935cfe2d02f2b0dd1c2677dec6155fea1710a5e9fc6cbe1d7cbd234f",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "StockApi.quantity",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/StockApi/properties/quantity",
+      "extract": {
+        "type": "number",
+        "format": "double",
+        "example": "-98"
+      },
+      "extract_sha256": "585ebcf91d6a08060106d63b7c0e6099a2daab8038e316a16a79fca29ff9d1be",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "StockApi.stockState",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/StockApi/properties/stockState",
+      "extract": {
+        "type": "integer",
+        "format": "int32",
+        "example": "1"
+      },
+      "extract_sha256": "75b20d19445916367bc0478f7836c1c0588895109f2528ec89d34daa42f64a34",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "StockApi.idAttributeCombination",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/StockApi/properties/idAttributeCombination",
+      "extract": {
+        "type": "integer",
+        "format": "int32",
+        "example": "34"
+      },
+      "extract_sha256": "bb0be4eb9d4010955669aa3c2a79f2ae4c15c8cef69f0c2904e9fa1361572355",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "StorageApi.id",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/StorageApi/properties/id",
+      "extract": {
+        "type": "string",
+        "example": "CS"
+      },
+      "extract_sha256": "8ace3605e955ababf2b0e52888e57dab24f4b317a2a0c68dfd1e558ccb14a0b1",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "StorageApi.managed",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/StorageApi/properties/managed",
+      "extract": {
+        "type": "integer",
+        "format": "int32",
+        "example": "1"
+      },
+      "extract_sha256": "75b20d19445916367bc0478f7836c1c0588895109f2528ec89d34daa42f64a34",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "StorageLocationApi.idLocation",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/StorageLocationApi/properties/idLocation",
+      "extract": {
+        "type": "string",
+        "example": "VP1"
+      },
+      "extract_sha256": "6ce0c9574e7eee346383f4c072d7a28efb7a4a0c94422d6e381ae9e9b25908a6",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "StorageLocationApi.idStorage",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/StorageLocationApi/properties/idStorage",
+      "extract": {
+        "type": "string",
+        "example": "VK"
+      },
+      "extract_sha256": "00afda1333399ec7a7ae8388238da924a4d40e2b83151bad15b4b97cecbca632",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "ProductStorageLocationApi.idStorage",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/ProductStorageLocationApi/properties/idStorage",
+      "extract": {
+        "type": "string"
+      },
+      "extract_sha256": "00404e686415370f1711c4d7acfa2905444d3cf23cef2e10c47d445ebe690f96",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "ProductStorageLocationApi.idLocation",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/ProductStorageLocationApi/properties/idLocation",
+      "extract": {
+        "type": "string"
+      },
+      "extract_sha256": "00404e686415370f1711c4d7acfa2905444d3cf23cef2e10c47d445ebe690f96",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "UmApi.um",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/UmApi/properties/um",
+      "extract": {
+        "type": "string"
+      },
+      "extract_sha256": "00404e686415370f1711c4d7acfa2905444d3cf23cef2e10c47d445ebe690f96",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "UmApi.shortDescription_IT",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/UmApi/properties/shortDescription_IT",
+      "extract": {
+        "type": "string",
+        "example": "M2"
+      },
+      "extract_sha256": "bff2c1516c22c370da37f9f1acc4586882ac25ff3e392876de68342e3d28aa4a",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "DocumentApi.idBu",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/DocumentApi/properties/idBu",
+      "extract": {
+        "type": "string",
+        "example": "U1"
+      },
+      "extract_sha256": "217476da4cbde0c68ad34b917ba043813fc5896eadc1324c2a28186cbb3e47ee",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "DocumentApi.idContact",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/DocumentApi/properties/idContact",
+      "extract": {
+        "type": "integer",
+        "format": "int32",
+        "example": "2"
+      },
+      "extract_sha256": "dce6b64510a40cedba9db1b2c78d1b1be8286279c7d209e78e6424f7994dcd74",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "DocumentApi.idVendor",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/DocumentApi/properties/idVendor",
+      "extract": {
+        "type": "string",
+        "example": " "
+      },
+      "extract_sha256": "0c53362d4050ff2a3c2533056f28a131ba3676c92456037299e42d364cd4906b",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "DocumentApi.docStatus",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/DocumentApi/properties/docStatus",
+      "extract": {
+        "type": "string",
+        "example": "CREATED"
+      },
+      "extract_sha256": "70ff4b7b5a088cadea9f7faf2844ebcdb8ee389a75d3868f6899bb2e46ab7235",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "DocumentApi.docDate",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/DocumentApi/properties/docDate",
+      "extract": {
+        "type": "string",
+        "format": "date-time",
+        "example": "1893491100000"
+      },
+      "extract_sha256": "079b42491bc67d0c9366d998798d428ee1976125f5d165ef2f1e1da0e694314f",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "DocumentApi.destIdStorage",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/DocumentApi/properties/destIdStorage",
+      "extract": {
+        "type": "string",
+        "example": "MB"
+      },
+      "extract_sha256": "b26abf18b52f02ea96eb7ef46ca581b2692c392ad36a32a975469529da458561",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "DocumentApi.destIdLocation",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/DocumentApi/properties/destIdLocation",
+      "extract": {
+        "type": "string"
+      },
+      "extract_sha256": "00404e686415370f1711c4d7acfa2905444d3cf23cef2e10c47d445ebe690f96",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "DocumentApi.rows",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/DocumentApi/properties/rows",
+      "extract": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/DocumentRowApi"
+        }
+      },
+      "extract_sha256": "cd1310dcc0e8ea1cfdb9ec6f412a99c4a8da031aeb2c72b529d88a2b35af53cc",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "DocumentApi.reference",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/DocumentApi/properties/reference",
+      "extract": {
+        "type": "string",
+        "example": " "
+      },
+      "extract_sha256": "0c53362d4050ff2a3c2533056f28a131ba3676c92456037299e42d364cd4906b",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "DocumentRowApi.idMaterial",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/DocumentRowApi/properties/idMaterial",
+      "extract": {
+        "type": "string",
+        "example": "1"
+      },
+      "extract_sha256": "055adfdcf8e949e7b45fe493e87767ac9e3ad0cff21249762651035f3f12f8f5",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "DocumentRowApi.idAttributeCombination",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/DocumentRowApi/properties/idAttributeCombination",
+      "extract": {
+        "type": "integer",
+        "format": "int32"
+      },
+      "extract_sha256": "2a556bf1f5199d0ac73cf148833f99bab84058b5838b98a9892a22f6fe4939f7",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "DocumentRowApi.quantity",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/DocumentRowApi/properties/quantity",
+      "extract": {
+        "type": "number",
+        "format": "double",
+        "example": "5"
+      },
+      "extract_sha256": "6de488dd33d647af2e38bafcb91afaffb1dec0c5c271d7717762ce5685db26f4",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "DocumentRowApi.idStorage",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/DocumentRowApi/properties/idStorage",
+      "extract": {
+        "type": "string",
+        "example": "MB"
+      },
+      "extract_sha256": "b26abf18b52f02ea96eb7ef46ca581b2692c392ad36a32a975469529da458561",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "DocumentRowApi.idLocation",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/DocumentRowApi/properties/idLocation",
+      "extract": {
+        "type": "string",
+        "example": " "
+      },
+      "extract_sha256": "0c53362d4050ff2a3c2533056f28a131ba3676c92456037299e42d364cd4906b",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "DocumentRowApi.idLot",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/DocumentRowApi/properties/idLot",
+      "extract": {
+        "type": "string",
+        "example": " "
+      },
+      "extract_sha256": "0c53362d4050ff2a3c2533056f28a131ba3676c92456037299e42d364cd4906b",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "DocumentRowApi.materialmovementref",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/DocumentRowApi/properties/materialmovementref",
+      "extract": {
+        "type": "integer",
+        "format": "int32",
+        "example": "null"
+      },
+      "extract_sha256": "49d07edc47a680ae8528cee4051668735194b4c0b327ea62cd5aa785a7b95119",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "DocumentRowApi.materialmovementposref",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/DocumentRowApi/properties/materialmovementposref",
+      "extract": {
+        "type": "integer",
+        "format": "int32",
+        "example": "null"
+      },
+      "extract_sha256": "49d07edc47a680ae8528cee4051668735194b4c0b327ea62cd5aa785a7b95119",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "DocumentRowApi.saleorderref",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/DocumentRowApi/properties/saleorderref",
+      "extract": {
+        "type": "integer",
+        "format": "int32",
+        "example": "null"
+      },
+      "extract_sha256": "49d07edc47a680ae8528cee4051668735194b4c0b327ea62cd5aa785a7b95119",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "DocumentRowApi.saleorderposref",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/DocumentRowApi/properties/saleorderposref",
+      "extract": {
+        "type": "integer",
+        "format": "int32",
+        "example": "null"
+      },
+      "extract_sha256": "49d07edc47a680ae8528cee4051668735194b4c0b327ea62cd5aa785a7b95119",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "BupStorageApi.idBu",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/BupStorageApi/properties/idBu",
+      "extract": {
+        "type": "string",
+        "example": "U5"
+      },
+      "extract_sha256": "18590cd56808555c92b67f5099d112780bd79ec447340c4d1c9108fc997c65e2",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "BupStorageApi.idBup",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/BupStorageApi/properties/idBup",
+      "extract": {
+        "type": "string",
+        "example": "P5"
+      },
+      "extract_sha256": "d099e65b130f11d5687c3bb85851b78b75fa85c2f1a72278f183064d76bad252",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "BupStorageApi.idStorage",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/BupStorageApi/properties/idStorage",
+      "extract": {
+        "type": "string",
+        "example": "MB"
+      },
+      "extract_sha256": "b26abf18b52f02ea96eb7ef46ca581b2692c392ad36a32a975469529da458561",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "DocumentApi.required",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/DocumentApi/required",
+      "extract": [
+        "docDate",
+        "idBu",
+        "idContact",
+        "idNumerator",
+        "payments",
+        "rows"
+      ],
+      "extract_sha256": "1cd3d1eda6cd2a766f0614488ee9cc1af0de4ffd9ecf5713eaaa3bf685d26b36",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "DocumentRowApi.required",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/DocumentRowApi/required",
+      "extract": [
+        "description",
+        "idMaterial",
+        "idPosType",
+        "price"
+      ],
+      "extract_sha256": "c3a8d3b4c5d212db17c67b9bce61c8abdeee1b5a16fd8d378385051460b4c703",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "StorageApi.required",
+      "status": "fact",
+      "scope": "model-declaration",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/StorageApi/required",
+      "extract": [
+        "description",
+        "id",
+        "managed"
+      ],
+      "extract_sha256": "646949e8413520535147b2cba3c8888e2d514822cff3b4fe880bb2f4573ec06a",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "/purchases/orders:request-body",
+      "status": "fact",
+      "scope": "write-schema-context-only",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1purchases~1orders/post/parameters/0/schema",
+      "extract": {
+        "$ref": "#/definitions/DocumentApi"
+      },
+      "extract_sha256": "e6a2a0f41a44db43c28e9ab49812b9414578c40458193ff61a675b4207758108",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "/purchases/goodsreceipt:request-body",
+      "status": "fact",
+      "scope": "write-schema-context-only",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1purchases~1goodsreceipt/post/parameters/0/schema",
+      "extract": {
+        "$ref": "#/definitions/DocumentApi"
+      },
+      "extract_sha256": "e6a2a0f41a44db43c28e9ab49812b9414578c40458193ff61a675b4207758108",
+      "meaning": "Published static declaration only; not a supported READ response field."
+    },
+    {
+      "id": "stock-meaning",
+      "status": "unknown",
+      "scope": "stock-meaning",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1stocks~1avaibility/get/summary",
+      "extract": "Restituisce la Disponibilità di un prodotto (tiene conto anche della merce impegnata)",
+      "extract_sha256": "4ecea13b935b358b5a9cc78f54a14afe3cc18b5bd44e4f982e1b3f35492c07be",
+      "meaning": "Required semantic guarantee absent in this scoped declaration; see dossier/provider brief. Not proof of provider incapability."
+    },
+    {
+      "id": "company-identity",
+      "status": "unknown",
+      "scope": "company-identity",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/definitions/BupStorageApi/properties/idBu",
+      "extract": {
+        "type": "string",
+        "example": "U5"
+      },
+      "extract_sha256": "18590cd56808555c92b67f5099d112780bd79ec447340c4d1c9108fc997c65e2",
+      "meaning": "Required semantic guarantee absent in this scoped declaration; see dossier/provider brief. Not proof of provider incapability."
+    },
+    {
+      "id": "pagination-consistency",
+      "status": "unknown",
+      "scope": "pagination-consistency",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1purchases~1orders/get/parameters",
+      "extract": [
+        {
+          "name": "offset",
+          "in": "query",
+          "required": false,
+          "type": "integer",
+          "format": "int32"
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "type": "integer",
+          "format": "int32"
+        },
+        {
+          "name": "freeText",
+          "in": "query",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "name": "neDocStatus",
+          "in": "query",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "name": "idContact",
+          "in": "query",
+          "required": false,
+          "type": "integer",
+          "format": "int32"
+        },
+        {
+          "name": "docStatus",
+          "in": "query",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "name": "gtDocDateMillins",
+          "in": "query",
+          "required": false,
+          "type": "string"
+        }
+      ],
+      "extract_sha256": "d7e467f33c4908d4a7ae2fad89c3ced5f9557b172e7613fa90aef73f34e00834",
+      "meaning": "Required semantic guarantee absent in this scoped declaration; see dossier/provider brief. Not proof of provider incapability."
+    },
+    {
+      "id": "delta-cancellation",
+      "status": "unknown",
+      "scope": "delta-cancellation",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/paths/~1purchases~1goodsreceipt/get/parameters",
+      "extract": [
+        {
+          "name": "offset",
+          "in": "query",
+          "required": false,
+          "type": "integer",
+          "format": "int32"
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "type": "integer",
+          "format": "int32"
+        },
+        {
+          "name": "freeText",
+          "in": "query",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "name": "idContact",
+          "in": "query",
+          "required": false,
+          "type": "integer",
+          "format": "int32"
+        }
+      ],
+      "extract_sha256": "66edea252f47fadfaa8b831aadb2353a470f5a9acbc111a103732297c3fa8600",
+      "meaning": "Required semantic guarantee absent in this scoped declaration; see dossier/provider brief. Not proof of provider incapability."
+    },
+    {
+      "id": "permissions",
+      "status": "unknown",
+      "scope": "permissions",
+      "primary_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+      "pointer": "#/info",
+      "extract": {
+        "version": "1.0",
+        "title": "Giobby API"
+      },
+      "extract_sha256": "c7936e9299994059c21a279c727480a2094fabb6e2c6030e6a2f4e3e4813189a",
+      "meaning": "Required semantic guarantee absent in this scoped declaration; see dossier/provider brief. Not proof of provider incapability."
+    }
+  ],
+  "required_unknown_scopes": [
+    "read-response",
+    "stock-meaning",
+    "company-identity",
+    "pagination-consistency",
+    "delta-cancellation",
+    "permissions"
+  ],
+  "private_manifest": "/root/.hermes/cache/scratch/R05a1-public/manifest.json",
+  "probe": "python3 -I scripts/r05a1_evidence.py --assets /root/.hermes/cache/scratch/R05a1-public"
+}

@@ -110,8 +110,15 @@ R06B1_DEPENDENCIES = {'scripts/run-r00b-tests.py','scripts/run-r03b-tests.py','c
 R06B1_PREFIXES = ('database/runtime/', 'src/Modules/Inventory/')
 
 
+R05A1_OFFLINE_FILES = {'docs/r05a1-giobby-read-contract.md', 'docs/r05a1-evidence.json',
+    'docs/r05a1-provider-questions.md', 'scripts/r05a1_evidence.py',
+    'scripts/test-r05a1-evidence.py', 'scripts/test-r05a1-impact.py'}
+
+
 def selection(paths):
     paths = sorted(set(paths))
+    r05a1_offline = bool(set(paths) & R05A1_OFFLINE_FILES)
+    r05a1_only = r05a1_offline and set(paths) <= R05A1_OFFLINE_FILES | R06_WIRING
     r06b1 = bool(set(paths) & (R06B1_FILES | R06B1_DEPENDENCIES)) or any(path.startswith(R06B1_PREFIXES) for path in paths)
     r06_offline = bool(set(paths) & (R06_OFFLINE_FILES | R06B1_FILES | R06_COMMAND_SOURCES | {'scripts/apply-runtime-migrations.py'})) or any(
         path.startswith('database/runtime/') for path in paths)
@@ -126,6 +133,8 @@ def selection(paths):
         parsed = PurePosixPath(path)
         if not path or parsed.is_absolute() or '..' in parsed.parts or '\\' in path or str(parsed) != path:
             raise ValueError('invalid changed path')
+        if path in R05A1_OFFLINE_FILES or (r05a1_only and path in R06_WIRING):
+            continue
         if path in R04C2_FILES or path in R04C1_FILES or path in R06_OFFLINE_FILES or path in R06B1_FILES or (offline_only and path in R06_WIRING):
             continue
         if path.startswith('docs/') and parsed.suffix in {'.py', '.sh', '.js', '.cjs', '.ts', '.cs'}:
@@ -185,7 +194,7 @@ def selection(paths):
     filters = ([AUTH_FILTER] if auth or ui01b else []) + ([R03A_FILTER if r03a else WORKSHOP_FILTER] if ui01b else [])
     if r03b: filters.append('FullyQualifiedName~WorkshopOwnActualTimeTests')
     if r03c: filters.append(R03C_FILTER if r03c_full else R03C_MINIMAL)
-    return {'changed_paths':paths,'api_filter':'|'.join(filters),'r06_offline':r06_offline,
+    return {'changed_paths':paths,'api_filter':'|'.join(filters),'r06_offline':r06_offline,'r05a1_offline':r05a1_offline,
             'browser':auth,'ui01b':ui01b,'r03a':r03a,'r03a2':r03a,'r04a':r04a,'r04c1':r04c1,'r04c2':r04c2,'r06b1':r06b1,'r03b':r03b,'r03c':r03c,'migrations':auth or ui01b,'ui_build':auth or ui,'ui_tests':ui,
             'full_architecture':False}
 
