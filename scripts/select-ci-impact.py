@@ -116,7 +116,7 @@ R05A1_OFFLINE_FILES = {'docs/r05a1-giobby-read-contract.md', 'docs/r05a1-evidenc
 
 
 R05B0_FILES = {'compose.r05b0-test.yaml', 'scripts/run-r05b0-tests.py', 'scripts/test-r05b0-impact.py',
-    'scripts/test-r05b0-lifecycle.py', 'tests/browser/r05b0-acceptance.cjs', 'tests/browser/r05b0-simulator.py',
+    'scripts/test-r05b0-lifecycle.py', 'tests/browser/r05b0-acceptance.cjs', 'tests/browser/r05b0-gaps.cjs', 'tests/browser/r05b0-simulator.py',
     'database/runtime/migrations/0025_administrative_bindings.sql',
     'src/Modules/Workshop/Enginia360.Workshop/AdministrativeBinding.cs'}
 R05B0_DIRECT = {'src/Modules/Workshop/Enginia360.Workshop/AdministrativeEndpoints.cs',

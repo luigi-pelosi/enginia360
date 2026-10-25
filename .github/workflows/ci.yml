@@ -309,6 +309,10 @@ jobs:
         run: timeout 600 python3 scripts/run-r05b0-tests.py
       - name: Same acceptance pool1 no nested connection
         run: R05B0_POOL_SIZE=1 timeout 600 python3 scripts/run-r05b0-tests.py
+      - name: Proof gaps idempotency refusals atomicity and lease races pool4
+        run: R05B0_SPEC=r05b0-gaps.cjs timeout 600 python3 scripts/run-r05b0-tests.py
+      - name: Proof gaps pool1 no nested connection
+        run: R05B0_SPEC=r05b0-gaps.cjs R05B0_POOL_SIZE=1 timeout 600 python3 scripts/run-r05b0-tests.py
       - name: Actual TERM with browser held SQL barrier and in-flight worker
         run: timeout 300 python3 scripts/test-r05b0-lifecycle.py
   runtime-migrations:

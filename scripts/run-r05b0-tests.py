@@ -24,6 +24,7 @@ r00.CONFIG = ROOT/'compose.r05b0-test.yaml'
 run = r00.run
 marker = r03b.marker
 POOL = os.environ.get('R05B0_POOL_SIZE', '4')
+SPEC = os.environ.get('R05B0_SPEC', 'r05b0-acceptance.cjs')
 SIMULATOR_CONTROL = ('import json,sys,urllib.request\n'
                      'req=urllib.request.Request("http://127.0.0.1:8080"+sys.argv[1],data=(sys.argv[2].encode() if len(sys.argv)>2 else None),'
                      'headers={"Content-Type":"application/json"},method="POST" if len(sys.argv)>2 else "GET")\n'
@@ -47,6 +48,7 @@ def fixtures(state, secret):
 def main():
     if not os.environ.get('TMPDIR'): raise ValueError('private TMPDIR required')
     if POOL not in ('1', '4'): raise ValueError('pool acceptance is explicitly 1 or 4')
+    if SPEC not in ('r05b0-acceptance.cjs', 'r05b0-gaps.cjs'): raise ValueError('unknown R05.b.0 acceptance specification')
     if not (ROOT/'web/dist-ui01-runtime/ui01-runtime.html').exists(): raise ValueError('build:ui01-runtime required')
     project = 'enginia360-r00b-' + secrets.token_hex(6)
     before_volumes = r00.inventory('volume')
@@ -56,7 +58,7 @@ def main():
     with tempfile.TemporaryDirectory(prefix=project+'-', dir=os.environ['TMPDIR']) as directory:
         state = Path(directory)
         values = {key: secrets.token_hex(24) for key in ('R00_INFRA_PASSWORD', 'R00_OWNER_PASSWORD', 'R00_APP_PASSWORD', 'R00_CLIENT_SECRET')}
-        values.update(R00_STATE=str(state), R00_POOL_SIZE=POOL)
+        values.update(R00_STATE=str(state), R00_POOL_SIZE=POOL, R05B0_SPEC=SPEC)
         envfile = state/'runtime.env'; envfile.write_text(''.join(k+'='+v+'\n' for k, v in values.items())); envfile.chmod(0o600)
         run(['openssl', 'req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-days', '1', '-subj', '/CN=Ephemeral UI01b CA', '-addext', 'basicConstraints=critical,CA:TRUE', '-keyout', str(state/'ca.key'), '-out', str(state/'ca.crt')])
         (state/'ca.key').chmod(0o600)
@@ -199,6 +201,35 @@ def main():
                             print(f'BARRIER observed {count} separate-connection advisory waiters', flush=True)
                         elif action == 'release-order':
                             holder.stdin.write('\\q\n'); holder.stdin.flush(); holder.stdin.close(); holder.wait(timeout=5)
+                        elif action.startswith('counts:'):
+                            _, o, r = action.split(':'); o, r = str(uuid.UUID(o)), str(uuid.UUID(r))
+                            (state/'control/counts.json').write_text(run(query+['-c', f'''SELECT json_build_object(
+                                'requests',(SELECT count(*) FROM workshop.administrative_requests WHERE "OrderId"='{o}' OR "Id"='{r}'),
+                                'bindings',(SELECT count(*) FROM workshop.administrative_bindings WHERE "OrderId"='{o}' OR "RequestId"='{r}'),
+                                'outbox',(SELECT count(*) FROM workshop.administrative_outbox WHERE "RequestId"='{r}' OR "RequestId" IN (SELECT "Id" FROM workshop.administrative_requests WHERE "OrderId"='{o}')),
+                                'totalRequests',(SELECT count(*) FROM workshop.administrative_requests),
+                                'totalBindings',(SELECT count(*) FROM workshop.administrative_bindings),
+                                'totalOutbox',(SELECT count(*) FROM workshop.administrative_outbox))''']))
+                        elif action.startswith('binding-owner:'):
+                            r = str(uuid.UUID(action.split(':')[1]))
+                            (state/'control/binding-owner.json').write_text(run(query+['-c', f'''SELECT json_build_object('tenant',r."TenantId",'order',r."OrderId",'bindingTenant',b."TenantId")
+                                FROM workshop.administrative_requests r JOIN workshop.administrative_bindings b ON b."RequestId"=r."Id" WHERE r."Id"='{r}' ''']))
+                        elif action.startswith('dispatch-read:'):
+                            r = str(uuid.UUID(action.split(':')[1]))
+                            (state/'control/dispatch.json').write_text(run(query+['-c', f'''SELECT coalesce((SELECT row_to_json(d) FROM integrations.administrative_dispatches d WHERE "RequestId"='{r}'),'null'::json)''']))
+                        elif action.startswith('dispatch-set:'):
+                            _, r, forced = action.split(':'); r = str(uuid.UUID(r))
+                            assert forced in ('Queued', 'Retrying', 'Uncertain', 'Received')
+                            # Stale-lease rehearsal: an abandoned claim whose lease has expired, in the named claim path.
+                            run(query+['-c', f'''UPDATE integrations.administrative_dispatches SET "State"='{forced}',"LeaseUntil"=clock_timestamp()-interval '1 minute',
+                                "NextAttemptAt"=clock_timestamp(),"LastError"=NULL,"Failures"=0 WHERE "RequestId"='{r}' '''])
+                        elif action.startswith('fault:'):
+                            _, table, mode = action.split(':'); assert table in ('administrative_requests', 'administrative_bindings', 'administrative_outbox') and mode in ('on', 'deferred', 'off')
+                            # Test-only fault inside the ephemeral fixture database; nothing ships in production code or migrations.
+                            if mode == 'off': run(query+['-c', f'DROP TRIGGER IF EXISTS r05b0_fault ON workshop.{table}; DROP FUNCTION IF EXISTS workshop.r05b0_fault();'])
+                            else: run(query+['-c', f'''CREATE FUNCTION workshop.r05b0_fault() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'r05b0 synthetic atomicity fault'; END $$;
+                                GRANT EXECUTE ON FUNCTION workshop.r05b0_fault() TO PUBLIC;
+                                CREATE {'CONSTRAINT ' if mode == 'deferred' else ''}TRIGGER r05b0_fault AFTER INSERT ON workshop.{table} {'DEFERRABLE INITIALLY DEFERRED ' if mode == 'deferred' else ''}FOR EACH ROW EXECUTE FUNCTION workshop.r05b0_fault()'''])
                         else: raise ValueError('unknown R03.c lifecycle command')
                         print('R03C_LIFECYCLE '+action.split(':')[0], flush=True)
                         (state/'control/ack.tmp').write_text(action); (state/'control/ack.tmp').replace(state/'control/ack')

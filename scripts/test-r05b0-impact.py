@@ -7,7 +7,7 @@ ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('impact', ROOT/'scripts/select-ci-impact.py')
 impact = importlib.util.module_from_spec(spec); spec.loader.exec_module(impact)
 OWN = ('compose.r05b0-test.yaml', 'scripts/run-r05b0-tests.py', 'scripts/test-r05b0-impact.py',
-       'scripts/test-r05b0-lifecycle.py', 'tests/browser/r05b0-acceptance.cjs', 'tests/browser/r05b0-simulator.py',
+       'scripts/test-r05b0-lifecycle.py', 'tests/browser/r05b0-acceptance.cjs', 'tests/browser/r05b0-gaps.cjs', 'tests/browser/r05b0-simulator.py',
        'database/runtime/migrations/0025_administrative_bindings.sql',
        'src/Modules/Workshop/Enginia360.Workshop/AdministrativeBinding.cs')
 DIRECT = ('src/Modules/Workshop/Enginia360.Workshop/AdministrativeEndpoints.cs',

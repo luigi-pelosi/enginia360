@@ -15,7 +15,7 @@ Refs #90, child of #45. This is **not** a Giobby adapter, projection, stock/purc
 Only the existing synthetic protocol is proven. No Giobby IDs, wire fields, endpoints or default profile; no SDK/provider framework. A missing/unverified descriptor does not stop the application or history; it only holds dependent dispatch. The fingerprint is a technical non-secret identifier, not authentication.
 
 ## Verification
-`scripts/run-r05b0-tests.py` (trusted TLS, OIDC, Chromium, API, PostgreSQL, two isolated simulators A/B, HTTP counters; pool 4 and pool 1), `scripts/test-r05b0-lifecycle.py` (TERM) and `scripts/test-r05b0-impact.py` (dispatch-only `affected-r05b0`). R06 inventory classifies the new table `integration_evidence` and leaves eligibility UNDECIDED.
+`scripts/run-r05b0-tests.py` (trusted TLS, OIDC, Chromium, API, PostgreSQL, two isolated simulators A/B, HTTP counters; pool 4 and pool 1), `scripts/test-r05b0-lifecycle.py` (TERM) and `scripts/test-r05b0-impact.py` (dispatch-only `affected-r05b0`). The proof-gap suite `R05B0_SPEC=r05b0-gaps.cjs python3 scripts/run-r05b0-tests.py` (pool 4 and pool 1, same stack) adds: identical-UUID concurrency, same-UUID/foreign-tenant conflicts, invalid and max-bound payloads, CSRF/tenant/role/capability refusals, rollback of request+binding+outbox together (fault triggers exist only in the ephemeral fixture database), and stale-lease/reconcile races on every claim path with simulator B counters at zero. R06 inventory classifies the new table `integration_evidence` and leaves eligibility UNDECIDED.
 
 ## Rollback
 Revert this PR. The 0025 table is additive and published migrations 0001–0024 are byte identical; if already applied, keep it as an inert ledger until a separately approved cleanup. No data deletion.
