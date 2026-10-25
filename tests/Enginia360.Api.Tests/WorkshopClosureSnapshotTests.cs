@@ -57,7 +57,8 @@ public sealed class WorkshopClosureSnapshotTests
             INSERT INTO workshop.technical_closures ("OrderId","Id","TenantId","Revision","ClosedAt","OperatorId") VALUES (@order,@closure,@tenant,0,clock_timestamp(),@operator);
             """ + (request ? """
             INSERT INTO workshop.administrative_requests ("Id","TenantId","OrderId","LegalEntityId","SiteId","Destination","DestinationVersion","ContractVersion","Revision","NetAmount","TaxAmount","Total","Currency","Summary","RequestedAt","OperatorId")
-              VALUES (@request,@tenant,@order,@company,@site,'External',1,1,0,0,0,0,'EUR',CAST(@summary AS jsonb),clock_timestamp(),@operator);
+              VALUES (@request,@tenant,@order,@company,@site,'External',1,1,0,0,0,0,'EUR',CAST(@summary AS jsonb),@requested,@operator);
+            INSERT INTO workshop.administrative_bindings VALUES (@request,@tenant,@order,@company,@site,1,1,@requested,@operator,'SimulatorV1',1,@fingerprint);
             INSERT INTO workshop.administrative_outbox VALUES (@request,@tenant,clock_timestamp());
             """ : ""), connection, tx);
         insert.Parameters.AddWithValue("order", scope.Order); insert.Parameters.AddWithValue("closure", Guid.NewGuid());
@@ -65,6 +66,8 @@ public sealed class WorkshopClosureSnapshotTests
         var requestId = request ? Guid.NewGuid() : Guid.Empty;
         if (request)
         {
+            insert.Parameters.AddWithValue("requested", DateTimeOffset.UtcNow); insert.Parameters.AddWithValue("fingerprint",
+                Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes("SimulatorV1\n1\nhttp://127.0.0.1:9/"))));
             insert.Parameters.AddWithValue("request", requestId); insert.Parameters.AddWithValue("company", scope.Company); insert.Parameters.AddWithValue("site", scope.Site);
             insert.Parameters.AddWithValue("summary", JsonSerializer.Serialize(new { orderId = scope.Order, payerId = scope.Order, revision = 0, lines = Array.Empty<object>(),
                 netAmount = "0.000000", taxAmount = "0.000000", total = "0.000000", currency = "EUR", policy = "Case001" }));

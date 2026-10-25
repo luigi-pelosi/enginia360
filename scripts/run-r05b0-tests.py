@@ -122,7 +122,7 @@ def main():
                             values['R05B0_PROTOCOL'] = 'Unknown' if target == 'Unknown' else 'SimulatorV1'
                             values['R05B0_BASE_URL'] = '' if target == 'Missing' else ('http://ADMIN-SIMULATOR:8080/' if target == 'Equivalent' else 'http://' + ('simulator-b' if target == 'B' else 'admin-simulator') + ':8080/' + ('other/' if target == 'Path' else ''))
                             envfile.write_text(''.join(k+'='+v+'\n' for k, v in values.items()))
-                            run(command+['up', '-d', '--wait', '--wait-timeout', '45', '--no-deps', '--force-recreate', 'api'], timeout=60)
+                            run(command+['up', '-d', '--no-deps', '--force-recreate', 'api'], timeout=60)
                             run(command+['restart', 'web'], timeout=30)  # nginx resolves the recreated API at startup.
                         elif action == 'historical-request':
                             data = json.loads((state/'control/historical.json').read_text())
