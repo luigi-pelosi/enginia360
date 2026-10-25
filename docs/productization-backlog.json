@@ -83,10 +83,10 @@
     "depends": [
       "R03"
     ],
-    "gate": "AUTHORITY: stock/prezzi societari con direzione unilaterale D76, profilo concreto al setup prima degli effetti dipendenti; causali, unità e parzialità ricevimento/reso/rilascio da confermare prima del nuovo comando; nessuna policy stock negativo dedotta.",
+    "gate": "AUTHORITY: D76/D82 con stock e catena acquisti nello stesso ERP esterno autorevole nel caso pilota; profilo coerente al setup prima degli effetti dipendenti. Ricevimento parziale 3 ordinati / 2 ricevuti già approvato, condizionato all’autorità; D80/D81 consegnate nei limiti sintetici. R04.b ERP BLOCKED: contratto ufficiale assente e proiezione/integrazione provider da provare; varianti ulteriori e stock negativo non dedotti.",
     "slices": [
       "R04.a: rendere operabili prenotazione, picking, installazione/consumo e carcassa esistenti preservando D69–D73.",
-      "R04.b: fabbisogno → richiesta/ordine fornitore tecnico → ricevimento collegato, un effetto alla volta, secondo autorità e policy approvate.",
+      "R04.b: fabbisogno → richiesta/ordine fornitore → ricevimento collegato nella catena autorevole ERP del pilota; proiezione/integrazione provider ancora bloccata dal contratto ufficiale assente, non richiesta tecnica o ricevimento locale sostitutivo.",
       "R04.c: reso del nuovo o rilascio solo dopo policy esplicita, distinti dalla carcassa."
     ],
     "criteria": "Nessun doppio movimento o impegno e concorrenza reale; provenienza/residui verificabili, ricevimento non prova fattura passiva/pagamento; niente ordine reale al fornitore o acquisto; regression stock/restore e UI/API/SQL."
