@@ -74,7 +74,10 @@ R03C_FILTER = '|'.join('FullyQualifiedName~'+name for name in (
 R03C_MINIMAL = 'FullyQualifiedName~WorkshopClosure|FullyQualifiedName~AdministrationBoundaryTests'
 
 
-R06_OFFLINE_FILES = {'scripts/r06_inventory.py', 'scripts/r06_synthetic.py', 'scripts/r06_reconcile.py',
+# Finite documentation/offline authority contract, not a runtime setup validator.
+R04_AUTHORITY_OFFLINE_FILES = {'AGENTS.md', 'docs/foundation/01-glossary-and-domain-boundaries.md',
+    'scripts/test-r04-authority.py', 'scripts/test-r04-authority-impact.py', 'scripts/test-c00-consistency.py'}
+R06_OFFLINE_FILES = R04_AUTHORITY_OFFLINE_FILES | {'scripts/r06_inventory.py', 'scripts/r06_synthetic.py', 'scripts/r06_reconcile.py',
     'scripts/test-r06-inventory.py', 'scripts/test-r06-reconcile.py', 'scripts/test-r06-impact.py',
     'docs/r06-migration-inventory.json', 'docs/r06-migration-inventory.md',
     'scripts/r06_readiness.py', 'scripts/test-r06-readiness.py', 'scripts/test-r06b2-impact.py',
