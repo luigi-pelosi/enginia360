@@ -96,7 +96,7 @@ async function lostResponse(page, urlPattern, label) {
     const traffic = () => JSON.parse(fs.readFileSync('/run/control/traffic.json', 'utf8'));
     assert.deepEqual(traffic(), {A: [], B: []}, 'creation/queue must not send HTTP');
     await control('restart:B');
-    await until(() => json(page, '/auth/session'), r => r.status === 200, 'recreated API serving trusted TLS');
+    await until(() => json(page, '/auth/session').catch(() => ({status: 0})), r => r.status === 200, 'recreated API serving trusted TLS');
     await control('release-dispatch');
     ({ page } = await login(browser, 0).catch(async error => { for (const c of browser.contexts()) for (const p of c.pages()) console.error('PAGE', p.url(), await p.locator('body').innerText().catch(() => '')); throw error; }));
     let history;
@@ -112,7 +112,7 @@ async function lostResponse(page, urlPattern, label) {
     assert.equal(JSON.stringify(history).includes('http'), false, 'no connector URL in client history');
     pass('request-time binding: A queue without HTTP, B restart receives ZERO POST/GET, readable controlled hold');
     await control('restart:A');
-    await until(() => json(page, '/auth/session'), r => r.status === 200, 'original A restored');
+    await until(() => json(page, '/auth/session').catch(() => ({status: 0})), r => r.status === 200, 'original A restored');
     ({page} = await login(browser, 0));
     const reconcileId = uid();
     assert.equal((await post(page, `${base}/orders/${order}/administrative-requests/${requestId}/reconciliation`, {id: reconcileId})).status, 202);
@@ -125,7 +125,7 @@ async function lostResponse(page, urlPattern, label) {
     assert.equal((await post(page, `${base}/orders/${unknownOrder}/administrative-requests`, {id: unknownId, expectedRevision: 2})).status, 201);
     await control('traffic'); const beforeUnknown = traffic().A;
     await control('restart:Unknown');
-    await until(() => json(page, '/auth/session'), r => r.status === 200, 'unknown protocol keeps core API up');
+    await until(() => json(page, '/auth/session').catch(() => ({status: 0})), r => r.status === 200, 'unknown protocol keeps core API up');
     await control('release-dispatch');
     ({page} = await login(browser, 0));
     await until(() => state(page, unknownOrder), r => r.value?.request?.delivery.state !== 'Queued', 'unknown protocol hold');
@@ -145,7 +145,7 @@ async function lostResponse(page, urlPattern, label) {
     await control('traffic'); assert.deepEqual(traffic().B, []);
     pass('missing descriptor keeps core UI/history available without retarget or fallback');
     await control('restart:A');
-    await until(() => json(page, '/auth/session'), r => r.status === 200, 'original host for historical read');
+    await until(() => json(page, '/auth/session').catch(() => ({status: 0})), r => r.status === 200, 'original host for historical read');
     ({page} = await login(browser, 0));
     const historicalId = uid();
     fs.writeFileSync('/run/control/historical.json', JSON.stringify({order: refusedOrder, requestId: historicalId, summary: (await editor(page, refusedOrder)).value.summary}));
