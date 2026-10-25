@@ -101,7 +101,7 @@ internal static partial class AdministrativeEndpoints
     }
 
     private static async Task<IResult> Request(Guid id, AdministrativeRequestCommand command, ClaimsPrincipal user,
-        IWorkshopAccess access, IAdministrativeDeliveries deliveries, WorkshopDbContext db, CancellationToken ct)
+        IWorkshopAccess access, IAdministrativeDeliveries deliveries, AdministrativeConnectorBinding binding, WorkshopDbContext db, CancellationToken ct)
     {
         if (command.Id == Guid.Empty || command.ExpectedRevision < 0) return Results.BadRequest();
         var subject = Subject(user);
@@ -117,6 +117,11 @@ internal static partial class AdministrativeEndpoints
         {
             await InstallationEndpoints.SetTenant(db, member.TenantId, ct);
             await Lock(db, id, ct);
+            await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.identity_subject', {subject}, true)", ct);
+            var authorized = await db.Database.SqlQuery<bool>($"""
+                SELECT organization_access.administrative_request_authorized({member.TenantId},{member.MembershipId},{subject},{order.LegalEntityId},{order.SiteId}) AS "Value"
+                """).SingleAsync(ct);
+            if (!authorized) return Results.StatusCode(403);
             var replay = await db.AdministrativeRequests.AsNoTracking().SingleOrDefaultAsync(x => x.Id == command.Id, ct);
             if (replay is not null)
             {
@@ -125,6 +130,9 @@ internal static partial class AdministrativeEndpoints
             }
             else
             {
+                if (binding is not { Kind: "SimulatorV1", ProtocolVersion: 1, DestinationFingerprint.Length: 64 }
+                    || !binding.DestinationFingerprint.All(c => c is >= '0' and <= '9' or >= 'a' and <= 'f'))
+                    return Results.Conflict(new { code = "destination_binding_unverified", message = "Destinazione diversa/non verificata; nessun invio." });
                 var closure = await db.TechnicalClosures.AsNoTracking().SingleOrDefaultAsync(x => x.OrderId == id, ct);
                 if (closure is null)
                     return Results.Conflict(new { code = "technical_closure_required", message = "Chiudi tecnicamente la commessa prima della richiesta amministrativa." });
@@ -157,6 +165,17 @@ internal static partial class AdministrativeEndpoints
                         {row.RequestedAt},{row.OperatorId}) ON CONFLICT DO NOTHING
                     """, ct);
                 if (inserted == 0) return Results.Conflict(); // Foreign-tenant command collision, no disclosure.
+                await db.Database.ExecuteSqlInterpolatedAsync($"""
+                    INSERT INTO workshop.administrative_bindings
+                        ("RequestId","TenantId","OrderId","LegalEntityId","SiteId","DestinationVersion","ContractVersion","RequestedAt","OperatorId",
+                         "Kind","ProtocolVersion","DestinationFingerprint")
+                    VALUES ({row.Id},{row.TenantId},{row.OrderId},{row.LegalEntityId},{row.SiteId},{row.DestinationVersion},{row.ContractVersion},
+                        {row.RequestedAt},{row.OperatorId},{binding.Kind},{binding.ProtocolVersion},{binding.DestinationFingerprint})
+                    """, ct);
+                row.Binding = new AdministrativeBinding { RequestId = row.Id, TenantId = row.TenantId, OrderId = row.OrderId,
+                    LegalEntityId = row.LegalEntityId, SiteId = row.SiteId, DestinationVersion = row.DestinationVersion,
+                    ContractVersion = row.ContractVersion, RequestedAt = row.RequestedAt, OperatorId = row.OperatorId,
+                    Kind = binding.Kind, ProtocolVersion = binding.ProtocolVersion, DestinationFingerprint = binding.DestinationFingerprint };
                 await db.Database.ExecuteSqlInterpolatedAsync($"""
                     INSERT INTO workshop.administrative_outbox ("RequestId","TenantId","CreatedAt") VALUES ({row.Id},{row.TenantId},{row.RequestedAt})
                     """, ct);
@@ -333,7 +352,7 @@ internal sealed class WorkshopAdministrativeOutbox(WorkshopDbContext db, IWorksh
         // The envelope supplies tenant scope, never client input. A paused request remains in the durable outbox.
         if (row is null || !await access.CapabilityEnabled(envelope.TenantId, row.LegalEntityId, "external-administration", ct)
             || !await access.CapabilityEnabled(envelope.TenantId, row.LegalEntityId, "workshop", ct)) return null;
-        return new(row.TenantId, row.Id, row.OrderId, row.LegalEntityId, row.SiteId, row.ContractVersion, row.SummaryContract());
+        return new(row.TenantId, row.Id, row.OrderId, row.LegalEntityId, row.SiteId, row.ContractVersion, row.SummaryContract(), row.Binding?.Contract());
     }
 
     public async Task<bool> Record(AdministrativeOutboxEnvelope envelope, AdministrativeOutcome outcome, CancellationToken ct)
@@ -395,11 +414,12 @@ internal sealed class AdministrativeRequest
     public required string Summary { get; set; }
     public DateTimeOffset RequestedAt { get; set; }
     public Guid OperatorId { get; set; }
+    public AdministrativeBinding? Binding { get; set; }
     internal CommercialSummary SummaryContract() =>
         JsonSerializer.Deserialize<CommercialSummary>(Summary, AdministrativeEndpoints.Json) ?? throw new InvalidOperationException("Corrupt request snapshot.");
     internal AdministrativeRequestContract Contract(AdministrativeOutcomeRow? outcome, AdministrativeDelivery delivery) =>
         new(Id, OrderId, LegalEntityId, SiteId, Destination, DestinationVersion, ContractVersion, SummaryContract(), RequestedAt, OperatorId,
-            outcome?.Status ?? "Pending", outcome?.ExternalReference, outcome?.RejectionCode, outcome?.RecordedAt, delivery);
+            outcome?.Status ?? "Pending", outcome?.ExternalReference, outcome?.RejectionCode, outcome?.RecordedAt, delivery, Binding?.Contract());
 }
 internal sealed class AdministrativeOutcomeRow
 {

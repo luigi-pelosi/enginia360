@@ -2209,5 +2209,42 @@
         "Id"
       ]
     }
+  },
+  {
+    "table": "workshop.administrative_bindings",
+    "owner": "workshop",
+    "category": "integration_evidence",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "SiteId",
+      "RequestId"
+    ],
+    "definition": {
+      "migration": "0025_administrative_bindings",
+      "path": "database/runtime/migrations/0025_administrative_bindings.sql",
+      "file_sha256": "1400bc91aa56430ed601d8cb888aec1d6ddffe978593476f707aa7c6c30903d3",
+      "create_sql": "CREATE TABLE workshop.administrative_bindings (\n \"RequestId\" uuid PRIMARY KEY,\n \"TenantId\" uuid NOT NULL,\n \"OrderId\" uuid NOT NULL,\n \"LegalEntityId\" uuid NOT NULL,\n \"SiteId\" uuid NOT NULL,\n \"DestinationVersion\" integer NOT NULL,\n \"ContractVersion\" integer NOT NULL,\n \"RequestedAt\" timestamptz NOT NULL,\n \"OperatorId\" uuid NOT NULL,\n \"Kind\" text NOT NULL CHECK (\"Kind\"='SimulatorV1'),\n \"ProtocolVersion\" integer NOT NULL CHECK (\"ProtocolVersion\"=1),\n \"DestinationFingerprint\" text NOT NULL CHECK (\"DestinationFingerprint\" ~ '^[0-9a-f]{64}$'),\n FOREIGN KEY (\"RequestId\",\"TenantId\",\"OrderId\",\"LegalEntityId\",\"SiteId\",\"DestinationVersion\",\"ContractVersion\",\"RequestedAt\",\"OperatorId\")\n REFERENCES workshop.administrative_requests (\"Id\",\"TenantId\",\"OrderId\",\"LegalEntityId\",\"SiteId\",\"DestinationVersion\",\"ContractVersion\",\"RequestedAt\",\"OperatorId\")\n);",
+      "columns": [
+        "RequestId",
+        "TenantId",
+        "OrderId",
+        "LegalEntityId",
+        "SiteId",
+        "DestinationVersion",
+        "ContractVersion",
+        "RequestedAt",
+        "OperatorId",
+        "Kind",
+        "ProtocolVersion",
+        "DestinationFingerprint"
+      ],
+      "primary_key": [
+        "RequestId"
+      ]
+    }
   }
 ]

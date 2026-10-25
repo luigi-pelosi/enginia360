@@ -69,6 +69,11 @@ internal sealed class AdministrativeDispatcher(IWorkshopAdministrativeOutbox out
             await Save(dispatch, dispatch.State, dispatch.Attempts, Now() + options.RetryDelay, "source_unavailable", ct);
             return;
         }
+        if (message.ConnectorBinding != options.Binding)
+        {
+            await Save(dispatch, "NeedsReconciliation", dispatch.Attempts, Now(), "destination_binding_mismatch", ct);
+            return;
+        }
         var submitting = dispatch.State is not ("Received" or "Uncertain");
         var attempts = dispatch.Attempts + (submitting ? 1 : 0);
         if (submitting)

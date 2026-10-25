@@ -13,7 +13,12 @@ public sealed record AdministrativeDelivery(string State, int Attempts, DateTime
 // Immutable owner-local request with its q6 commercial snapshot; Status changes once, only from a business outcome.
 public sealed record AdministrativeRequestContract(Guid Id, Guid OrderId, Guid LegalEntityId, Guid SiteId,
     string Destination, int DestinationVersion, int ContractVersion, CommercialSummary Summary, DateTimeOffset RequestedAt,
-    Guid OperatorId, string Status, string? ExternalReference, string? RejectionCode, DateTimeOffset? OutcomeAt, AdministrativeDelivery Delivery);
+    Guid OperatorId, string Status, string? ExternalReference, string? RejectionCode, DateTimeOffset? OutcomeAt, AdministrativeDelivery Delivery,
+    AdministrativeConnectorBinding? ConnectorBinding = null);
+
+// Server composition supplies this immutable technical descriptor, never an address or credential.
+// It identifies only the existing synthetic protocol, not a qualified Giobby business identity.
+public sealed record AdministrativeConnectorBinding(string Kind, int ProtocolVersion, string DestinationFingerprint);
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record AdministrativeClosureCommand(Guid Id);
@@ -24,7 +29,7 @@ public sealed record OrderClosureState(Guid OrderId, string Status, TechnicalClo
 // Server-owned envelope from the Workshop outbox: the only source of a dispatcher's tenant context.
 public sealed record AdministrativeOutboxEnvelope(Guid TenantId, Guid RequestId);
 public sealed record AdministrativeDispatchMessage(Guid TenantId, Guid RequestId, Guid OrderId, Guid LegalEntityId, Guid SiteId,
-    int ContractVersion, CommercialSummary Summary);
+    int ContractVersion, CommercialSummary Summary, AdministrativeConnectorBinding? ConnectorBinding = null);
 public sealed record AdministrativeOutcome(string Status, string? ExternalReference, string? RejectionCode);
 // Implemented by Workshop, owner of requests and outcome consequences; used by the connector worker.
 public interface IWorkshopAdministrativeOutbox
