@@ -1,0 +1,29 @@
+# Isolated synthetic A/B destination binding proof; no host ports or retained volumes.
+services:
+  postgres:
+    extends: {file: compose.r03c-test.yaml, service: postgres}
+  migrator:
+    extends: {file: compose.r03c-test.yaml, service: migrator}
+  identity:
+    extends: {file: compose.r03c-test.yaml, service: identity}
+  admin-simulator:
+    extends: {file: compose.r03c-test.yaml, service: admin-simulator}
+    command: [python3, -I, /observer/r05b0-simulator.py]
+    volumes: ["./tests/browser:/observer:ro"]
+  simulator-b:
+    extends: {file: compose.r03c-test.yaml, service: admin-simulator}
+    command: [python3, -I, /observer/r05b0-simulator.py]
+    volumes: ["./tests/browser:/observer:ro"]
+  api:
+    extends: {file: compose.r03c-test.yaml, service: api}
+    environment:
+      ExternalAdministration__SimulatorBaseUrl: "${R05B0_BASE_URL-http://admin-simulator:8080/}"
+      ExternalAdministration__Protocol: "${R05B0_PROTOCOL:-SimulatorV1}"
+  web:
+    extends: {file: compose.r03c-test.yaml, service: web}
+  browser:
+    extends: {file: compose.r03c-test.yaml, service: browser}
+    entrypoint: [sh, -c, 'mkdir -p "$$HOME/.pki/nssdb" && certutil -N -d sql:$$HOME/.pki/nssdb --empty-password && certutil -A -d sql:$$HOME/.pki/nssdb -n runtime-ephemeral-ca -t C,, -i /run/tls/ca.crt && exec node r05b0-acceptance.cjs']
+networks:
+  runtime:
+    internal: true
