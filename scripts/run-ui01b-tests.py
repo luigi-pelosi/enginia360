@@ -64,6 +64,7 @@ def fixtures(state, secret):
 
 def main():
     if not os.environ.get('TMPDIR'): raise ValueError('private TMPDIR required')
+    if os.environ.get('UI01B_POOL_SIZE','4') not in ('1','4'): raise ValueError('pool acceptance is explicitly 1 or 4')
     if not (ROOT/'web/dist-ui01-runtime/ui01-runtime.html').exists(): raise ValueError('build:ui01-runtime required')
     project = 'enginia360-r00b-' + secrets.token_hex(6)
     before_volumes = r00.inventory('volume')
@@ -73,7 +74,7 @@ def main():
     with tempfile.TemporaryDirectory(prefix=project+'-',dir=os.environ['TMPDIR']) as directory:
         state = Path(directory)
         values = {key:secrets.token_hex(24) for key in ('R00_INFRA_PASSWORD','R00_OWNER_PASSWORD','R00_APP_PASSWORD','R00_CLIENT_SECRET')}
-        values.update(R00_STATE=str(state),R00_POOL_SIZE='4')
+        values.update(R00_STATE=str(state),R00_POOL_SIZE=os.environ.get('UI01B_POOL_SIZE','4'))
         envfile = state/'runtime.env'; envfile.write_text(''.join(k+'='+v+'\n' for k,v in values.items())); envfile.chmod(0o600)
         run(['openssl','req','-x509','-newkey','rsa:2048','-nodes','-days','1','-subj','/CN=Ephemeral UI01b CA','-addext','basicConstraints=critical,CA:TRUE','-keyout',str(state/'ca.key'),'-out',str(state/'ca.crt')])
         (state/'ca.key').chmod(0o600)
@@ -117,6 +118,12 @@ def main():
                             (state/'public/authority.json').write_text(json.dumps(setup)); (state/'public/authority.json').chmod(0o444)
                             run(command+['run','--rm','--no-deps','-T','--entrypoint','python3','migrator','scripts/owner-master-authority.py','/run/tls/authority.json'],timeout=40)
                             authority_version+=1
+                        elif action == 'vendor-identity':
+                            # Synthetic mapping set through the real bounded owner tool over verified TLS; no application write path exists.
+                            fixture=json.loads((state/'browser.json').read_text())
+                            vendor=dict(commandId=str(uuid.uuid4()),tenantId=fixture['contexts'][0]['tenantId'],legalEntityId=fixture['contexts'][0]['legalEntityId'],counterpartyId=fixture['workshop'][0]['payerId'],actorMembershipId=fixture['adminMembershipId'],verificationReference=str(uuid.uuid4()),expectedRevision=0,vendorId='GBV-4711',vendorName='Synthetic Supplier S.r.l.')
+                            (state/'public/vendor.json').write_text(json.dumps(vendor)); (state/'public/vendor.json').chmod(0o444)
+                            run(command+['run','--rm','--no-deps','-T','--entrypoint','python3','migrator','scripts/owner-supplier-vendor-identity.py','/run/tls/vendor.json'],timeout=40)
                         else: raise ValueError('unknown editor lifecycle command')
                         print('UI01B_LIFECYCLE '+action,flush=True)
                         (state/'control/ack').write_text(action)
@@ -133,11 +140,17 @@ def main():
             fixture=json.loads((state/'browser.json').read_text())
             common=result['common']; assert common['id']==order['payerId'] and str(uuid.UUID(common['id']))==common['id']
             assert run(query+['-c',f'''SELECT "LegalName" FROM counterparties.counterparties WHERE "Id"='{common['id']}';''']).strip()==common['legalName']=='Synthetic edited payer'
-            assert run(query+['-c',f'''SELECT "CounterpartyId"::text||'|'||"ActorMembershipId"::text||'|'||"AuthorityVersion"::text||'|'||"Revision"::text FROM counterparties.common_edit_history;''']).strip()==common['id']+'|'+fixture['adminMembershipId']+'|2|1'
-            assert run(query+['-c','SELECT count(*) FROM counterparties.common_edit_history']).strip()=='1'
+            assert run(query+['-c',f'''SELECT "CounterpartyId"::text||'|'||"ActorMembershipId"::text||'|'||"AuthorityVersion"::text||'|'||"Revision"::text FROM counterparties.common_edit_history WHERE NOT (\"After\" ? 'isSupplier');''']).strip()==common['id']+'|'+fixture['adminMembershipId']+'|2|1'
+            assert run(query+['-c','SELECT count(*) FROM counterparties.common_edit_history']).strip()=='2'
+            assert run(query+['-c',f'''SELECT \"CounterpartyId\"::text||'|'||\"ActorMembershipId\"::text||'|'||\"AuthorityVersion\"::text||'|'||\"Revision\"::text||'|'||(\"Before\"->>'isSupplier')||'|'||(\"After\"->>'isSupplier') FROM counterparties.common_edit_history WHERE \"After\" ? 'isSupplier';''']).strip()==common['id']+'|'+fixture['adminMembershipId']+'|2|2|false|true'
+            assert run(query+['-c',f'''SELECT \"IsSupplier\" FROM counterparties.counterparties WHERE \"Id\"='{common['id']}';''']).strip()=='t'
+            assert run(query+['-c','SELECT count(*) FROM counterparties.counterparties WHERE \"IsSupplier\"']).strip()=='1'
+            assert run(query+['-c',f'''SELECT \"CounterpartyId\"::text||'|'||\"LegalEntityId\"::text||'|'||\"VendorId\"||'|'||\"VendorName\"||'|'||\"Revision\"::text||'|'||\"ActorMembershipId\"::text FROM counterparties.giobby_vendor_identity_history;''']).strip()==common['id']+'|'+fixture['contexts'][0]['legalEntityId']+'|GBV-4711|Synthetic Supplier S.r.l.|1|'+fixture['adminMembershipId']
+            assert run(query+['-c','SELECT count(*) FROM counterparties.giobby_vendor_identity_history']).strip()=='1'
+            print('PASS R04B1 SQL supplier role revision 2 with exact actor/before/after; company vendor identity single immutable row, owner path only',flush=True)
             assert run(query+['-c','SELECT count(*) FROM organization_access.master_authority_history']).strip()=='2'
             assert run(query+['-c',f'''SELECT "SourceId"::text||'|'||"ProfileId"::text||'|'||"Direction" FROM organization_access.master_authority_history WHERE "Version"=2;''']).strip()==result['authority']['sourceId']+'|'+result['authority']['profileId']+'|Enginia360ToExternal'
-            print('PASS R02B SQL explicit source/profile authority versions=2; immutable edit history=1, exact actor/revision; uncertain replay made no duplicate',flush=True)
+            print('PASS R02B SQL explicit source/profile authority versions=2; immutable edit history exact actor/revision (identity edit revision 1); uncertain replay made no duplicate',flush=True)
             assert run(query+['-c','SELECT count(*) FROM workshop.orders']).strip()=='1'
             assert run(query+['-c','SELECT count(*) FROM workshop.commercial_lines']).strip()=='2'
             expected=[]

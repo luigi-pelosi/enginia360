@@ -128,5 +128,10 @@
     "id": "0026_giobby_binding_kind",
     "path": "migrations/0026_giobby_binding_kind.sql",
     "sha256": "ff0e3f8531600395aa73b64e2b556ff2541278451fdfa6be21284085510dae4d"
+  },
+  {
+    "id": "0027_supplier_role",
+    "path": "migrations/0027_supplier_role.sql",
+    "sha256": "181bc3880e43de7fb775a3354ed4e3172209c3d7009efdd94c623f03d259ea7c"
   }
 ]

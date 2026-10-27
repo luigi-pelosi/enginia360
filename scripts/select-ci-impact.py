@@ -21,12 +21,16 @@ AUTH_FILES = {
     'scripts/select-ci-impact.py','scripts/test-ci-impact.py','.github/workflows/ci.yml',
     'scripts/test-productization-consistency.py','scripts/owner-operative-mandate.py','scripts/test-r01b-grants.py',
     'scripts/test-r02b-authority.py','scripts/owner-master-authority.py',
+    'scripts/test-r04b1-supplier.py','scripts/owner-supplier-vendor-identity.py','scripts/test-r04b1-impact.py',
     'web/nginx.r00b-test.conf','web/runtime-access.html','web/runtime-access.js',
 }
 AUTH_TESTS = {'BrowserSessionTests','BoundedTicketStoreTests','BrowserAuthenticationBoundaryTests',
               'ExternalIdentityAuthenticationTests','AuthorizedContextContractTests','LimitedGrantAdministrationTests',
               'MasterAuthorityEnforcementTests','BootstrapTests','RuntimeMigrationPoolTests'}
 UI01B_FILES = {'scripts/owner-master-authority.py','scripts/test-r02b-authority.py',
+    'scripts/test-r04b1-supplier.py','scripts/owner-supplier-vendor-identity.py','scripts/test-r04b1-impact.py',
+    'database/runtime/migrations/0027_supplier_role.sql',
+    'src/Modules/Counterparties/Enginia360.Counterparties/SupplierEndpoints.cs',
     'database/runtime/migrations/0017_master_authority_profile.sql',
     'src/Enginia360.Api/OrganizationAccess/CounterpartyAccessAdapter.cs','web/ui01-runtime.html','web/vite.ui01-runtime.config.ts','web/nginx.ui01b-test.conf',
     'src/Modules/Vehicles/Enginia360.Vehicles/VehiclesModule.cs',

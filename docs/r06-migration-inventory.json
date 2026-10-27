@@ -2246,5 +2246,39 @@
         "RequestId"
       ]
     }
+  },
+  {
+    "table": "counterparties.giobby_vendor_identity_history",
+    "owner": "counterparties",
+    "category": "company_extension",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "CommandId"
+    ],
+    "definition": {
+      "migration": "0027_supplier_role",
+      "path": "database/runtime/migrations/0027_supplier_role.sql",
+      "file_sha256": "181bc3880e43de7fb775a3354ed4e3172209c3d7009efdd94c623f03d259ea7c",
+      "create_sql": "CREATE TABLE counterparties.giobby_vendor_identity_history (\n \"CommandId\" uuid PRIMARY KEY CHECK (\"CommandId\"<>'00000000-0000-0000-0000-000000000000'),\n \"TenantId\" uuid NOT NULL,\n \"LegalEntityId\" uuid NOT NULL,\n \"CounterpartyId\" uuid NOT NULL,\n \"Revision\" integer NOT NULL CHECK (\"Revision\">0),\n \"VendorId\" varchar(64) NOT NULL CHECK (\"VendorId\" ~ '^[!-~]{1,64}$'),\n \"VendorName\" varchar(200) NOT NULL CHECK (length(btrim(\"VendorName\")) BETWEEN 1 AND 200 AND \"VendorName\"=btrim(\"VendorName\") AND \"VendorName\" !~ '[[:cntrl:]]'),\n \"ActorMembershipId\" uuid NOT NULL,\n \"VerificationReference\" uuid NOT NULL CHECK (\"VerificationReference\"<>'00000000-0000-0000-0000-000000000000'),\n \"EffectiveFrom\" timestamptz NOT NULL DEFAULT clock_timestamp(),\n UNIQUE(\"TenantId\",\"LegalEntityId\",\"CounterpartyId\",\"Revision\"),\n FOREIGN KEY (\"CounterpartyId\",\"TenantId\") REFERENCES counterparties.counterparties(\"Id\",\"TenantId\"),\n FOREIGN KEY (\"LegalEntityId\",\"TenantId\") REFERENCES organization_access.legal_entities(\"Id\",\"TenantId\"),\n FOREIGN KEY (\"ActorMembershipId\",\"TenantId\") REFERENCES organization_access.memberships(\"Id\",\"TenantId\")\n);",
+      "columns": [
+        "CommandId",
+        "TenantId",
+        "LegalEntityId",
+        "CounterpartyId",
+        "Revision",
+        "VendorId",
+        "VendorName",
+        "ActorMembershipId",
+        "VerificationReference",
+        "EffectiveFrom"
+      ],
+      "primary_key": [
+        "CommandId"
+      ]
+    }
   }
 ]

@@ -2,6 +2,7 @@ namespace Enginia360.Counterparties.Contracts;
 
 public sealed record CounterpartyContract(Guid Id, Guid TenantId, string LegalName, string FiscalIdentifier, string RegisteredOffice);
 public sealed record UpdateCounterpartyRequest(Guid LegalEntityId, string? LegalName, string? FiscalIdentifier, string? RegisteredOffice, Guid? CommandId = null, int? AuthorityVersion = null, int? ExpectedRevision = null);
+public sealed record SupplierRoleRequest(Guid LegalEntityId, bool? IsSupplier, Guid? CommandId = null, int? AuthorityVersion = null, int? ExpectedRevision = null);
 public sealed record CompanyRequest(Guid LegalEntityId);
 public sealed record DestinationRequest(Guid LegalEntityId, string? Address);
 public sealed record DestinationContract(Guid Id, Guid CounterpartyId, Guid OwnerLegalEntityId, string Address, bool Published);

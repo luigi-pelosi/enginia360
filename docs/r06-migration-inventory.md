@@ -12,6 +12,8 @@
 
 Risultato calcolato sul baseline R05.b.1: **26 migrazioni, 66 definizioni CREATE, 9 schemi**. La 0026 estende soltanto il CHECK Kind del binding a GiobbyV1: nessun nuovo CREATE, nessuna ricostruzione dello schema ALTER nel JSON; le 66 voci restano identiche e UNDECIDED. La nuova `workshop.administrative_bindings` è classificata `integration_evidence`, con eligibilità **UNDECIDED** e `NO_LEGACY_IMPORT_APPROVED`; il binding tecnico sintetico non approva import, Giobby o readiness. Non sono costanti nel verificatore: il test aggiunge una migrazione scratch con una tabella nuova e richiede il rifiuto per copertura mancante. Il ledger `runtime_migrations.applied` e le tabelle temporanee del motore non sono CREATE dei file del manifest e quindi sono esplicitamente fuori da questo inventario. Non si dichiara di aver interrogato un database.
 
+**Aggiornamento R04.b.1 (D88):** la migrazione append-only 0027 porta il conteggio a **27 migrazioni, 67 definizioni CREATE, 9 schemi**; la nuova voce `counterparties.giobby_vendor_identity_history` (estensione societaria, storia immutabile dell’ID fornitore Giobby) è UNDECIDED come le altre, nessuna approvazione di migrazione. La colonna `IsSupplier` è un ALTER e non è una definizione CREATE inventariata.
+
 Ogni voce registra:
 
 - `table`, `owner`: nome qualificato e modulo/schema proprietario osservato, non una nuova ownership di business;
