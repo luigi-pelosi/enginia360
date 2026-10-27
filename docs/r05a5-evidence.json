@@ -1,0 +1,851 @@
+{
+ "increment": "R05.a.5",
+ "phase": "sandbox-closure-d79-lookup-partial-receipt",
+ "refs": [
+  "#45",
+  "#44"
+ ],
+ "new_decision": null,
+ "base_main": "128ee72fe12cea1fe00bca62ef708a610f0a81eb",
+ "scope": "Existing D83/D84 sandbox scope; owner-assertion isolation only; no production, provider contact, adapter or runtime change.",
+ "historical": {
+  "r05a3_matrix_sha256": "d5665945b2ca48a518bc73bdd0cf7d07c53b9b4a3e3a63aeb01e4b549a7394a6",
+  "r05a3_fixtures_sha256": "24dd0ed794290bdff31e74858b946c6e4e5ab8d67493952aedf6329a7f536aaa",
+  "r05a4_matrix_sha256": "4145b806c29dd8a66722303737402873e2c2091b4a6592a63133baf25a167d12",
+  "r05a4_fixtures_sha256": "b581f5dd276af194a052697afe1192ad3c6a41ec18ebb7e5c39936e196de11f9",
+  "r05a3_uncertain_intent_held_unchanged": true,
+  "r05a3_error_no_replay_intent_held_unchanged": true
+ },
+ "run": {
+  "synthetic_prefix": "E360-SB-R05A5-20261027T115822Z",
+  "caps": {
+   "POST": 6,
+   "business_requests": 60,
+   "lookup_limit": 5,
+   "delay_seconds": 0.5,
+   "timeout_seconds": 30
+  },
+  "business_requests": 32,
+  "post_requests": 6
+ },
+ "claims": {
+  "server_idempotency": false,
+  "exactly_once": false,
+  "persistent_draft_proved": false,
+  "api_partial_row_transformation_proved": false,
+  "d79_complete": false,
+  "r04_complete": false,
+  "r05_complete": false,
+  "readiness": false,
+  "provider_compatibility": false
+ },
+ "ledger": {
+  "writes": [
+   {
+    "seq": 4,
+    "intent": "sim-invoice-simulation-true",
+    "state": "VERIFIED_NOT_PERSISTED_BY_LIST_AND_STOCK",
+    "replays": 0
+   },
+   {
+    "seq": 9,
+    "intent": "create-orderA-lookup-test",
+    "state": "CREATED_VERIFIED_RECOVERED_BY_VENDOR_NAME_KEY_BEFORE_ORACLE",
+    "replays": 0
+   },
+   {
+    "seq": 20,
+    "intent": "create-orderB-receipt-test",
+    "state": "VERIFIED",
+    "replays": 0
+   },
+   {
+    "seq": 23,
+    "intent": "sim-goodsreceipt-saleorderref-row2",
+    "state": "RESPONSE_OBSERVED",
+    "replays": 0
+   },
+   {
+    "seq": 24,
+    "intent": "create-goodsreceipt-saleorderref-row2",
+    "state": "PROVIDER_VALIDATION_400_errorCode3222_docNumber_over_20_chars",
+    "replays": 0
+   },
+   {
+    "seq": 28,
+    "intent": "create-goodsreceipt-saleorderref-row2-corrected-docnumber",
+    "state": "VERIFIED",
+    "replays": 0
+   }
+  ],
+  "objects": [
+   {
+    "owned_alias": "R05A5-PO-LOOKUP",
+    "kind": "purchase-orders",
+    "role": "lookup-test"
+   },
+   {
+    "owned_alias": "R05A5-PO-RECEIPT",
+    "kind": "purchase-orders",
+    "role": "receipt-test"
+   },
+   {
+    "owned_alias": "R05A5-GR-1",
+    "kind": "goods-receipts",
+    "role": "api-link-attempt"
+   }
+  ],
+  "counts": {
+   "write_intents": 6,
+   "verified_objects": 3,
+   "persisted_documents_from_simulation": 0,
+   "uncertain_write_paths": 0,
+   "held_prior_uncertain_intents": 1
+  }
+ },
+ "incidents": [
+  "Stale in-memory ledger save overwrote observations seq10-17 after lookup batch 1; reconstructed from raw files and tool output; raw captures for seq10-12 (zero-row lookups) lost, outcomes recorded without hashes.",
+  "UI list mis-click opened a non-owned pre-existing invoice read-only; no action or save; identifiers not recorded.",
+  "Goods-receipt POST with 31-char docNumber rejected by provider validation (HTTP400/3222), nothing persisted (receipt list prefix 0, stock unchanged); distinct corrected request with 10-char docNumber was the single persisted receipt (not a replay of an ambiguous write)."
+ ],
+ "points": {
+  "D79-draft": {
+   "verdict": "PROVEN-NEGATIVE-FOR-TESTED-PATHS",
+   "summary": "simulation=true is a non-persistent computed preview (id null, number empty, no list/stock change); UI shows only status Creato with Salva/Stampa/Invia actions and no draft label; official statuses have no draft; no persistent pending draft supported by any tested documented or observed path. Not a universal negative; D79 is not redefined.",
+   "additional_numbered_invoices": 0,
+   "simulation_record": {
+    "http_status": 200,
+    "business_error": 0,
+    "preview_document_id": null,
+    "preview_doc_number": "",
+    "latest_id_before": 201,
+    "latest_id_after": 201,
+    "prefix_matches_after": 0,
+    "stock_before": {
+     "quantity": 1.0,
+     "orderedToSuppliersQty": 2.0
+    },
+    "stock_after": {
+     "quantity": 1.0,
+     "orderedToSuppliersQty": 2.0
+    }
+   },
+   "ui_observations": [
+    "list status Creato; filters include Stato, Documento Inviato, e-Fattura generata; no draft value",
+    "new invoice form has Salva/Stampa/Invia/Incassa; status control has no options",
+    "owned invoice shows badge Creato, no interchange-sent banner; buttons not pressed"
+   ]
+  },
+  "order-correlation-lookup": {
+   "verdict": "RESOLVED",
+   "summary": "Recovery key: pre-recorded unique vendor-name freeText (vendor with no earlier order) returned exactly one header whose exact reference matched, before the oracle; oracle ID equal. freeText on reference/note and idContact returned 0; day-start gtDocDateMillins window returned 3 headers with 1 exact reference (client-side filter); window starting an hour ago returned 0 because docDate is date-only.",
+   "first_lookup_delay_seconds_after_post": 12.1,
+   "vendor_name_lookup_delay_seconds": 13.9,
+   "server_replaced_docNumber": true,
+   "posts": 1,
+   "lookups": [
+    {
+     "label": "A-freeText-reference",
+     "delay_s": 12.1,
+     "http": 200,
+     "totalCount": 0,
+     "rows": 0,
+     "exact_reference_rows": 0,
+     "vendor402_rows": 0
+    },
+    {
+     "label": "A-freeText-note-prefix",
+     "delay_s": 12.7,
+     "http": 200,
+     "totalCount": 0,
+     "rows": 0,
+     "exact_reference_rows": 0,
+     "vendor402_rows": 0
+    },
+    {
+     "label": "A-idContact-vendor402",
+     "delay_s": 13.3,
+     "http": 200,
+     "totalCount": 0,
+     "rows": 0,
+     "exact_reference_rows": 0,
+     "vendor402_rows": 0
+    },
+    {
+     "label": "A-freeText-vendorname",
+     "delay_s": 13.9,
+     "http": 200,
+     "totalCount": 1,
+     "rows": 1,
+     "exact_reference_rows": 1,
+     "vendor402_rows": 1
+    },
+    {
+     "label": "A-docDate-window",
+     "delay_s": 14.5,
+     "http": 200,
+     "totalCount": 0,
+     "rows": 0,
+     "exact_reference_rows": 0,
+     "vendor402_rows": 0
+    },
+    {
+     "label": "A-docDate-day-window",
+     "delay_s": 29.8,
+     "http": 200,
+     "totalCount": 3,
+     "rows": 3,
+     "exact_reference_rows": 1,
+     "vendor402_rows": 1
+    },
+    {
+     "label": "A-freeText-vendorname+docStatus",
+     "delay_s": 30.4,
+     "http": 200,
+     "totalCount": 1,
+     "rows": 1,
+     "exact_reference_rows": 1,
+     "vendor402_rows": 1
+    },
+    {
+     "label": "A-freeText-vendorname-retry",
+     "delay_s": 31.0,
+     "http": 200,
+     "totalCount": 1,
+     "rows": 1,
+     "exact_reference_rows": 1,
+     "vendor402_rows": 1
+    }
+   ],
+   "record": {
+    "precommitted_before_write": true,
+    "oracle_read_after_conclusion": true,
+    "oracle_id_equals_lookup_id": true,
+    "response_discarded": true,
+    "recovery_key": "vendor-name",
+    "lookups": [
+     {
+      "label": "reference",
+      "totalCount": 0,
+      "exact_matches": 0,
+      "kind": "freeText-reference"
+     },
+     {
+      "label": "note-prefix",
+      "totalCount": 0,
+      "exact_matches": 0,
+      "kind": "freeText-note"
+     },
+     {
+      "label": "contact",
+      "totalCount": 0,
+      "exact_matches": 0,
+      "kind": "idContact"
+     },
+     {
+      "label": "vendor-name",
+      "totalCount": 1,
+      "exact_matches": 1,
+      "kind": "freeText-vendor-name"
+     },
+     {
+      "label": "now-minus-1h-window",
+      "totalCount": 0,
+      "exact_matches": 0,
+      "kind": "gtDocDateMillins"
+     },
+     {
+      "label": "day-window",
+      "totalCount": 3,
+      "exact_matches": 1,
+      "kind": "gtDocDateMillins-day-start"
+     },
+     {
+      "label": "vendor-name+docStatus",
+      "totalCount": 1,
+      "exact_matches": 1,
+      "kind": "freeText+docStatus"
+     }
+    ]
+   }
+  },
+  "partial-receipt-api": {
+   "verdict": "PROVEN-NEGATIVE",
+   "summary": "POST /purchases/goodsreceipt with row saleorderref/saleorderposref (order id, idPos 2, qty1) is accepted with HTTP200 but persisted receipt row refs are null, source order rows stay CREATED, ordered quantity stays 6 while on-hand rises 1: a standalone receipt. simulation preview does not echo refs. materialmovementref/posref variant was not persisted (cap); orderstogoodsreceipt has no row selector.",
+   "attempted_shapes": [
+    "simulation=true goodsreceipt idDocumentType0 row{idMaterial,idPosType1,quantity1,saleorderref,saleorderposref} -> 200 preview id null",
+    "persist same shape docNumber31 chars -> 400/3222 validation, nothing persisted",
+    "persist same shape docNumber10 chars -> 200 receipt created standalone"
+   ],
+   "record": {
+    "sent_rows": [
+     {
+      "saleorderref": 102,
+      "saleorderposref": 2,
+      "quantity": 1.0
+     }
+    ],
+    "receipt_rows": [
+     {
+      "saleorderref": null,
+      "saleorderposref": null,
+      "materialmovementref": null,
+      "quantity": 1.0
+     }
+    ],
+    "order_row_status_before": [
+     "CREATED",
+     "CREATED"
+    ],
+    "order_row_status_after": [
+     "CREATED",
+     "CREATED"
+    ],
+    "order_status_before": "CREATED",
+    "order_status_after": "CREATED",
+    "stock_before": {
+     "quantity": 1.0,
+     "orderedToSuppliersQty": 6.0
+    },
+    "stock_after": {
+     "quantity": 2.0,
+     "orderedToSuppliersQty": 6.0
+    }
+   }
+  },
+  "product-500-diagnosis": {
+   "verdict": "STILL-OPEN",
+   "summary": "Owned UI-created product has idType -1, idMaterialGroup null; existing catalog sample has idType and idMaterialGroup null, so omitted fields alone do not explain the earlier 500; client-chosen string id remains an untested candidate. The read-only comparison request used a wrong path (405)."
+  }
+ },
+ "observations": [
+  {
+   "seq": 1,
+   "utc": "2026-10-27T11:59:39.291873+00:00",
+   "method": "GET",
+   "endpoint_template": "/stocks/avaibility/report",
+   "label": "stock-baseline-before-sim",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "19d862bfce67fa4e085e8e938185c780f007211202f7929b077c41d5cc503e87",
+   "shape_sha256": "fa71dd0ae4e0db9a363cb2ee5d3e7bafa8be9f83aac1743a0c2927f21897e7f1"
+  },
+  {
+   "seq": 2,
+   "utc": "2026-10-27T11:59:40.143905+00:00",
+   "method": "GET",
+   "endpoint_template": "/sales/invoices",
+   "label": "invoice-list-baseline",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "0a47bfeca5082b4f15b15642dcb356ae887feeabc36250ed818859a04bda9122",
+   "shape_sha256": "3cad18e08e8258563bb11797c6c31366ab66e5e9cb33146bc2c931c9382988a3"
+  },
+  {
+   "seq": 3,
+   "utc": "2026-10-27T12:00:30.997281+00:00",
+   "method": "GET",
+   "endpoint_template": "/sales/invoices",
+   "label": "invoice-list-all-total-before",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "69079e615a95ac09733901806ed9b0bd2427f4c4d30130d347db05c164bc2b34",
+   "shape_sha256": "3cad18e08e8258563bb11797c6c31366ab66e5e9cb33146bc2c931c9382988a3"
+  },
+  {
+   "seq": 4,
+   "utc": "2026-10-27T12:00:31.618302+00:00",
+   "method": "POST",
+   "endpoint_template": "/sales/invoices?simulation=true",
+   "label": "sim-invoice-simulation-true",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "ab8902b0da0f871aa7865cdcf94c40c77e41c46be21f984573ebdb5c732cee43",
+   "shape_sha256": "e6c3ef18b7f5897e6416a90dcf4b2a45ac18f0cd2d81ec6e551b8f88012e9d1a"
+  },
+  {
+   "seq": 5,
+   "utc": "2026-10-27T12:00:41.134980+00:00",
+   "method": "GET",
+   "endpoint_template": "/sales/invoices",
+   "label": "invoice-list-all-after-sim",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "2564c6d5be3f694c727626a55ac4c0e855474f57200fb966c25d70aa24bf5a4a",
+   "shape_sha256": "89fedbadaddbb3ce06c0dfe6454778d016ebdfe4ad232f8556cec4669d082065"
+  },
+  {
+   "seq": 6,
+   "utc": "2026-10-27T12:00:41.761960+00:00",
+   "method": "GET",
+   "endpoint_template": "/sales/invoices",
+   "label": "invoice-list-by-R05A5-prefix-after-sim",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "9e0a8db95645bcad9976b59f1e668560beb0469e30ea0b8c306e5d18ebb3f853",
+   "shape_sha256": "b503a7b75ca223fc2bf64e7b066090c6f5048ce74deb872272479adedeecf07f"
+  },
+  {
+   "seq": 7,
+   "utc": "2026-10-27T12:00:42.364998+00:00",
+   "method": "GET",
+   "endpoint_template": "/stocks/avaibility/report",
+   "label": "stock-after-sim",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "19d862bfce67fa4e085e8e938185c780f007211202f7929b077c41d5cc503e87",
+   "shape_sha256": "fa71dd0ae4e0db9a363cb2ee5d3e7bafa8be9f83aac1743a0c2927f21897e7f1"
+  },
+  {
+   "seq": 8,
+   "utc": "2026-10-27T12:01:16.808116+00:00",
+   "method": "GET",
+   "endpoint_template": "/stocks/avaibility/report",
+   "label": "stock-before-orderA",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "19d862bfce67fa4e085e8e938185c780f007211202f7929b077c41d5cc503e87",
+   "shape_sha256": "fa71dd0ae4e0db9a363cb2ee5d3e7bafa8be9f83aac1743a0c2927f21897e7f1"
+  },
+  {
+   "seq": 9,
+   "utc": "2026-10-27T12:01:17.425304+00:00",
+   "method": "POST",
+   "endpoint_template": "/purchases/orders",
+   "label": "create-orderA-lookup-test",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "196d16bfabfbbf89872c30ffead5fa5db80a6b4e2f4a782b29161e29521df94b",
+   "shape_sha256": "25e8dfde745c5578307cfe9b87419bce06f47c35d343b8179eacd99a9d34fbd9",
+   "response_discarded_at_client": true
+  },
+  {
+   "seq": 10,
+   "utc": null,
+   "method": "GET",
+   "endpoint_template": "/purchases/orders",
+   "label": "A-freeText-reference",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": null,
+   "shape_sha256": null,
+   "raw_capture_lost": true
+  },
+  {
+   "seq": 11,
+   "utc": null,
+   "method": "GET",
+   "endpoint_template": "/purchases/orders",
+   "label": "A-freeText-note-prefix",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": null,
+   "shape_sha256": null,
+   "raw_capture_lost": true
+  },
+  {
+   "seq": 12,
+   "utc": null,
+   "method": "GET",
+   "endpoint_template": "/purchases/orders",
+   "label": "A-idContact-vendor402",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": null,
+   "shape_sha256": null,
+   "raw_capture_lost": true
+  },
+  {
+   "seq": 13,
+   "utc": null,
+   "method": "GET",
+   "endpoint_template": "/purchases/orders",
+   "label": "A-freeText-vendorname",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "b5177a4680e7bab0f371b28bb3ed6f02f9123dd3c29d19e9d6aa0eb9854d18c1",
+   "shape_sha256": "97634c69ca88bdf228e18d93f30ffb28c8f42706698711525016749a4137b5b2"
+  },
+  {
+   "seq": 14,
+   "utc": null,
+   "method": "GET",
+   "endpoint_template": "/purchases/orders",
+   "label": "A-docDate-window",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "9e0a8db95645bcad9976b59f1e668560beb0469e30ea0b8c306e5d18ebb3f853",
+   "shape_sha256": "b503a7b75ca223fc2bf64e7b066090c6f5048ce74deb872272479adedeecf07f"
+  },
+  {
+   "seq": 15,
+   "utc": null,
+   "method": "GET",
+   "endpoint_template": "/purchases/orders",
+   "label": "A-docDate-day-window",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "48d31909327737187912259fe4560e1700366add38ad437cfb025569e5fd0a8c",
+   "shape_sha256": "41148de673b2a0abb73f98b11344c386cd9ddc264e175947aec29dc0ddcc5633"
+  },
+  {
+   "seq": 16,
+   "utc": null,
+   "method": "GET",
+   "endpoint_template": "/purchases/orders",
+   "label": "A-freeText-vendorname+docStatus",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "b5177a4680e7bab0f371b28bb3ed6f02f9123dd3c29d19e9d6aa0eb9854d18c1",
+   "shape_sha256": "97634c69ca88bdf228e18d93f30ffb28c8f42706698711525016749a4137b5b2"
+  },
+  {
+   "seq": 17,
+   "utc": null,
+   "method": "GET",
+   "endpoint_template": "/purchases/orders",
+   "label": "A-freeText-vendorname-retry",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "b5177a4680e7bab0f371b28bb3ed6f02f9123dd3c29d19e9d6aa0eb9854d18c1",
+   "shape_sha256": "97634c69ca88bdf228e18d93f30ffb28c8f42706698711525016749a4137b5b2"
+  },
+  {
+   "seq": 18,
+   "utc": "2026-10-27T12:02:43.500491+00:00",
+   "method": "GET",
+   "endpoint_template": "/purchases/{id}/orders",
+   "label": "readback-orderA-by-oracle-id",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "581024a8d7f20411927029737aa810362d036b27c0a9c0cb9d2ad6593c1d729e",
+   "shape_sha256": "eb3fd989e27f4cfc41457af6f93e2f478ace1a352504a07232c6e1bddd98324a"
+  },
+  {
+   "seq": 19,
+   "utc": "2026-10-27T12:02:44.252125+00:00",
+   "method": "GET",
+   "endpoint_template": "/stocks/avaibility/report",
+   "label": "stock-after-orderA",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "9780e159538728cca641771fe95b55ea89d3af53f319765238462726ea21fc62",
+   "shape_sha256": "fa71dd0ae4e0db9a363cb2ee5d3e7bafa8be9f83aac1743a0c2927f21897e7f1"
+  },
+  {
+   "seq": 20,
+   "utc": "2026-10-27T12:03:11.222153+00:00",
+   "method": "POST",
+   "endpoint_template": "/purchases/orders",
+   "label": "create-orderB-receipt-test",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "b57ddc7348caef4c49a346d55098d13479e47694a84da2160e6e8c2d670e7137",
+   "shape_sha256": "25e8dfde745c5578307cfe9b87419bce06f47c35d343b8179eacd99a9d34fbd9"
+  },
+  {
+   "seq": 21,
+   "utc": "2026-10-27T12:03:11.940673+00:00",
+   "method": "GET",
+   "endpoint_template": "/purchases/{id}/orders",
+   "label": "readback-orderB",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "ef52089417a7718b54265e68b56d52523cabd5d79013938c7fffe4405f9a8b15",
+   "shape_sha256": "ff70956f7dbdf7918a0b31c8066b1518836fac9275665defddb7383990d0c77b"
+  },
+  {
+   "seq": 22,
+   "utc": "2026-10-27T12:03:12.620230+00:00",
+   "method": "GET",
+   "endpoint_template": "/stocks/avaibility/report",
+   "label": "stock-before-receipt",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "c45279a93707039f26f9665d290be64dc7d51fe7da8ff50f3aaa5f8c2d898b24",
+   "shape_sha256": "fa71dd0ae4e0db9a363cb2ee5d3e7bafa8be9f83aac1743a0c2927f21897e7f1"
+  },
+  {
+   "seq": 23,
+   "utc": "2026-10-27T12:03:25.910496+00:00",
+   "method": "POST",
+   "endpoint_template": "/purchases/goodsreceipt?simulation=true",
+   "label": "sim-goodsreceipt-saleorderref-row2",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "83039bd0a731f32d0bb1bc3df274a4e143afc65bf9ef0a3ca6c8e2cba4a678f8",
+   "shape_sha256": "34517a0fed0b4b7908e9c91226c2de8d04846c1a57406f1660379418610be61d"
+  },
+  {
+   "seq": 24,
+   "utc": "2026-10-27T12:03:40.052711+00:00",
+   "method": "POST",
+   "endpoint_template": "/purchases/goodsreceipt",
+   "label": "create-goodsreceipt-saleorderref-row2",
+   "http_status": 400,
+   "business_status": {
+    "responseCode": 400,
+    "errorCode": 3222
+   },
+   "source_sha256": "2516bde2b2222b25cc546bb2fa74237147e674f641aaca091cabe2cbc349dcd3",
+   "shape_sha256": "8ca8069c75035147e8b483e84ea03fee5354bc71917ffb83bea91ac133d50cc3"
+  },
+  {
+   "seq": 25,
+   "utc": "2026-10-27T12:03:41.072923+00:00",
+   "method": "GET",
+   "endpoint_template": "/purchases/{id}/goodsreceipt",
+   "label": "readback-receipt-api",
+   "http_status": 404,
+   "business_status": {},
+   "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "shape_sha256": "f072cbec3bf8841871d4284230c5e983dc211a56837aed862487148f947d1a1f",
+   "note": "readback with undefined receipt id after the validation 400; invalid path, 404, no object"
+  },
+  {
+   "seq": 26,
+   "utc": "2026-10-27T12:03:51.823841+00:00",
+   "method": "GET",
+   "endpoint_template": "/purchases/goodsreceipt",
+   "label": "receipt-list-by-prefix-after-400",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "9e0a8db95645bcad9976b59f1e668560beb0469e30ea0b8c306e5d18ebb3f853",
+   "shape_sha256": "b503a7b75ca223fc2bf64e7b066090c6f5048ce74deb872272479adedeecf07f"
+  },
+  {
+   "seq": 27,
+   "utc": "2026-10-27T12:03:52.474781+00:00",
+   "method": "GET",
+   "endpoint_template": "/stocks/avaibility/report",
+   "label": "stock-after-400",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "c45279a93707039f26f9665d290be64dc7d51fe7da8ff50f3aaa5f8c2d898b24",
+   "shape_sha256": "fa71dd0ae4e0db9a363cb2ee5d3e7bafa8be9f83aac1743a0c2927f21897e7f1"
+  },
+  {
+   "seq": 28,
+   "utc": "2026-10-27T12:04:06.035448+00:00",
+   "method": "POST",
+   "endpoint_template": "/purchases/goodsreceipt",
+   "label": "create-goodsreceipt-saleorderref-row2-corrected-docnumber",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "ecfed57184d8aba73854026000ef07cdef93335b4aa929618dab75a50d3a98c6",
+   "shape_sha256": "25e8dfde745c5578307cfe9b87419bce06f47c35d343b8179eacd99a9d34fbd9"
+  },
+  {
+   "seq": 29,
+   "utc": "2026-10-27T12:04:06.780489+00:00",
+   "method": "GET",
+   "endpoint_template": "/purchases/{id}/goodsreceipt",
+   "label": "readback-receipt-api",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "0710eb975a7d88cc524472a44eb1c9cc439e5a5ef8207a94790f2aec33ee591a",
+   "shape_sha256": "9ca377472209ae8d4ab85bb2129c84df5fa67f180ab60618a83628f2e44cfc7c"
+  },
+  {
+   "seq": 30,
+   "utc": "2026-10-27T12:04:07.433214+00:00",
+   "method": "GET",
+   "endpoint_template": "/purchases/{id}/orders",
+   "label": "readback-orderB-after-receipt",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "ef52089417a7718b54265e68b56d52523cabd5d79013938c7fffe4405f9a8b15",
+   "shape_sha256": "ff70956f7dbdf7918a0b31c8066b1518836fac9275665defddb7383990d0c77b"
+  },
+  {
+   "seq": 31,
+   "utc": "2026-10-27T12:04:08.109569+00:00",
+   "method": "GET",
+   "endpoint_template": "/stocks/avaibility/report",
+   "label": "stock-after-receipt",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "c35306af98632db457248bfb55f18af7dba1cf3238eea758e22479ca222be06f",
+   "shape_sha256": "fa71dd0ae4e0db9a363cb2ee5d3e7bafa8be9f83aac1743a0c2927f21897e7f1"
+  },
+  {
+   "seq": 32,
+   "utc": "2026-10-27T12:04:22.166221+00:00",
+   "method": "GET",
+   "endpoint_template": "/products/product",
+   "label": "product-catalog-sample-readonly",
+   "http_status": 405,
+   "business_status": {},
+   "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "shape_sha256": "f072cbec3bf8841871d4284230c5e983dc211a56837aed862487148f947d1a1f",
+   "note": "wrong read path (405); no product comparison obtained"
+  }
+ ],
+ "captures": [
+  {
+   "name": "invoice-simulation-preview",
+   "source_seq": 4,
+   "source_sha256": "ab8902b0da0f871aa7865cdcf94c40c77e41c46be21f984573ebdb5c732cee43",
+   "sanitized_sha256": "4ba113f6074736cd97cf264a08702e590c1bf2bb8f38f4e07a5a9534716805c8"
+  },
+  {
+   "name": "stock-before-simulation",
+   "source_seq": 1,
+   "source_sha256": "19d862bfce67fa4e085e8e938185c780f007211202f7929b077c41d5cc503e87",
+   "sanitized_sha256": "8bba92253f362234ecdeb265a61c6d0f56ba29345c0653bf05cf72284e9ae30b"
+  },
+  {
+   "name": "stock-after-simulation",
+   "source_seq": 7,
+   "source_sha256": "19d862bfce67fa4e085e8e938185c780f007211202f7929b077c41d5cc503e87",
+   "sanitized_sha256": "8bba92253f362234ecdeb265a61c6d0f56ba29345c0653bf05cf72284e9ae30b"
+  },
+  {
+   "name": "invoice-list-after-simulation",
+   "source_seq": 5,
+   "source_sha256": "2564c6d5be3f694c727626a55ac4c0e855474f57200fb966c25d70aa24bf5a4a",
+   "sanitized_sha256": "e56930559b7ebf6803593166fd4d80ce923ebd448ffa03e7c9e3d1d025061819"
+  },
+  {
+   "name": "order-lookup-vendor-name",
+   "source_seq": 13,
+   "source_sha256": "b5177a4680e7bab0f371b28bb3ed6f02f9123dd3c29d19e9d6aa0eb9854d18c1",
+   "sanitized_sha256": "df43901739ec32e1f727875014ab6c6d00c1fecfbea92acac1b54724b1bfea99"
+  },
+  {
+   "name": "order-lookup-window-now-minus-1h-empty",
+   "source_seq": 14,
+   "source_sha256": "9e0a8db95645bcad9976b59f1e668560beb0469e30ea0b8c306e5d18ebb3f853",
+   "sanitized_sha256": "f2ab4739a2aeb8b156195918c047e603c789ad5bd7a334b80e3d46d5babb96a4"
+  },
+  {
+   "name": "order-lookup-day-window",
+   "source_seq": 15,
+   "source_sha256": "48d31909327737187912259fe4560e1700366add38ad437cfb025569e5fd0a8c",
+   "sanitized_sha256": "686996ffc2bb239e311122efc7ff44094eca48195a12dc4d5d9cd0736b978df0"
+  },
+  {
+   "name": "orderA-readback",
+   "source_seq": 18,
+   "source_sha256": "581024a8d7f20411927029737aa810362d036b27c0a9c0cb9d2ad6593c1d729e",
+   "sanitized_sha256": "55e88cbd80cde70b767739ee8ffd66cd473666c177c929fe63180d2fec7c6c89"
+  },
+  {
+   "name": "stock-before-orderB-receipt",
+   "source_seq": 22,
+   "source_sha256": "c45279a93707039f26f9665d290be64dc7d51fe7da8ff50f3aaa5f8c2d898b24",
+   "sanitized_sha256": "2390be8ef030afb06c6087c06153e7ce97670416b41271b8f7ee94a635d46767"
+  },
+  {
+   "name": "orderB-readback",
+   "source_seq": 21,
+   "source_sha256": "ef52089417a7718b54265e68b56d52523cabd5d79013938c7fffe4405f9a8b15",
+   "sanitized_sha256": "d653db62eed719120bd82ca710a26e12e9e1dcb9e6f4efa8a9e006a70aa7d6be"
+  },
+  {
+   "name": "receipt-api-readback",
+   "source_seq": 29,
+   "source_sha256": "0710eb975a7d88cc524472a44eb1c9cc439e5a5ef8207a94790f2aec33ee591a",
+   "sanitized_sha256": "d0544a5609780a9734337fd405ceb613c454c051f61eead0241ce4792c3b6bb0"
+  },
+  {
+   "name": "orderB-after-receipt",
+   "source_seq": 30,
+   "source_sha256": "ef52089417a7718b54265e68b56d52523cabd5d79013938c7fffe4405f9a8b15",
+   "sanitized_sha256": "d653db62eed719120bd82ca710a26e12e9e1dcb9e6f4efa8a9e006a70aa7d6be"
+  },
+  {
+   "name": "stock-after-receipt",
+   "source_seq": 31,
+   "source_sha256": "c35306af98632db457248bfb55f18af7dba1cf3238eea758e22479ca222be06f",
+   "sanitized_sha256": "8400ffe8b19de910d11e386c044e5ff06d5694476a278fec25be932a313f508a"
+  }
+ ]
+}
