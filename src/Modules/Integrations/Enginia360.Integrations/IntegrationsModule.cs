@@ -8,6 +8,9 @@ namespace Enginia360.Integrations;
 // Host-selected external administrative anti-corruption adapter and durable dispatcher.
 public static class IntegrationsModule
 {
+    // Host-owned, non-secret purchase destination descriptor; null unless the verified GiobbyV1 binding and scope are configured.
+    public static string? PurchaseDestinationDescriptor(AdministrativeConnectorBinding binding, IConfiguration giobby) => PurchaseDestination.Descriptor(binding, giobby);
+
     public static IServiceCollection AddExternalAdministration(this IServiceCollection services, string connection, IConfiguration section)
     {
         var options = ConnectorOptions.From(section);
