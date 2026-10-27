@@ -96,7 +96,7 @@ class EvidenceTests(unittest.TestCase):
             self.assertIn(token.lower(), text.lower())
         decisions = (ROOT/'docs/foundation/01-glossary-and-domain-boundaries.md').read_text()
         ids = list(map(int,re.findall(r'^### D(\d+) —',decisions,re.M)))
-        self.assertEqual(sorted(ids), list(range(1,85)))
+        self.assertEqual(sorted(ids), list(range(1,87)))
         d83 = decisions.split('### D83 —')[-1].split('### D84 —')[0]
         for token in ('27 ottobre 2026','api-server','sandbox','SdI','D82','nessun invio esterno'):
             self.assertIn(token,d83)

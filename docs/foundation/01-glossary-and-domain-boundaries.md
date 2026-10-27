@@ -24,6 +24,12 @@ La precedente approvazione A del ricevimento parziale **3 ordinati / 2 ricevuti*
 
 **D83/D84 — sandbox Giobby, 27 ottobre 2026:** D83 autorizza il solo sandbox indicato e corregge api-server. D84 accetta la conferma owner di isolamento da sistemi automatici/webhook/esportazioni: gate outbound RESOLVED_BY_OWNER_ASSERTION, non verifica tecnica indipendente; SdI disabilitato resta affermazione owner. [R05.a.2](../r05a2-sandbox-contract.md) resta snapshot storico zero-write invariato. [R05.a.3](../r05a3-sandbox-business-contract.md) #94: ordine3/ricevimento2 collegato via UI e readback API, fattura numerata con effetto stock; vera bozza D79 e lost-success recovery non provati. Nessun adapter o completamento R04/R05. D82, D26/D65 e cronologia D1–D83 invariati; nessun invio esterno, produzione, migrazione reale, acquisto, contatto provider, deployment o ambiente persistente.
 
+<!-- r05-d85-d86:start -->
+**D85 — documento amministrativo verso Giobby (27 ottobre 2026):** il risultato amministrativo inviato a Giobby per una commessa chiusa è un documento **ordine cliente (o proforma)**, mai una fattura numerata dall’integrazione. La trasformazione manuale in fattura avviene in Giobby a scelta dell’operatore: nessun numero fiscale né scarico magazzino prima di quella scelta. Sostituisce «bozza di fattura vendita» di D79 come artefatto bersaglio; D79 resta cronologia. Tipo esatto (ordine cliente `POST /sales/orders` oppure proforma, docType 33 raggiungibile per trasformazione), persistenza, lookup e stati nel sandbox **non decisi**: gate di evidenza per una futura prova sandbox, nessuna scelta per assunzione. Nessuna integrazione né validità fiscale affermate.
+
+**D86 — ricevimento parziale e residuo (27 ottobre 2026):** Enginia360 può creare il ricevimento merci via API e tiene da sé il residuo d’ordine (ordinato meno ricevuto, regola 3 ordinati / 2 ricevuti già approvata) come overlay/read model derivato **non autorevole**, segnalando la discrepanza con Giobby. Coerenza con D82: Giobby resta l’unica autorità per stock e documenti (stesso ERP per stock e catena acquisti); il residuo non scrive stock né documenti d’acquisto, non sostituisce lo stato d’ordine ERP, nessun writer misto né fallback locale; la discrepanza è mostrata e riconciliata, mai corretta in silenzio. Il ricevimento via API è un documento ERP standalone (righe non collegate, ordine resta 3 da ricevere, stock +2): rischio di doppio conteggio riconosciuto. Questa è la lettura dell’agente della risposta owner e l’unico punto che l’owner può correggere; non viene richiesto di nuovo.
+<!-- r05-d85-d86:end -->
+
 ## Archivio storico — decisioni e stati al momento della loro registrazione
 
 Le sezioni seguenti preservano cronologia, motivazioni e gate. Ogni frase di stato o autorizzazione incompatibile con il riepilogo C00 sopra è storica; i requisiti di dominio e i limiti specialistici restano validi.
@@ -1017,3 +1023,27 @@ D01 e D02 restano issue aperte In verifica; B00 non viene completata o sbloccata
 **Decisione:** la conferma è evidenza scoped **owner-assertion** accettata per il sandbox già autorizzato D83. Risolve il gate outbound precedente come **RESOLVED_BY_OWNER_ASSERTION**; non è una verifica tecnica indipendente/universale di assenza di egress. SdI disabilitato resta separata affermazione owner. Proseguire prove sintetiche proprie con ledger prima delle scritture e readback esatto, senza altre domande di permesso ordinarie; nessun invio esterno o modifica di configurazioni globali.
 
 **Confini invariati:** solo sandbox, non produzione/acquisti reali/provider contact/deployment/migrazione/nuovo ambiente persistente. D82 stesso ERP autorevole per stock e acquisti, nessun fallback o writer stock locale; D26/D65/D76/D77 e 3 ordinati / 2 ricevuti già approvato preservati. D1–D83 e R05.a.2 zero-write sono storia immutata, non riscritta dal seguito. R05.a.3 #94 acquisisce prove reali business: trasformazione UI ordine3/ricevimento2 con SKU duplicato e readback API, fattura vendita persistita numerata con effetto stock. Vera bozza D79, provenienza/partial transform direttamente API e recovery di lost-success restano non provati; errore provider sul create perso comporta UNCERTAIN hold e nessun replay cieco. Nessun adapter, completamento R04/R05 o readiness impliciti. Bootstrap/Tailscale/25 volumi/backups/branch R00 protetti.
+
+### D85 — Documento amministrativo verso Giobby: ordine cliente o proforma, mai fattura numerata automatica
+
+**Fonte e contesto:** proprietario, risposta del **27 ottobre 2026** a una domanda concreta su D79. Premessa verificata nel sandbox (R05.a.3/R05.a.5): l’API Giobby non ha una vera bozza; `POST /sales/invoices` persiste una fattura numerata con scarico stock, mentre `simulation=true` è solo anteprima non persistente. Registro D1–D84 verificato prima dell’assegnazione, D85 successivo inutilizzato. Citazione esatta:
+
+> Ordine cliente (o proforma) in Giobby, da trasformare in fattura a mano: nessun numero fiscale né scarico finché non lo decidi tu
+
+**Decisione:** il risultato amministrativo inviato a Giobby per una commessa chiusa è un documento **ordine cliente (o proforma)**, mai una fattura numerata dall’integrazione; l’operatore lo trasforma in fattura a mano in Giobby, e solo allora nascono numero fiscale e scarico. Sostituisce «bozza di fattura vendita» di D79 come artefatto bersaglio; D79 resta cronologia, non riscritta.
+
+**Gate di evidenza (non deciso):** quale tipo esatto — ordine cliente (`POST /sales/orders`) oppure proforma (docType 33, raggiungibile per trasformazione) — e relativi persistenza, lookup dopo timeout, stati e comportamento di trasformazione nel sandbox. Non si sceglie per assunzione: è prova sandbox futura, con ledger prima delle scritture e readback esatto, sotto D83/D84. Nessuna integrazione, adapter o validità fiscale affermate; il giudizio fiscale resta ai revisori specialistici.
+
+### D86 — Ricevimento parziale: ricevimento via API e residuo d’ordine come overlay Enginia360 non autorevole
+
+**Fonte e contesto:** proprietario, risposta del **27 ottobre 2026** a una domanda concreta sul ricevimento parziale 3 ordinati / 2 ricevuti. Premessa verificata nel sandbox (R05.a.5): un ricevimento creato via API è standalone (riferimenti di riga non persistiti, ordine resta 3 da ricevere, stock +2, rischio di doppio conteggio); solo la UI Giobby lo collega. Registro D1–D85 verificato prima dell’assegnazione, D86 successivo inutilizzato. Citazione esatta:
+
+> Enginia360 crea il ricevimento via API e tiene da sé il residuo dell'ordine, segnalando la discrepanza con Giobby
+
+**Decisione:** Enginia360 può creare il ricevimento merci via API e tiene da sé il residuo d’ordine (ordinato meno ricevuto, regola 3 ordinati / 2 ricevuti già approvata) come overlay/read model derivato **non autorevole**, segnalando la discrepanza con Giobby in modo visibile.
+
+**Coerenza con D82 (vincolo, non eccezione):** Giobby resta l’unica autorità per stock e documenti (stesso ERP per stock e catena acquisti). Il residuo non scrive stock né documenti d’acquisto, non sostituisce lo stato d’ordine ERP, nessun writer misto né fallback locale; la discrepanza è mostrata e riconciliata, mai corretta in silenzio. Il ricevimento via API è un documento ERP standalone con rischio di doppio conteggio riconosciuto.
+
+**Interpretazione dell’agente:** questa coerenza con D82 è la lettura dell’agente della risposta owner, non una frase dell’owner; è l’unico punto che l’owner può correggere e non viene richiesta di nuovo. Restano da provare, senza risposte inventate, meccanismo di riconciliazione e prevenzione del doppio conteggio; nessuna implementazione in questo incremento.
+
+**Confini invariati (D85/D86):** solo documentazione e guardie offline; nessuna modifica di codice, adapter, schema, runtime o dipendenze, nessuna chiamata sandbox/ERP, produzione, acquisto, contatto provider o deployment. D1–D84 e le evidenze R05.a.2–a.5 byte-preservate; D26/D65/D76/D77/D82 invariate. #44/#45 restano aperte.
