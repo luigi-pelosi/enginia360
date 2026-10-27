@@ -1,0 +1,603 @@
+{
+ "increment": "R05.a.4",
+ "phase": "lost-success-recovery-and-documented-path-investigation",
+ "refs": [
+  "#45",
+  "#44"
+ ],
+ "new_decision": null,
+ "base_main": "6aa450ca864372e6f2c0e7141decd96ddfe733fd",
+ "scope": "Existing D83/D84 sandbox scope; owner-assertion isolation only; no production, provider contact, adapter or runtime change.",
+ "historical": {
+  "r05a3_matrix_sha256": "d5665945b2ca48a518bc73bdd0cf7d07c53b9b4a3e3a63aeb01e4b549a7394a6",
+  "r05a3_fixtures_sha256": "24dd0ed794290bdff31e74858b946c6e4e5ab8d67493952aedf6329a7f536aaa",
+  "r05a3_uncertain_intent_held_unchanged": true,
+  "r05a3_error_no_replay_intent_held_unchanged": true
+ },
+ "run": {
+  "synthetic_prefix": "E360-SB-R05A4-20261027T112231Z",
+  "caps": {
+   "POST": 3,
+   "business_requests": 30,
+   "lookup_limit": 5,
+   "delay_seconds": 0.5,
+   "timeout_seconds": 30
+  },
+  "business_requests": 18,
+  "post_requests": 3
+ },
+ "payload_shape": {
+  "vendor": "Complete R05.a.3 successful vendor request including contact.visibilityType; only name and note differ",
+  "vendor_success_shape_preserved": true,
+  "order": "R05.a.3 successful documented order shape reduced to one row quantity 1 using owned synthetic supplier/product as read-only references; own docDate, note, reference and number"
+ },
+ "ledger": {
+  "writes": [
+   {
+    "seq": 1,
+    "intent": "create-vendor-normal",
+    "state": "VERIFIED",
+    "replays": 0
+   },
+   {
+    "seq": 4,
+    "intent": "create-vendor-lost-response",
+    "state": "VERIFIED_RECOVERED_BY_PRE_RECORDED_NAME",
+    "replays": 0
+   },
+   {
+    "seq": 11,
+    "intent": "create-order-lost-response",
+    "state": "CREATED_VERIFIED_CORRELATION_LOOKUP_EMPTY",
+    "replays": 0
+   }
+  ],
+  "objects": [
+   {
+    "owned_alias": "R05A4-VENDOR-NORMAL",
+    "kind": "vendors",
+    "role": "normal"
+   },
+   {
+    "owned_alias": "R05A4-VENDOR-LOST",
+    "kind": "vendors",
+    "role": "lost-success"
+   },
+   {
+    "owned_alias": "R05A4-PO-LOST",
+    "kind": "purchase-orders",
+    "role": "lost-success-order"
+   },
+   {
+    "owned_alias": "R05A4-VENDOR-NORMAL-embedded-contact",
+    "kind": "contacts",
+    "role": "embedded",
+    "implicit_in": "R05A4-VENDOR-NORMAL"
+   },
+   {
+    "owned_alias": "R05A4-VENDOR-LOST-embedded-contact",
+    "kind": "contacts",
+    "role": "embedded",
+    "implicit_in": "R05A4-VENDOR-LOST"
+   }
+  ],
+  "counts": {
+   "write_intents": 3,
+   "verified_objects": 5,
+   "verified_business_aggregates": 3,
+   "verified_embedded_contacts": 2,
+   "uncertain_write_paths": 0,
+   "held_prior_uncertain_intents": 1
+  }
+ },
+ "scenarios": {
+  "vendor-lost-success-recovery": {
+   "outcome": "RECOVERED_BY_PRE_RECORDED_NAME",
+   "prerecorded_name_only": true,
+   "response_discarded_at_client": true,
+   "lookup_before_oracle": true,
+   "lookup": {
+    "totalCount": 1,
+    "exact_matches": 1,
+    "limit": 5
+   },
+   "oracle_http_status": 200,
+   "oracle_business_error": 0,
+   "oracle_id_equals_lookup_id": true,
+   "owned_vendor_count_by_prefix": 2,
+   "replays": 0,
+   "normal_creation_lookup_validated_first": true,
+   "limit": "Observed once for vendor in this sandbox; not server idempotency, exactly-once or replay guarantee."
+  },
+  "order-lost-success-recovery": {
+   "outcome": "CREATED_CORRELATION_LOOKUP_EMPTY_RECOVERED_ONLY_AFTER_ORACLE_DIAGNOSTIC",
+   "prerecorded_correlation_only": true,
+   "response_discarded_at_client": true,
+   "freeText_exact_correlation_lookup_matches": 0,
+   "freeText_lookup_repeated_after_seconds": [
+    0,
+    5,
+    60
+   ],
+   "docdate_window_lookup_matches": 0,
+   "oracle_http_status": 200,
+   "oracle_business_error": 0,
+   "detail_status": "CREATED",
+   "detail_rows": 1,
+   "detail_quantity": 1,
+   "detail_reference_exact": true,
+   "detail_number_server_assigned_not_client_value": true,
+   "ordered_before": 1,
+   "ordered_after": 2,
+   "ordered_delta": 1,
+   "physical_before": 1,
+   "physical_after": 1,
+   "post_diagnostic_lookup": {
+    "by": "pre-recorded referenced supplier name via freeText",
+    "totalCount": 2,
+    "exact_reference_matches": 1,
+    "matches_oracle_id": true
+   },
+   "known_order_freeText_by_own_reference_returned": 0,
+   "known_order_freeText_by_supplier_name_prefix_returned": 1,
+   "replays": 0,
+   "limit": "Correlation (note/reference) lookup did not recover the order; recovery relied on supplier-name freeText after the forensic oracle had been read, so it is weaker evidence than the vendor case and not a recovery guarantee."
+  },
+  "api-partial-source-selection": {
+   "outcome": "NOT_DOCUMENTED",
+   "transformation_request_fields": [
+    "idNumerator",
+    "docNumber",
+    "docDate",
+    "idDocumentTypeExt",
+    "destIdStorage",
+    "destIdLocation"
+   ],
+   "row_selector_declared": false,
+   "row_source_reference_fields_declared_without_semantics": [
+    "materialmovementref",
+    "materialmovementposref",
+    "saleorderref",
+    "saleorderposref"
+   ],
+   "simulation_behavior_declared": false,
+   "mutations_performed": 0,
+   "receipt_created": false
+  },
+  "D79-persistent-sales-invoice-draft": {
+   "outcome": "NOT_ESTABLISHED",
+   "documented_draft_status_in_docStatus_table": false,
+   "documented_draft_route": false,
+   "proforma_route_declared_distinct_document_type": true,
+   "simulation_behavior_declared": false,
+   "additional_invoices_created": 0,
+   "unexecuted": "No own invoice UI state or simulation=true behavior was probed in this increment; one prior numbered CREATED sample cannot rule out other variants."
+  },
+  "product-500-candidate-comparison": {
+   "outcome": "CANDIDATES_ONLY_UNTESTED",
+   "failed_body_sent_client_chosen_id_string": true,
+   "model_declares_id": true,
+   "failed_body_omitted_model_fields": [
+    "description",
+    "idType",
+    "idMaterialGroup",
+    "barcode"
+   ],
+   "requests_sent": 0
+  }
+ },
+ "claims": {
+  "server_idempotency": false,
+  "exactly_once": false,
+  "financial_replay_guarantee": false,
+  "visibilityType_causal_proof": false,
+  "order_correlation_lookup_proved": false,
+  "api_partial_receipt_transformation_proved": false,
+  "persistent_draft_proved": false,
+  "fiscal_finality_inferred": false,
+  "positive_adapter": false,
+  "r04_complete": false,
+  "r05_complete": false,
+  "d79_resolved": false
+ },
+ "official_contract": {
+  "swagger_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+  "reference_html_sha256": "f81a2f67f6a302ab41dbba959c85097cb7e0032405b1d6fb64a4839aa13ed7aa",
+  "accessed_utc": "2026-10-27",
+  "claims": [
+   {
+    "id": "/purchases/{id}/orderstogoodsreceipt:request-model",
+    "pointer": "#/definitions/GenerateGoodReceiptIssueApi/properties",
+    "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+    "extract": {
+     "idNumerator": {
+      "type": "integer",
+      "format": "int32",
+      "example": "1"
+     },
+     "docNumber": {
+      "type": "string",
+      "example": "N1234/2024"
+     },
+     "docDate": {
+      "type": "string",
+      "format": "date-time",
+      "example": "1893491100000"
+     },
+     "idDocumentTypeExt": {
+      "type": "integer",
+      "format": "int32",
+      "example": "0"
+     },
+     "destIdStorage": {
+      "type": "string",
+      "example": "MB"
+     },
+     "destIdLocation": {
+      "type": "string"
+     }
+    },
+    "extract_sha256": "f4ff9f002b35a01fb200c6f917f985aaa3280b3775679617fd49403e31af3652",
+    "meaning": "Order-to-receipt transformation request model has only header fields (numerator, number, date, reason, destination storage/location): no row or quantity selector is declared."
+   },
+   {
+    "id": "/purchases/{id}/orderstogoodsreceipt:body-ref",
+    "pointer": "#/paths/~1purchases~1{id}~1orderstogoodsreceipt/post/parameters/1/schema",
+    "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+    "extract": {
+     "$ref": "#/definitions/GenerateGoodReceiptIssueApi"
+    },
+    "extract_sha256": "9170bffabf2fedd1effe89a441b235c12d146e87a586dddace05bc81b3a18f25",
+    "meaning": "Request body reference of the exercised transformation."
+   },
+   {
+    "id": "DocumentRowApi:source-reference-fields",
+    "pointer": "#/definitions/DocumentRowApi/properties/saleorderref",
+    "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+    "extract": {
+     "type": "integer",
+     "format": "int32",
+     "example": "null"
+    },
+    "extract_sha256": "49d07edc47a680ae8528cee4051668735194b4c0b327ea62cd5aa785a7b95119",
+    "meaning": "Create-document row model declares saleorderref/saleorderposref/materialmovementref/materialmovementposref as integers with no description; purchase-order-to-receipt semantics are not declared and the observed UI-linked receipt returned them null."
+   },
+   {
+    "id": "/purchases/goodsreceipt:post-simulation-parameter",
+    "pointer": "#/paths/~1purchases~1goodsreceipt/post/parameters/1",
+    "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+    "extract": {
+     "name": "simulation",
+     "in": "query",
+     "required": false,
+     "type": "boolean"
+    },
+    "extract_sha256": "e5dc1726d6b4fad21524c8270374f62244b5a48f4db384260461b20b5b7ea14f",
+    "meaning": "simulation is a bare boolean query parameter with no behavior description."
+   },
+   {
+    "id": "/sales/invoices:post-simulation-parameter",
+    "pointer": "#/paths/~1sales~1invoices/post/parameters/1",
+    "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+    "extract": {
+     "name": "simulation",
+     "in": "query",
+     "required": false,
+     "type": "boolean"
+    },
+    "extract_sha256": "e5dc1726d6b4fad21524c8270374f62244b5a48f4db384260461b20b5b7ea14f",
+    "meaning": "simulation is a bare boolean query parameter with no behavior description; not exercised in R05.a.4."
+   },
+   {
+    "id": "/sales/{id}/orderstoproformainvoice:post",
+    "pointer": "#/paths/~1sales~1{id}~1orderstoproformainvoice/post/summary",
+    "source_sha256": "0c43f06fa1481fa39d5e0a63f61c5843ded5b82335e68bcb840dc974e13574a3",
+    "extract": "Create a proforma invoice from sale order",
+    "extract_sha256": "1b7e5deccd7581856ad48037524432b73ac8a01e3d41b8ab199d8b5bb9936d49",
+    "meaning": "A proforma-invoice transformation is declared; proforma is a distinct document type and not a persistent pending sales-invoice draft."
+   }
+  ]
+ },
+ "captures": [
+  {
+   "name": "vendor-lookup-normal",
+   "source_seq": 2,
+   "source_sha256": "f81b30d6daf2a7f9993334517ff1a16e4fa743a1ed2e597158621cc8aac38da0",
+   "sanitized_sha256": "53bfa0a16c991a5f93aa65439946f5d3677407585d66775b58a2b374de2d4f70",
+   "captured_utc": "2026-10-27T11:24:09.904415+00:00"
+  },
+  {
+   "name": "vendor-lookup-recovered-lost",
+   "source_seq": 5,
+   "source_sha256": "d86a2afed38b4e10b908e2cad07d87c408ce10d912929d9735a635960b04f66b",
+   "sanitized_sha256": "fe6561a8ccc64ae7e4e69538f50a1c14ed15cf112044bf19a796395c8c82e9f0",
+   "captured_utc": "2026-10-27T11:24:54.099023+00:00"
+  },
+  {
+   "name": "order-correlation-lookup-empty",
+   "source_seq": 13,
+   "source_sha256": "9e0a8db95645bcad9976b59f1e668560beb0469e30ea0b8c306e5d18ebb3f853",
+   "sanitized_sha256": "f2ab4739a2aeb8b156195918c047e603c789ad5bd7a334b80e3d46d5babb96a4",
+   "captured_utc": "2026-10-27T11:26:35.215436+00:00"
+  },
+  {
+   "name": "order-detail-lost-response",
+   "source_seq": 17,
+   "source_sha256": "322956b453b2df42897943abed1bf90ccda5abd05309f9e96d9042b83e219a21",
+   "sanitized_sha256": "e90ded7974dd46932204eba8240fc5e50e56d2888be1ca73c46381fe75d3afc7",
+   "captured_utc": "2026-10-27T11:28:16.601506+00:00"
+  },
+  {
+   "name": "stock-before-lost-order",
+   "source_seq": 9,
+   "source_sha256": "7ff46f20e7469e3108f5eef57c9397ade06a6acd9b23c1de885058c15d11a07d",
+   "sanitized_sha256": "4460ea45d74ced7ced875c9b75dd66f72e2e944e9696bebb7a395edd8128c1ac",
+   "captured_utc": "2026-10-27T11:25:44.435359+00:00"
+  },
+  {
+   "name": "stock-after-lost-order",
+   "source_seq": 14,
+   "source_sha256": "19d862bfce67fa4e085e8e938185c780f007211202f7929b077c41d5cc503e87",
+   "sanitized_sha256": "8bba92253f362234ecdeb265a61c6d0f56ba29345c0653bf05cf72284e9ae30b",
+   "captured_utc": "2026-10-27T11:26:35.613804+00:00"
+  }
+ ],
+ "observations": [
+  {
+   "seq": 1,
+   "utc": "2026-10-27T11:23:57.803123+00:00",
+   "method": "POST",
+   "label": "create-vendor-normal",
+   "endpoint_template": "/vendors",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "36a43dad83fd0609be1532bf52cfe9750c3c725a92c825ce02d69efa02ca44d7",
+   "shape_sha256": "b4c01d114fc6f9fac3eb0045448b969edd1d2392b7f3c2346091c3d20d6fc24e"
+  },
+  {
+   "seq": 2,
+   "utc": "2026-10-27T11:24:09.904415+00:00",
+   "method": "GET",
+   "label": "lookup-vendor-normal-by-name",
+   "endpoint_template": "/vendors?name&limit=5&offset=0",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "f81b30d6daf2a7f9993334517ff1a16e4fa743a1ed2e597158621cc8aac38da0",
+   "shape_sha256": "0fcf550e9cab20da618bce954188049c1a363ebad0ee0c1f65b64f540f7116f8"
+  },
+  {
+   "seq": 3,
+   "utc": "2026-10-27T11:24:19.098674+00:00",
+   "method": "GET",
+   "label": "read-vendor-normal-by-id",
+   "endpoint_template": "/vendors/{id}",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "9da39086169bb0b03ba028e7c2094337a7c19c5e62f8725a2b024ad5872ef97c",
+   "shape_sha256": "b6e1dc4cd3127c7e6f90a64d14db3cab589563558005496913ab15627f62b26c"
+  },
+  {
+   "seq": 4,
+   "utc": "2026-10-27T11:24:44.136530+00:00",
+   "method": "POST",
+   "label": "create-vendor-lost-response",
+   "endpoint_template": "/vendors",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "1d75dcd780e1e50126b1957b05e70f350bf112b578335af4c4e679d0665d4308",
+   "shape_sha256": "b4c01d114fc6f9fac3eb0045448b969edd1d2392b7f3c2346091c3d20d6fc24e"
+  },
+  {
+   "seq": 5,
+   "utc": "2026-10-27T11:24:54.099023+00:00",
+   "method": "GET",
+   "label": "recover-lost-vendor-by-name",
+   "endpoint_template": "/vendors?name&limit=5&offset=0",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "d86a2afed38b4e10b908e2cad07d87c408ce10d912929d9735a635960b04f66b",
+   "shape_sha256": "0fcf550e9cab20da618bce954188049c1a363ebad0ee0c1f65b64f540f7116f8"
+  },
+  {
+   "seq": 6,
+   "utc": "2026-10-27T11:25:04.462980+00:00",
+   "method": "GET",
+   "label": "read-recovered-lost-vendor",
+   "endpoint_template": "/vendors/{id}",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "007b0e7960c365b809b46ba6bf75c3523ecf6d349aaaf20660d080e021464b95",
+   "shape_sha256": "b6e1dc4cd3127c7e6f90a64d14db3cab589563558005496913ab15627f62b26c"
+  },
+  {
+   "seq": 7,
+   "utc": "2026-10-27T11:25:04.872582+00:00",
+   "method": "GET",
+   "label": "count-owned-vendors-by-prefix",
+   "endpoint_template": "/vendors?name&limit=5&offset=0",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "a35467b025987fc9a44dfae733737f55925a361559aee44366801ce708d73646",
+   "shape_sha256": "ec355ae7a5ba6cd734762a84cef388628820e2725aa299a4a0d9e6d72c218dcc"
+  },
+  {
+   "seq": 8,
+   "utc": "2026-10-27T11:25:43.976249+00:00",
+   "method": "GET",
+   "label": "lookup-known-R05a3-order-freetext",
+   "endpoint_template": "/purchases/orders?freeText&limit=5&offset=0",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "9e0a8db95645bcad9976b59f1e668560beb0469e30ea0b8c306e5d18ebb3f853",
+   "shape_sha256": "b503a7b75ca223fc2bf64e7b066090c6f5048ce74deb872272479adedeecf07f"
+  },
+  {
+   "seq": 9,
+   "utc": "2026-10-27T11:25:44.435359+00:00",
+   "method": "GET",
+   "label": "stock-before-R05a4-order",
+   "endpoint_template": "/stocks/avaibility/report?idMaterial&limit=5&offset=0",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "7ff46f20e7469e3108f5eef57c9397ade06a6acd9b23c1de885058c15d11a07d",
+   "shape_sha256": "fa71dd0ae4e0db9a363cb2ee5d3e7bafa8be9f83aac1743a0c2927f21897e7f1"
+  },
+  {
+   "seq": 10,
+   "utc": "2026-10-27T11:25:54.263398+00:00",
+   "method": "GET",
+   "label": "lookup-known-R05a3-order-freetext-prefix",
+   "endpoint_template": "/purchases/orders?freeText&limit=5&offset=0",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "a9328b7e427b32d12c044062ec0e0d4b6e2604e08f151ba6201c3ee37a6369e3",
+   "shape_sha256": "97634c69ca88bdf228e18d93f30ffb28c8f42706698711525016749a4137b5b2"
+  },
+  {
+   "seq": 11,
+   "utc": "2026-10-27T11:26:09.505188+00:00",
+   "method": "POST",
+   "label": "create-order-lost-response",
+   "endpoint_template": "/purchases/orders?simulation=false",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "fd13279b726b5f17a4b4d53435fe4d01b40307139051ccd0e0f8d13d47c78443",
+   "shape_sha256": "25e8dfde745c5578307cfe9b87419bce06f47c35d343b8179eacd99a9d34fbd9"
+  },
+  {
+   "seq": 12,
+   "utc": "2026-10-27T11:26:18.710934+00:00",
+   "method": "GET",
+   "label": "recover-lost-order-by-correlation",
+   "endpoint_template": "/purchases/orders?freeText&limit=5&offset=0",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "9e0a8db95645bcad9976b59f1e668560beb0469e30ea0b8c306e5d18ebb3f853",
+   "shape_sha256": "b503a7b75ca223fc2bf64e7b066090c6f5048ce74deb872272479adedeecf07f"
+  },
+  {
+   "seq": 13,
+   "utc": "2026-10-27T11:26:35.215436+00:00",
+   "method": "GET",
+   "label": "recover-lost-order-by-correlation-retry-read",
+   "endpoint_template": "/purchases/orders?freeText&limit=5&offset=0",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "9e0a8db95645bcad9976b59f1e668560beb0469e30ea0b8c306e5d18ebb3f853",
+   "shape_sha256": "b503a7b75ca223fc2bf64e7b066090c6f5048ce74deb872272479adedeecf07f"
+  },
+  {
+   "seq": 14,
+   "utc": "2026-10-27T11:26:35.613804+00:00",
+   "method": "GET",
+   "label": "stock-after-lost-order-attempt",
+   "endpoint_template": "/stocks/avaibility/report?idMaterial&limit=5&offset=0",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "19d862bfce67fa4e085e8e938185c780f007211202f7929b077c41d5cc503e87",
+   "shape_sha256": "fa71dd0ae4e0db9a363cb2ee5d3e7bafa8be9f83aac1743a0c2927f21897e7f1"
+  },
+  {
+   "seq": 15,
+   "utc": "2026-10-27T11:26:52.588389+00:00",
+   "method": "GET",
+   "label": "recover-lost-order-by-docdate-window",
+   "endpoint_template": "/purchases/orders?gtDocDateMillins&limit=5&offset=0",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "9e0a8db95645bcad9976b59f1e668560beb0469e30ea0b8c306e5d18ebb3f853",
+   "shape_sha256": "b503a7b75ca223fc2bf64e7b066090c6f5048ce74deb872272479adedeecf07f"
+  },
+  {
+   "seq": 16,
+   "utc": "2026-10-27T11:28:04.913485+00:00",
+   "method": "GET",
+   "label": "recover-lost-order-by-correlation-after-60s",
+   "endpoint_template": "/purchases/orders?freeText&limit=5&offset=0",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "9e0a8db95645bcad9976b59f1e668560beb0469e30ea0b8c306e5d18ebb3f853",
+   "shape_sha256": "b503a7b75ca223fc2bf64e7b066090c6f5048ce74deb872272479adedeecf07f"
+  },
+  {
+   "seq": 17,
+   "utc": "2026-10-27T11:28:16.601506+00:00",
+   "method": "GET",
+   "label": "forensic-read-lost-order-by-oracle-id",
+   "endpoint_template": "/purchases/{id}/orders",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "322956b453b2df42897943abed1bf90ccda5abd05309f9e96d9042b83e219a21",
+   "shape_sha256": "eb3fd989e27f4cfc41457af6f93e2f478ace1a352504a07232c6e1bddd98324a"
+  },
+  {
+   "seq": 18,
+   "utc": "2026-10-27T11:28:35.630458+00:00",
+   "method": "GET",
+   "label": "lookup-orders-by-referenced-vendor-name-post-diagnostic",
+   "endpoint_template": "/purchases/orders?freeText&limit=5&offset=0",
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "ee9a5da37fcdc32ccd448acd02524e4653e530aa7c9009aa96d1d73d9d21d383",
+   "shape_sha256": "77c12ffd53a01794c1070889ecba22ab420e5a21136709042d6669a5b0399b74"
+  }
+ ],
+ "session_end": {
+  "api_ram_cleared": true,
+  "tokens_persisted": false
+ }
+}

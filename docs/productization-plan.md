@@ -4,6 +4,8 @@
 
 **Stato corrente R06.b.2:** R06.a.1 (PR #77) e R06.b.1 (PR #81) consegnate nei limiti sintetici; [registro OPE OPEN](r06-readiness-registry.json) e [runbook/decisioni residue](r06-recovery-runbook.md). #46 resta aperta: vero import/export con replay, target operativo, off-host, identity e validazioni specialistiche non provati. Nessuna readiness o go-live; nessuna nuova approvazione.
 
+**Stato corrente R05.a.4:** recovery di lost-success osservato per il fornitore (lookup per nome pre-registrato prima dell'oracle) e solo debole per l'ordine (lookup per correlazione vuota, ritrovato dopo oracle via nome fornitore); nessuna garanzia server idempotency/exactly-once; selezione parziale righe e bozza D79 non documentate (gap preciso, nulla provato). Stesso scopo D83/D84, nessuna nuova decisione; nessun completamento #44/#45/readiness. [Dossier](r05a4-sandbox-recovery-contract.md) e [matrice](r05a4-evidence.json).
+
 ## Stato e autorizzazione
 
 22 ottobre 2026. D74 (sviluppo), D75 (Giobby/esclusione SAP), D76 (direzione e scope), D77 (primo accesso offline/delega limitata) sono le decisioni attive. Sviluppo autonomo autorizzato fino a R06 per operatività officina pilota con amministrazione ERP esterna; capability contabile interna preservata, non deprecata. P00 (documenti/test, nessun codice applicativo), UI01.a isolata e R00.a/R00.b sono consegnate; R00 #40 chiusa dopo readback CI e smoke bootstrap read-only. R01.a #56 è consegnata; R01.b #58 implementa il percorso limitato D77 con verifiche/delivery tracciate nella PR/issue e nel [contratto operativo](r01b-limited-grant-administration.md). UI01.b resta separata. Nessun go-live. Baseline storica C00 `2ba4d273686854870b1a7806103bf1c096fcd0be`, CI 39592416386 success.
