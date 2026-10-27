@@ -1,0 +1,109 @@
+{
+ "order-correlation-lookup-empty": {
+  "documentsHeaders": [],
+  "errorCode": 0,
+  "metadata": {
+   "limit": 5,
+   "offset": 0,
+   "totalCount": 0
+  },
+  "responseCode": 200
+ },
+ "order-detail-lost-response": {
+  "document": {
+   "docCurrency": "EUR",
+   "docNumber": "2",
+   "docStatus": "CREATED",
+   "docStatusDesc": "Creato",
+   "id": 1,
+   "note": "E360-SB-R05A4-20261027T112231Z synthetic purchase order lost-response; no delivery",
+   "reference": "E360-SB-R05A4-20261027T112231Z-PO",
+   "rows": [
+    {
+     "docposstatus": "CREATED",
+     "idMaterial": "owned-product-1",
+     "idPos": 1,
+     "materialmovementref": null,
+     "quantity": 1.0,
+     "saleorderref": null
+    }
+   ]
+  },
+  "errorCode": 0,
+  "responseCode": 200
+ },
+ "stock-after-lost-order": {
+  "errorCode": 0,
+  "responseCode": 200,
+  "stockReports": [
+   {
+    "availableQty": 1.0,
+    "orderedToSuppliersQty": 2.0,
+    "quantity": 1.0,
+    "reservedByOrdersQty": 0.0,
+    "stockForecastQty": 3.0
+   }
+  ]
+ },
+ "stock-before-lost-order": {
+  "errorCode": 0,
+  "responseCode": 200,
+  "stockReports": [
+   {
+    "availableQty": 1.0,
+    "orderedToSuppliersQty": 1.0,
+    "quantity": 1.0,
+    "reservedByOrdersQty": 0.0,
+    "stockForecastQty": 2.0
+   }
+  ]
+ },
+ "vendor-lookup-normal": {
+  "errorCode": 0,
+  "metadata": {
+   "limit": 5,
+   "offset": 0,
+   "totalCount": 1
+  },
+  "responseCode": 200,
+  "vendors": [
+   {
+    "contact": {
+     "idVendor": "owned-vendor-normal",
+     "name": "E360-SB-R05A4-20261027T112231Z-VENDOR-NORMAL",
+     "note": "E360-SB-R05A4-20261027T112231Z sintetico sandbox fornitore normale",
+     "type": "COMPANY",
+     "visibilityType": "ALL"
+    },
+    "currency": "EUR",
+    "id": "owned-vendor-normal",
+    "locked": false,
+    "priceListEnabled": false
+   }
+  ]
+ },
+ "vendor-lookup-recovered-lost": {
+  "errorCode": 0,
+  "metadata": {
+   "limit": 5,
+   "offset": 0,
+   "totalCount": 1
+  },
+  "responseCode": 200,
+  "vendors": [
+   {
+    "contact": {
+     "idVendor": "owned-vendor-lost",
+     "name": "E360-SB-R05A4-20261027T112231Z-VENDOR-LOST",
+     "note": "E360-SB-R05A4-20261027T112231Z sintetico sandbox fornitore perso",
+     "type": "COMPANY",
+     "visibilityType": "ALL"
+    },
+    "currency": "EUR",
+    "id": "owned-vendor-lost",
+    "locked": false,
+    "priceListEnabled": false
+   }
+  ]
+ }
+}
