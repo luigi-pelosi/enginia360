@@ -97,7 +97,7 @@
     "depends": [
       "R04"
     ],
-    "gate": "AUTHORITY: configurabilità unilaterale societaria D76, master unico tenant-wide e profilo concreto al setup prima della sincronizzazione dipendente. D83 autorizza solo il sandbox nominato: API/UI autentiche e letture minime osservate, api-server selezionato per questo sandbox. Garanzie schema/versione/esiti/idempotenza/lookup ancora da verificare; sicurezza outbound NOT_ESTABLISHED, zero scritture business, nessun adapter o completamento R04/R05.",
+    "gate": "AUTHORITY: configurabilità unilaterale societaria D76, master unico tenant-wide e profilo concreto al setup prima della sincronizzazione dipendente. D83 solo sandbox nominato; D84 risolve outbound per owner-assertion di isolamento, non verifica tecnica indipendente. R05.a.3: ordine3/ricevimento2 collegato via UI e readback API; fattura persistita numerata con effetto stock, vera bozza D79 non provata; lost-create errore provider in UNCERTAIN hold, nessun replay. Garanzie schema/provenienza diretta API/idempotenza/lookup dopo lost-success ancora da stabilire; nessun adapter o completamento R04/R05. R05.a.2 zero-write resta snapshot storico.",
     "slices": [
       "R05.a: dossier contratto Giobby e matrice campo/transizione/autorità con gap documentati.",
       "R05.b: adattatore anti-corruption del percorso amministrativo minimo contro fixture contrattuali sintetiche, non risposta inventata come prova live.",

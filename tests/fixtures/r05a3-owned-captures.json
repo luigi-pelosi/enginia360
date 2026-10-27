@@ -1,0 +1,191 @@
+{
+  "read-owned-order3": {
+    "responseCode": 200,
+    "errorCode": 0,
+    "document": {
+      "id": 101,
+      "idDocumentType": 2,
+      "idDocumentTypeExt": 0,
+      "docStatus": "CREATED",
+      "docStatusDesc": "Creato",
+      "docNumber": "1",
+      "eidocstatus": "",
+      "rows": [
+        {
+          "idPos": 1,
+          "idPosType": 1,
+          "idMaterial": "E360-SB-OWNED-PRODUCT",
+          "quantity": 1.0,
+          "idStorage": "OWNED-WAREHOUSE",
+          "docposstatus": "CREATED",
+          "saleorderref": null,
+          "saleorderposref": null,
+          "materialmovementref": null,
+          "materialmovementposref": null
+        },
+        {
+          "idPos": 2,
+          "idPosType": 1,
+          "idMaterial": "E360-SB-OWNED-PRODUCT",
+          "quantity": 2.0,
+          "idStorage": "OWNED-WAREHOUSE",
+          "docposstatus": "CREATED",
+          "saleorderref": null,
+          "saleorderposref": null,
+          "materialmovementref": null,
+          "materialmovementposref": null
+        }
+      ]
+    }
+  },
+  "read-owned-linked-receipt2": {
+    "responseCode": 200,
+    "errorCode": 0,
+    "document": {
+      "id": 201,
+      "idDocumentType": 0,
+      "idDocumentTypeExt": 0,
+      "docStatus": "CREATED",
+      "docStatusDesc": "Creato",
+      "docNumber": "E360-SB-SANITIZED-GR",
+      "eidocstatus": "",
+      "rows": [
+        {
+          "idPos": 1,
+          "idPosType": 5,
+          "idMaterial": null,
+          "quantity": 0.0,
+          "idStorage": null,
+          "docposstatus": "CREATED",
+          "saleorderref": null,
+          "saleorderposref": null,
+          "materialmovementref": null,
+          "materialmovementposref": null
+        },
+        {
+          "idPos": 3,
+          "idPosType": 1,
+          "idMaterial": "E360-SB-OWNED-PRODUCT",
+          "quantity": 2.0,
+          "idStorage": "OWNED-WAREHOUSE",
+          "docposstatus": "CREATED",
+          "saleorderref": null,
+          "saleorderposref": null,
+          "materialmovementref": null,
+          "materialmovementposref": null
+        }
+      ]
+    }
+  },
+  "read-owned-order-after-receipt": {
+    "responseCode": 200,
+    "errorCode": 0,
+    "document": {
+      "id": 101,
+      "idDocumentType": 2,
+      "idDocumentTypeExt": 0,
+      "docStatus": "GOOD_PARTIAL_RECEIVED",
+      "docStatusDesc": "Merce parzialmente ricevuta",
+      "docNumber": "1",
+      "eidocstatus": "",
+      "rows": [
+        {
+          "idPos": 1,
+          "idPosType": 1,
+          "idMaterial": "E360-SB-OWNED-PRODUCT",
+          "quantity": 1.0,
+          "idStorage": "OWNED-WAREHOUSE",
+          "docposstatus": "CREATED",
+          "saleorderref": null,
+          "saleorderposref": null,
+          "materialmovementref": null,
+          "materialmovementposref": null
+        },
+        {
+          "idPos": 2,
+          "idPosType": 1,
+          "idMaterial": "E360-SB-OWNED-PRODUCT",
+          "quantity": 2.0,
+          "idStorage": "OWNED-WAREHOUSE",
+          "docposstatus": "GOOD_RECEIVED",
+          "saleorderref": null,
+          "saleorderposref": null,
+          "materialmovementref": null,
+          "materialmovementposref": null
+        }
+      ]
+    }
+  },
+  "read-owned-sales-invoice": {
+    "responseCode": 200,
+    "errorCode": 0,
+    "document": {
+      "id": 301,
+      "idDocumentType": 10,
+      "idDocumentTypeExt": 0,
+      "docStatus": "CREATED",
+      "docStatusDesc": "Creato",
+      "docNumber": "1",
+      "eidocstatus": "",
+      "rows": [
+        {
+          "idPos": 1,
+          "idPosType": 1,
+          "idMaterial": "E360-SB-OWNED-PRODUCT",
+          "quantity": 1.0,
+          "idStorage": "OWNED-WAREHOUSE",
+          "docposstatus": "CREATED",
+          "saleorderref": null,
+          "saleorderposref": null,
+          "materialmovementref": 7986,
+          "materialmovementposref": 1
+        }
+      ]
+    }
+  },
+  "stock-after-orderreport": {
+    "responseCode": 200,
+    "errorCode": 0,
+    "stockReports": [
+      {
+        "idMaterial": "E360-SB-OWNED-PRODUCT",
+        "idStorage": "OWNED-WAREHOUSE",
+        "quantity": 0.0,
+        "reservedByOrdersQty": 0.0,
+        "availableQty": 0.0,
+        "orderedToSuppliersQty": 3.0,
+        "stockForecastQty": 3.0
+      }
+    ]
+  },
+  "stock-after-receiptreport": {
+    "responseCode": 200,
+    "errorCode": 0,
+    "stockReports": [
+      {
+        "idMaterial": "E360-SB-OWNED-PRODUCT",
+        "idStorage": "OWNED-WAREHOUSE",
+        "quantity": 2.0,
+        "reservedByOrdersQty": 0.0,
+        "availableQty": 2.0,
+        "orderedToSuppliersQty": 1.0,
+        "stockForecastQty": 3.0
+      }
+    ]
+  },
+  "stock-after-invoice": {
+    "responseCode": 200,
+    "errorCode": 0,
+    "stockReports": [
+      {
+        "idMaterial": "E360-SB-OWNED-PRODUCT",
+        "idStorage": "OWNED-WAREHOUSE",
+        "quantity": 1.0,
+        "reservedByOrdersQty": 0.0,
+        "availableQty": 1.0,
+        "orderedToSuppliersQty": 1.0,
+        "stockForecastQty": 2.0
+      }
+    ]
+  }
+}

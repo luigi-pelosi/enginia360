@@ -1,0 +1,860 @@
+{
+  "increment": "R05.a.3",
+  "status": "OBSERVED_BUSINESS_WITH_PRECISE_BLOCKERS",
+  "decision": "D84",
+  "isolation": {
+    "class": "owner-assertion",
+    "date": "2026-10-27",
+    "quote": "Confermo che la sandbox è scollegata da altri sistemi automatici, webhook ed esportazioni.",
+    "gate": "RESOLVED_BY_OWNER_ASSERTION",
+    "independent_technical_verification": false,
+    "sdi_disabled": "owner-assertion"
+  },
+  "authentication": {
+    "http_status": 200,
+    "realm": "api-server",
+    "dynamic_discovery": true,
+    "cid_exact_match": true,
+    "company_value_match": true,
+    "company_types": "JWT string/loggeduser integer; textual comparison",
+    "bootstrap_hashes": "not retained; never fabricated"
+  },
+  "historical_decisions_d1_d83_sha256": "3acc4703b23a045a8ce49152e8cadb655384eb9e09119e83e503443eb8766ba8",
+  "historical_r05a2_matrix_sha256": "509178dacc2781df2b39e10a11edd8b7e6e8ce952d6b4858677cf119dbf29924",
+  "observations": [
+    {
+      "seq": 1,
+      "utc": "2026-10-27T10:24:53.852041+00:00",
+      "method": "POST",
+      "template": "create-owned-vendors",
+      "http_status": 200,
+      "source_sha256": "90307c13bc75876f01950acdfa94b1ee891ee1a45abe25d05f52ba3e932360c9",
+      "shape_sha256": "b4c01d114fc6f9fac3eb0045448b969edd1d2392b7f3c2346091c3d20d6fc24e",
+      "status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "endpoint_template": "/vendors"
+    },
+    {
+      "seq": 2,
+      "utc": "2026-10-27T10:24:54.473259+00:00",
+      "method": "POST",
+      "template": "create-owned-customers",
+      "http_status": 200,
+      "source_sha256": "472038135c4a3021342bca46261a77191c6356c64ca5c612e8c476c686227693",
+      "shape_sha256": "6d3322584caf7646ce271b90ebd4700d8d62edf82f0282b675cfdeb334674e50",
+      "status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "endpoint_template": "/customers"
+    },
+    {
+      "seq": 3,
+      "utc": "2026-10-27T10:25:07.516037+00:00",
+      "method": "GET",
+      "template": "read-owned-vendors",
+      "http_status": 200,
+      "source_sha256": "2efb32adc55e1ff46db12aeac4d6cc414ed603af89fa2c6e3c8045126e06a13c",
+      "shape_sha256": "b6e1dc4cd3127c7e6f90a64d14db3cab589563558005496913ab15627f62b26c",
+      "status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "endpoint_template": "/vendors/{ownedVendor}"
+    },
+    {
+      "seq": 4,
+      "utc": "2026-10-27T10:25:08.043064+00:00",
+      "method": "GET",
+      "template": "lookup-owned-vendors",
+      "http_status": 200,
+      "source_sha256": "1c24a2f40c8625b3e48e8908a53c48db34f81446eda77bc921b1bc65d19c9dfd",
+      "shape_sha256": "0fcf550e9cab20da618bce954188049c1a363ebad0ee0c1f65b64f540f7116f8",
+      "status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "endpoint_template": "/vendors?name={ownedName}&limit=5&offset=0"
+    },
+    {
+      "seq": 5,
+      "utc": "2026-10-27T10:25:08.466540+00:00",
+      "method": "GET",
+      "template": "read-owned-customers",
+      "http_status": 200,
+      "source_sha256": "b8ab3411f4ed8d1c5ba0deb11028417cb8269f44911bbb1512a8eca8e3fde1f5",
+      "shape_sha256": "54a39331e16f5780023e9e0c7af7a3c6e84dd3d80fb943d33e0ad025bd7bd03a",
+      "status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "endpoint_template": "/customers/{ownedCustomer}"
+    },
+    {
+      "seq": 6,
+      "utc": "2026-10-27T10:25:08.886349+00:00",
+      "method": "GET",
+      "template": "lookup-owned-customers",
+      "http_status": 200,
+      "source_sha256": "a09f28c7de1d4c8e24b110e6ef0d3253797999fb6cfbf2f0c2690418c6221a64",
+      "shape_sha256": "8fbc331daf44cc4564df77b6956e105148cf404fcdee4c7e7dc3d641890e9914",
+      "status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "endpoint_template": "/customers?name={ownedName}&limit=5&offset=0"
+    },
+    {
+      "seq": 7,
+      "utc": "2026-10-27T10:25:27.001875+00:00",
+      "method": "POST",
+      "template": "lost-create-vendor",
+      "http_status": 500,
+      "source_sha256": "47a1ea95128ae87165a8fdcf7e42d2b8ee8d7dd94dda271af3702ce6a688f794",
+      "shape_sha256": "8ca8069c75035147e8b483e84ea03fee5354bc71917ffb83bea91ac133d50cc3",
+      "status": {
+        "responseCode": 500,
+        "errorCode": 2121003
+      },
+      "endpoint_template": "/vendors"
+    },
+    {
+      "seq": 8,
+      "utc": "2026-10-27T10:25:27.463215+00:00",
+      "method": "GET",
+      "template": "recover-owned-vendor-by-name",
+      "http_status": 200,
+      "source_sha256": "b0ccffa73a02e4a44448b9cc9dd743ba3cbaf4f68b4f7f768c1f2639e3dc061e",
+      "shape_sha256": "ae13287ada9ecb0a220b47ed0c013c49da4118499710a20f535d297f5d8bbf57",
+      "status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "endpoint_template": "/vendors?name={lostCreateName}&limit=5&offset=0"
+    },
+    {
+      "seq": 9,
+      "utc": "2026-10-27T10:26:06.587024+00:00",
+      "method": "GET",
+      "template": "reference-storage",
+      "http_status": 200,
+      "source_sha256": "bb96735138d27f0d100195e58ab7b956b23a4b2710d30405e0322feb0cb30a43",
+      "shape_sha256": "51435e6d29933b9ca4b0883863821263de037583a1fb34224059c64f3142fe02",
+      "status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "endpoint_template": "/storages?limit=1&offset=0"
+    },
+    {
+      "seq": 10,
+      "utc": "2026-10-27T10:26:07.011098+00:00",
+      "method": "GET",
+      "template": "reference-um",
+      "http_status": 200,
+      "source_sha256": "424e95fb23496738160b5f19807dc562fd629fc86d0a5c6ed0b4e832ae6c70ac",
+      "shape_sha256": "a46de7d04575ca000cc4a06859494440ccf8609f916bc55ed4b6b9dee59b33be",
+      "status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "endpoint_template": "/um?limit=1&offset=0"
+    },
+    {
+      "seq": 11,
+      "utc": "2026-10-27T10:26:07.579212+00:00",
+      "method": "GET",
+      "template": "reference-product",
+      "http_status": 200,
+      "source_sha256": "df6045370164a1905b0643dd08cf1d75912fc0011db375ec27cd8f2491ae6081",
+      "shape_sha256": "13b0f8db56a175ad8b1616be6d83ceabe963ebb9e9c428ce148cb691ed06d0ab",
+      "status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "endpoint_template": "/products?limit=1&offset=0"
+    },
+    {
+      "seq": 12,
+      "utc": "2026-10-27T10:26:22.389575+00:00",
+      "method": "POST",
+      "template": "create-owned-product",
+      "http_status": 500,
+      "source_sha256": "9703bf16bfa85d4a49db1d87695fa05c447df147d19c15542684fab1ba8f7a1c",
+      "shape_sha256": "8ca8069c75035147e8b483e84ea03fee5354bc71917ffb83bea91ac133d50cc3",
+      "status": {
+        "responseCode": 500,
+        "errorCode": 2401003
+      },
+      "endpoint_template": "/products/product"
+    },
+    {
+      "seq": 13,
+      "utc": "2026-10-27T10:27:17.458531+00:00",
+      "method": "GET",
+      "template": "read-attempted-owned-product",
+      "http_status": 404,
+      "source_sha256": "37405123fd308fb6311ff37b2d8b2aef3824e4ebda909a23ced4c5b728f7033c",
+      "shape_sha256": "8ca8069c75035147e8b483e84ea03fee5354bc71917ffb83bea91ac133d50cc3",
+      "status": {
+        "responseCode": 404,
+        "errorCode": 2401
+      },
+      "endpoint_template": "/products/{attemptedOwnedProduct}"
+    },
+    {
+      "seq": 14,
+      "utc": "2026-10-27T10:27:17.875464+00:00",
+      "method": "GET",
+      "template": "reference-bupnumerators-2",
+      "http_status": 200,
+      "source_sha256": "b53599856a1703499b7538040bfc3e5181b6efb2c804eb565b70dec7f869e162",
+      "shape_sha256": "b09bcc47f7c159d07765d649e9f87e844c3a80878c85f2bb40f1c7a79f1c09b0",
+      "status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "endpoint_template": "/companysettings/bupnumerators?idDocumentType=2"
+    },
+    {
+      "seq": 15,
+      "utc": "2026-10-27T10:27:18.305622+00:00",
+      "method": "GET",
+      "template": "reference-bupnumerators-0",
+      "http_status": 200,
+      "source_sha256": "b53599856a1703499b7538040bfc3e5181b6efb2c804eb565b70dec7f869e162",
+      "shape_sha256": "b09bcc47f7c159d07765d649e9f87e844c3a80878c85f2bb40f1c7a79f1c09b0",
+      "status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "endpoint_template": "/companysettings/bupnumerators?idDocumentType=0"
+    },
+    {
+      "seq": 16,
+      "utc": "2026-10-27T10:27:18.700677+00:00",
+      "method": "GET",
+      "template": "reference-bupnumerators-10",
+      "http_status": 200,
+      "source_sha256": "b53599856a1703499b7538040bfc3e5181b6efb2c804eb565b70dec7f869e162",
+      "shape_sha256": "b09bcc47f7c159d07765d649e9f87e844c3a80878c85f2bb40f1c7a79f1c09b0",
+      "status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "endpoint_template": "/companysettings/bupnumerators?idDocumentType=10"
+    },
+    {
+      "seq": 17,
+      "utc": "2026-10-27T10:32:31.263834+00:00",
+      "method": "GET",
+      "template": "read-owned-UI-product",
+      "http_status": 200,
+      "source_sha256": "89012b11b8c48d98c39114b46b91a62b23bd354e0f87ad6cdab6e600069ec153",
+      "shape_sha256": "140b05157b72d97d58ea8a832b951d1244ec7dbf4ae06cc7a2bedc1f4524c6b7",
+      "status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "endpoint_template": "/products/{ownedUIProduct}"
+    },
+    {
+      "seq": 18,
+      "utc": "2026-10-27T10:33:03.536903+00:00",
+      "method": "GET",
+      "template": "stock-before-order",
+      "http_status": 200,
+      "source_sha256": "d10bc6f4828dd5c3ec7f3f413b347f352da02001d9dbdc85990f77b0c39c096a",
+      "shape_sha256": "8f61527a11d5fce3bd624e1448db55ef6444b3ea1abc85006734bf5fbd3e2ddb",
+      "status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "endpoint_template": "/stocks/avaibility?idMaterial={ownedProduct}&idStorage={referenceStorage}&zeroQtyRows=true&limit=5&offset=0"
+    },
+    {
+      "seq": 19,
+      "utc": "2026-10-27T10:33:04.018888+00:00",
+      "method": "POST",
+      "template": "create-owned-order3-duplicateSKU",
+      "http_status": 200,
+      "source_sha256": "8ae0a9332a4054da01d055183df7e89035505e8b59ce97d9a9f828e66bcf07fc",
+      "shape_sha256": "25e8dfde745c5578307cfe9b87419bce06f47c35d343b8179eacd99a9d34fbd9",
+      "status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "endpoint_template": "/purchases/orders?simulation=false"
+    },
+    {
+      "seq": 20,
+      "utc": "2026-10-27T10:33:28.757494+00:00",
+      "method": "GET",
+      "template": "read-owned-order3",
+      "http_status": 200,
+      "source_sha256": "225bd346a1250acf9d68ea2456b6e71320696802ca17445d1447e546c31f60ad",
+      "shape_sha256": "ff70956f7dbdf7918a0b31c8066b1518836fac9275665defddb7383990d0c77b",
+      "status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "endpoint_template": "/purchases/{ownedOrder}/orders?onlyHeaderData=false"
+    },
+    {
+      "seq": 21,
+      "utc": "2026-10-27T10:33:29.226669+00:00",
+      "method": "GET",
+      "template": "stock-after-order",
+      "http_status": 200,
+      "source_sha256": "d10bc6f4828dd5c3ec7f3f413b347f352da02001d9dbdc85990f77b0c39c096a",
+      "shape_sha256": "8f61527a11d5fce3bd624e1448db55ef6444b3ea1abc85006734bf5fbd3e2ddb",
+      "status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "endpoint_template": "/stocks/avaibility?idMaterial={ownedProduct}&idStorage={referenceStorage}&zeroQtyRows=true&limit=5&offset=0"
+    },
+    {
+      "seq": 22,
+      "utc": "2026-10-27T10:33:29.698863+00:00",
+      "method": "GET",
+      "template": "stock-after-orderreport",
+      "http_status": 200,
+      "source_sha256": "4124c4377c4b71fa7dc26ba3269648f257faf4a9baac3e96eccec156803afde1",
+      "shape_sha256": "fa71dd0ae4e0db9a363cb2ee5d3e7bafa8be9f83aac1743a0c2927f21897e7f1",
+      "status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "endpoint_template": "/stocks/avaibility/report?idMaterial={ownedProduct}&idStorage={referenceStorage}&limit=5&offset=0"
+    },
+    {
+      "seq": 23,
+      "utc": "2026-10-27T10:36:37.049525+00:00",
+      "method": "GET",
+      "template": "read-owned-linked-receipt2",
+      "http_status": 200,
+      "source_sha256": "7575c9c6938370881403c96296b93ee145b4cccce63d6ffad6863221209128f4",
+      "shape_sha256": "e3c58002f6438c8ab22b1598addf8a958c7d0b85955a0fcdb28f8d93b12a0451",
+      "status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "endpoint_template": "/purchases/{ownedReceipt}/goodsreceipt?onlyHeaderData=false"
+    },
+    {
+      "seq": 24,
+      "utc": "2026-10-27T10:36:37.520682+00:00",
+      "method": "GET",
+      "template": "read-owned-order-after-receipt",
+      "http_status": 200,
+      "source_sha256": "3a7f1a65ee9232a04ffd4c3f4beb6fe88cdbb85c6f545502b302fd16b21723cb",
+      "shape_sha256": "ff70956f7dbdf7918a0b31c8066b1518836fac9275665defddb7383990d0c77b",
+      "status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "endpoint_template": "/purchases/{ownedOrder}/orders?onlyHeaderData=false"
+    },
+    {
+      "seq": 25,
+      "utc": "2026-10-27T10:36:37.984258+00:00",
+      "method": "GET",
+      "template": "stock-after-receipt",
+      "http_status": 200,
+      "source_sha256": "74e9f424df69653feebc4a6b983a5c262562c3735328731f3f879c44e668f7c2",
+      "shape_sha256": "98f5d90c03d0d457a94135ee2379c3fc664e9f3a7d9850d983c477de406f8306",
+      "status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "endpoint_template": "/stocks/avaibility?idMaterial={ownedProduct}&idStorage={referenceStorage}&zeroQtyRows=true&limit=5&offset=0"
+    },
+    {
+      "seq": 26,
+      "utc": "2026-10-27T10:36:38.518618+00:00",
+      "method": "GET",
+      "template": "stock-after-receiptreport",
+      "http_status": 200,
+      "source_sha256": "f251fdee2ddf069f81d23304c8b4e0c325de13d6fbeeaf0f7e44981ad74c17e7",
+      "shape_sha256": "fa71dd0ae4e0db9a363cb2ee5d3e7bafa8be9f83aac1743a0c2927f21897e7f1",
+      "status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "endpoint_template": "/stocks/avaibility/report?idMaterial={ownedProduct}&idStorage={referenceStorage}&zeroQtyRows=true&limit=5&offset=0"
+    },
+    {
+      "seq": 27,
+      "utc": "2026-10-27T10:37:14.380835+00:00",
+      "method": "POST",
+      "template": "create-owned-sales-invoice",
+      "http_status": 200,
+      "source_sha256": "42cce4f0f2ee806288f1aad60fae4c5d1e99f353a6a3bbf7b49aedc0970993bf",
+      "shape_sha256": "25e8dfde745c5578307cfe9b87419bce06f47c35d343b8179eacd99a9d34fbd9",
+      "status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "endpoint_template": "/sales/invoices?simulation=false"
+    },
+    {
+      "seq": 28,
+      "utc": "2026-10-27T10:37:15.024554+00:00",
+      "method": "GET",
+      "template": "read-owned-sales-invoice",
+      "http_status": 200,
+      "source_sha256": "3ecfa8b60224c74ef3bed8f871ed52a27d4ba49f8be4a03d806f4ece707e8fa9",
+      "shape_sha256": "7b3f3c36e0daba1aa4df4a64babe8abd061e4d25b87280e8d015df32f49d500e",
+      "status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "endpoint_template": "/sales/{ownedInvoice}/invoices?onlyHeaderData=false"
+    },
+    {
+      "seq": 29,
+      "utc": "2026-10-27T10:37:15.515284+00:00",
+      "method": "GET",
+      "template": "stock-after-invoice",
+      "http_status": 200,
+      "source_sha256": "7ff46f20e7469e3108f5eef57c9397ade06a6acd9b23c1de885058c15d11a07d",
+      "shape_sha256": "fa71dd0ae4e0db9a363cb2ee5d3e7bafa8be9f83aac1743a0c2927f21897e7f1",
+      "status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "endpoint_template": "/stocks/avaibility/report?idMaterial={ownedProduct}&idStorage={referenceStorage}&limit=5&offset=0"
+    },
+    {
+      "seq": 30,
+      "utc": "2026-10-27T10:38:05.957741+00:00",
+      "method": "GET",
+      "template": "lookup-uncertain-create-contact",
+      "http_status": 200,
+      "source_sha256": "57fdcc0039a8cd6c8d190b78f49040daafb9ae521f65fc94419bbb4730ae6155",
+      "shape_sha256": "ae9c7734f942b2645fd0dd02f8acda48d2eccefffbd3f22f362061f91d400908",
+      "status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "endpoint_template": "/contacts?fullName={lostCreateName}&limit=5&offset=0"
+    },
+    {
+      "seq": 31,
+      "utc": "2026-10-27T10:38:06.391065+00:00",
+      "method": "GET",
+      "template": "lookup-owned-purchases-orders",
+      "http_status": 200,
+      "source_sha256": "a9328b7e427b32d12c044062ec0e0d4b6e2604e08f151ba6201c3ee37a6369e3",
+      "shape_sha256": "97634c69ca88bdf228e18d93f30ffb28c8f42706698711525016749a4137b5b2",
+      "status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "endpoint_template": "/purchases/orders?freeText={ownedPrefix}&limit=5&offset=0"
+    },
+    {
+      "seq": 32,
+      "utc": "2026-10-27T10:38:06.897414+00:00",
+      "method": "GET",
+      "template": "lookup-owned-purchases-goodsreceipt",
+      "http_status": 200,
+      "source_sha256": "d9d6fc9cc54899d751640feb6830aa8030e3174474560f1852bba4ef362dd598",
+      "shape_sha256": "fa36bb2e71b68ea0923f6dbac6f7f6b13eac1320eb25bbb48b2020f6c9450df7",
+      "status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "endpoint_template": "/purchases/goodsreceipt?freeText={ownedPrefix}&limit=5&offset=0"
+    },
+    {
+      "seq": 33,
+      "utc": "2026-10-27T10:38:07.338018+00:00",
+      "method": "GET",
+      "template": "lookup-owned-sales-invoices",
+      "http_status": 200,
+      "source_sha256": "0a47bfeca5082b4f15b15642dcb356ae887feeabc36250ed818859a04bda9122",
+      "shape_sha256": "3cad18e08e8258563bb11797c6c31366ab66e5e9cb33146bc2c931c9382988a3",
+      "status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "endpoint_template": "/sales/invoices?freeText={ownedPrefix}&limit=5&offset=0"
+    }
+  ],
+  "acquisition_counts": {
+    "business_api_requests": 33,
+    "reference_gets": 6,
+    "api_post_attempts": 6,
+    "ui_owned_save_intents": 2,
+    "ui_receipt_validation_refusals": 1,
+    "query_cap": 5,
+    "reference_cap": 1,
+    "offset": 0,
+    "full_account_scans": 0
+  },
+  "ledger": {
+    "counts": {
+      "write_intents": 8,
+      "verified_business_aggregates": 6,
+      "verified_implicit_contacts": 2,
+      "verified_objects": 8,
+      "uncertain_write_paths": 1
+    },
+    "writes": [
+      {
+        "seq": 1,
+        "operation": "create-owned-vendors",
+        "state": "VERIFIED",
+        "http_status": 200,
+        "business_status": {
+          "responseCode": 200,
+          "errorCode": 0
+        }
+      },
+      {
+        "seq": 2,
+        "operation": "create-owned-customers",
+        "state": "VERIFIED",
+        "http_status": 200,
+        "business_status": {
+          "responseCode": 200,
+          "errorCode": 0
+        }
+      },
+      {
+        "seq": 7,
+        "operation": "lost-create-vendor",
+        "state": "UNCERTAIN",
+        "http_status": 500,
+        "business_status": {
+          "responseCode": 500,
+          "errorCode": 2121003
+        }
+      },
+      {
+        "seq": 12,
+        "operation": "create-owned-product",
+        "state": "PROVIDER_ERROR_NO_REPLAY",
+        "http_status": 500,
+        "business_status": {
+          "responseCode": 500,
+          "errorCode": 2401003
+        }
+      },
+      {
+        "seq": "UI1",
+        "operation": "create-distinct-owned-UI-product",
+        "state": "VERIFIED",
+        "http_status": null,
+        "business_status": null
+      },
+      {
+        "seq": 19,
+        "operation": "create-owned-order3-duplicateSKU",
+        "state": "VERIFIED",
+        "http_status": 200,
+        "business_status": {
+          "responseCode": 200,
+          "errorCode": 0
+        }
+      },
+      {
+        "seq": "UI2",
+        "operation": "owned-linked-partial-receipt2",
+        "state": "VERIFIED",
+        "http_status": null,
+        "business_status": null
+      },
+      {
+        "seq": 27,
+        "operation": "create-owned-sales-invoice",
+        "state": "VERIFIED",
+        "http_status": 200,
+        "business_status": {
+          "responseCode": 200,
+          "errorCode": 0
+        }
+      }
+    ],
+    "objects": [
+      {
+        "owned_alias": "owned-1",
+        "kind": "vendors",
+        "create_seq": 1,
+        "readback_seq": 3
+      },
+      {
+        "owned_alias": "owned-2",
+        "kind": "customers",
+        "create_seq": 2,
+        "readback_seq": 5
+      },
+      {
+        "owned_alias": "owned-3",
+        "kind": "products",
+        "create_seq": "UI1",
+        "readback_seq": 17
+      },
+      {
+        "owned_alias": "owned-4",
+        "kind": "purchase-orders",
+        "create_seq": 19,
+        "readback_seq": 20
+      },
+      {
+        "owned_alias": "owned-5",
+        "kind": "goods-receipts",
+        "create_seq": "UI2",
+        "readback_seq": 23
+      },
+      {
+        "owned_alias": "owned-6",
+        "kind": "sales-invoices",
+        "create_seq": 27,
+        "readback_seq": 28
+      },
+      {
+        "owned_alias": "owned-7",
+        "kind": "contacts",
+        "create_seq": 1,
+        "readback_seq": 3,
+        "implicit_in": "vendors",
+        "readback_pointer": "/vendor/contact"
+      },
+      {
+        "owned_alias": "owned-8",
+        "kind": "contacts",
+        "create_seq": 2,
+        "readback_seq": 5,
+        "implicit_in": "customers",
+        "readback_pointer": "/customer/contact"
+      }
+    ],
+    "uncertain_path": "lost-create-vendor; no replay; empty filtered lists do not prove no side effect",
+    "cleanup": "none; owned fiscal/stock provenance retained"
+  },
+  "scenarios": {
+    "purchase3-linked-receipt2": {
+      "outcome": "OBSERVED_UI_LINKED_API_READBACK",
+      "order_line_ids": [
+        1,
+        2
+      ],
+      "ordered_quantities": [
+        1,
+        2
+      ],
+      "received_source_line": 2,
+      "receipt_material_row_id": 3,
+      "receipt_quantity": 2,
+      "order_status_after": "GOOD_PARTIAL_RECEIVED",
+      "source_line_status_after": [
+        "CREATED",
+        "GOOD_RECEIVED"
+      ],
+      "residual_stock_report": 1,
+      "direct_partial_api": "BLOCKED: GenerateGoodReceiptIssueApi has header fields only; no row quantity/selection; not invoked for full3",
+      "detail_link_fields": "saleorderref/saleorderposref/materialmovementref/materialmovementposref all genuinely null",
+      "ui_import_route": "GoodsReceiptIssue.xhtml?DOCS_ID_IMPORT={ownedOrder}&ftrID=g_receipt_n&IDDOCTYPE_IMP=2"
+    },
+    "duplicate-SKU-provenance": {
+      "outcome": "OBSERVED_UI_SOURCE_LINE_DISTINCTION",
+      "same_sku": true,
+      "source_row1_status": "CREATED",
+      "source_row2_status": "GOOD_RECEIVED",
+      "api_detail_source_graph": "NOT_EXPOSED_IN_EXERCISED_RESPONSE"
+    },
+    "D79-persistent-sales-invoice-draft": {
+      "outcome": "NOT_ESTABLISHED",
+      "actual_invoice_created": true,
+      "retrievable": true,
+      "status": "CREATED",
+      "status_description": "Creato",
+      "number_nonempty": true,
+      "eidocstatus": "",
+      "docStatus_input": "ignored with warning",
+      "stock_effect": -1,
+      "ui_visible_actions": [
+        "Salva",
+        "Stampa",
+        "Invia"
+      ],
+      "ui_draft_label_found": false,
+      "send_invoked": false,
+      "fiscal_finality": "NOT_INFERRED",
+      "narrow_conclusion": "Observed numbered stock-affecting invoice; not true pending draft proof or a universal only-register claim"
+    },
+    "lost-response-recovery": {
+      "outcome": "BLOCKED_PROVIDER_ERROR_UNCERTAIN_HOLD",
+      "preflight_name_lookup_count": 1,
+      "dropped_create_attempts": 1,
+      "replays": 0,
+      "forensic_http_status": 500,
+      "forensic_errorCode": 2121003,
+      "vendor_name_lookup_count": 0,
+      "contact_fullName_lookup_count": 0,
+      "lost_id_used_for_recovery": false,
+      "successful_single_effect_proved": false
+    }
+  },
+  "stock_observations": [
+    {
+      "phase": "before-order",
+      "rows": [],
+      "numeric_zero_not_inferred": true
+    },
+    {
+      "phase": "after-order",
+      "quantity": 0,
+      "availableQty": 0,
+      "orderedToSuppliersQty": 3,
+      "stockForecastQty": 3
+    },
+    {
+      "phase": "after-receipt",
+      "quantity": 2,
+      "availableQty": 2,
+      "orderedToSuppliersQty": 1,
+      "stockForecastQty": 3
+    },
+    {
+      "phase": "after-invoice",
+      "quantity": 1,
+      "availableQty": 1,
+      "orderedToSuppliersQty": 1,
+      "stockForecastQty": 2
+    }
+  ],
+  "negative_findings": [
+    {
+      "operation": "POST /products/product",
+      "http_status": 500,
+      "errorCode": 2401003,
+      "exact_get_status": 404,
+      "retry": false,
+      "workaround": "distinct owned UI product; API cause unresolved"
+    },
+    {
+      "operation": "UI receipt save",
+      "refusal": "document number maximum20 characters",
+      "resolution": "short owned number with full prefix retained in notes; no persisted mutation before validation correction"
+    },
+    {
+      "operation": "counterparty visibilityType",
+      "requested": "ONLY_FOR_ME",
+      "observed": "ALL"
+    }
+  ],
+  "captures": [
+    {
+      "name": "read-owned-order3",
+      "source_seq": 20,
+      "source_sha256": "225bd346a1250acf9d68ea2456b6e71320696802ca17445d1447e546c31f60ad",
+      "sanitized_sha256": "3ba2f3e52abfa4730bb0376c414966b8f87ed97489b904b024ac50a4ccb71a46",
+      "transformation": "allowlisted projection; integer document IDs 101/201/301; consistent owned product/warehouse aliases; nonempty number aliased; rows/order/status/quantities/null references preserved"
+    },
+    {
+      "name": "read-owned-linked-receipt2",
+      "source_seq": 23,
+      "source_sha256": "7575c9c6938370881403c96296b93ee145b4cccce63d6ffad6863221209128f4",
+      "sanitized_sha256": "34e676fbfeff8de052b85b946a0dce3754bcec53f9cf895f3a1cd08a96e26ffc",
+      "transformation": "allowlisted projection; integer document IDs 101/201/301; consistent owned product/warehouse aliases; nonempty number aliased; rows/order/status/quantities/null references preserved"
+    },
+    {
+      "name": "read-owned-order-after-receipt",
+      "source_seq": 24,
+      "source_sha256": "3a7f1a65ee9232a04ffd4c3f4beb6fe88cdbb85c6f545502b302fd16b21723cb",
+      "sanitized_sha256": "0d029e2a4969185811801624f7f82918a5592a8ef27da4e22671b69ff5385fe9",
+      "transformation": "allowlisted projection; integer document IDs 101/201/301; consistent owned product/warehouse aliases; nonempty number aliased; rows/order/status/quantities/null references preserved"
+    },
+    {
+      "name": "read-owned-sales-invoice",
+      "source_seq": 28,
+      "source_sha256": "3ecfa8b60224c74ef3bed8f871ed52a27d4ba49f8be4a03d806f4ece707e8fa9",
+      "sanitized_sha256": "df59bb582b1f45c1177701fe92294a1f75266d7b631a34e282a90cacdad28c39",
+      "transformation": "allowlisted projection; integer document IDs 101/201/301; consistent owned product/warehouse aliases; nonempty number aliased; rows/order/status/quantities/null references preserved"
+    },
+    {
+      "name": "stock-after-orderreport",
+      "source_seq": 22,
+      "source_sha256": "4124c4377c4b71fa7dc26ba3269648f257faf4a9baac3e96eccec156803afde1",
+      "sanitized_sha256": "14a0b22496ef213854e2a1936ac86b1711694c8151b0c1453bea3c921ac467b5",
+      "transformation": "allowlisted projection; integer document IDs 101/201/301; consistent owned product/warehouse aliases; nonempty number aliased; rows/order/status/quantities/null references preserved"
+    },
+    {
+      "name": "stock-after-receiptreport",
+      "source_seq": 26,
+      "source_sha256": "f251fdee2ddf069f81d23304c8b4e0c325de13d6fbeeaf0f7e44981ad74c17e7",
+      "sanitized_sha256": "e67948253b724fcc6e4f73c1a84ec5cb828b32e767d96b78227537c63e88d4cc",
+      "transformation": "allowlisted projection; integer document IDs 101/201/301; consistent owned product/warehouse aliases; nonempty number aliased; rows/order/status/quantities/null references preserved"
+    },
+    {
+      "name": "stock-after-invoice",
+      "source_seq": 29,
+      "source_sha256": "7ff46f20e7469e3108f5eef57c9397ade06a6acd9b23c1de885058c15d11a07d",
+      "sanitized_sha256": "752b91ddffb0482901179b484e5e1264cc74ae7fc104bad63ce222c7661f81b5",
+      "transformation": "allowlisted projection; integer document IDs 101/201/301; consistent owned product/warehouse aliases; nonempty number aliased; rows/order/status/quantities/null references preserved"
+    }
+  ],
+  "capture_policy": "Allowlisted projections of OWN responses only; source bytes/account context private0700/0600; aliases preserve integer IDs, graph membership, row order, numbers, quantities, statuses and genuine nulls. Source-byte, source-shape and sanitized fixture hashes are different. No fabricated provider responses. Offline decoder not a supported schema or future compatibility proof.",
+  "official_sources": {
+    "request_models": {
+      "source_url": "https://app.giobby.com/GiobbyApi00554/swagger/swagger.json",
+      "source_sha256": "6774bc1d03f3c890c5c249cbf4dbe20a1b56c4ce889798a3382acef808b04194",
+      "acquisition_utc": "2026-10-27T09:38:27.405179+00:00",
+      "class": "reused-official-static-declaration-from-R05a2",
+      "pointers": [
+        "/definitions/DocumentApi",
+        "/definitions/DocumentRowApi",
+        "/definitions/GenerateGoodReceiptIssueApi",
+        "/paths/~1purchases~1{id}~1orderstogoodsreceipt/post",
+        "/paths/~1vendors/get/parameters",
+        "/paths/~1contacts/get/parameters"
+      ]
+    },
+    "reference_table": {
+      "source_url": "https://app.giobby.com/GiobbyApi00554/reference.html",
+      "source_sha256": "f81a2f67f6a302ab41dbba959c85097cb7e0032405b1d6fb64a4839aa13ed7aa",
+      "capture_file_mtime_utc": "2026-10-27T10:34:40.828709+00:00",
+      "class": "official-static-declaration",
+      "document_types": {
+        "purchase_order": 2,
+        "goods_receipt": 0,
+        "sales_invoice": 10
+      },
+      "row_types": {
+        "product": 1,
+        "note_observed": 5
+      }
+    }
+  },
+  "owned_ui_captures": [
+    {
+      "capture": "owned-receipt-ui.json",
+      "source_sha256": "cf8f6b1fa4246950930e32842ac133a9e45377f1d5b17d83c853daf9347e1d86",
+      "capture_file_mtime_utc": "2026-10-27T10:37:36.592873+00:00",
+      "scope": "owned rows/allowlisted lifecycle labels only; raw UI context private"
+    },
+    {
+      "capture": "owned-invoice-ui.json",
+      "source_sha256": "8dbeae9020a234b44a175b64329ab235849d72eba11934351748f46d65b6b563",
+      "capture_file_mtime_utc": "2026-10-27T10:38:39.508503+00:00",
+      "scope": "owned rows/allowlisted lifecycle labels only; raw UI context private"
+    }
+  ],
+  "claims": {
+    "provider_schema_guaranteed": false,
+    "positive_adapter": false,
+    "direct_api_partial_receipt_proved": false,
+    "true_pending_invoice_draft_proved": false,
+    "successful_lost_create_recovery_proved": false,
+    "r04_complete": false,
+    "r05_complete": false,
+    "operational_ready": false
+  },
+  "historical_decisions_d1_d83_bytes": 130271
+}
