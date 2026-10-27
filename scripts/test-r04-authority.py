@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Offline documentary coherence only; does NOT enforce product setup or call an ERP."""
 import argparse
+import hashlib
 import json
 from pathlib import Path
 import re
@@ -18,6 +19,43 @@ BACKLOG = 'docs/productization-backlog.json'
 PATHS = ('AGENTS.md', GLOSSARY, PLAN, RUNBOOK, BACKLOG)
 QUOTE = 'No approvo B: non si può gestire stock e flusso di acquisti in distinti fonti. La fonte in questo caso resta sempre l’ERP esterno'
 START, END = '<!-- r04-authority:start -->', '<!-- r04-authority:end -->'
+D1_D84_BYTES = 131965
+D1_D84_SHA256 = 'c44de21abddad6830093a28a18abcd8b05363c74548d2df0765ebb2ce2b63802'
+D85_START, D85_END = '<!-- r05-d85-d86:start -->', '<!-- r05-d85-d86:end -->'
+Q85 = 'Ordine cliente (o proforma) in Giobby, da trasformare in fattura a mano: nessun numero fiscale né scarico finché non lo decidi tu'
+Q86 = "Enginia360 crea il ricevimento via API e tiene da sé il residuo dell'ordine, segnalando la discrepanza con Giobby"
+D85_TOKENS = (
+    'D85', 'ordine cliente (o proforma)', 'trasformazione manuale in fattura avviene in Giobby',
+    'nessun numero fiscale né scarico magazzino', 'Sostituisce «bozza di fattura vendita» di D79',
+    'D79 resta cronologia', 'POST /sales/orders', 'docType 33',
+    'non decisi', 'gate di evidenza', 'nessuna scelta per assunzione',
+    'Nessuna integrazione né validità fiscale',
+)
+D86_TOKENS = (
+    'D86', 'ricevimento merci via API', 'residuo d’ordine (ordinato meno ricevuto',
+    '3 ordinati / 2 ricevuti già approvata', 'overlay/read model derivato **non autorevole**',
+    'discrepanza con Giobby', 'Coerenza con D82', 'unica autorità per stock e documenti',
+    'non scrive stock né documenti d’acquisto', 'non sostituisce lo stato d’ordine ERP',
+    'nessun writer misto né fallback locale', 'mostrata e riconciliata, mai corretta in silenzio',
+    'documento ERP standalone', 'rischio di doppio conteggio riconosciuto',
+    'lettura dell’agente della risposta owner', 'unico punto che l’owner può correggere',
+)
+D85_REGISTER_TOKENS = (
+    'ordine cliente (o proforma)', 'Sostituisce «bozza di fattura vendita» di D79', 'D79 resta cronologia',
+    '`POST /sales/orders`', 'docType 33', 'Gate di evidenza (non deciso)', 'Non si sceglie per assunzione',
+    'validità fiscale affermate',
+)
+D85_FORBIDDEN = (
+    r'(?:crea|creates?|emette|issues?|invia|sends?)\s+(?:automaticamente\s+|automatically\s+)?(?:una\s+|an?\s+)?(?:fattura|invoice)\s+numerat',
+    r'(?<!mai )(?<!mai una )(?<!never )(?<!never an )(?:fattura|invoice)\s+numerata\s+automatic',
+    r'(?:Enginia360|locale|local)\s+(?:scrive|aggiorna|writes|updates)\s+(?:la\s+|the\s+)?(?:giacenza|stock)',
+    r'(?:residuo|residual)\s+(?:scrive|aggiorna|writes|updates)',
+    r'residuo\s+(?:ERP\s+)?autorevole',
+    r'(?<!non-)(?<!non )authoritative\s+residual',
+    r'residuo\s+(?:sostituisce|replaces)',
+    r'proforma\s+(?:scelta|selezionata|decisa|selected|chosen)\b',
+    r'ordine\s+cliente\s+(?:scelto|selezionato|deciso)\s+come\s+tipo\s+esatto',
+)
 COMMON = (
     'D82', 'stock e catena acquisti', 'stesso ERP esterno autorevole',
     'stock locale + acquisti ERP non valido',
@@ -46,6 +84,13 @@ def validate(root):
     active = docs[GLOSSARY].split('## Archivio storico')[0]
     require(active, ('D82', 'stesso ERP esterno autorevole'), 'active stock/purchasing authority')
     blocks = [authority_block(docs[path], path) for path in (GLOSSARY, PLAN)]
+    d85_blocks = []
+    for path in (GLOSSARY, PLAN):
+        if docs[path].count(D85_START) != 1 or docs[path].count(D85_END) != 1:
+            raise ValueError(path+': exactly one active D85/D86 block required')
+        block = docs[path].split(D85_START)[1].split(D85_END)[0]
+        require(block, D85_TOKENS+D86_TOKENS, path+' D85/D86')
+        d85_blocks.append(block)
     for path, block in zip((GLOSSARY, PLAN), blocks):
         require(block, COMMON, path)
         require(block, ('profilo interamente locale futuro', 'setup coerente esplicitamente approvato',
@@ -56,7 +101,13 @@ def validate(root):
                         'nessuna configurazione reale o deployment'), path)
     require(docs['AGENTS.md'], ('D82', 'same authoritative external ERP for stock and the purchasing chain in this pilot',
                                    'no mixed local-stock/ERP-purchasing writer or implicit local fallback'), 'AGENTS')
-    card = next(card for card in json.loads(docs[BACKLOG]) if card['id'] == 'R04')
+    require(docs['AGENTS.md'], ('D85', 'sales order (or proforma)', 'never an automatically numbered invoice',
+                                 'D86', 'non-authoritative residual overlay', 'no local receipt-stock writer',
+                                 'mismatch is shown and reconciled'), 'AGENTS D85/D86')
+    cards = {card['id']: card for card in json.loads(docs[BACKLOG])}
+    require(cards['R04']['gate'], ('D86', 'residuo non autorevole', 'D82'), 'R04 backlog D86 gate')
+    require(cards['R05']['gate'], ('D85', 'ordine cliente (o proforma)', 'gate di evidenza', 'tipo esatto non deciso'), 'R05 backlog D85 gate')
+    card = cards['R04']
     require(card['gate'], ('D82', 'stesso ERP esterno autorevole', '3 ordinati / 2 ricevuti già approvato',
                            'R04.b ERP BLOCKED', 'contratto ufficiale assente'), 'R04 backlog gate')
     require(active, ('D80/D81 consegnate',), 'active delivery')
@@ -64,12 +115,25 @@ def validate(root):
         raise ValueError('active delivery: stale D80/D81 status')
     # Historical decisions remain untouched; the new decision must be unique and next.
     ids = [int(x) for x in re.findall(r'^### D(\d+) —', docs[GLOSSARY], re.M)]
-    if sorted(ids) != list(range(1, 85)):
-        raise ValueError('decision register: retain unique D1–D83 and append D84')
+    if sorted(ids) != list(range(1, 87)):
+        raise ValueError('decision register: retain unique D1–D85 and append D86')
+    prefix = docs[GLOSSARY].encode()
+    prefix = prefix[prefix.index(b'### D1 \xe2\x80\x94'):][:D1_D84_BYTES]
+    if hashlib.sha256(prefix).hexdigest() != D1_D84_SHA256:
+        raise ValueError('decision register: D1–D84 history changed')
+    for number, quote in ((85, Q85), (86, Q86)):
+        section = docs[GLOSSARY].split('### D%d —' % number)[1].split('### D%d —' % (number+1))[0]
+        require(section, (quote, '27 ottobre 2026'), 'D%d provenance' % number)
+    d86 = docs[GLOSSARY].split('### D86 —')[1]
+    require(d86, D86_TOKENS[3:], 'D86 register')
+    d85 = docs[GLOSSARY].split('### D85 —')[1].split('### D86 —')[0]
+    require(d85, D85_REGISTER_TOKENS, 'D85 register')
     decision = docs[GLOSSARY].split('### D82 —')[1].split('### D83 —')[0]
     require(decision, (QUOTE, '25 ottobre 2026', '3 ordinati / 2 ricevuti',
                        'regola quantitativa condizionata all’autorità',
                        'non autorizza carichi locali Enginia360 nel profilo ERP'), 'D82 provenance')
+    plan_r05 = docs[PLAN].split('### R05 — Integrazione Giobby')[1].split('### R06')[0]
+    require(plan_r05, ('D85', 'ordine cliente (o proforma)', 'tipo esatto non deciso', 'D86', 'residuo non autorevole'), 'plan R05 D85/D86')
     if 'Implementazione/prove necessarie;' in docs[PLAN] or 'non ancora consegnata.' in docs[PLAN]:
         raise ValueError('plan: stale D80/D81 delivery status')
     remaining = docs[RUNBOOK].split('## 5.')[1].split('## 6.')[0]
@@ -79,7 +143,7 @@ def validate(root):
                         'nessuna risposta stock/ordine/ricevimento inventata'), 'R06 remaining gates')
     if 'parzialità ancora da approvare' in remaining:
         raise ValueError('R06 remaining gates: resolved quantity rule reopened')
-    scope = '\n'.join(blocks+[active, remaining, docs['AGENTS.md'], decision])
+    scope = '\n'.join(blocks+d85_blocks+[active, remaining, docs['AGENTS.md'], decision, plan_r05, cards['R04']['gate'], cards['R05']['gate']])
     forbidden = (
         r'R04[.]b(?:[.]1)?\s+(?:DELIVERED|COMPLETE|CONSEGNAT[AO]|IMPLEMENTAT[AO])',
         r'(?:stock locale|local stock)\s*\+\s*(?:acquisti ERP|ERP purchasing)\s+(?:valido|allowed)',
@@ -88,7 +152,7 @@ def validate(root):
         r'(?:tutti i clienti|all customers)\s+(?:devono usare|must use)\s+(?:l[’\x27])?ERP',
         r'(?:setup coherence|coerenza setup)\s+(?:already enforced|già implementata)',
     )
-    for pattern in forbidden:
+    for pattern in forbidden+D85_FORBIDDEN:
         if re.search(pattern, scope, re.I):
             raise ValueError('active authority: forbidden promotion or mixed writer')
 
@@ -123,6 +187,19 @@ class AuthorityTests(unittest.TestCase):
                                 'fallback locale consentito', 'richiesta tecnica locale autorevole',
                                 'tutti i clienti devono usare ERP', 'coerenza setup già implementata'):
                 mutations.append((path, END, false_claim+'\n'+END))
+        for path in (GLOSSARY, PLAN):
+            for token in D85_TOKENS + D86_TOKENS:
+                mutations.append((path, token, 'REMOVED'))
+            for false_claim in ('Enginia360 crea una fattura numerata', 'fattura numerata automaticamente', 'Enginia360 scrive la giacenza',
+                                'il residuo aggiorna lo stock', 'residuo ERP autorevole', 'residuo sostituisce lo stato ordine',
+                                'proforma scelta come tipo esatto'):
+                mutations.append((path, D85_END, false_claim+'\n'+D85_END))
+        mutations += [(GLOSSARY, Q85, 'Quote omitted'), (GLOSSARY, Q86, 'Quote omitted'),
+                      (GLOSSARY, '### D85 —', '### D84 —'),
+                      ('AGENTS.md', 'never an automatically numbered invoice', 'invoice allowed'),
+                      ('AGENTS.md', 'no local receipt-stock writer', 'local writer allowed'),
+                      (BACKLOG, 'tipo esatto non deciso', 'tipo esatto deciso'),
+                      (BACKLOG, 'residuo non autorevole', 'residuo autorevole')]
         mutations += [(RUNBOOK, '3 ordinati / 2 ricevuti già approvato', 'parzialità ancora da approvare'),
                       (BACKLOG, '3 ordinati / 2 ricevuti già approvato', 'da approvare'),
                       (RUNBOOK, 'contratto ufficiale assente', 'contratto verificato'),
