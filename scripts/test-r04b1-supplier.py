@@ -103,6 +103,25 @@ class SupplierSqlTests(unittest.TestCase):
         import json
         return json.loads(out.splitlines()[-1])
 
+    def test_role_at_maximum_shared_revision_refuses_without_partial_history(self):
+        self.assertEqual(self.migrate()[0], 0)
+        ids = self.world()
+        self.sql(f'''INSERT INTO counterparties.common_edit_history("CommandId","TenantId","CounterpartyId","LegalEntityId","ActorMembershipId","AuthorityVersion","Revision","Before","After")
+            VALUES ('{uuid.uuid4()}','{ids['tenant']}','{ids['record']}','{ids['companies'][0]}','{ids['member']}',1,2147483647,'{{}}','{{"isSupplier":false}}');''')
+        self.assertEqual(self.sql(self.app_prefix(ids) + self.role(ids, 1, 2147483647) + 'COMMIT;', app=True).splitlines()[-1], 'conflict')
+        self.assertEqual(self.sql('SELECT count(*) FROM counterparties.common_edit_history'), '1')
+        self.assertEqual(self.sql(f'''SELECT "IsSupplier" FROM counterparties.counterparties WHERE "Id"='{ids['record']}';'''), 'f')
+
+    def test_vendor_at_maximum_company_revision_refuses_without_partial_history(self):
+        self.assertEqual(self.migrate()[0], 0)
+        ids = self.world()
+        self.assertEqual(self.sql(self.app_prefix(ids) + self.role(ids, 1, 0) + 'COMMIT;', app=True).splitlines()[-1], 'applied')
+        self.sql(f'''INSERT INTO counterparties.giobby_vendor_identity_history("CommandId","TenantId","CounterpartyId","LegalEntityId","ActorMembershipId","VerificationReference","Revision","VendorId","VendorName")
+            VALUES ('{uuid.uuid4()}','{ids['tenant']}','{ids['record']}','{ids['companies'][0]}','{ids['member']}','{ids['proof']}',2147483647,'MAX-VENDOR','Synthetic maximum');''')
+        self.assertEqual(self.sql(self.vendor(ids, expected=2147483647)).splitlines()[-1], 'conflict')
+        self.assertEqual(self.sql('SELECT count(*) FROM counterparties.giobby_vendor_identity_history'), '1')
+        self.assertEqual(self.read_identity(ids)['vendor']['vendorId'], 'MAX-VENDOR')
+
     # ---- shared-master role -------------------------------------------------
     def test_supplier_role_follows_master_authority_and_is_atomic_idempotent_and_revisioned(self):
         self.assertEqual(self.migrate()[0], 0)

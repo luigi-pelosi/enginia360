@@ -31,7 +31,7 @@ DECLARE tenant_id uuid; member_id uuid; authority jsonb; previous counterparties
  SELECT jsonb_build_object('legalName',"LegalName",'fiscalIdentifier',"FiscalIdentifier",'registeredOffice',"RegisteredOffice",'isSupplier',"IsSupplier") INTO row_before FROM counterparties.counterparties WHERE "Id"=record_id FOR UPDATE;
  IF row_before IS NULL THEN RETURN jsonb_build_object('state','not_found'); END IF;
  SELECT coalesce(max("Revision"),0) INTO revision_now FROM counterparties.common_edit_history WHERE "CounterpartyId"=record_id;
- IF revision_now<>expected_revision THEN RETURN jsonb_build_object('state','conflict'); END IF;
+ IF revision_now<>expected_revision OR revision_now=2147483647 THEN RETURN jsonb_build_object('state','conflict'); END IF;
  row_after:=row_before||jsonb_build_object('isSupplier',is_supplier);
  INSERT INTO counterparties.common_edit_history("CommandId","TenantId","CounterpartyId","LegalEntityId","ActorMembershipId","AuthorityVersion","Revision","Before","After") VALUES(command_id,tenant_id,record_id,company_id,member_id,authority_version,revision_now+1,row_before,row_after);
  UPDATE counterparties.counterparties SET "IsSupplier"=is_supplier WHERE "Id"=record_id;
@@ -105,7 +105,7 @@ DECLARE previous counterparties.giobby_vendor_identity_history; supplier boolean
  IF NOT FOUND THEN RETURN 'conflict'; END IF;
  IF NOT supplier THEN RETURN 'not_supplier'; END IF;
  SELECT coalesce(max("Revision"),0) INTO revision_now FROM counterparties.giobby_vendor_identity_history WHERE "TenantId"=tenant_id AND "LegalEntityId"=company_id AND "CounterpartyId"=record_id;
- IF revision_now<>expected_revision THEN RETURN 'conflict'; END IF;
+ IF revision_now<>expected_revision OR revision_now=2147483647 THEN RETURN 'conflict'; END IF;
  -- One vendor ID identifies one counterparty within a company (the latest revision of each counterparty counts).
  IF EXISTS(SELECT 1 FROM (SELECT DISTINCT ON ("CounterpartyId") "CounterpartyId","VendorId" FROM counterparties.giobby_vendor_identity_history WHERE "TenantId"=tenant_id AND "LegalEntityId"=company_id ORDER BY "CounterpartyId","Revision" DESC) latest WHERE latest."VendorId"=vendor_id AND latest."CounterpartyId"<>record_id) THEN RETURN 'conflict'; END IF;
  INSERT INTO counterparties.giobby_vendor_identity_history("CommandId","TenantId","LegalEntityId","CounterpartyId","Revision","VendorId","VendorName","ActorMembershipId","VerificationReference")

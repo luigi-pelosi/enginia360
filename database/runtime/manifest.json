@@ -132,6 +132,6 @@
   {
     "id": "0027_supplier_role",
     "path": "migrations/0027_supplier_role.sql",
-    "sha256": "181bc3880e43de7fb775a3354ed4e3172209c3d7009efdd94c623f03d259ea7c"
+    "sha256": "067e36e3694ce92e4766ee6e1a28acccf58fe6b186deaa8f682e50e5fc40812c"
   }
 ]

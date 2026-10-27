@@ -140,13 +140,14 @@ def main():
             fixture=json.loads((state/'browser.json').read_text())
             common=result['common']; assert common['id']==order['payerId'] and str(uuid.UUID(common['id']))==common['id']
             assert run(query+['-c',f'''SELECT "LegalName" FROM counterparties.counterparties WHERE "Id"='{common['id']}';''']).strip()==common['legalName']=='Synthetic edited payer'
-            assert run(query+['-c',f'''SELECT "CounterpartyId"::text||'|'||"ActorMembershipId"::text||'|'||"AuthorityVersion"::text||'|'||"Revision"::text FROM counterparties.common_edit_history WHERE NOT (\"After\" ? 'isSupplier');''']).strip()==common['id']+'|'+fixture['adminMembershipId']+'|2|1'
-            assert run(query+['-c','SELECT count(*) FROM counterparties.common_edit_history']).strip()=='2'
+            assert run(query+['-c',f'''SELECT "CounterpartyId"::text||'|'||"ActorMembershipId"::text||'|'||"AuthorityVersion"::text||'|'||"Revision"::text FROM counterparties.common_edit_history WHERE NOT (\"After\" ? 'isSupplier') AND "Revision"=1;''']).strip()==common['id']+'|'+fixture['adminMembershipId']+'|2|1'
+            assert run(query+['-c','SELECT count(*) FROM counterparties.common_edit_history']).strip()=='3'
             assert run(query+['-c',f'''SELECT \"CounterpartyId\"::text||'|'||\"ActorMembershipId\"::text||'|'||\"AuthorityVersion\"::text||'|'||\"Revision\"::text||'|'||(\"Before\"->>'isSupplier')||'|'||(\"After\"->>'isSupplier') FROM counterparties.common_edit_history WHERE \"After\" ? 'isSupplier';''']).strip()==common['id']+'|'+fixture['adminMembershipId']+'|2|2|false|true'
             assert run(query+['-c',f'''SELECT \"IsSupplier\" FROM counterparties.counterparties WHERE \"Id\"='{common['id']}';''']).strip()=='t'
             assert run(query+['-c','SELECT count(*) FROM counterparties.counterparties WHERE \"IsSupplier\"']).strip()=='1'
             assert run(query+['-c',f'''SELECT \"CounterpartyId\"::text||'|'||\"LegalEntityId\"::text||'|'||\"VendorId\"||'|'||\"VendorName\"||'|'||\"Revision\"::text||'|'||\"ActorMembershipId\"::text FROM counterparties.giobby_vendor_identity_history;''']).strip()==common['id']+'|'+fixture['contexts'][0]['legalEntityId']+'|GBV-4711|Synthetic Supplier S.r.l.|1|'+fixture['adminMembershipId']
             assert run(query+['-c','SELECT count(*) FROM counterparties.giobby_vendor_identity_history']).strip()=='1'
+            assert run(query+['-c',f'''SELECT string_agg("Revision"::text,',' ORDER BY "Revision") FROM counterparties.common_edit_history WHERE "CounterpartyId"='{common['id']}';''']).strip()=='1,2,3'
             print('PASS R04B1 SQL supplier role revision 2 with exact actor/before/after; company vendor identity single immutable row, owner path only',flush=True)
             assert run(query+['-c','SELECT count(*) FROM organization_access.master_authority_history']).strip()=='2'
             assert run(query+['-c',f'''SELECT "SourceId"::text||'|'||"ProfileId"::text||'|'||"Direction" FROM organization_access.master_authority_history WHERE "Version"=2;''']).strip()==result['authority']['sourceId']+'|'+result['authority']['profileId']+'|Enginia360ToExternal'

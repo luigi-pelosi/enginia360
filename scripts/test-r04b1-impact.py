@@ -25,6 +25,18 @@ class Impact(unittest.TestCase):
                 self.assertIn('MasterAuthorityEnforcementTests', selected['api_filter'])
                 self.assertFalse(selected['full_architecture'])
 
+    def test_role_ui_and_its_existing_common_edit_consumers_select_finite_acceptance(self):
+        for path in ('web/src/ui01/runtime/MasterAuthority.tsx', 'web/src/ui01/runtime/MasterAuthority.test.tsx',
+                     'tests/browser/ui01b-acceptance.cjs', 'scripts/run-ui01b-tests.py'):
+            with self.subTest(path=path):
+                selected = impact.selection([path])
+                for key in ('ui01b', 'migrations', 'ui_tests', 'ui_build'):
+                    self.assertTrue(selected[key], key)
+                self.assertIn('MasterAuthorityEnforcementTests', selected['api_filter'])
+                self.assertIn('CounterpartyArchitectureTests', selected['api_filter'])
+                self.assertFalse(selected['full_architecture'])
+                self.assertFalse(selected['r03c'], 'no speculative closure architecture gate')
+
     def test_workflow_runs_both_pools_and_the_offline_owner_input_guard(self):
         workflow = (ROOT/'.github/workflows/ci.yml').read_text()
         editor = workflow.split('  affected-editor:', 1)[1].split('\n  affected-r03a:', 1)[0]
