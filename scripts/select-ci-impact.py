@@ -117,6 +117,10 @@ R05A1_OFFLINE_FILES = {'docs/r05a1-giobby-read-contract.md', 'docs/r05a1-evidenc
 R05A2_OFFLINE_FILES = {'docs/r05a2-sandbox-contract.md', 'docs/r05a2-evidence.json',
     'scripts/test-r05a2-evidence.py', 'scripts/test-r05a2-impact.py'}
 
+R05A4_OFFLINE_FILES = {'docs/r05a4-sandbox-recovery-contract.md', 'docs/r05a4-evidence.json',
+    'tests/fixtures/r05a4-owned-captures.json', 'scripts/r05a4_recovery.py',
+    'scripts/test-r05a4-evidence.py', 'scripts/test-r05a4-impact.py'}
+
 R05A3_OFFLINE_FILES = {'docs/r05a3-sandbox-business-contract.md', 'docs/r05a3-evidence.json',
     'tests/fixtures/r05a3-owned-captures.json', 'scripts/r05a3_captures.py',
     'scripts/test-r05a3-evidence.py', 'scripts/test-r05a3-impact.py'}
@@ -139,6 +143,8 @@ R05B0_DIRECT = {'src/Modules/Workshop/Enginia360.Workshop/AdministrativeEndpoint
 
 def selection(paths):
     paths = sorted(set(paths))
+    r05a4_offline = bool(set(paths) & R05A4_OFFLINE_FILES)
+    r05a4_only = r05a4_offline and set(paths) <= R05A4_OFFLINE_FILES | R06_OFFLINE_FILES | R06_WIRING
     r05a3_offline = bool(set(paths) & R05A3_OFFLINE_FILES)
     r05a3_only = r05a3_offline and set(paths) <= R05A3_OFFLINE_FILES | R05A2_OFFLINE_FILES | R06_OFFLINE_FILES | R06_WIRING
     r05a2_offline = bool(set(paths) & R05A2_OFFLINE_FILES)
@@ -162,6 +168,8 @@ def selection(paths):
         parsed = PurePosixPath(path)
         if not path or parsed.is_absolute() or '..' in parsed.parts or '\\' in path or str(parsed) != path:
             raise ValueError('invalid changed path')
+        if path in R05A4_OFFLINE_FILES or (r05a4_only and path in R06_WIRING):
+            continue
         if path in R05A3_OFFLINE_FILES or (r05a3_only and path in R06_WIRING):
             continue
         if path in R05A2_OFFLINE_FILES or (r05a2_only and path in R06_WIRING):
@@ -229,7 +237,7 @@ def selection(paths):
     filters = ([AUTH_FILTER] if auth or ui01b else []) + ([R03A_FILTER if r03a else WORKSHOP_FILTER] if ui01b else [])
     if r03b: filters.append('FullyQualifiedName~WorkshopOwnActualTimeTests')
     if r03c: filters.append(R03C_FILTER if r03c_full else R03C_MINIMAL)
-    return {'changed_paths':paths,'api_filter':'|'.join(filters),'r06_offline':r06_offline,'r05a1_offline':r05a1_offline,'r05a2_offline':r05a2_offline,'r05a3_offline':r05a3_offline,'r05b0':r05b0,
+    return {'changed_paths':paths,'api_filter':'|'.join(filters),'r06_offline':r06_offline,'r05a1_offline':r05a1_offline,'r05a2_offline':r05a2_offline,'r05a3_offline':r05a3_offline,'r05a4_offline':r05a4_offline,'r05b0':r05b0,
             'browser':auth,'ui01b':ui01b,'r03a':r03a,'r03a2':r03a,'r04a':r04a,'r04c1':r04c1,'r04c2':r04c2,'r06b1':r06b1,'r03b':r03b,'r03c':r03c,'migrations':auth or ui01b,'ui_build':auth or ui,'ui_tests':ui,
             'full_architecture':False}
 
