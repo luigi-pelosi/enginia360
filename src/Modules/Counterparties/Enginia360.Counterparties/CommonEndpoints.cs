@@ -32,7 +32,7 @@ internal static class CommonEndpoints
         return JsonResult(json);
     }
 
-    private static IResult JsonResult(string json, bool write = true)
+    internal static IResult JsonResult(string json, bool write = true)
     {
         using var parsed = System.Text.Json.JsonDocument.Parse(json);
         var state = parsed.RootElement.GetProperty("state").GetString();

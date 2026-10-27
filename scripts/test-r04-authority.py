@@ -24,6 +24,33 @@ D1_D84_BYTES = 131965
 D1_D84_SHA256 = 'c44de21abddad6830093a28a18abcd8b05363c74548d2df0765ebb2ce2b63802'
 D1_D86_BYTES = 135677
 D1_D86_SHA256 = '42a55f555aaff3ddc9cd8f073ee7900aa22adc704dd88376d9555f2a3e9a4818'
+D1_D87_BYTES = 138358
+D1_D87_SHA256 = '96acb334602294350382bd45b5f451fce3a1eb7b2eb67511f070f56cc2bf5cf6'
+D88_START, D88_END = '<!-- r04-d88:start -->', '<!-- r04-d88:end -->'
+Q88A = 'L\'operatore di magazzino la crea a mano dalla riga (consigliato)'
+Q88B = 'Il fornitore diventa un ruolo nell\'anagrafica condivisa, con ID Giobby in un\'estensione societaria'
+Q88C = 'No: una sola azione con permesso dedicato basta (consigliato)'
+D88_TOKENS = (
+    'D88', 'creata a mano da un operatore di magazzino dalla riga Part', 'non automatica su insufficient_available',
+    'ruolo nell’anagrafica condivisa tenant-wide', 'ID fornitore Giobby in un’estensione societaria',
+    'mai nell’anagrafica condivisa', 'nessuna lista fornitori configurata dall’host',
+    'una sola azione con permesso dedicato', 'nessun approvatore separato',
+    'non autoassegnabile né subdelegabile', 'R04.b.2',
+    'Giobby resta l’unica autorità per stock e documenti d’acquisto (D82)', 'intento/outbox',
+    'mai writer locale di acquisto o stock', 'non è autorità sull’anagrafica fornitori quando la possiede l’ERP',
+    'lettura dell’agente', 'punto aperto', 'nessuna proiezione D76',
+)
+D88_FORBIDDEN = (
+    r'(?<!non )(?<!not )(?:richiesta d[’\x27]acquisto|purchase request)\s+(?:viene\s+|è\s+|is\s+)?(?:creat[ao]\s+|created\s+)?automatic\w*\s+(?:su|on|quando|when|se|if)\b',
+    r'(?:creazione|creation)\s+automatic\w*\s+(?:della\s+|of\s+(?:the\s+)?)?(?:richiesta d[’\x27]acquisto|purchase request)',
+    r'(?:writer|scrittore)\s+locale\s+(?:di\s+)?(?:acquist\w+|stock|giacenza)\s+(?:consentito|ammesso|autorizzato|allowed)',
+    r'(?:Enginia360|locale|local)\s+(?:scrive|crea|writes|creates)\s+(?:l[’\x27]|un\s+|il\s+|the\s+|a\s+)?(?:local\s+)?(?:ordine\s+d[’\x27]acquisto|purchase\s+(?:order|document)|documento\s+d[’\x27]acquisto)',
+    r'ID\s+(?:Giobby|fornitore|vendor)\s+(?:è\s+)?(?:nell[’\x27]anagrafica condivisa|nel master condiviso)',
+    r'(?:vendor|supplier)\s+ID\s+(?:is\s+)?(?:in|stored in)\s+the\s+shared\s+master',
+    r'(?:approvatore|approvazione)\s+separat\w*\s+(?:è\s+)?(?:richiest\w+|obbligatori\w+|necessari\w+)',
+    r'separate\s+approver\s+(?:is\s+)?(?:required|needed|mandatory)',
+    r'(?:proiezione|projection)\s+D76\s+(?:implementat\w+|consegnat\w+|delivered|implemented)',
+)
 D87_START, D87_END = '<!-- r05-d87:start -->', '<!-- r05-d87:end -->'
 Q87 = 'Esatto. L’ordine riserva lo stock.'
 Q87_MIGRATION = 'Per ora non è prevista nessuna attività di migrazione dal sistema legacy.'
@@ -133,6 +160,13 @@ def validate(root):
         block = docs[path].split(D87_START)[1].split(D87_END)[0]
         require(block, D87_TOKENS, path+' D87')
         d87_blocks.append(block)
+    d88_blocks = []
+    for path in (GLOSSARY, PLAN):
+        if docs[path].count(D88_START) != 1 or docs[path].count(D88_END) != 1:
+            raise ValueError(path+': exactly one active D88 block required')
+        block = docs[path].split(D88_START)[1].split(D88_END)[0]
+        require(block, D88_TOKENS, path+' D88')
+        d88_blocks.append(block)
     for path, block in zip((GLOSSARY, PLAN), blocks):
         require(block, COMMON, path)
         require(block, ('profilo interamente locale futuro', 'setup coerente esplicitamente approvato',
@@ -162,8 +196,8 @@ def validate(root):
         raise ValueError('active delivery: stale D80/D81 status')
     # Historical decisions remain untouched; the new decision must be unique and next.
     ids = [int(x) for x in re.findall(r'^### D(\d+) —', docs[GLOSSARY], re.M)]
-    if sorted(ids) != list(range(1, 88)):
-        raise ValueError('decision register: retain unique D1–D86 and append D87')
+    if sorted(ids) != list(range(1, 89)):
+        raise ValueError('decision register: retain unique D1–D87 and append D88')
     prefix = docs[GLOSSARY].encode()
     prefix = prefix[prefix.index(b'### D1 \xe2\x80\x94'):][:D1_D84_BYTES]
     if hashlib.sha256(prefix).hexdigest() != D1_D84_SHA256:
@@ -172,7 +206,20 @@ def validate(root):
     full = full[full.index(b'### D1 \xe2\x80\x94'):][:D1_D86_BYTES]
     if hashlib.sha256(full).hexdigest() != D1_D86_SHA256:
         raise ValueError('decision register: D1–D86 history changed')
-    d87 = docs[GLOSSARY].split('### D87 —')[1]
+    full = docs[GLOSSARY].encode()
+    full = full[full.index(b'### D1 \xe2\x80\x94'):][:D1_D87_BYTES]
+    if hashlib.sha256(full).hexdigest() != D1_D87_SHA256:
+        raise ValueError('decision register: D1–D87 history changed')
+    d88 = docs[GLOSSARY].split('### D88 —')[1]
+    require(d88, (Q88A, Q88B, Q88C, '27 ottobre 2026', 'Domanda posta', 'Esempio', 'Registro D1–D87 verificato prima dell’assegnazione',
+                  'Interpretazione dell’agente') + D88_TOKENS[1:], 'D88 register')
+    require(docs['AGENTS.md'], ('D88', 'manually from a Part line', 'supplier is a role in the tenant-wide shared Counterparties master',
+                                'vendor ID in a company extension', 'single dedicated action', 'never a local purchase/stock writer'), 'AGENTS D88')
+    require(cards['R04']['gate'], ('D88', 'richiesta d’acquisto manuale', 'ruolo fornitore', 'estensione societaria', 'nessun approvatore separato', 'D82'), 'R04 backlog D88 gate')
+    require(cards['R05']['gate'], ('D88', 'ID fornitore Giobby', 'estensione societaria', 'D82'), 'R05 backlog D88 gate')
+    plan_r04 = docs[PLAN].split('### R04 — Magazzino e approvvigionamento')[1].split('### R05')[0]
+    require(plan_r04, ('D88', 'richiesta d’acquisto manuale', 'ruolo fornitore', 'R04.b.2'), 'plan R04 D88')
+    d87 = docs[GLOSSARY].split('### D87 —')[1].split('### D88 —')[0]
     require(d87, (Q87, Q87_MIGRATION, '27 ottobre 2026', 'Domanda posta', 'Registro D1–D86 verificato prima dell’assegnazione',
                   'Interpretazione dell’agente') + D87_TOKENS[1:], 'D87 register')
     for number, quote in ((85, Q85), (86, Q86)):
@@ -207,7 +254,7 @@ def validate(root):
                         'nessuna risposta stock/ordine/ricevimento inventata'), 'R06 remaining gates')
     if 'parzialità ancora da approvare' in remaining:
         raise ValueError('R06 remaining gates: resolved quantity rule reopened')
-    scope = '\n'.join(blocks+d85_blocks+d87_blocks+[inventory, plan_r04, plan_r06, active, remaining, docs['AGENTS.md'], decision, plan_r05, cards['R04']['gate'], cards['R05']['gate']])
+    scope = '\n'.join(blocks+d85_blocks+d87_blocks+d88_blocks+[inventory, plan_r04, plan_r06, active, remaining, docs['AGENTS.md'], decision, plan_r05, cards['R04']['gate'], cards['R05']['gate']])
     forbidden = (
         r'R04[.]b(?:[.]1)?\s+(?:DELIVERED|COMPLETE|CONSEGNAT[AO]|IMPLEMENTAT[AO])',
         r'(?:stock locale|local stock)\s*\+\s*(?:acquisti ERP|ERP purchasing)\s+(?:valido|allowed)',
@@ -216,7 +263,7 @@ def validate(root):
         r'(?:tutti i clienti|all customers)\s+(?:devono usare|must use)\s+(?:l[’\x27])?ERP',
         r'(?:setup coherence|coerenza setup)\s+(?:already enforced|già implementata)',
     )
-    for pattern in forbidden+D85_FORBIDDEN+D87_FORBIDDEN:
+    for pattern in forbidden+D85_FORBIDDEN+D87_FORBIDDEN+D88_FORBIDDEN:
         if re.search(pattern, scope, re.I):
             raise ValueError('active authority: forbidden promotion or mixed writer')
 
@@ -268,7 +315,24 @@ class AuthorityTests(unittest.TestCase):
                                 'La migrazione legacy è approvata', 'legacy data migration is approved', 'R06 COMPLETA',
                                 'eleggibilità approvata'):
                 mutations.append((path, D87_END, false_claim+'\n'+D87_END))
-        mutations += [(GLOSSARY, Q87, 'Quote omitted'), (GLOSSARY, Q87_MIGRATION, 'Quote omitted'),
+        for path in (GLOSSARY, PLAN):
+            for token in D88_TOKENS:
+                mutations.append((path, token, 'REMOVED'))
+            for false_claim in ('La richiesta d’acquisto è creata automaticamente su insufficient_available',
+                                'purchase request is created automatically when stock is insufficient',
+                                'creazione automatica della richiesta d’acquisto',
+                                'writer locale di acquisti consentito', 'Enginia360 crea l’ordine d’acquisto',
+                                'local writes purchase order', 'ID Giobby nell’anagrafica condivisa',
+                                'vendor ID is in the shared master', 'approvatore separato richiesto',
+                                'separate approver is required', 'proiezione D76 implementata'):
+                mutations.append((path, D88_END, false_claim+'\n'+D88_END))
+        mutations += [(GLOSSARY, Q88A, 'Quote omitted'), (GLOSSARY, Q88B, 'Quote omitted'), (GLOSSARY, Q88C, 'Quote omitted'),
+                      (GLOSSARY, '### D88 —', '### D87 —'),
+                      ('AGENTS.md', 'manually from a Part line', 'automatically on insufficient availability'),
+                      ('AGENTS.md', 'never a local purchase/stock writer', 'local purchase writer allowed'),
+                      (BACKLOG, 'nessun approvatore separato', 'approvatore separato richiesto'),
+                      (BACKLOG, 'estensione societaria', 'anagrafica condivisa'),
+                      (GLOSSARY, Q87, 'Quote omitted'), (GLOSSARY, Q87_MIGRATION, 'Quote omitted'),
                       (GLOSSARY, '### D87 —', '### D86 —'),
                       (INVENTORY, '66 voci UNDECIDED', '66 voci APPROVED'),
                       (RUNBOOK, 'migrazione legacy fuori perimetro per ora', 'migrazione legacy approvata'),

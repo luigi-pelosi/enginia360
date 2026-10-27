@@ -13,6 +13,7 @@ public sealed class MasterAuthorityEnforcementTests : IClassFixture<TestApiFacto
     [Theory]
     [InlineData("/api/v1/counterparties/authority?legalEntityId=11111111-1111-4111-8111-111111111111")]
     [InlineData("/api/v1/counterparties/11111111-1111-4111-8111-111111111111/edit-state?legalEntityId=11111111-1111-4111-8111-111111111111")]
+    [InlineData("/api/v1/counterparties/11111111-1111-4111-8111-111111111111/supplier-erp-identity?legalEntityId=11111111-1111-4111-8111-111111111111")]
     public async Task Authority_and_edit_state_require_real_authentication_not_identity_headers(string path)
     {
         using var app = factory.WithWebHostBuilder(builder => builder.UseSetting("Counterparties:Enabled", "true"));
@@ -21,6 +22,16 @@ public sealed class MasterAuthorityEnforcementTests : IClassFixture<TestApiFacto
         client.DefaultRequestHeaders.Add("X-Identity-Subject", Guid.NewGuid().ToString());
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync(path)).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.PutAsJsonAsync("/api/v1/counterparties/11111111-1111-4111-8111-111111111111", new {})).StatusCode);
+    }
+
+    [Fact]
+    public async Task Supplier_role_write_requires_real_authentication_not_identity_headers()
+    {
+        using var app = factory.WithWebHostBuilder(builder => builder.UseSetting("Counterparties:Enabled", "true"));
+        using var client = app.CreateClient();
+        client.DefaultRequestHeaders.Add("X-Tenant-Id", Guid.NewGuid().ToString());
+        client.DefaultRequestHeaders.Add("X-Identity-Subject", Guid.NewGuid().ToString());
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.PutAsJsonAsync("/api/v1/counterparties/11111111-1111-4111-8111-111111111111/supplier-role", new {})).StatusCode);
     }
 
     [Fact]

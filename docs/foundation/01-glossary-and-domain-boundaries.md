@@ -36,6 +36,10 @@ La precedente approvazione A del ricevimento parziale **3 ordinati / 2 ricevuti*
 **Perimetro R06.a — migrazione legacy (27 ottobre 2026, dichiarazione di scoping):** «Per ora non è prevista nessuna attività di migrazione dal sistema legacy.» Non è un divieto permanente né una nuova decisione oltre il perimetro: la migrazione dei dati legacy è fuori perimetro per ora. R06.a è considerata completa per i soli strumenti sintetici staging-only consegnati (#76/#77, #106/#107); le 66 voci d’inventario restano UNDECIDED (eleggibilità invariata, registro OPEN); restore di fatti applicativi già legittimi e onboarding owner D77 non sono toccati; gate OPE01–OPE05 invariati OPEN; #46 resta aperta per i residui di readiness.
 <!-- r05-d87:end -->
 
+<!-- r04-d88:start -->
+**D88 — richiesta d’acquisto manuale, fornitore come ruolo condiviso, azione singola (27 ottobre 2026):** tre risposte owner a tre domande concrete. (1) Trigger: la richiesta d’acquisto è creata a mano da un operatore di magazzino dalla riga Part (esempio: la riga richiede 3, disponibile 1, l’operatore chiede l’acquisto di 2); non automatica su insufficient_available, che resta il rifiuto di prenotazione di R04.a e non genera alcuna richiesta. (2) Fornitore: ruolo nell’anagrafica condivisa tenant-wide (coerente con D26/D65, unica autorità tenant-wide); l’ID fornitore Giobby in un’estensione societaria, separata per società e mai nell’anagrafica condivisa; nessuna lista fornitori configurata dall’host. (3) Approvazione: nessun approvatore separato, una sola azione con permesso dedicato, da creare in R04.b.2 (non qui), non autoassegnabile né subdelegabile oltre quanto D77 consente. Coerenza con D82: Giobby resta l’unica autorità per stock e documenti d’acquisto (D82); la richiesta Enginia360 è intento/outbox, mai writer locale di acquisto o stock; la mappatura dell’ID fornitore ERP è un’estensione societaria e non è autorità sull’anagrafica fornitori quando la possiede l’ERP. Questa è la lettura dell’agente delle risposte owner, che l’owner può correggere. Il punto aperto (gate): se il ruolo fornitore e la mappatura siano modificabili localmente o proiettati dall’ERP in direzione ExternalToEnginia360 sotto D76; nessuna proiezione D76 è implementata e nessuna direzione è scelta per assunzione. R04.b.1 consegna solo il ruolo e la mappatura (nessuna richiesta, nessun connettore d’acquisto Giobby, nessun traffico ERP).
+<!-- r04-d88:end -->
+
 ## Archivio storico — decisioni e stati al momento della loro registrazione
 
 Le sezioni seguenti preservano cronologia, motivazioni e gate. Ogni frase di stato o autorizzazione incompatibile con il riepilogo C00 sopra è storica; i requisiti di dominio e i limiti specialistici restano validi.
@@ -1073,3 +1077,31 @@ D01 e D02 restano issue aperte In verifica; B00 non viene completata o sbloccata
 **Interpretazione dell’agente:** la lettura «considerata completa per i soli strumenti sintetici» e il mantenimento dei gate OPE sono l’interpretazione dell’agente della seconda risposta, non frasi dell’owner; un’eventuale futura attività di migrazione richiederebbe un nuovo incarico esplicito.
 
 **Confini invariati:** solo documentazione e guardie offline; nessuna modifica di codice, schema, runtime o dipendenze, nessuna chiamata sandbox/ERP, produzione, acquisto, contatto provider o deployment. D1–D86 e le evidenze R05.a.2–a.6/R05.b.1 byte-preservate; D26/D65/D76/D77/D82 invariate. #45/#46 restano aperte.
+
+### D88 — Richiesta d’acquisto manuale, fornitore come ruolo condiviso con ID Giobby in estensione societaria, azione singola
+
+**Fonte e contesto:** proprietario, risposte del **27 ottobre 2026** a tre domande concrete (R04.b.1). Registro D1–D87 verificato prima dell’assegnazione, D88 successivo inutilizzato.
+
+**Domanda posta (trigger) — Esempio:** una riga Part richiede 3, il disponibile è 1, l’operatore chiede l’acquisto di 2: chi crea la richiesta e quando? Citazione esatta della scelta:
+
+> L'operatore di magazzino la crea a mano dalla riga (consigliato)
+
+**Decisione D88a:** la richiesta d’acquisto è creata a mano da un operatore di magazzino dalla riga Part; non automatica su insufficient_available (che resta il rifiuto di prenotazione di R04.a, esplicitamente non un ordine d’acquisto).
+
+**Domanda posta (fornitore):** dove vive il fornitore e dove l’identificativo del fornitore in Giobby? Citazione esatta della scelta:
+
+> Il fornitore diventa un ruolo nell'anagrafica condivisa, con ID Giobby in un'estensione societaria
+
+**Decisione D88b:** il fornitore è un ruolo nell’anagrafica condivisa tenant-wide, coerente con D26/D65 (unica autorità tenant-wide, estensioni societarie distinte); l’ID fornitore Giobby in un’estensione societaria (separata per società), mai nell’anagrafica condivisa; nessuna lista fornitori configurata dall’host.
+
+**Domanda posta (approvazione):** serve un approvatore distinto dall’operatore che crea la richiesta? Citazione esatta della scelta:
+
+> No: una sola azione con permesso dedicato basta (consigliato)
+
+**Decisione D88c:** nessun approvatore separato; una sola azione con permesso dedicato, da creare in R04.b.2 (non in R04.b.1), non autoassegnabile né subdelegabile oltre quanto D77 consente agli amministratori tenant.
+
+**Coerenza con D82:** Giobby resta l’unica autorità per stock e documenti d’acquisto (D82); la richiesta Enginia360 è intento/outbox, mai writer locale di acquisto o stock; la mappatura dell’ID fornitore ERP è un’estensione societaria e non è autorità sull’anagrafica fornitori quando la possiede l’ERP; D76 e il master unico tenant-wide D26/D65 invariati.
+
+**Interpretazione dell’agente:** la lettura dell’agente è che i due punti seguenti non sono stati decisi dall’owner e restano un punto aperto: (i) se il ruolo fornitore e la mappatura siano modificabili localmente o proiettati dall’ERP sotto D76 (ExternalToEnginia360); R04.b.1 applica il solo comportamento non ambiguo: il ruolo segue l’autorità R02.b esistente (modifica locale solo con profilo locale, rifiuto esplicito con profilo esterno o mancante) e la mappatura è impostata da proprietario/operatore fidato offline, nessuna proiezione D76; (ii) l’ID Giobby è un identificatore opaco più il nome esatto per la ricerca, nessun altro campo dedotto. L’owner può correggere queste letture.
+
+**Confini invariati:** nessuna entità o comando di richiesta d’acquisto, connettore d’acquisto Giobby, ricevimento o overlay, traffico sandbox/ERP, token, deployment o dato reale; D1–D87 e le evidenze R05 byte-preservate; D77 invariata (nessun nuovo permesso delegabile aggiunto); #44/#45 restano aperte.

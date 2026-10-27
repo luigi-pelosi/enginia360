@@ -50,6 +50,8 @@ public static class CounterpartiesModule
         routes.MapGet("/authority", CommonEndpoints.Authority);
         routes.MapGet("/{id:guid}/edit-state", CommonEndpoints.EditState);
         routes.MapPut("/{id:guid}", CommonEndpoints.Update);
+        routes.MapPut("/{id:guid}/supplier-role", SupplierEndpoints.SetRole);
+        routes.MapGet("/{id:guid}/supplier-erp-identity", SupplierEndpoints.ReadErpIdentity);
         routes.MapPost("/destinations/{id:guid}/publication", DestinationEndpoints.Publish);
         routes.MapPost("/{id:guid}/destinations", DestinationEndpoints.Create);
         routes.MapGet("/{id:guid}/destinations", DestinationEndpoints.List);

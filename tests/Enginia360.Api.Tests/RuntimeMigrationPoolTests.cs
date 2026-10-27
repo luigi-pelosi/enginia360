@@ -187,6 +187,94 @@ public sealed class RuntimeMigrationPoolTests
         // Immutable authority history is retained until the isolated acceptance database is destroyed.
     }
 
+    [RuntimePostgreSqlTheory]
+    [InlineData(1)]
+    [InlineData(4)]
+    public async Task Supplier_role_and_company_vendor_identity_do_not_leak_across_reused_real_pool(int size)
+    {
+        await using var admin = NpgsqlDataSource.Create(Environment.GetEnvironmentVariable("R00_POOL_ADMIN_CONNECTION")!);
+        var contexts = Enumerable.Range(0, 2).Select(index => new { Tenant = Guid.NewGuid(), Company = Guid.NewGuid(), Actor = Guid.NewGuid(), Member = Guid.NewGuid(), Record = Guid.NewGuid(), VendorId = "V" + Guid.NewGuid().ToString("N")[..12] }).ToArray();
+        foreach (var item in contexts)
+        {
+            await using var connection = await admin.OpenConnectionAsync();
+            await using var transaction = await connection.BeginTransactionAsync();
+            await using var seed = new NpgsqlCommand("""
+                INSERT INTO organization_access.tenants VALUES (@tenant,'Synthetic supplier pool');
+                INSERT INTO organization_access.legal_entities VALUES (@company,@tenant,'Synthetic company');
+                INSERT INTO organization_access.external_identity_bindings VALUES (@actor,'https://synthetic.test',@subject);
+                INSERT INTO organization_access.memberships VALUES (@member,@tenant,@subject);
+                INSERT INTO organization_access.company_permissions VALUES (@grant,@member,@tenant,@company,'counterparties.read',NULL,NULL);
+                INSERT INTO organization_access.common_edit_permissions VALUES (@member,@tenant);
+                INSERT INTO counterparties.counterparties VALUES (@record,@tenant,'Synthetic supplier pool','SYNTHETIC','Test only');
+                SET LOCAL ROLE runtime_owner;
+                SELECT set_config('app.tenant_id',@tenant_text,true);
+                SELECT organization_access.establish_master_authority(@command,@tenant,@member,@proof,0,'Enginia360ToExternal',@source,@profile,ARRAY[@company]);
+                """, connection);
+            seed.Parameters.AddWithValue("tenant", item.Tenant); seed.Parameters.AddWithValue("company", item.Company);
+            seed.Parameters.AddWithValue("actor", item.Actor); seed.Parameters.AddWithValue("subject", item.Actor.ToString());
+            seed.Parameters.AddWithValue("member", item.Member); seed.Parameters.AddWithValue("grant", Guid.NewGuid()); seed.Parameters.AddWithValue("record", item.Record);
+            seed.Parameters.AddWithValue("tenant_text", item.Tenant.ToString()); seed.Parameters.AddWithValue("command", Guid.NewGuid());
+            seed.Parameters.AddWithValue("proof", Guid.NewGuid()); seed.Parameters.AddWithValue("source", Guid.NewGuid()); seed.Parameters.AddWithValue("profile", Guid.NewGuid());
+            await seed.ExecuteNonQueryAsync(); await transaction.CommitAsync();
+        }
+        var builder = new NpgsqlConnectionStringBuilder(Environment.GetEnvironmentVariable("R00_POOL_CONNECTION")!) { MaxPoolSize = size, MinPoolSize = 1 };
+        await using var source = NpgsqlDataSource.Create(builder.ConnectionString);
+        // The gated role command runs through the application pool; the mapping only through the owner path.
+        foreach (var item in contexts)
+        {
+            await using var connection = await source.OpenConnectionAsync();
+            await using (var tx = await connection.BeginTransactionAsync())
+            {
+                await using var set = new NpgsqlCommand("SELECT set_config('app.tenant_id',@tenant,true),set_config('app.identity_subject',@subject,true),set_config('app.legal_entity_id',@company,true)", connection);
+                set.Parameters.AddWithValue("tenant", item.Tenant.ToString()); set.Parameters.AddWithValue("subject", item.Actor.ToString()); set.Parameters.AddWithValue("company", item.Company.ToString());
+                await set.ExecuteNonQueryAsync();
+                await using var role = new NpgsqlCommand("SELECT counterparties.set_supplier_role(@company,@record,@command,1,0,true)->>'state'", connection);
+                role.Parameters.AddWithValue("company", item.Company); role.Parameters.AddWithValue("record", item.Record); role.Parameters.AddWithValue("command", Guid.NewGuid());
+                Assert.Equal("applied", await role.ExecuteScalarAsync());
+                await tx.CommitAsync();
+            }
+            await using var ownerConnection = await admin.OpenConnectionAsync();
+            await using var ownerTx = await ownerConnection.BeginTransactionAsync();
+            await using var context = new NpgsqlCommand("SET LOCAL ROLE runtime_owner; SELECT set_config('app.tenant_id',@tenant_text,true),set_config('app.legal_entity_id',@company_text,true)", ownerConnection);
+            context.Parameters.AddWithValue("tenant_text", item.Tenant.ToString()); context.Parameters.AddWithValue("company_text", item.Company.ToString());
+            await context.ExecuteNonQueryAsync();
+            await using var owner = new NpgsqlCommand("SELECT counterparties.establish_giobby_vendor_identity(@command,@tenant,@company,@record,@member,@proof,0,@vendor,'Synthetic Supplier Pool')", ownerConnection);
+            owner.Parameters.AddWithValue("command", Guid.NewGuid()); owner.Parameters.AddWithValue("tenant", item.Tenant); owner.Parameters.AddWithValue("company", item.Company);
+            owner.Parameters.AddWithValue("record", item.Record); owner.Parameters.AddWithValue("member", item.Member); owner.Parameters.AddWithValue("proof", Guid.NewGuid()); owner.Parameters.AddWithValue("vendor", item.VendorId);
+            Assert.Equal("applied", await owner.ExecuteScalarAsync()); await ownerTx.CommitAsync();
+        }
+        var barrier = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously); var opened = 0;
+        var tasks = Enumerable.Range(0, size).Select(async index =>
+        {
+            await using var connection = await source.OpenConnectionAsync();
+            if (Interlocked.Increment(ref opened) == size) barrier.SetResult();
+            await barrier.Task.WaitAsync(TimeSpan.FromSeconds(15));
+            for (var round = 0; round < 4; round++)
+            {
+                var item = contexts[(index + round) % 2];
+                var other = contexts[(index + round + 1) % 2];
+                await using (var tx = await connection.BeginTransactionAsync())
+                {
+                    await using var set = new NpgsqlCommand("SELECT set_config('app.tenant_id',@tenant,true),set_config('app.identity_subject',@subject,true),set_config('app.legal_entity_id',@company,true)", connection);
+                    set.Parameters.AddWithValue("tenant", item.Tenant.ToString()); set.Parameters.AddWithValue("subject", item.Actor.ToString()); set.Parameters.AddWithValue("company", item.Company.ToString());
+                    await set.ExecuteNonQueryAsync();
+                    await using var own = new NpgsqlCommand("SELECT counterparties.read_giobby_vendor_identity(@company,@record)->'vendor'->>'vendorId'", connection);
+                    own.Parameters.AddWithValue("company", item.Company); own.Parameters.AddWithValue("record", item.Record);
+                    Assert.Equal(item.VendorId, await own.ExecuteScalarAsync());
+                    await using var foreign = new NpgsqlCommand("SELECT counterparties.read_giobby_vendor_identity(@company,@record)->>'state'", connection);
+                    foreign.Parameters.AddWithValue("company", other.Company); foreign.Parameters.AddWithValue("record", other.Record);
+                    Assert.Equal("forbidden", await foreign.ExecuteScalarAsync());
+                    if (round % 2 == 0) await tx.CommitAsync(); else await tx.RollbackAsync();
+                }
+                await using var denied = new NpgsqlCommand("SELECT counterparties.read_giobby_vendor_identity(@company,@record)->>'state'", connection);
+                denied.Parameters.AddWithValue("company", item.Company); denied.Parameters.AddWithValue("record", item.Record);
+                Assert.Equal("forbidden", await denied.ExecuteScalarAsync());
+            }
+            return connection.ProcessID;
+        });
+        Assert.Equal(size, (await Task.WhenAll(tasks)).Distinct().Count());
+    }
+
     private static async Task<int> Exercise(NpgsqlDataSource source, Guid tenant, bool rollback)
     {
         await using var connection = await source.OpenConnectionAsync();
