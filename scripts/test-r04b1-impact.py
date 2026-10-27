@@ -58,7 +58,7 @@ class Impact(unittest.TestCase):
     def test_migration_0027_is_appended_and_every_published_checksum_matches(self):
         manifest = json.loads((ROOT/'database/runtime/manifest.json').read_text())
         self.assertEqual(manifest[26]['id'], '0027_supplier_role')
-        self.assertEqual(len(manifest), 27)
+        self.assertGreaterEqual(len(manifest), 27)  # 0028+ are later appended units; the 0027 entry and every checksum stay fixed
         for entry in manifest:
             self.assertEqual(hashlib.sha256((ROOT/'database/runtime'/entry['path']).read_bytes()).hexdigest(), entry['sha256'], entry['id'])
 
