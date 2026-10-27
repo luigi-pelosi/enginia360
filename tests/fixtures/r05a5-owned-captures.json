@@ -1,0 +1,275 @@
+{
+  "invoice-list-after-simulation": {
+    "documentsHeaders": [
+      {
+        "id": 201
+      },
+      {
+        "id": 202
+      },
+      {
+        "id": 203
+      },
+      {
+        "id": 204
+      },
+      {
+        "id": 205
+      }
+    ],
+    "errorCode": 0,
+    "metadata": {
+      "limit": 5,
+      "offset": 0,
+      "totalCount": 5
+    },
+    "responseCode": 200
+  },
+  "invoice-simulation-preview": {
+    "document": {
+      "docNumber": "",
+      "docStatus": "CREATED",
+      "docStatusDesc": "Creato",
+      "id": null,
+      "rows": [
+        {
+          "docposstatus": "CREATED",
+          "idPos": 1,
+          "quantity": 1.0
+        }
+      ]
+    },
+    "errorCode": 0,
+    "responseCode": 200
+  },
+  "order-lookup-day-window": {
+    "documentsHeaders": [
+      {
+        "docNumber": "3",
+        "docStatus": "CREATED",
+        "id": 101,
+        "idVendor": "owned-vendor-A",
+        "reference": "E360-SB-R05A5-20261027T115822Z-PO-LOOKUP"
+      },
+      {
+        "docNumber": "2",
+        "docStatus": "CREATED",
+        "id": 102,
+        "idVendor": "preexisting-owned-vendor",
+        "reference": "E360-SB-R05A4-20261027T112231Z-PO"
+      },
+      {
+        "docNumber": "1",
+        "docStatus": "GOOD_PARTIAL_RECEIVED",
+        "id": 103,
+        "idVendor": "preexisting-owned-vendor",
+        "reference": "E360-SB-R05A3-20261027T102351Z-PO"
+      }
+    ],
+    "errorCode": 0,
+    "metadata": {
+      "limit": 5,
+      "offset": 0,
+      "totalCount": 3
+    },
+    "responseCode": 200
+  },
+  "order-lookup-vendor-name": {
+    "documentsHeaders": [
+      {
+        "docNumber": "3",
+        "docStatus": "CREATED",
+        "id": 101,
+        "idVendor": "owned-vendor-A",
+        "reference": "E360-SB-R05A5-20261027T115822Z-PO-LOOKUP"
+      }
+    ],
+    "errorCode": 0,
+    "metadata": {
+      "limit": 5,
+      "offset": 0,
+      "totalCount": 1
+    },
+    "responseCode": 200
+  },
+  "order-lookup-window-now-minus-1h-empty": {
+    "documentsHeaders": [],
+    "errorCode": 0,
+    "metadata": {
+      "limit": 5,
+      "offset": 0,
+      "totalCount": 0
+    },
+    "responseCode": 200
+  },
+  "orderA-readback": {
+    "document": {
+      "docNumber": "3",
+      "docStatus": "CREATED",
+      "docStatusDesc": "Creato",
+      "id": 101,
+      "reference": "E360-SB-R05A5-20261027T115822Z-PO-LOOKUP",
+      "rows": [
+        {
+          "docposstatus": "CREATED",
+          "idMaterial": "owned-product-1",
+          "idPos": 1,
+          "idPosType": 1,
+          "materialmovementposref": null,
+          "materialmovementref": null,
+          "quantity": 1.0,
+          "saleorderposref": null,
+          "saleorderref": null
+        }
+      ]
+    },
+    "errorCode": 0,
+    "responseCode": 200
+  },
+  "orderB-after-receipt": {
+    "document": {
+      "docNumber": "4",
+      "docStatus": "CREATED",
+      "docStatusDesc": "Creato",
+      "id": 102,
+      "reference": "E360-SB-R05A5-20261027T115822Z-PO-RECEIPT",
+      "rows": [
+        {
+          "docposstatus": "CREATED",
+          "idMaterial": "owned-product-1",
+          "idPos": 1,
+          "idPosType": 1,
+          "materialmovementposref": null,
+          "materialmovementref": null,
+          "quantity": 1.0,
+          "saleorderposref": null,
+          "saleorderref": null
+        },
+        {
+          "docposstatus": "CREATED",
+          "idMaterial": "owned-product-1",
+          "idPos": 2,
+          "idPosType": 1,
+          "materialmovementposref": null,
+          "materialmovementref": null,
+          "quantity": 2.0,
+          "saleorderposref": null,
+          "saleorderref": null
+        }
+      ]
+    },
+    "errorCode": 0,
+    "responseCode": 200
+  },
+  "orderB-readback": {
+    "document": {
+      "docNumber": "4",
+      "docStatus": "CREATED",
+      "docStatusDesc": "Creato",
+      "id": 102,
+      "reference": "E360-SB-R05A5-20261027T115822Z-PO-RECEIPT",
+      "rows": [
+        {
+          "docposstatus": "CREATED",
+          "idMaterial": "owned-product-1",
+          "idPos": 1,
+          "idPosType": 1,
+          "materialmovementposref": null,
+          "materialmovementref": null,
+          "quantity": 1.0,
+          "saleorderposref": null,
+          "saleorderref": null
+        },
+        {
+          "docposstatus": "CREATED",
+          "idMaterial": "owned-product-1",
+          "idPos": 2,
+          "idPosType": 1,
+          "materialmovementposref": null,
+          "materialmovementref": null,
+          "quantity": 2.0,
+          "saleorderposref": null,
+          "saleorderref": null
+        }
+      ]
+    },
+    "errorCode": 0,
+    "responseCode": 200
+  },
+  "receipt-api-readback": {
+    "document": {
+      "docNumber": "R05A5-GR-1",
+      "docStatus": "CREATED",
+      "docStatusDesc": "Creato",
+      "id": 301,
+      "reference": "E360-SB-R05A5-20261027T115822Z-PO-RECEIPT",
+      "rows": [
+        {
+          "docposstatus": "CREATED",
+          "idMaterial": "owned-product-1",
+          "idPos": 1,
+          "idPosType": 1,
+          "materialmovementposref": null,
+          "materialmovementref": null,
+          "quantity": 1.0,
+          "saleorderposref": null,
+          "saleorderref": null
+        }
+      ]
+    },
+    "errorCode": 0,
+    "responseCode": 200
+  },
+  "stock-after-receipt": {
+    "errorCode": 0,
+    "responseCode": 200,
+    "stockReports": [
+      {
+        "availableQty": 2.0,
+        "orderedToSuppliersQty": 6.0,
+        "quantity": 2.0,
+        "reservedByOrdersQty": 0.0,
+        "stockForecastQty": 8.0
+      }
+    ]
+  },
+  "stock-after-simulation": {
+    "errorCode": 0,
+    "responseCode": 200,
+    "stockReports": [
+      {
+        "availableQty": 1.0,
+        "orderedToSuppliersQty": 2.0,
+        "quantity": 1.0,
+        "reservedByOrdersQty": 0.0,
+        "stockForecastQty": 3.0
+      }
+    ]
+  },
+  "stock-before-orderB-receipt": {
+    "errorCode": 0,
+    "responseCode": 200,
+    "stockReports": [
+      {
+        "availableQty": 1.0,
+        "orderedToSuppliersQty": 6.0,
+        "quantity": 1.0,
+        "reservedByOrdersQty": 0.0,
+        "stockForecastQty": 7.0
+      }
+    ]
+  },
+  "stock-before-simulation": {
+    "errorCode": 0,
+    "responseCode": 200,
+    "stockReports": [
+      {
+        "availableQty": 1.0,
+        "orderedToSuppliersQty": 2.0,
+        "quantity": 1.0,
+        "reservedByOrdersQty": 0.0,
+        "stockForecastQty": 3.0
+      }
+    ]
+  }
+}
