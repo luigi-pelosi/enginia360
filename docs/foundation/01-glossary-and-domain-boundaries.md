@@ -30,6 +30,12 @@ La precedente approvazione A del ricevimento parziale **3 ordinati / 2 ricevuti*
 **D86 — ricevimento parziale e residuo (27 ottobre 2026):** Enginia360 può creare il ricevimento merci via API e tiene da sé il residuo d’ordine (ordinato meno ricevuto, regola 3 ordinati / 2 ricevuti già approvata) come overlay/read model derivato **non autorevole**, segnalando la discrepanza con Giobby. Coerenza con D82: Giobby resta l’unica autorità per stock e documenti (stesso ERP per stock e catena acquisti); il residuo non scrive stock né documenti d’acquisto, non sostituisce lo stato d’ordine ERP, nessun writer misto né fallback locale; la discrepanza è mostrata e riconciliata, mai corretta in silenzio. Il ricevimento via API è un documento ERP standalone (righe non collegate, ordine resta 3 da ricevere, stock +2): rischio di doppio conteggio riconosciuto. Questa è la lettura dell’agente della risposta owner e l’unico punto che l’owner può correggere; non viene richiesto di nuovo.
 <!-- r05-d85-d86:end -->
 
+<!-- r05-d87:start -->
+**D87 — ordine cliente come documento del pilota e riserva stock (27 ottobre 2026):** l’owner accetta che l’ordine cliente inviato a Giobby per una commessa chiusa **riserva lo stock** (fisico invariato, disponibile −1) senza scaricarlo. L’ordine cliente è il tipo di documento accettato dall’owner per il pilota e supera, ai fini dell’adapter, la scelta aperta «ordine o proforma» di D85; la proforma resta solo un possibile secondo passo successivo, non pianificato. Il rilascio/annullo della riserva e la conversione manuale ordine→fattura restano lacune di evidenza **non provate**, non assunte. Giobby resta l’autorità per stock e documenti (D82); nessuna validità fiscale affermata. Solo documentazione e guardie offline.
+
+**Perimetro R06.a — migrazione legacy (27 ottobre 2026, dichiarazione di scoping):** «Per ora non è prevista nessuna attività di migrazione dal sistema legacy.» Non è un divieto permanente né una nuova decisione oltre il perimetro: la migrazione dei dati legacy è fuori perimetro per ora. R06.a è considerata completa per i soli strumenti sintetici staging-only consegnati (#76/#77, #106/#107); le 66 voci d’inventario restano UNDECIDED (eleggibilità invariata, registro OPEN); restore di fatti applicativi già legittimi e onboarding owner D77 non sono toccati; gate OPE01–OPE05 invariati OPEN; #46 resta aperta per i residui di readiness.
+<!-- r05-d87:end -->
+
 ## Archivio storico — decisioni e stati al momento della loro registrazione
 
 Le sezioni seguenti preservano cronologia, motivazioni e gate. Ogni frase di stato o autorizzazione incompatibile con il riepilogo C00 sopra è storica; i requisiti di dominio e i limiti specialistici restano validi.
@@ -1047,3 +1053,23 @@ D01 e D02 restano issue aperte In verifica; B00 non viene completata o sbloccata
 **Interpretazione dell’agente:** questa coerenza con D82 è la lettura dell’agente della risposta owner, non una frase dell’owner; è l’unico punto che l’owner può correggere e non viene richiesta di nuovo. Restano da provare, senza risposte inventate, meccanismo di riconciliazione e prevenzione del doppio conteggio; nessuna implementazione in questo incremento.
 
 **Confini invariati (D85/D86):** solo documentazione e guardie offline; nessuna modifica di codice, adapter, schema, runtime o dipendenze, nessuna chiamata sandbox/ERP, produzione, acquisto, contatto provider o deployment. D1–D84 e le evidenze R05.a.2–a.5 byte-preservate; D26/D65/D76/D77/D82 invariate. #44/#45 restano aperte.
+
+### D87 — Ordine cliente accettato come documento del pilota: l’ordine riserva lo stock; migrazione legacy fuori perimetro
+
+**Fonte e contesto:** proprietario, risposte del **27 ottobre 2026** a due domande concrete. Registro D1–D86 verificato prima dell’assegnazione, D87 successivo inutilizzato.
+
+**Domanda posta (riserva):** nel sandbox (R05.a.6, adapter R05.b.1) l’ordine cliente inviato a Giobby per una commessa chiusa riserva lo stock — fisico invariato, disponibile −1 — senza scaricarlo; rilascio/annullo della riserva non provati. Citazione esatta:
+
+> Esatto. L’ordine riserva lo stock.
+
+**Decisione:** l’owner accetta che il documento ordine cliente riserva lo stock in Giobby senza scaricarlo. L’ordine cliente è il tipo di documento accettato dall’owner per il pilota e supera, ai fini dell’adapter, la scelta aperta «ordine o proforma» di D85 (che resta cronologia, non riscritta); la proforma resta solo un possibile secondo passo successivo, non pianificato. Il rilascio/annullo della riserva e la conversione manuale ordine→fattura restano lacune di evidenza **non provate**, non assunte. Giobby resta l’autorità per stock e documenti (D82); nessuna validità fiscale affermata, il giudizio fiscale resta ai revisori specialistici.
+
+**Domanda posta (migrazione):** se R06.a debba proseguire con attività di migrazione dal sistema legacy. Citazione esatta:
+
+> Per ora non è prevista nessuna attività di migrazione dal sistema legacy.
+
+**Perimetro R06.a (dichiarazione di scoping, non una nuova decisione oltre il perimetro):** Non è un divieto permanente né un’approvazione: la migrazione dei dati legacy è fuori perimetro per ora. R06.a è considerata completa per i soli strumenti sintetici staging-only consegnati (#76/#77, #106/#107); le 66 voci d’inventario restano UNDECIDED (eleggibilità invariata, registro OPEN); restore di fatti applicativi già legittimi e onboarding owner D77 non sono toccati; gate OPE01–OPE05 invariati OPEN; #46 resta aperta per i residui di readiness.
+
+**Interpretazione dell’agente:** la lettura «considerata completa per i soli strumenti sintetici» e il mantenimento dei gate OPE sono l’interpretazione dell’agente della seconda risposta, non frasi dell’owner; un’eventuale futura attività di migrazione richiederebbe un nuovo incarico esplicito.
+
+**Confini invariati:** solo documentazione e guardie offline; nessuna modifica di codice, schema, runtime o dipendenze, nessuna chiamata sandbox/ERP, produzione, acquisto, contatto provider o deployment. D1–D86 e le evidenze R05.a.2–a.6/R05.b.1 byte-preservate; D26/D65/D76/D77/D82 invariate. #45/#46 restano aperte.

@@ -2,6 +2,8 @@
 
 **Stato corrente R06.b.2:** tool R06.a.1 consegnato (PR #77), inventario aggiornato dai successivi incrementi; [registro OPE OPEN](r06-readiness-registry.json), [runbook/limiti correnti](r06-recovery-runbook.md). Il roundtrip sintetico STAGING-ONLY con replay è in [R06.a.2](r06a2-synthetic-import-export.md); import di dominio, tabelle reali e replay d'import reale restano non provati e UNDECIDED; parent #46 aperta. Le prove sotto non sono approvazione della migrazione.
 
+**Perimetro 27 ottobre 2026 (D87, scoping owner):** migrazione legacy fuori perimetro per ora — «Per ora non è prevista nessuna attività di migrazione dal sistema legacy.» Non è un divieto permanente né un’approvazione. R06.a completa per i soli strumenti sintetici staging-only consegnati (#76/#77, #106/#107); 66 voci UNDECIDED (eleggibilità invariata, registro OPEN); restore di fatti già legittimi e onboarding D77 non toccati; OPE01–OPE05 invariati OPEN; #46 aperta.
+
 **PROPOSTA tecnica di inventario, NON approvazione della migrazione.** Refs #76, parent #46 aperta. Baseline letta: `6ca042e66a826a1f45e0f7f72a004f1ecc58ade0` (R03.c); non il baseline ormai storico dell'handoff. Questo incremento implementa strumenti offline Python stdlib, non l'intera R06.a né R06.b. Non cambia applicazione, SQL, checksum, manifest, dipendenze o deployment.
 
 ## Inventario verificabile, non schema ipotizzato
