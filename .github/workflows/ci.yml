@@ -34,6 +34,7 @@ jobs:
       r04a: ${{ steps.selection.outputs.r04a }}
       r04c1: ${{ steps.selection.outputs.r04c1 }}
       r04c2: ${{ steps.selection.outputs.r04c2 }}
+      r06a2: ${{ steps.selection.outputs.r06a2 }}
       r06b1: ${{ steps.selection.outputs.r06b1 }}
       r03b: ${{ steps.selection.outputs.r03b }}
       r05b0: ${{ steps.selection.outputs.r05b0 }}
@@ -58,6 +59,8 @@ jobs:
         run: python3 scripts/test-r04-authority-impact.py
       - name: Verify immutable binding impact and dispatch guard
         run: python3 scripts/test-r05b0-impact.py
+      - name: Verify finite staging import/export impact
+        run: python3 -I scripts/test-r06a2-impact.py
       - name: Verify finite sales-order adapter impact
         run: python3 scripts/test-r05b1-impact.py
       - name: Verify finite Giobby dossier impact
@@ -159,6 +162,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Offline inventory, reconciliation and readiness registry (not operational approval)
         run: python3 -I scripts/test-r06-impact.py && python3 -I scripts/test-r06-inventory.py && python3 -I scripts/test-r06-reconcile.py && python3 -I scripts/test-r06b2-impact.py && python3 -I scripts/test-r06-readiness.py && python3 -I scripts/r06_readiness.py
+      - name: Offline staging transfer input and lifecycle guards (not runtime proof)
+        run: python3 -I scripts/test-r06a2-transfer.py && python3 -I scripts/test-r06a2-lifecycle.py
       - name: Offline stock and purchasing authority correction (not product setup enforcement)
         run: python3 -I scripts/test-r04-authority-impact.py && python3 -I scripts/test-r04-authority.py && python3 -I scripts/test-r04-authority.py --check
   affected-api:
@@ -331,6 +336,19 @@ jobs:
         run: timeout 420 python3 scripts/test-r06b1-lifecycle.py --actual restore
       - name: Actual TERM while Chromium and a held SQL lock are alive
         run: timeout 420 python3 scripts/test-r06b1-lifecycle.py --actual browser
+  affected-r06-staging:
+    needs: impact
+    if: github.event_name == 'workflow_dispatch' && needs.impact.outputs.r06a2 == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Initialize private staging-only scratch
+        run: printf 'TMPDIR=%s\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+      - name: Actual synthetic stored-source export import replay and reconciliation (not production migration)
+        run: timeout 180 python3 -I scripts/run-r06a2-tests.py
+      - name: Actual staging transaction TERM rollback and exact cleanup
+        run: timeout 180 python3 -I scripts/test-r06a2-lifecycle.py --actual
   affected-r03b:
     needs: impact
     if: github.event_name == 'workflow_dispatch' && needs.impact.outputs.r03b == 'true'

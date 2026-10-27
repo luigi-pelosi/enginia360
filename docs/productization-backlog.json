@@ -114,6 +114,7 @@
     "gate": "OPE01–OPE05, responsabili, validazioni specialistiche e target effettivo; go-live/dati reali/acquisti/ambiente persistente richiedono incarico separato.",
     "slices": [
       "R06.a: inventario e mapping di migrazione senza estrarre dati reali, prova import/export con dataset sintetico e riconciliazione.",
+      "R06.a.2: roundtrip sintetico STAGING-ONLY in PostgreSQL effimero con replay, atomicità e riconciliazione; non import di dominio, eleggibilità reale UNDECIDED.",
       "R06.b: rehearsal effimero completo, backup/restore e rollback misurati, runbook e checklist con evidenze e gap.",
       "R06.b.2: registro evidenze OPE01–OPE05 e runbook con guardie offline; gate operativi OPEN, parent #46 aperta, nessuna readiness o approvazione nuova."
     ],
