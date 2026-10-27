@@ -67,6 +67,16 @@ class ImpactTests(unittest.TestCase):
         self.assertFalse(selected['full_architecture'])
         validate_workflow((ROOT/'.github/workflows/ci.yml').read_text())
 
+    def test_d90_cap_decision_reuses_finite_offline_mapping(self):
+        # Existing mapping regression, not a manufactured RED.
+        paths = PATHS + ['docs/r04b1-supplier-role.md',
+                        'scripts/test-r05a2-evidence.py', 'scripts/test-r05a3-evidence.py']
+        selected = impact.selection(paths)
+        self.assertEqual({k for k, value in selected.items() if value is True}, D87_JOBS)
+        self.assertEqual(selected['api_filter'], '')
+        self.assertFalse(selected['full_architecture'])
+        validate_workflow((ROOT/'.github/workflows/ci.yml').read_text())
+
     def test_unknown_executables_fail_closed_even_in_mixed_offline_scope(self):
         for path in ('scripts/test-r04-authority-unknown.py', 'docs/authority.py',
                      'src/unknown.py', 'docs/new-authority.sh'):

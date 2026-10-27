@@ -17,7 +17,8 @@ PLAN = 'docs/productization-plan.md'
 RUNBOOK = 'docs/r06-recovery-runbook.md'
 BACKLOG = 'docs/productization-backlog.json'
 INVENTORY = 'docs/r06-migration-inventory.md'
-PATHS = ('AGENTS.md', GLOSSARY, PLAN, RUNBOOK, BACKLOG, INVENTORY)
+SUPPLIER = 'docs/r04b1-supplier-role.md'
+PATHS = ('AGENTS.md', GLOSSARY, PLAN, RUNBOOK, BACKLOG, INVENTORY, SUPPLIER)
 QUOTE = 'No approvo B: non si può gestire stock e flusso di acquisti in distinti fonti. La fonte in questo caso resta sempre l’ERP esterno'
 START, END = '<!-- r04-authority:start -->', '<!-- r04-authority:end -->'
 D1_D84_BYTES = 131965
@@ -141,6 +142,79 @@ def authority_block(text, label):
     return text.split(START)[1].split(END)[0]
 
 
+def validate_d90(docs):
+    """Documentary policy only, not runtime purchase capacity enforcement."""
+    history = docs[GLOSSARY].encode()
+    history = history[history.index('### D1 —'.encode()):][:144854]
+    if hashlib.sha256(history).hexdigest() != 'e37f0a21dd9f4ddb376256d138b497a2ef442b562d0b4151574434b270e27e54':
+        raise ValueError('D90: D1–D89 history changed')
+    register = docs[GLOSSARY].split('### D90 —')[1]
+    require(register, ('> Confermo A\n',
+        'Esempio: la riga richiede 3 pezzi e una richiesta d’acquisto pendente ne copre già 2. Una nuova richiesta, anche verso un altro fornitore, può chiedere: A — consigliato: al massimo 1 pezzo, contando cumulativamente tutte le richieste della stessa riga. B: altri 2 pezzi, consentendo di superare il fabbisogno complessivo. I retry della stessa richiesta restano senza duplicati in entrambi i casi. Confermi A?',
+        '27 ottobre 2026', 'Registro D1–D89 verificato prima dell’assegnazione',
+        'Interpretazione dell’agente', 'Nessuna enforcement runtime'), 'D90 provenance')
+    active_tokens = ('D90', 'singola riga Part sorgente',
+        'somma delle quantità degli intenti pendenti più la nuova quantità non supera il fabbisogno',
+        'tutti i fornitori e magazzini', 'Riga 3 / intento pendente 2 → residuo 1',
+        'nuova richiesta 2 rifiutata, 1 ammessa', 'nuovo UUID non azzera il cap',
+        'replay esatto senza quantità aggiuntiva', 'non riducono automaticamente il cap',
+        'nessuna sottrazione implicita né doppio conteggio',
+        'non introduce cancellazione/rifiuto/rilascio/ricevimento',
+        'né riapertura automatica del cap', 'lifecycle successive fuori perimetro',
+        'D82 invariata', 'solo intento/outbox, nessun writer locale',
+        'D88 resta manuale con azione dedicata e nessun approvatore separato',
+        'nessun nuovo scope/ruolo/provisioning', 'Nessuna scelta di mapping o codice',
+        'Gate quantitativo #114 risolto', 'solo dopo merge', 'vero RED→GREEN',
+        '#114/#44/#45 restano aperte', 'D89 invariata', 'Esercizio OPEN/BACKLOG',
+        'nessuna acceptance runtime o readiness')
+    scopes = []
+    for path in (GLOSSARY, PLAN):
+        start, end = '<!-- r04-d90:start -->', '<!-- r04-d90:end -->'
+        if docs[path].count(start) != 1 or docs[path].count(end) != 1:
+            raise ValueError('D90: exactly one active cap block required: '+path)
+        block = docs[path].split(start)[1].split(end)[0]
+        require(block, active_tokens, 'D90 '+path)
+        scopes.append(block)
+    agents = next((line for line in docs['AGENTS.md'].splitlines() if line.startswith('- D90 ')), '')
+    require(agents, ('per source Part line across suppliers and warehouse choices', 'never per command',
+        'Line3/pending2 leaves1', 'new UUID does not reset the cap',
+        'exact replay with no extra quantity', 'do not automatically reduce the cap',
+        'no cancellation/rejection/release/receipt transitions or automatic capacity replenishment',
+        'later lifecycle is out of scope', 'D82/D88/D77/D89 unchanged',
+        'no new scopes/roles/provisioning', 'mapping or code decisions',
+        'must merge before implementation', '#114/#44/#45 stay open', 'offline checks only'), 'D90 AGENTS')
+    card = next(card for card in json.loads(docs[BACKLOG]) if card['id'] == 'R04')['gate']
+    require(card, ('D90', 'cap cumulativo per riga Part sorgente', 'pendenti/fornitori/magazzini',
+        'non per comando', 'riga 3 / intento 2 → residuo 1', 'nuova 2 rifiutata e 1 ammessa',
+        'nuovo UUID non azzera', 'replay esatto senza quantità aggiuntiva',
+        'Nessuna riduzione automatica', 'nessuna transizione lifecycle o riapertura automatica',
+        'Gate quantitativo #114 risolto', 'dopo merge', 'vero RED→GREEN', '#114/#44/#45 aperte',
+        'nessun nuovo scope/ruolo/provisioning', 'mapping o codice deciso'), 'D90 backlog')
+    supplier = docs[SUPPLIER].split('## Requisiti rimanenti per R04.b.2')[1]
+    require(supplier, ('D90', 'cap cumulativo per riga Part sorgente',
+        'intenti pendenti, fornitori e magazzini', 'riga 3 / intento 2 → residuo 1',
+        'nuova 2 rifiutata e 1 ammessa', 'Nuovo UUID non azzera il cap',
+        'replay esatto senza quantità aggiuntiva', 'non sottratte automaticamente',
+        'senza cancellazione/rifiuto/rilascio/ricevimento o riapertura automatica',
+        'lifecycle successivo fuori perimetro', 'Gate quantitativo #114 risolto',
+        'solo dopo merge', 'vero RED→GREEN', 'Nessuna enforcement runtime provata qui',
+        'D82/D88/D77', 'nessun nuovo scope/ruolo/provisioning', 'mapping o codice deciso'), 'D90 supplier')
+    scopes += [register, docs['AGENTS.md'], card, supplier]
+    forbidden = (
+        r'cap\s+per\s+comando\s+(?:consentito|approvato)',
+        r'(?:nuovo UUID|cambio fornitore|cambio magazzino)\s+azzera\s+il\s+cap',
+        r'same UUID\s+adds\s+(?:more|extra)\s+quantity',
+        r'(?:ERP availability|reserved quantity)\s+automatically\s+reduces\s+the\s+cap',
+        r'(?:cancellation|receipt)\s+automatically\s+(?:replenishes|reopens)\s+capacity',
+        r'new purchase roles and provisioning\s+approved',
+        r'vendor mapping policy\s+decided by D90',
+        r'D90 cap runtime enforcement\s+delivered',
+    )
+    for pattern in forbidden:
+        if re.search(pattern, '\n'.join(scopes), re.I):
+            raise ValueError('D90: contradictory cap, inferred lifecycle or expanded authority')
+
+
 def validate(root):
     docs = {path: (root/path).read_text() for path in PATHS}
     priority_scope = '\n'.join(docs.values())
@@ -233,8 +307,8 @@ def validate(root):
         raise ValueError('active delivery: stale D80/D81 status')
     # Historical decisions remain untouched; the new decision must be unique and next.
     ids = [int(x) for x in re.findall(r'^### D(\d+) —', docs[GLOSSARY], re.M)]
-    if sorted(ids) != list(range(1, 90)):
-        raise ValueError('decision register: retain unique D1–D88 and append D89')
+    if sorted(ids) != list(range(1, 91)):
+        raise ValueError('decision register: retain unique D1–D89 and append D90')
     prefix = docs[GLOSSARY].encode()
     prefix = prefix[prefix.index(b'### D1 \xe2\x80\x94'):][:D1_D84_BYTES]
     if hashlib.sha256(prefix).hexdigest() != D1_D84_SHA256:
@@ -303,9 +377,96 @@ def validate(root):
     for pattern in forbidden+D85_FORBIDDEN+D87_FORBIDDEN+D88_FORBIDDEN:
         if re.search(pattern, scope, re.I):
             raise ValueError('active authority: forbidden promotion or mixed writer')
+    validate_d90(docs)
 
 
 class AuthorityTests(unittest.TestCase):
+    def test_d90_records_exact_owner_answer_and_question(self):
+        text = (ROOT/GLOSSARY).read_text()
+        self.assertIn('### D90 —', text, 'confirmed cumulative purchase-intent cap is not recorded')
+        decision = text.split('### D90 —')[1]
+        self.assertIn('> Confermo A\n', decision)
+        self.assertIn('Esempio: la riga richiede 3 pezzi e una richiesta d’acquisto pendente ne copre già 2. Una nuova richiesta, anche verso un altro fornitore, può chiedere: A — consigliato: al massimo 1 pezzo, contando cumulativamente tutte le richieste della stessa riga. B: altri 2 pezzi, consentendo di superare il fabbisogno complessivo. I retry della stessa richiesta restano senza duplicati in entrambi i casi. Confermi A?', decision)
+        self.assertIn('Registro D1–D89 verificato prima dell’assegnazione', decision)
+        self.assertIn('27 ottobre 2026', decision)
+
+    def test_d90_active_cap_and_bounds_cannot_be_removed(self):
+        cases = {
+            GLOSSARY: ('singola riga Part sorgente', 'tutti i fornitori e magazzini',
+                       'nuovo UUID non azzera il cap', 'replay esatto senza quantità aggiuntiva',
+                       'non riducono automaticamente il cap', 'lifecycle successive fuori perimetro',
+                       'nessun nuovo scope/ruolo/provisioning', 'Nessuna scelta di mapping o codice',
+                       'solo dopo merge', 'nessuna acceptance runtime o readiness'),
+            PLAN: ('singola riga Part sorgente', 'tutti i fornitori e magazzini',
+                   'nuovo UUID non azzera il cap', 'replay esatto senza quantità aggiuntiva',
+                   'non riducono automaticamente il cap', 'lifecycle successive fuori perimetro',
+                   'nessun nuovo scope/ruolo/provisioning', 'Nessuna scelta di mapping o codice',
+                   'solo dopo merge', 'nessuna acceptance runtime o readiness'),
+            'AGENTS.md': ('per source Part line across suppliers and warehouse choices',
+                          'never per command', 'new UUID does not reset the cap',
+                          'exact replay with no extra quantity', 'do not automatically reduce the cap',
+                          'later lifecycle is out of scope', 'no new scopes/roles/provisioning',
+                          'mapping or code decisions', 'must merge before implementation'),
+            BACKLOG: ('cap cumulativo per riga Part sorgente', 'pendenti/fornitori/magazzini',
+                      'non per comando', 'nuovo UUID non azzera', 'replay esatto senza quantità aggiuntiva',
+                      'Nessuna riduzione automatica', 'nessuna transizione lifecycle',
+                      'nessun nuovo scope/ruolo/provisioning', 'mapping o codice deciso', 'dopo merge'),
+            'docs/r04b1-supplier-role.md': ('cap cumulativo per riga Part sorgente',
+                      'intenti pendenti, fornitori e magazzini', 'Nuovo UUID non azzera il cap',
+                      'replay esatto senza quantità aggiuntiva', 'non sottratte automaticamente',
+                      'lifecycle successivo fuori perimetro', 'nessun nuovo scope/ruolo/provisioning',
+                      'mapping o codice deciso', 'solo dopo merge'),
+        }
+        for path, tokens in cases.items():
+            for token in tokens:
+                with self.subTest(path=path, token=token):
+                    self.d90_mutation(path, token, 'REMOVED', active_only=True)
+
+    def d90_mutation(self, path, old, new, active_only=False):
+        with tempfile.TemporaryDirectory(prefix='d90-cap-') as temp:
+            root = Path(temp)
+            for source in (*PATHS, 'docs/r04b1-supplier-role.md'):
+                target = root/source
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(ROOT/source, target)
+            target = root/path
+            text = target.read_text()
+            if active_only and path in (GLOSSARY, PLAN):
+                before, rest = text.split('<!-- r04-d90:start -->')
+                block, after = rest.split('<!-- r04-d90:end -->')
+                self.assertIn(old, block, 'valid active mutation precondition')
+                text = before+'<!-- r04-d90:start -->'+block.replace(old, new)+'<!-- r04-d90:end -->'+after
+            else:
+                self.assertIn(old, text, 'valid mutation precondition')
+                text = text.replace(old, new)
+            target.write_text(text)
+            result = self.invoke(root)
+            self.assertEqual(result.returncode, 2, result.stdout+result.stderr)
+            self.assertIn('D90', result.stderr)
+            self.assertNotIn('Traceback', result.stderr)
+
+    def test_d90_rejects_per_command_reset_and_inferred_policy(self):
+        claims = ('Cap per comando consentito.', 'Nuovo UUID azzera il cap.',
+                  'Cambio fornitore azzera il cap.', 'Cambio magazzino azzera il cap.',
+                  'Same UUID adds more quantity.', 'ERP availability automatically reduces the cap.',
+                  'Reserved quantity automatically reduces the cap.',
+                  'Cancellation automatically replenishes capacity.',
+                  'Receipt automatically reopens capacity.',
+                  'New purchase roles and provisioning approved.',
+                  'Vendor mapping policy decided by D90.',
+                  'D90 cap runtime enforcement delivered.')
+        for path in (GLOSSARY, PLAN, 'AGENTS.md', BACKLOG, 'docs/r04b1-supplier-role.md'):
+            for claim in claims:
+                with self.subTest(path=path, claim=claim):
+                    self.d90_mutation(path, 'D90', 'D90 '+claim, active_only=path in (GLOSSARY, PLAN))
+
+    def test_d90_provenance_and_d89_bytes_are_preserved(self):
+        for old, new in (('> Confermo A\n', '> Confermo B\n'),
+                         ('Confermi A?', 'Confermi B?'),
+                         ('### D89 — Priorità', '### D89 — MODIFIED Priorità')):
+            with self.subTest(old=old):
+                self.d90_mutation(GLOSSARY, old, new)
+
     def test_current_documents_are_coherent(self):
         validate(ROOT)
 
