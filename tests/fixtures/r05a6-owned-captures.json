@@ -1,0 +1,346 @@
+{
+  "order-after-proforma": {
+    "document": {
+      "docDescription": "ODV N. 1 del 27/10/26",
+      "docNumber": "1",
+      "docStatus": "CREATED",
+      "docStatusDesc": "Creato",
+      "docTypeDesc": "Ordine cliente",
+      "docTypeDescShort": "ODV",
+      "eidocstatus": "",
+      "id": 101,
+      "idContact": 9001,
+      "idCustomer": "owned-customer-1",
+      "idDocumentType": 3,
+      "idNumerator": 1,
+      "numName": "Num 1",
+      "reference": "E360-SB-R05A6-20261027T131422Z-ORD",
+      "rows": [
+        {
+          "docposstatus": "CREATED",
+          "idMaterial": "owned-product-1",
+          "idPos": 1,
+          "idPosType": 1,
+          "idStorage": "MB",
+          "materialmovementposref": null,
+          "materialmovementref": null,
+          "price": 1.0,
+          "quantity": 1.0,
+          "saleorderposref": null,
+          "saleorderref": null
+        }
+      ],
+      "totalAmount": 1.22
+    },
+    "errorCode": 0,
+    "responseCode": 200
+  },
+  "order-create-response": {
+    "canCreateSalesOrders": true,
+    "concatWarningMessages": "Attenzione: la modifica del parametro [docStatus] non \u00e8 prevista. Il valore passato in input \u00e8 stato ignorato.\\n",
+    "errorCode": 0,
+    "idDocument": 101,
+    "responseCode": 200
+  },
+  "order-list-after-proforma": {
+    "documentsHeaders": [
+      {
+        "docDescription": "ODV N. 1 del 27/10/26",
+        "docNumber": "1",
+        "docStatus": "CREATED",
+        "docStatusDesc": "Creato",
+        "docTypeDescShort": "ODV",
+        "id": 101,
+        "idContact": null,
+        "idCustomer": "owned-customer-1",
+        "idDocumentType": 3,
+        "reference": "E360-SB-R05A6-20261027T131422Z-ORD",
+        "totalAmount": 1.22
+      }
+    ],
+    "errorCode": 0,
+    "metadata": {
+      "limit": 5,
+      "offset": 0,
+      "totalCount": 1
+    },
+    "responseCode": 200
+  },
+  "order-lookup-customer-name-status": {
+    "documentsHeaders": [
+      {
+        "docDescription": "ODV N. 1 del 27/10/26",
+        "docNumber": "1",
+        "docStatus": "CREATED",
+        "docStatusDesc": "Creato",
+        "docTypeDescShort": "ODV",
+        "id": 101,
+        "idContact": null,
+        "idCustomer": "owned-customer-1",
+        "idDocumentType": 3,
+        "reference": "E360-SB-R05A6-20261027T131422Z-ORD",
+        "totalAmount": 1.22
+      }
+    ],
+    "errorCode": 0,
+    "metadata": {
+      "limit": 5,
+      "offset": 0,
+      "totalCount": 1
+    },
+    "responseCode": 200
+  },
+  "order-lookup-idcontact-contact-id-post-oracle-empty": {
+    "documentsHeaders": [],
+    "errorCode": 0,
+    "metadata": {
+      "limit": 5,
+      "offset": 0,
+      "totalCount": 0
+    },
+    "responseCode": 200
+  },
+  "order-lookup-idcontact-customer-id-empty": {
+    "documentsHeaders": [],
+    "errorCode": 0,
+    "metadata": {
+      "limit": 5,
+      "offset": 0,
+      "totalCount": 0
+    },
+    "responseCode": 200
+  },
+  "order-lookup-reference-empty": {
+    "documentsHeaders": [],
+    "errorCode": 0,
+    "metadata": {
+      "limit": 5,
+      "offset": 0,
+      "totalCount": 0
+    },
+    "responseCode": 200
+  },
+  "order-orders-baseline-empty": {
+    "documentsHeaders": [],
+    "errorCode": 0,
+    "metadata": {
+      "limit": 5,
+      "offset": 0,
+      "totalCount": 0
+    },
+    "responseCode": 200
+  },
+  "order-readback": {
+    "document": {
+      "docDescription": "ODV N. 1 del 27/10/26",
+      "docNumber": "1",
+      "docStatus": "CREATED",
+      "docStatusDesc": "Creato",
+      "docTypeDesc": "Ordine cliente",
+      "docTypeDescShort": "ODV",
+      "eidocstatus": "",
+      "id": 101,
+      "idContact": 9001,
+      "idCustomer": "owned-customer-1",
+      "idDocumentType": 3,
+      "idNumerator": 1,
+      "numName": "Num 1",
+      "reference": "E360-SB-R05A6-20261027T131422Z-ORD",
+      "rows": [
+        {
+          "docposstatus": "CREATED",
+          "idMaterial": "owned-product-1",
+          "idPos": 1,
+          "idPosType": 1,
+          "idStorage": "MB",
+          "materialmovementposref": null,
+          "materialmovementref": null,
+          "price": 1.0,
+          "quantity": 1.0,
+          "saleorderposref": null,
+          "saleorderref": null
+        }
+      ],
+      "totalAmount": 1.22
+    },
+    "errorCode": 0,
+    "responseCode": 200
+  },
+  "proforma-create-response": {
+    "concatWarningMessages": "",
+    "errorCode": 0,
+    "idDocument": 201,
+    "responseCode": 200
+  },
+  "proforma-header-only": {
+    "documentHeader": {
+      "docDescription": "FTP N. 2 del 27/10/26",
+      "docNumber": "2",
+      "docStatus": "CREATED",
+      "docStatusDesc": "Creato",
+      "docTypeDesc": "Fattura proforma",
+      "docTypeDescShort": "FTP",
+      "eidocstatus": "",
+      "id": 201,
+      "idContact": 9001,
+      "idCustomer": "owned-customer-1",
+      "idDocumentType": 33,
+      "idNumerator": 1,
+      "numName": "Num 1",
+      "reference": "E360-SB-R05A6-20261027T131422Z-ORD",
+      "totalAmount": 1.22
+    },
+    "errorCode": 0,
+    "responseCode": 200
+  },
+  "proforma-lookup-customer-name": {
+    "documentsHeaders": [
+      {
+        "docDescription": "FTV N. 1659 del 27/10/26",
+        "docNumber": "1659",
+        "docStatus": "CREATED",
+        "docStatusDesc": "Creato",
+        "docTypeDescShort": "FTV",
+        "id": 301,
+        "idContact": null,
+        "idCustomer": "owned-customer-1",
+        "idDocumentType": 10,
+        "reference": "E360-SB-R05A3-20261027T102351Z-INV",
+        "totalAmount": 1.22
+      },
+      {
+        "docDescription": "FTP N. 2 del 27/10/26",
+        "docNumber": "2",
+        "docStatus": "CREATED",
+        "docStatusDesc": "Creato",
+        "docTypeDescShort": "FTP",
+        "id": 201,
+        "idContact": 9001,
+        "idCustomer": "owned-customer-1",
+        "idDocumentType": 33,
+        "reference": "E360-SB-R05A6-20261027T131422Z-ORD",
+        "totalAmount": 1.22
+      }
+    ],
+    "errorCode": 0,
+    "metadata": {
+      "limit": 5,
+      "offset": 0,
+      "totalCount": 2
+    },
+    "responseCode": 200
+  },
+  "proforma-lookup-reference-empty": {
+    "documentsHeaders": [],
+    "errorCode": 0,
+    "metadata": {
+      "limit": 5,
+      "offset": 0,
+      "totalCount": 0
+    },
+    "responseCode": 200
+  },
+  "proforma-readback": {
+    "document": {
+      "docDescription": "FTV N. 2 del 27/10/26",
+      "docNumber": "2",
+      "docStatus": "CREATED",
+      "docStatusDesc": "Creato",
+      "docTypeDesc": "Fattura proforma",
+      "docTypeDescShort": "FTV",
+      "eidocstatus": "",
+      "id": 201,
+      "idContact": 9001,
+      "idCustomer": "owned-customer-1",
+      "idDocumentType": 33,
+      "idNumerator": 1,
+      "numName": "Num 1",
+      "reference": "E360-SB-R05A6-20261027T131422Z-ORD",
+      "rows": [
+        {
+          "docposstatus": "CREATED",
+          "idMaterial": null,
+          "idPos": 1,
+          "idPosType": 5,
+          "idStorage": null,
+          "materialmovementposref": null,
+          "materialmovementref": null,
+          "price": null,
+          "quantity": null,
+          "saleorderposref": 1,
+          "saleorderref": 101
+        },
+        {
+          "docposstatus": "CREATED",
+          "idMaterial": "owned-product-1",
+          "idPos": 2,
+          "idPosType": 1,
+          "idStorage": "MB",
+          "materialmovementposref": null,
+          "materialmovementref": null,
+          "price": 1.0,
+          "quantity": 1.0,
+          "saleorderposref": 1,
+          "saleorderref": 101
+        }
+      ],
+      "totalAmount": 1.22
+    },
+    "errorCode": 0,
+    "responseCode": 200
+  },
+  "stock-after-order": {
+    "errorCode": 0,
+    "metadata": {
+      "limit": 5,
+      "offset": 0,
+      "totalCount": 1
+    },
+    "responseCode": 200,
+    "stockReports": [
+      {
+        "availableQty": 1.0,
+        "orderedToSuppliersQty": 6.0,
+        "quantity": 2.0,
+        "reservedByOrdersQty": 1.0,
+        "stockForecastQty": 7.0
+      }
+    ]
+  },
+  "stock-after-proforma": {
+    "errorCode": 0,
+    "metadata": {
+      "limit": 5,
+      "offset": 0,
+      "totalCount": 1
+    },
+    "responseCode": 200,
+    "stockReports": [
+      {
+        "availableQty": 1.0,
+        "orderedToSuppliersQty": 6.0,
+        "quantity": 2.0,
+        "reservedByOrdersQty": 1.0,
+        "stockForecastQty": 7.0
+      }
+    ]
+  },
+  "stock-before-order": {
+    "errorCode": 0,
+    "metadata": {
+      "limit": 5,
+      "offset": 0,
+      "totalCount": 1
+    },
+    "responseCode": 200,
+    "stockReports": [
+      {
+        "availableQty": 2.0,
+        "orderedToSuppliersQty": 6.0,
+        "quantity": 2.0,
+        "reservedByOrdersQty": 0.0,
+        "stockForecastQty": 8.0
+      }
+    ]
+  }
+}
