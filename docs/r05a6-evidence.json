@@ -1,0 +1,936 @@
+{
+  "increment": "R05.a.6",
+  "phase": "d85-order-vs-proforma-evidence",
+  "refs": [
+    "#45",
+    "#44",
+    "#102"
+  ],
+  "new_decision": null,
+  "base_main": "11e139303bf70012abc7f70819ce87d74500fe9d",
+  "scope": "Existing D83/D84/D85 sandbox scope; owner-assertion isolation only; no production, provider contact, adapter or runtime change.",
+  "classes": [
+    "public-declaration",
+    "sandbox-observation",
+    "local-guard"
+  ],
+  "historical": {
+    "r05a2_matrix_sha256": "509178dacc2781df2b39e10a11edd8b7e6e8ce952d6b4858677cf119dbf29924",
+    "r05a3_matrix_sha256": "d5665945b2ca48a518bc73bdd0cf7d07c53b9b4a3e3a63aeb01e4b549a7394a6",
+    "r05a3_fixtures_sha256": "24dd0ed794290bdff31e74858b946c6e4e5ab8d67493952aedf6329a7f536aaa",
+    "r05a4_matrix_sha256": "4145b806c29dd8a66722303737402873e2c2091b4a6592a63133baf25a167d12",
+    "r05a4_fixtures_sha256": "b581f5dd276af194a052697afe1192ad3c6a41ec18ebb7e5c39936e196de11f9",
+    "r05a5_matrix_sha256": "1d165e7936e02cc90a2633838bbfe22496da86fd5358188b5db7004ec19db205",
+    "r05a5_fixtures_sha256": "a877fa7e4f17fad49ee8f3bb99e84bcf853b47a1360725b9e323010ab31639f7",
+    "r05a3_uncertain_intent_held_unchanged": true,
+    "r05a3_error_no_replay_intent_held_unchanged": true
+  },
+  "run": {
+    "synthetic_prefix": "E360-SB-R05A6-20261027T131422Z",
+    "caps": {
+      "POST": 4,
+      "business_requests": 40,
+      "lookup_limit": 5,
+      "min_interval_s": 0.5
+    },
+    "business_requests": 19,
+    "post_requests": 2,
+    "ui_read_only_views": 3
+  },
+  "claims": {
+    "server_idempotency": false,
+    "exactly_once": false,
+    "invoice_conversion_exercised": false,
+    "persistent_draft_proved": false,
+    "owner_decision_made": false,
+    "d79_complete": false,
+    "r04_complete": false,
+    "r05_complete": false,
+    "readiness": false,
+    "provider_compatibility": false
+  },
+  "public_declaration": {
+    "swagger_sha256": "6774bc1d03f3c890c5c249cbf4dbe20a1b56c4ce889798a3382acef808b04194",
+    "reference_html_sha256": "f81a2f67f6a302ab41dbba959c85097cb7e0032405b1d6fb64a4839aa13ed7aa",
+    "direct_proforma_create_path_declared": false,
+    "notes": [
+      "Only three proforma paths are declared: goods issue to proforma, order to proforma, proforma to invoice; no path creates a proforma from scratch.",
+      "The transformation declares no simulation parameter and no response schema (default only).",
+      "UI exposes a direct \u00abFattura Proforma\u00bb entry, not an API path."
+    ],
+    "extracts": [
+      {
+        "name": "proforma-paths",
+        "pointer": "/paths (keys containing \"proforma\")",
+        "extract": [
+          "/sales/{id}/goodissuestoproformainvoice",
+          "/sales/{id}/orderstoproformainvoice",
+          "/sales/{id}/proformainvoicetoinvoice"
+        ],
+        "extract_sha256": "b283dfd352d8660931f0dc02167d255711d19f546b2d123f6db46bf0661ec302"
+      },
+      {
+        "name": "orderstoproformainvoice-parameters",
+        "pointer": "/paths/~1sales~1{id}~1orderstoproformainvoice/post/parameters/*/name",
+        "extract": [
+          "body",
+          "id"
+        ],
+        "extract_sha256": "4f1b83e19d49c42c4e88be6367ef70889cdbc952a7953f2584a79d63b0c1500a"
+      },
+      {
+        "name": "sales-orders-post-parameters",
+        "pointer": "/paths/~1sales~1orders/post/parameters/*/name",
+        "extract": [
+          "body",
+          "simulation"
+        ],
+        "extract_sha256": "558d5bcd421ab853b222f145eb09bf2c9fa92bc51fab516c33d2d13e84d25a96"
+      },
+      {
+        "name": "document-transformation-fields",
+        "pointer": "/definitions/DocumentTransformationApi/properties",
+        "extract": [
+          "docDate",
+          "docNumber",
+          "idNumerator"
+        ],
+        "extract_sha256": "56c1cda965aff95149ee7625b6701321ff346855f139d7f2fbc8015fa0d80709"
+      },
+      {
+        "name": "orderstoproformainvoice-responses",
+        "pointer": "/paths/~1sales~1{id}~1orderstoproformainvoice/post/responses",
+        "extract": {
+          "default": {
+            "description": "successful operation"
+          }
+        },
+        "extract_sha256": "d60a0b3ca42c500156e340496a9b41c772932d87182885283abfac9b5958589c"
+      },
+      {
+        "name": "doctype-table-subset",
+        "pointer": "reference page #docTypeTable (HTML, not swagger)",
+        "extract": {
+          "3": "Ordine Cliente",
+          "10": "Fattura di vendita",
+          "33": "Fattura Proforma"
+        },
+        "extract_sha256": "8b2d9b560af036496d2a782b2c66c246633675131553b9437c5afbab734286fc"
+      },
+      {
+        "name": "docstatus-table",
+        "pointer": "reference page #docStatusTable (HTML, not swagger)",
+        "extract": [
+          "CREATED",
+          "ORDER_CONFIRMED",
+          "COMPLETED_ORDER",
+          "GOOD_PARTIAL_DELIVERY",
+          "GOOD_DELIVERY",
+          "INVOICED",
+          "PARTIAL_INVOICED",
+          "ORDER_PAID_STATUS",
+          "ORDER_PARTIAL_PAID_STATUS",
+          "PAID_STATUS",
+          "PARTIAL_PAID_STATUS"
+        ],
+        "extract_sha256": "ab439cdaddaf12489701e4c2d082cbc7c7d2cb4cb7e80e850b608db1ef717a68"
+      }
+    ]
+  },
+  "ledger": {
+    "writes": [
+      {
+        "seq": 5,
+        "method": "POST",
+        "path": "/sales/orders",
+        "query_keys": [
+          "simulation"
+        ],
+        "label": "owned sales order qty1",
+        "state": "RESPONSE_OBSERVED_VERIFIED",
+        "http_status": 200,
+        "business_status": {
+          "responseCode": 200,
+          "errorCode": 0
+        },
+        "intent_utc": "2026-10-27T13:15:58.868783+00:00"
+      },
+      {
+        "seq": 12,
+        "method": "POST",
+        "path": "/sales/{id}/orderstoproformainvoice",
+        "query_keys": [],
+        "label": "order to proforma transformation (idNumerator, docDate only)",
+        "state": "RESPONSE_OBSERVED_VERIFIED",
+        "http_status": 200,
+        "business_status": {
+          "responseCode": 200,
+          "errorCode": 0
+        },
+        "intent_utc": "2026-10-27T13:19:28.042884+00:00"
+      }
+    ],
+    "objects": [
+      {
+        "kind": "sales-orders",
+        "owned_alias": "R05A6-ORDER-1",
+        "create_seq": 5,
+        "readback_seq": 9,
+        "lookup_seq": 6
+      },
+      {
+        "kind": "sales-invoices-proforma",
+        "owned_alias": "R05A6-PROFORMA-1",
+        "create_seq": 12,
+        "readback_seq": 15,
+        "lookup_seq": 13
+      }
+    ],
+    "counts": {
+      "write_intents": 2,
+      "verified_business_aggregates": 2,
+      "verified_objects": 2
+    }
+  },
+  "incidents": [
+    "Two initial api-server token requests returned HTTP 401 because the vault fill did not populate the locally injected password field (field empty); no credential was disclosed and the third request used the real login form field. The browser RAM session was lost on a UI navigation and rebootstrapped once before any write; no token was persisted.",
+    "The UI proforma list displayed three pre-existing non-owned proforma rows and the sales menu counted non-owned quotes; they were viewed read-only and are not recorded or touched.",
+    "Order-lookup candidates idContact with the customer id and with the contact id read from the oracle both returned 0; the second is labelled post-oracle."
+  ],
+  "ui_observations": {
+    "order": {
+      "order_page_actions": [
+        "Salva",
+        "Stampa",
+        "Invia",
+        "Copia",
+        "Stampa Etichetta",
+        "Elimina",
+        "Vai espresso"
+      ],
+      "has_trasforma_or_genera_on_order_page": false,
+      "order_list_actions": [
+        "Aggiungi",
+        "Modifica",
+        "Invia",
+        "Stampa",
+        "Genera DDT",
+        "Genera FT",
+        "Esporta",
+        "Elimina",
+        "Vai espresso"
+      ],
+      "list_has_genera_proforma": false,
+      "order_status_options": [
+        "Creato",
+        "Ordine da confermare",
+        "Documento inviato",
+        "Merce parzialmente spedita",
+        "Merce spedita",
+        "Parzialmente Fatturato",
+        "Fatturato",
+        "Parzialmente pagato",
+        "Parzialmente pagato(anticipo)",
+        "Pagato(anticipo)",
+        "Pagato",
+        "Ordine evaso"
+      ],
+      "order_status_selected": "Creato",
+      "order_title": "Ordine N\u00b0 1 del 27/10/26",
+      "da_fatturare": "1,22",
+      "totale_fatturato": "0,00",
+      "sales_menu_has_direct_Fattura_Proforma_and_Lista_Fatt_Proforma": true
+    },
+    "proforma": {
+      "proforma_page_title": "Fattura proforma N\u00b0 2 del 27/10/26",
+      "proforma_list_label": "FTP N. 2 del 27/10/26",
+      "proforma_page_actions": [
+        "Salva",
+        "Stampa",
+        "Invia",
+        "Copia",
+        "Elimina",
+        "Vai espresso"
+      ],
+      "proforma_page_has_convert_to_invoice": false,
+      "proforma_list_actions": [
+        "Aggiungi",
+        "Modifica",
+        "Invia",
+        "Stampa",
+        "Genera XML",
+        "Esporta",
+        "Elimina",
+        "Vai espresso"
+      ],
+      "proforma_list_has_genera_FT": false,
+      "status_label": "Creato (read-only control)",
+      "da_fatturare": "1,22",
+      "list_rows_total": 4,
+      "pre_existing_proforma_rows_untouched": 3,
+      "sales_menu_direct_Fattura_Proforma_link": true,
+      "no_button_pressed": true
+    },
+    "class": "sandbox-observation-ui-read-only",
+    "buttons_pressed": "none (no Genera FT, Genera XML, Salva, Invia, status change)"
+  },
+  "points": {
+    "sales-order": {
+      "reference": "E360-SB-R05A6-20261027T131422Z-ORD",
+      "stock_record": {
+        "before": {
+          "availableQty": 2.0,
+          "orderedToSuppliersQty": 6.0,
+          "quantity": 2.0,
+          "reservedByOrdersQty": 0.0,
+          "stockForecastQty": 8.0
+        },
+        "after": {
+          "availableQty": 1.0,
+          "orderedToSuppliersQty": 6.0,
+          "quantity": 2.0,
+          "reservedByOrdersQty": 1.0,
+          "stockForecastQty": 7.0
+        },
+        "quantity": 1.0
+      },
+      "numbering_record": {
+        "idDocumentType": 3,
+        "docNumber": "1",
+        "fiscal_invoice_number": "1659"
+      },
+      "lookup_record": {
+        "precommitted_before_write": true,
+        "oracle_read_after_conclusion": true,
+        "oracle_id_equals_lookup_id": true,
+        "response_discarded": false,
+        "recovery_key": "customer-name+docStatus",
+        "lookups": [
+          {
+            "label": "reference",
+            "totalCount": 0,
+            "exact_matches": 0,
+            "kind": "freeText-reference"
+          },
+          {
+            "label": "idcontact-customer-id",
+            "totalCount": 0,
+            "exact_matches": 0,
+            "kind": "idContact"
+          },
+          {
+            "label": "customer-name+docStatus",
+            "totalCount": 1,
+            "exact_matches": 1,
+            "kind": "freeText-customer-name+docStatus"
+          }
+        ]
+      },
+      "d85_record": {
+        "fiscal_invoice_number_assigned": false,
+        "physical_stock_discharged": false,
+        "retrievable_without_server_id": true,
+        "readback_exact": true,
+        "manual_conversion": "UI_CONTROL_OBSERVED",
+        "prior_document_required": false,
+        "limits": [
+          "reservation-reduces-available-qty-and-forecast",
+          "lookup-key-is-customer-name-needs-one-name-per-attempt",
+          "reference-and-idContact-filters-return-empty",
+          "docStatus-input-ignored-with-warning",
+          "server-assigned-docNumber",
+          "empty-payments-sent-single-installment-created"
+        ]
+      },
+      "verdict": "SUITABLE-WITH-LIMITS",
+      "observed": {
+        "create": {
+          "http_status": 200,
+          "idDocument": "alias 101",
+          "warning": "docStatus input ignored"
+        },
+        "docStatus": "CREATED",
+        "docStatusDesc": "Creato",
+        "docNumber": "1",
+        "docTypeDescShort": "ODV",
+        "list_header_idContact": null,
+        "detail_idContact_present": true,
+        "physical_quantity_before_after": [
+          2.0,
+          2.0
+        ]
+      }
+    },
+    "proforma": {
+      "reference": "E360-SB-R05A6-20261027T131422Z-ORD",
+      "stock_record": {
+        "before": {
+          "availableQty": 1.0,
+          "orderedToSuppliersQty": 6.0,
+          "quantity": 2.0,
+          "reservedByOrdersQty": 1.0,
+          "stockForecastQty": 7.0
+        },
+        "after": {
+          "availableQty": 1.0,
+          "orderedToSuppliersQty": 6.0,
+          "quantity": 2.0,
+          "reservedByOrdersQty": 1.0,
+          "stockForecastQty": 7.0
+        },
+        "quantity": 1.0
+      },
+      "numbering_record": {
+        "idDocumentType": 33,
+        "docNumber": "2",
+        "fiscal_invoice_number": "1659"
+      },
+      "link_record": {
+        "sent_rows": [
+          {
+            "saleorderref": 101,
+            "saleorderposref": 1,
+            "quantity": 1.0
+          }
+        ],
+        "receipt_rows": [
+          {
+            "docposstatus": "CREATED",
+            "idMaterial": null,
+            "idPos": 1,
+            "idPosType": 5,
+            "idStorage": null,
+            "materialmovementposref": null,
+            "materialmovementref": null,
+            "price": null,
+            "quantity": null,
+            "saleorderposref": 1,
+            "saleorderref": 101
+          },
+          {
+            "docposstatus": "CREATED",
+            "idMaterial": "owned-product-1",
+            "idPos": 2,
+            "idPosType": 1,
+            "idStorage": "MB",
+            "materialmovementposref": null,
+            "materialmovementref": null,
+            "price": 1.0,
+            "quantity": 1.0,
+            "saleorderposref": 1,
+            "saleorderref": 101
+          }
+        ],
+        "order_row_status_before": [
+          "CREATED"
+        ],
+        "order_row_status_after": [
+          "CREATED"
+        ],
+        "order_status_before": "CREATED",
+        "order_status_after": "CREATED",
+        "stock_before": {
+          "availableQty": 1.0,
+          "orderedToSuppliersQty": 6.0,
+          "quantity": 2.0,
+          "reservedByOrdersQty": 1.0,
+          "stockForecastQty": 7.0
+        },
+        "stock_after": {
+          "availableQty": 1.0,
+          "orderedToSuppliersQty": 6.0,
+          "quantity": 2.0,
+          "reservedByOrdersQty": 1.0,
+          "stockForecastQty": 7.0
+        }
+      },
+      "d85_record": {
+        "fiscal_invoice_number_assigned": false,
+        "physical_stock_discharged": false,
+        "retrievable_without_server_id": true,
+        "readback_exact": true,
+        "manual_conversion": "API_DOCUMENTED_ONLY",
+        "prior_document_required": true,
+        "limits": [
+          "no-direct-api-create-only-order-transformation",
+          "needs-order-id-from-first-lookup",
+          "invoice-class-document-type-33-with-own-number",
+          "mixed-invoice-list-needs-client-type-filter",
+          "reference-inherited-from-order",
+          "extra-reference-row-null-quantity",
+          "no-ui-conversion-control-observed",
+          "conversion-endpoint-documented-not-exercised",
+          "order-stays-CREATED-and-reservation-persists"
+        ]
+      },
+      "verdict": "SUITABLE-WITH-LIMITS",
+      "observed": {
+        "create": {
+          "http_status": 200,
+          "idDocument": "alias 201",
+          "simulation_available": false
+        },
+        "docStatus": "CREATED",
+        "docNumber": "2",
+        "detail_docTypeDescShort": "FTV",
+        "list_docTypeDescShort": "FTP",
+        "order_status_after": "CREATED",
+        "onlyHeaderData_key": "documentHeader"
+      }
+    }
+  },
+  "recommendation": {
+    "type": "sales-order",
+    "owner_may_overrule": true,
+    "evidence_class": "evidence-based-recommendation-not-decision",
+    "basis": [
+      "one write instead of two",
+      "no invoice-class document type or numbered invoice-class artifact",
+      "UI conversion control observed on the order list",
+      "proforma adds a mixed-list lookup, a null-quantity reference row and no UI conversion control"
+    ],
+    "does_not_decide": "D85 type remains an owner-overrulable choice; no new decision recorded"
+  },
+  "remaining_blockers": [
+    "order to invoice conversion and proforma to invoice conversion not exercised (forbidden here)",
+    "sales-order lookup key requires unique customer name per attempt; recovery covered only for the observed customer",
+    "reservation semantics at scale, negative availability and release/cancel not tested",
+    "server idempotency and lost-response recovery for sales orders not tested",
+    "R04/R05/readiness, adapter and runtime remain open"
+  ],
+  "observations": [
+    {
+      "seq": 1,
+      "utc": "2026-10-27T13:15:44.528515+00:00",
+      "method": "GET",
+      "endpoint_template": "/companysettings/bupnumerators",
+      "label": "numerators3",
+      "query_keys": [
+        "idDocumentType"
+      ],
+      "http_status": 200,
+      "business_status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "source_sha256": "b53599856a1703499b7538040bfc3e5181b6efb2c804eb565b70dec7f869e162",
+      "shape_sha256": "b09bcc47f7c159d07765d649e9f87e844c3a80878c85f2bb40f1c7a79f1c09b0"
+    },
+    {
+      "seq": 2,
+      "utc": "2026-10-27T13:15:45.168006+00:00",
+      "method": "GET",
+      "endpoint_template": "/companysettings/bupnumerators",
+      "label": "numerators33",
+      "query_keys": [
+        "idDocumentType"
+      ],
+      "http_status": 200,
+      "business_status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "source_sha256": "b53599856a1703499b7538040bfc3e5181b6efb2c804eb565b70dec7f869e162",
+      "shape_sha256": "b09bcc47f7c159d07765d649e9f87e844c3a80878c85f2bb40f1c7a79f1c09b0"
+    },
+    {
+      "seq": 3,
+      "utc": "2026-10-27T13:15:45.783924+00:00",
+      "method": "GET",
+      "endpoint_template": "/stocks/avaibility/report",
+      "label": "stock-before",
+      "query_keys": [
+        "idMaterial",
+        "limit",
+        "zeroQtyRows"
+      ],
+      "http_status": 200,
+      "business_status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "source_sha256": "c35306af98632db457248bfb55f18af7dba1cf3238eea758e22479ca222be06f",
+      "shape_sha256": "fa71dd0ae4e0db9a363cb2ee5d3e7bafa8be9f83aac1743a0c2927f21897e7f1"
+    },
+    {
+      "seq": 4,
+      "utc": "2026-10-27T13:15:46.569136+00:00",
+      "method": "GET",
+      "endpoint_template": "/sales/orders",
+      "label": "orders-baseline",
+      "query_keys": [
+        "limit"
+      ],
+      "http_status": 200,
+      "business_status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "source_sha256": "9e0a8db95645bcad9976b59f1e668560beb0469e30ea0b8c306e5d18ebb3f853",
+      "shape_sha256": "b503a7b75ca223fc2bf64e7b066090c6f5048ce74deb872272479adedeecf07f"
+    },
+    {
+      "seq": 5,
+      "utc": "2026-10-27T13:15:58.868783+00:00",
+      "method": "POST",
+      "endpoint_template": "/sales/orders?simulation=false",
+      "label": "POST /sales/orders",
+      "query_keys": [
+        "simulation"
+      ],
+      "http_status": 200,
+      "business_status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "source_sha256": "1669504638eeff2e66521309b85cd19246e3f9426805e6082e7fd0998a8e388d",
+      "shape_sha256": "19beb3b7f9c6847285b60fc4584d885e3eb67cf986458345fd46accabbc8c35b"
+    },
+    {
+      "seq": 6,
+      "utc": "2026-10-27T13:16:11.692107+00:00",
+      "method": "GET",
+      "endpoint_template": "/sales/orders",
+      "label": "lookup-key-name+status",
+      "query_keys": [
+        "docStatus",
+        "freeText",
+        "limit"
+      ],
+      "http_status": 200,
+      "business_status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "source_sha256": "4bc4fe6bd33fb728b5b7d71a6118b9a587e5ac8e3a22e82764eacc7a8773823d",
+      "shape_sha256": "3cad18e08e8258563bb11797c6c31366ab66e5e9cb33146bc2c931c9382988a3"
+    },
+    {
+      "seq": 7,
+      "utc": "2026-10-27T13:16:12.290232+00:00",
+      "method": "GET",
+      "endpoint_template": "/sales/orders",
+      "label": "lookup-ref",
+      "query_keys": [
+        "freeText",
+        "limit"
+      ],
+      "http_status": 200,
+      "business_status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "source_sha256": "9e0a8db95645bcad9976b59f1e668560beb0469e30ea0b8c306e5d18ebb3f853",
+      "shape_sha256": "b503a7b75ca223fc2bf64e7b066090c6f5048ce74deb872272479adedeecf07f"
+    },
+    {
+      "seq": 8,
+      "utc": "2026-10-27T13:16:12.885823+00:00",
+      "method": "GET",
+      "endpoint_template": "/sales/orders",
+      "label": "lookup-idContact510",
+      "query_keys": [
+        "idContact",
+        "limit"
+      ],
+      "http_status": 200,
+      "business_status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "source_sha256": "9e0a8db95645bcad9976b59f1e668560beb0469e30ea0b8c306e5d18ebb3f853",
+      "shape_sha256": "b503a7b75ca223fc2bf64e7b066090c6f5048ce74deb872272479adedeecf07f"
+    },
+    {
+      "seq": 9,
+      "utc": "2026-10-27T13:16:13.489314+00:00",
+      "method": "GET",
+      "endpoint_template": "/sales/{id}/orders",
+      "label": "GET /sales/{id}/orders",
+      "query_keys": [],
+      "http_status": 200,
+      "business_status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "source_sha256": "28847ba7f95dcbdda1ae4821a347a8e7e2bd6a916c1508d1d14b6f019a9cf146",
+      "shape_sha256": "d2a70ada1b201ee5864cd3215b610cf6258d08c3caba64c090674e7abc68c038"
+    },
+    {
+      "seq": 10,
+      "utc": "2026-10-27T13:16:24.192968+00:00",
+      "method": "GET",
+      "endpoint_template": "/stocks/avaibility/report",
+      "label": "stock-after-order",
+      "query_keys": [
+        "idMaterial",
+        "limit",
+        "zeroQtyRows"
+      ],
+      "http_status": 200,
+      "business_status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "source_sha256": "f2d793afec014619ec301a78a8548828f41c57d8706d92aa37db271cafa79245",
+      "shape_sha256": "fa71dd0ae4e0db9a363cb2ee5d3e7bafa8be9f83aac1743a0c2927f21897e7f1"
+    },
+    {
+      "seq": 11,
+      "utc": "2026-10-27T13:16:24.840749+00:00",
+      "method": "GET",
+      "endpoint_template": "/sales/orders",
+      "label": "lookup-idContact5225-post-oracle",
+      "query_keys": [
+        "idContact",
+        "limit"
+      ],
+      "http_status": 200,
+      "business_status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "source_sha256": "9e0a8db95645bcad9976b59f1e668560beb0469e30ea0b8c306e5d18ebb3f853",
+      "shape_sha256": "b503a7b75ca223fc2bf64e7b066090c6f5048ce74deb872272479adedeecf07f"
+    },
+    {
+      "seq": 12,
+      "utc": "2026-10-27T13:19:28.042884+00:00",
+      "method": "POST",
+      "endpoint_template": "/sales/{id}/orderstoproformainvoice",
+      "label": "<run-prefix> POST /sales/{id}/orderstoproformainvoice",
+      "query_keys": [],
+      "http_status": 200,
+      "business_status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "source_sha256": "677113541ca7afb3919f822edc2f5982021af4177ce1dcbb29f8275039a130cc",
+      "shape_sha256": "25e8dfde745c5578307cfe9b87419bce06f47c35d343b8179eacd99a9d34fbd9"
+    },
+    {
+      "seq": 13,
+      "utc": "2026-10-27T13:19:40.457470+00:00",
+      "method": "GET",
+      "endpoint_template": "/sales/invoices",
+      "label": "pf-lookup-key-name",
+      "query_keys": [
+        "freeText",
+        "limit"
+      ],
+      "http_status": 200,
+      "business_status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "source_sha256": "963388c440c45b54f93f12bbc99c281e0880fbc183372f1542529c20df692c5b",
+      "shape_sha256": "c1004705beb8f0853c2b95cdb63e26d8bdb955bc7094a052befe8cfaad5e768b"
+    },
+    {
+      "seq": 14,
+      "utc": "2026-10-27T13:19:41.270822+00:00",
+      "method": "GET",
+      "endpoint_template": "/sales/invoices",
+      "label": "pf-lookup-ref",
+      "query_keys": [
+        "freeText",
+        "limit"
+      ],
+      "http_status": 200,
+      "business_status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "source_sha256": "9e0a8db95645bcad9976b59f1e668560beb0469e30ea0b8c306e5d18ebb3f853",
+      "shape_sha256": "b503a7b75ca223fc2bf64e7b066090c6f5048ce74deb872272479adedeecf07f"
+    },
+    {
+      "seq": 15,
+      "utc": "2026-10-27T13:19:41.882785+00:00",
+      "method": "GET",
+      "endpoint_template": "/sales/{id}/invoices",
+      "label": "GET /sales/{id}/invoices (proforma)",
+      "query_keys": [],
+      "http_status": 200,
+      "business_status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "source_sha256": "344d05689fd1cb9364b248ff077250d2f6468b15298b3ddae96dd90cda230c83",
+      "shape_sha256": "e12829f4f9215a5ab8f06ad0bf99d17c28d296f0fef3d2e94a96f1e84969e1cb"
+    },
+    {
+      "seq": 16,
+      "utc": "2026-10-27T13:19:56.202344+00:00",
+      "method": "GET",
+      "endpoint_template": "/sales/{id}/orders",
+      "label": "GET order after proforma",
+      "query_keys": [],
+      "http_status": 200,
+      "business_status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "source_sha256": "28847ba7f95dcbdda1ae4821a347a8e7e2bd6a916c1508d1d14b6f019a9cf146",
+      "shape_sha256": "d2a70ada1b201ee5864cd3215b610cf6258d08c3caba64c090674e7abc68c038"
+    },
+    {
+      "seq": 17,
+      "utc": "2026-10-27T13:19:56.921624+00:00",
+      "method": "GET",
+      "endpoint_template": "/stocks/avaibility/report",
+      "label": "stock-after-proforma",
+      "query_keys": [
+        "idMaterial",
+        "limit",
+        "zeroQtyRows"
+      ],
+      "http_status": 200,
+      "business_status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "source_sha256": "f2d793afec014619ec301a78a8548828f41c57d8706d92aa37db271cafa79245",
+      "shape_sha256": "fa71dd0ae4e0db9a363cb2ee5d3e7bafa8be9f83aac1743a0c2927f21897e7f1"
+    },
+    {
+      "seq": 18,
+      "utc": "2026-10-27T13:19:57.535257+00:00",
+      "method": "GET",
+      "endpoint_template": "/sales/orders",
+      "label": "order-list-after-proforma",
+      "query_keys": [
+        "freeText",
+        "limit"
+      ],
+      "http_status": 200,
+      "business_status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "source_sha256": "4bc4fe6bd33fb728b5b7d71a6118b9a587e5ac8e3a22e82764eacc7a8773823d",
+      "shape_sha256": "3cad18e08e8258563bb11797c6c31366ab66e5e9cb33146bc2c931c9382988a3"
+    },
+    {
+      "seq": 19,
+      "utc": "2026-10-27T13:19:58.132016+00:00",
+      "method": "GET",
+      "endpoint_template": "/sales/{id}/invoices?onlyHeaderData=true",
+      "label": "GET proforma header only",
+      "query_keys": [
+        "onlyHeaderData"
+      ],
+      "http_status": 200,
+      "business_status": {
+        "responseCode": 200,
+        "errorCode": 0
+      },
+      "source_sha256": "4d2fc96ce62daad332b3ad4ec34c2389b49fdcc395dd843b097685223dc704ea",
+      "shape_sha256": "bcf60144991840bb4c54038b0cdcaeda59e458292eb28337b741cb2241f715d3"
+    }
+  ],
+  "captures": [
+    {
+      "name": "order-after-proforma",
+      "source_seq": 16,
+      "source_sha256": "28847ba7f95dcbdda1ae4821a347a8e7e2bd6a916c1508d1d14b6f019a9cf146",
+      "sanitized_sha256": "6d67fb86b283763f78df1e394bf1ddf71486bda5bc66e4461ada65ad41b4184c"
+    },
+    {
+      "name": "order-create-response",
+      "source_seq": 5,
+      "source_sha256": "1669504638eeff2e66521309b85cd19246e3f9426805e6082e7fd0998a8e388d",
+      "sanitized_sha256": "1aee2bf941e63dc273e174b787f4b6e13fcb45833b7267932e317009b625e11c"
+    },
+    {
+      "name": "order-list-after-proforma",
+      "source_seq": 18,
+      "source_sha256": "4bc4fe6bd33fb728b5b7d71a6118b9a587e5ac8e3a22e82764eacc7a8773823d",
+      "sanitized_sha256": "27b9523b2e9c921feb3848a93d5abf3f7a939978a7aec1dd64c1a7f99201646a"
+    },
+    {
+      "name": "order-lookup-customer-name-status",
+      "source_seq": 6,
+      "source_sha256": "4bc4fe6bd33fb728b5b7d71a6118b9a587e5ac8e3a22e82764eacc7a8773823d",
+      "sanitized_sha256": "27b9523b2e9c921feb3848a93d5abf3f7a939978a7aec1dd64c1a7f99201646a"
+    },
+    {
+      "name": "order-lookup-idcontact-contact-id-post-oracle-empty",
+      "source_seq": 11,
+      "source_sha256": "9e0a8db95645bcad9976b59f1e668560beb0469e30ea0b8c306e5d18ebb3f853",
+      "sanitized_sha256": "f2ab4739a2aeb8b156195918c047e603c789ad5bd7a334b80e3d46d5babb96a4"
+    },
+    {
+      "name": "order-lookup-idcontact-customer-id-empty",
+      "source_seq": 8,
+      "source_sha256": "9e0a8db95645bcad9976b59f1e668560beb0469e30ea0b8c306e5d18ebb3f853",
+      "sanitized_sha256": "f2ab4739a2aeb8b156195918c047e603c789ad5bd7a334b80e3d46d5babb96a4"
+    },
+    {
+      "name": "order-lookup-reference-empty",
+      "source_seq": 7,
+      "source_sha256": "9e0a8db95645bcad9976b59f1e668560beb0469e30ea0b8c306e5d18ebb3f853",
+      "sanitized_sha256": "f2ab4739a2aeb8b156195918c047e603c789ad5bd7a334b80e3d46d5babb96a4"
+    },
+    {
+      "name": "order-orders-baseline-empty",
+      "source_seq": 4,
+      "source_sha256": "9e0a8db95645bcad9976b59f1e668560beb0469e30ea0b8c306e5d18ebb3f853",
+      "sanitized_sha256": "f2ab4739a2aeb8b156195918c047e603c789ad5bd7a334b80e3d46d5babb96a4"
+    },
+    {
+      "name": "order-readback",
+      "source_seq": 9,
+      "source_sha256": "28847ba7f95dcbdda1ae4821a347a8e7e2bd6a916c1508d1d14b6f019a9cf146",
+      "sanitized_sha256": "6d67fb86b283763f78df1e394bf1ddf71486bda5bc66e4461ada65ad41b4184c"
+    },
+    {
+      "name": "proforma-create-response",
+      "source_seq": 12,
+      "source_sha256": "677113541ca7afb3919f822edc2f5982021af4177ce1dcbb29f8275039a130cc",
+      "sanitized_sha256": "618dc1a9a2195839630fef3e9de42aa42eef5b8f29aa078d23a18e120fb5e92f"
+    },
+    {
+      "name": "proforma-header-only",
+      "source_seq": 19,
+      "source_sha256": "4d2fc96ce62daad332b3ad4ec34c2389b49fdcc395dd843b097685223dc704ea",
+      "sanitized_sha256": "311c02f4895aa0307de7064c8b27ac95143f1ef3abe23fd3a231526a5ee6598c"
+    },
+    {
+      "name": "proforma-lookup-customer-name",
+      "source_seq": 13,
+      "source_sha256": "963388c440c45b54f93f12bbc99c281e0880fbc183372f1542529c20df692c5b",
+      "sanitized_sha256": "5d9ec0f8bf95a88f2056283ba90461683df9f31193e41f6d8a74c9385ab17574"
+    },
+    {
+      "name": "proforma-lookup-reference-empty",
+      "source_seq": 14,
+      "source_sha256": "9e0a8db95645bcad9976b59f1e668560beb0469e30ea0b8c306e5d18ebb3f853",
+      "sanitized_sha256": "f2ab4739a2aeb8b156195918c047e603c789ad5bd7a334b80e3d46d5babb96a4"
+    },
+    {
+      "name": "proforma-readback",
+      "source_seq": 15,
+      "source_sha256": "344d05689fd1cb9364b248ff077250d2f6468b15298b3ddae96dd90cda230c83",
+      "sanitized_sha256": "94a138304a16bc61a692dbbe3f0e177bbb4cffe98127029e5ec225bfcc57c2df"
+    },
+    {
+      "name": "stock-after-order",
+      "source_seq": 10,
+      "source_sha256": "f2d793afec014619ec301a78a8548828f41c57d8706d92aa37db271cafa79245",
+      "sanitized_sha256": "ef3d15c463accb2846f28f806c6d9f5c635c4192f15d59bda68c0085eb2a535e"
+    },
+    {
+      "name": "stock-after-proforma",
+      "source_seq": 17,
+      "source_sha256": "f2d793afec014619ec301a78a8548828f41c57d8706d92aa37db271cafa79245",
+      "sanitized_sha256": "ef3d15c463accb2846f28f806c6d9f5c635c4192f15d59bda68c0085eb2a535e"
+    },
+    {
+      "name": "stock-before-order",
+      "source_seq": 3,
+      "source_sha256": "c35306af98632db457248bfb55f18af7dba1cf3238eea758e22479ca222be06f",
+      "sanitized_sha256": "c2dfb75ce33ebdcb8446adc41498e4ec63201de1a85d88390ee30a26f1280c4a"
+    }
+  ]
+}
