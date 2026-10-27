@@ -143,6 +143,43 @@ def authority_block(text, label):
 
 def validate(root):
     docs = {path: (root/path).read_text() for path in PATHS}
+    priority_scope = '\n'.join(docs.values())
+    for pattern in (r'operational_ready\s*=\s*true',
+                    r'full_architecture\s*=\s*true\s+for each increment',
+                    r'OPE01[–-]OPE05\s+(?:WAIVED|PASSED|SATISFIED|CLOSED)'):
+        if re.search(pattern, priority_scope, re.I):
+            raise ValueError('delivery priority: deferral is not readiness/waiver or routine full architecture')
+    sequence = 'functional-completion -> final-explicit-full-architecture -> operational-exercise-later'
+    for path in ('AGENTS.md', GLOSSARY, PLAN, RUNBOOK, BACKLOG):
+        text = docs[path]
+        if path in (GLOSSARY, PLAN, RUNBOOK):
+            start, end = '<!-- pilot-priority:start -->', '<!-- pilot-priority:end -->'
+            if text.count(start) != 1 or text.count(end) != 1:
+                raise ValueError('delivery priority: exactly one active block required: '+path)
+            text = text.split(start)[1].split(end)[0]
+            boundaries = ('non waived né pronto', 'non lo sviluppo funzionale corrente',
+                          'nessun pass prima dell’esecuzione effettiva',
+                          'nessun nuovo lavoro specialistico esterno/a pagamento')
+        elif path == 'AGENTS.md':
+            text = next((line for line in text.splitlines() if line.startswith('- D89 ')), '')
+            boundaries = ('not waived or ready', 'not current functional development',
+                          'no pass before actual execution')
+        else:
+            text = next(card['gate'] for card in json.loads(text) if card['id'] == 'R06')
+            boundaries = ('non waived né pronto', 'non sviluppo funzionale isolato/sintetico/sandbox',
+                          'nessun pass prima di esecuzione')
+        require(text, ('D89', sequence, 'OPEN/BACKLOG', 'full_architecture=false',
+                       'full_architecture=true', 'tenant/RLS/CSRF')+boundaries, 'delivery priority '+path)
+    full = docs[GLOSSARY].encode()
+    full = full[full.index('### D1 —'.encode()):][:141575]
+    if hashlib.sha256(full).hexdigest() != 'a4c152382cb6acef1e74043991c63e93d01669c283cdfed10730a90b5e04636a':
+        raise ValueError('delivery priority: D1–D88 history changed')
+    d89 = docs[GLOSSARY].split('### D89 —')[1]
+    require(d89, ('La fase ultima "Esercizio" per ora lasciamola in backlog: voglio prima arrivare a testare a 360 gradi l\'intera architettura una volta terminato il pilota. Procediamo spediti.',
+                  '27 ottobre 2026', 'Fonte e contesto', 'interpretazione dell’agente',
+                  'correggibile dall’owner', 'non una nuova policy business',
+                  'D1–D88 verificato', 'OPE01–OPE05 restano OPEN/BACKLOG',
+                  'non lo sviluppo funzionale corrente', 'nessun esito anticipato'), 'delivery priority D89')
     active = docs[GLOSSARY].split('## Archivio storico')[0]
     require(active, ('D82', 'stesso ERP esterno autorevole'), 'active stock/purchasing authority')
     blocks = [authority_block(docs[path], path) for path in (GLOSSARY, PLAN)]
@@ -196,8 +233,8 @@ def validate(root):
         raise ValueError('active delivery: stale D80/D81 status')
     # Historical decisions remain untouched; the new decision must be unique and next.
     ids = [int(x) for x in re.findall(r'^### D(\d+) —', docs[GLOSSARY], re.M)]
-    if sorted(ids) != list(range(1, 89)):
-        raise ValueError('decision register: retain unique D1–D87 and append D88')
+    if sorted(ids) != list(range(1, 90)):
+        raise ValueError('decision register: retain unique D1–D88 and append D89')
     prefix = docs[GLOSSARY].encode()
     prefix = prefix[prefix.index(b'### D1 \xe2\x80\x94'):][:D1_D84_BYTES]
     if hashlib.sha256(prefix).hexdigest() != D1_D84_SHA256:
@@ -275,6 +312,65 @@ class AuthorityTests(unittest.TestCase):
     def invoke(self, root):
         return subprocess.run([sys.executable, '-I', str(Path(__file__).resolve()), '--check',
                                '--root', str(root)], capture_output=True, text=True, timeout=20)
+
+    def test_ops_deferral_is_not_readiness_or_routine_full_architecture(self):
+        claims = ('Operational exercise deferred means operational_ready=true',
+                  'full_architecture=true for each increment',
+                  'OPE01–OPE05 WAIVED')
+        with tempfile.TemporaryDirectory(prefix='pilot-priority-') as temp:
+            root = Path(temp)
+            for claim in claims:
+                with self.subTest(claim=claim):
+                    for source in PATHS:
+                        target = root/source
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copyfile(ROOT/source, target)
+                    target = root/'AGENTS.md'
+                    target.write_text(target.read_text()+'\n'+claim+'\n')
+                    result = self.invoke(root)
+                    self.assertEqual(result.returncode, 2, result.stdout+result.stderr)
+                    self.assertIn('delivery priority', result.stderr)
+
+    def test_explicit_priority_sequence_is_required_in_each_active_reading_path(self):
+        for path in ('AGENTS.md', GLOSSARY, PLAN, RUNBOOK, BACKLOG):
+            with self.subTest(path=path), tempfile.TemporaryDirectory(prefix='pilot-sequence-') as temp:
+                root = Path(temp)
+                for source in PATHS:
+                    target = root/source
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copyfile(ROOT/source, target)
+                target = root/path
+                # Before D89 there is no block; afterwards remove its required anchor.
+                target.write_text(target.read_text().replace('functional-completion -> final-explicit-full-architecture -> operational-exercise-later', 'SEQUENCE OMITTED'))
+                result = self.invoke(root)
+                self.assertEqual(result.returncode, 2, result.stdout+result.stderr)
+                self.assertIn('delivery priority', result.stderr)
+
+    def test_deferral_boundaries_cannot_be_removed_from_active_priority(self):
+        cases = [('AGENTS.md', 'not waived or ready'),
+                 ('AGENTS.md', 'not current functional development'),
+                 ('AGENTS.md', 'no pass before actual execution')]
+        for path in (GLOSSARY, PLAN, RUNBOOK):
+            cases += [(path, token) for token in ('non waived né pronto',
+                       'non lo sviluppo funzionale corrente', 'nessun pass prima dell’esecuzione effettiva',
+                       'nessun nuovo lavoro specialistico esterno/a pagamento')]
+        cases += [(BACKLOG, token) for token in ('non waived né pronto',
+                  'non sviluppo funzionale isolato/sintetico/sandbox', 'nessun pass prima di esecuzione')]
+        with tempfile.TemporaryDirectory(prefix='pilot-boundaries-') as temp:
+            root = Path(temp)
+            for path, token in cases:
+                with self.subTest(path=path, token=token):
+                    for source in PATHS:
+                        target = root/source
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copyfile(ROOT/source, target)
+                    target = root/path
+                    text = target.read_text()
+                    self.assertIn(token, text)
+                    target.write_text(text.replace(token, 'REMOVED'))
+                    result = self.invoke(root)
+                    self.assertEqual(result.returncode, 2, result.stdout+result.stderr)
+                    self.assertIn('delivery priority', result.stderr)
 
     def test_actual_cli_accepts_current_documents(self):
         result = self.invoke(ROOT)

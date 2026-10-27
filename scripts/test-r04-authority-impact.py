@@ -59,6 +59,14 @@ class ImpactTests(unittest.TestCase):
             self.assertIn(tests, block)
             self.assertNotIn('docker', block)
 
+    def test_d89_priority_increment_reuses_finite_offline_mapping(self):
+        paths = [path for path in D87_PATHS if path != 'docs/r06-migration-inventory.md']
+        selected = impact.selection(paths)
+        self.assertEqual({k for k, value in selected.items() if value is True}, D87_JOBS)
+        self.assertEqual(selected['api_filter'], '')
+        self.assertFalse(selected['full_architecture'])
+        validate_workflow((ROOT/'.github/workflows/ci.yml').read_text())
+
     def test_unknown_executables_fail_closed_even_in_mixed_offline_scope(self):
         for path in ('scripts/test-r04-authority-unknown.py', 'docs/authority.py',
                      'src/unknown.py', 'docs/new-authority.sh'):
