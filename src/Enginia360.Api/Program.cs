@@ -142,7 +142,7 @@ if (app.Configuration.GetValue<bool>("Counterparties:Enabled"))
     app.MapCounterparties();
 if (app.Configuration.GetValue<bool>("Workshop:Enabled"))
     Enginia360.Workshop.WorkshopModule.MapWorkshop(app, app.Configuration.GetValue<bool>("Inventory:Enabled"), externalAdministration,
-        externalAdministration ? Enginia360.Integrations.IntegrationsModule.Runtime : null);
+        externalAdministration ? app.Services.GetRequiredService<Enginia360.Workshop.Contracts.AdministrativeRuntime>() : null);
 if (app.Configuration.GetValue<bool>("Inventory:Enabled"))
     Enginia360.Inventory.InventoryModule.MapInventory(app);
 if (internalBilling)

@@ -48,12 +48,12 @@ def fixtures(state, secret):
 def main():
     if not os.environ.get('TMPDIR'): raise ValueError('private TMPDIR required')
     if POOL not in ('1', '4'): raise ValueError('pool acceptance is explicitly 1 or 4')
-    if SPEC not in ('r05b0-acceptance.cjs', 'r05b0-gaps.cjs'): raise ValueError('unknown R05.b.0 acceptance specification')
+    if SPEC not in ('r05b0-acceptance.cjs', 'r05b0-gaps.cjs', 'r05b1-acceptance.cjs'): raise ValueError('unknown binding acceptance specification')
     if not (ROOT/'web/dist-ui01-runtime/ui01-runtime.html').exists(): raise ValueError('build:ui01-runtime required')
     project = 'enginia360-r00b-' + secrets.token_hex(6)
     before_volumes = r00.inventory('volume')
     before_running = set(run(['docker', 'ps', '-q', '--no-trunc']).splitlines())
-    evidence = Path(os.environ['TMPDIR'])/('r05b0-logs/evidence-pool'+POOL)
+    evidence = Path(os.environ['TMPDIR'])/(('r05b1-logs' if SPEC == 'r05b1-acceptance.cjs' else 'r05b0-logs')+'/evidence-pool'+POOL)
     evidence.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix=project+'-', dir=os.environ['TMPDIR']) as directory:
         state = Path(directory)
@@ -121,7 +121,9 @@ def main():
                             target = action.split(':', 1)[1]
                             assert target in ('A', 'B', 'Unknown', 'Missing', 'Path', 'Equivalent')
                             if action.startswith('crash:'): run(command+['kill', '-s', 'SIGKILL', 'api'], timeout=20)
-                            values['R05B0_PROTOCOL'] = 'Unknown' if target == 'Unknown' else 'SimulatorV1'
+                            values['R05B0_PROTOCOL'] = 'Unknown' if target == 'Unknown' else ('GiobbyV1' if SPEC == 'r05b1-acceptance.cjs' else 'SimulatorV1')
+                            if SPEC == 'r05b1-acceptance.cjs':
+                                values['R05B1_BASE_URL'] = '' if target == 'Missing' else 'https://' + ('simulator-b' if target == 'B' else 'admin-simulator') + ':8443/'
                             values['R05B0_BASE_URL'] = '' if target == 'Missing' else ('http://ADMIN-SIMULATOR:8080/' if target == 'Equivalent' else 'http://' + ('simulator-b' if target == 'B' else 'admin-simulator') + ':8080/' + ('other/' if target == 'Path' else ''))
                             envfile.write_text(''.join(k+'='+v+'\n' for k, v in values.items()))
                             run(command+['up', '-d', '--no-deps', '--force-recreate', 'api'], timeout=60)
@@ -148,6 +150,8 @@ def main():
                         elif action == 'logs-safe':
                             logs = run(command+['logs', '--no-color', 'api'])
                             assert 'http://admin-simulator' not in logs and 'http://simulator-b' not in logs, 'connector URL must not appear in application logs'
+                            if SPEC == 'r05b1-acceptance.cjs':
+                                assert 'https://admin-simulator' not in logs and 'https://simulator-b' not in logs and 'synthetic-runtime-token' not in logs
                         elif action == 'traffic':
                             (state/'control/traffic.json').write_text(json.dumps({name: simulator('/control/traffic', service=service)['traffic'] for name, service in [('A','admin-simulator'),('B','simulator-b')]}))
                         elif action == 'remote-effects':
@@ -158,7 +162,7 @@ def main():
                                 if time.monotonic() > stop: raise TimeoutError('receiver commit/inflight boundary absent')
                                 time.sleep(0.05)
                         elif action.startswith('simulator:'):
-                            mode = action.split(':', 1)[1]; assert mode in ('complete', 'receive', 'reject', 'unavailable', 'lost-response', 'hold-response')
+                            mode = action.split(':', 1)[1]; assert mode in ('complete', 'receive', 'reject', 'unavailable', 'lost-response', 'hold-response') or (SPEC == 'r05b1-acceptance.cjs' and mode in ('ack-only', '500', 'timeout', 'empty', 'nonunique', 'unknown-error', 'redirect'))
                             simulator('/control/mode', json.dumps({'mode': mode}))
                         elif action == 'simulator-complete':
                             for entry in simulator('/control/requests')['requests']:

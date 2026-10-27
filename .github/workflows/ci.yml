@@ -37,6 +37,7 @@ jobs:
       r06b1: ${{ steps.selection.outputs.r06b1 }}
       r03b: ${{ steps.selection.outputs.r03b }}
       r05b0: ${{ steps.selection.outputs.r05b0 }}
+      r05b1: ${{ steps.selection.outputs.r05b1 }}
       r03c: ${{ steps.selection.outputs.r03c }}
       migrations: ${{ steps.selection.outputs.migrations }}
       r05a1_offline: ${{ steps.selection.outputs.r05a1_offline }}
@@ -57,6 +58,8 @@ jobs:
         run: python3 scripts/test-r04-authority-impact.py
       - name: Verify immutable binding impact and dispatch guard
         run: python3 scripts/test-r05b0-impact.py
+      - name: Verify finite sales-order adapter impact
+        run: python3 scripts/test-r05b1-impact.py
       - name: Verify finite Giobby dossier impact
         run: python3 -I scripts/test-r05a1-impact.py
       - name: Verify finite sandbox evidence impact
@@ -385,6 +388,23 @@ jobs:
         run: R05B0_SPEC=r05b0-gaps.cjs R05B0_POOL_SIZE=1 timeout 600 python3 scripts/run-r05b0-tests.py
       - name: Actual TERM with browser held SQL barrier and in-flight worker
         run: timeout 300 python3 scripts/test-r05b0-lifecycle.py
+  affected-r05b1:
+    needs: impact
+    if: github.event_name == 'workflow_dispatch' && needs.impact.outputs.r05b1 == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Initialize private sales-order scratch
+        run: printf 'TMPDIR=%s\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+      - name: Build actual runtime editor
+        run: docker run --rm -v "$PWD:/source" -w /source/web node:24.22.0-alpine3.24@sha256:44fce696f38ba8c987c4db89954051000bbd05ffd8d8659ba15ed4a8602e937f sh -c 'npm ci --no-audit --no-fund && npm run build:ui01-runtime'
+      - name: Real Giobby protocol fake TLS OIDC API SQL A-B safety pool4
+        run: timeout 600 python3 scripts/run-r05b1-tests.py
+      - name: Same protocol and isolation pool1
+        run: R05B0_POOL_SIZE=1 timeout 600 python3 scripts/run-r05b1-tests.py
+      - name: Actual TERM with held SQL barrier and Chromium
+        run: timeout 300 python3 scripts/test-r05b1-lifecycle.py
   runtime-migrations:
     if: github.event_name == 'workflow_dispatch' && inputs.full_architecture
     runs-on: ubuntu-24.04

@@ -36,6 +36,9 @@ test('consistent Confirmed and Rejected outcomes parse without altering the stab
 });
 import { parseActions, parseGate, parseClosureState, parseTechnical, parseAdministrativeClosure } from './administrativeContracts';
 import { actions, gate, state, technical, administrativeClosure, requestId } from './administrativeFixtures';
+test('configured Giobby sales-order protocol is accepted as its actual runtime, not a simulator', () => {
+  expect(parseActions(actions({ administrativeRuntime: { kind: 'GiobbyV1', contractVersion: 1 } }), id).administrativeRuntime.kind).toBe('GiobbyV1');
+});
 test('actions keep the persisted revision, exact flags, ordered reasons and the declared runtime', () => {
   const parsed = parseActions(actions({ technicalClosure: technical, canCompleteTechnical: false, actionReasons: [{ action: 'completeTechnical', code: 'already_closed' }, { action: 'readAdministrativeState', code: 'not_authorized' }] }), id) as any;
   expect(parsed.commercialRevision).toBe(9);

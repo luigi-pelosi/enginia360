@@ -24,6 +24,15 @@ const noop = () => { };
 const open = (over: Record<string, unknown> = {}) => ({ ['GET ' + base + '/closure-actions']: actions(over), ['GET ' + base + '/technical-closure-gate']: gate(), ['GET ' + base + '/closure-state']: state('Open') });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
+test('Giobby configuration shows sales-order candidate and never labels its confirmed outcome as a simulator', async () => {
+  server({ ...open({ administrativeRuntime: { kind: 'GiobbyV1', contractVersion: 1 }, technicalClosure: technical, canCompleteTechnical: false }),
+    ['GET ' + base + '/closure-state']: state('AdministrativelyConfirmed', { request: request({ status: 'Confirmed', externalReference: 'GiobbyOrder-101', outcomeAt: '2026-10-27T08:00:00Z', delivery: delivery('Completed') }) }) });
+  render(<AdministrativeWorkspace editor={editor} onError={noop} onChanged={async () => { }} />);
+  expect(await screen.findByText('Giobby · ordine cliente (candidato tecnico) · conversione manuale in fattura')).toBeTruthy();
+  expect(await screen.findByText(/Confermata dal gestionale · riferimento GiobbyOrder-101/)).toBeTruthy();
+  expect(screen.queryByText(/Confermata dal simulatore/)).toBeNull();
+});
+
 test('open order: the carcass gate is a requirement only and technical closure posts the fresh server revision with a fixed command id', async () => {
   vi.spyOn(crypto, 'randomUUID').mockReturnValue(closureId as `${string}-${string}-${string}-${string}-${string}`);
   let closed = false;

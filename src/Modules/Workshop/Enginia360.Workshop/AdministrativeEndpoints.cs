@@ -130,7 +130,7 @@ internal static partial class AdministrativeEndpoints
             }
             else
             {
-                if (binding is not { Kind: "SimulatorV1", ProtocolVersion: 1, DestinationFingerprint.Length: 64 }
+                if (binding is not { Kind: "SimulatorV1" or "GiobbyV1", ProtocolVersion: 1, DestinationFingerprint.Length: 64 }
                     || !binding.DestinationFingerprint.All(c => c is >= '0' and <= '9' or >= 'a' and <= 'f'))
                     return Results.Conflict(new { code = "destination_binding_unverified", message = "Destinazione diversa/non verificata; nessun invio." });
                 var closure = await db.TechnicalClosures.AsNoTracking().SingleOrDefaultAsync(x => x.OrderId == id, ct);
