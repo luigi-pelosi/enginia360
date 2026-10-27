@@ -49,6 +49,8 @@ Un revert rivisto della PR rimuove endpoint, funzioni applicative e tool; lo sch
 
 ## Requisiti rimanenti per R04.b.2
 
+D90 (27 ottobre 2026), owner «Confermo A»: cap cumulativo per riga Part sorgente fra intenti pendenti, fornitori e magazzini; riga 3 / intento 2 → residuo 1, nuova 2 rifiutata e 1 ammessa. Nuovo UUID non azzera il cap, stesso UUID/payload replay esatto senza quantità aggiuntiva. Disponibilità ERP/prenotazione non sottratte automaticamente. Slice pending-intent senza cancellazione/rifiuto/rilascio/ricevimento o riapertura automatica del cap, lifecycle successivo fuori perimetro. Gate quantitativo #114 risolto; R04.b.2a implementativa solo dopo merge docs/guardie con vero RED→GREEN. Nessuna enforcement runtime provata qui, connettore R04.b.2b separato; #114/#44/#45 aperte. D82/D88/D77 e gate proiezione invariati; nessun nuovo scope/ruolo/provisioning, mapping o codice deciso.
+
 1. Azione/permesso dedicato unico (D88c) per creare la richiesta, non autoassegnabile né subdelegabile oltre D77, con CSRF e scope società/magazzino esatti.
 2. Richiesta d’acquisto creata a mano dalla riga Part (D88a), come intento/outbox verso l’ERP, con idempotenza e storia immutabile, mai scrittore locale di acquisto o stock (D82); la quantità richiesta (es. 2 su fabbisogno 3, disponibile 1) è scelta dall’operatore.
 3. Connettore d’acquisto Giobby (ordine fornitore) basato sulla mappatura `VendorId`/`VendorName` di questo incremento, con lookup per nome esatto prima di ogni riuso e hold su ambiguità (R05.a.4/a.5), e riconciliazione del residuo non autorevole (D86).
