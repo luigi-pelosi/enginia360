@@ -159,8 +159,14 @@ R05B1_DIRECT = R05B0_DIRECT | {'src/Modules/Integrations/Enginia360.Integrations
     'src/Modules/Workshop/Enginia360.Workshop.Contracts/ClosureActionContracts.cs',
     'scripts/run-r05b0-tests.py', 'compose.r05b0-test.yaml', 'web/src/ui01/runtime/administrativeContracts.test.ts'}
 
+R06A2_FILES = {'scripts/r06a2_transfer.py', 'scripts/r06a2_storage.py', 'scripts/run-r06a2-tests.py',
+    'scripts/test-r06a2-transfer.py', 'scripts/test-r06a2-storage.py', 'scripts/test-r06a2-impact.py', 'scripts/test-r06a2-lifecycle.py'}
+R06A2_DEPENDENCIES = {'scripts/r06_synthetic.py', 'scripts/r06_reconcile.py', 'scripts/r06b1_restore.py', 'postgres.runtime.Dockerfile'}
+
 def selection(paths):
     paths = sorted(set(paths))
+    r06a2 = bool(set(paths) & (R06A2_FILES | R06A2_DEPENDENCIES))
+    staging_only = r06a2 and set(paths) <= R06A2_FILES | R06_OFFLINE_FILES | R06_WIRING | {'docs/r06a2-synthetic-import-export.md'}
     r05a6_offline = bool(set(paths) & R05A6_OFFLINE_FILES)
     r05a6_only = r05a6_offline and set(paths) <= R05A6_OFFLINE_FILES | R06_OFFLINE_FILES | R06_WIRING
     r05a5_offline = bool(set(paths) & R05A5_OFFLINE_FILES)
@@ -183,7 +189,7 @@ def selection(paths):
     r04c2 = bool(set(paths) & (R04C2_FILES | {'web/src/ui01/runtime/WorkshopRuntime.tsx','web/src/ui01/runtime/runtime.css'})) or any(path.startswith(('src/Modules/Inventory/','web/src/ui01/runtime/Material')) for path in paths) or 'src/Modules/Workshop/Enginia360.Workshop/InstallationEndpoints.cs' in paths
     auth = ui = ui01b = r03a = r04a = r04c1 or r04c2
     r03b = r03c = r03c_full = False
-    r06_offline = r06_offline or r04c1 or r04c2 or r05b0 or r05b1
+    r06_offline = r06_offline or r04c1 or r04c2 or r05b0 or r05b1 or r06a2
     r06b1 = r06b1 or r05b0
     if r05b0 or r05b1: auth = ui = ui01b = r03c = True
     unknown = []
@@ -191,6 +197,8 @@ def selection(paths):
         parsed = PurePosixPath(path)
         if not path or parsed.is_absolute() or '..' in parsed.parts or '\\' in path or str(parsed) != path:
             raise ValueError('invalid changed path')
+        if path in R06A2_FILES or (staging_only and path in R06_WIRING):
+            continue
         if path in R05A6_OFFLINE_FILES or (r05a6_only and path in R06_WIRING):
             continue
         if path in R05A5_OFFLINE_FILES or (r05a5_only and path in R06_WIRING):
@@ -267,7 +275,7 @@ def selection(paths):
     if r05b1: filters.append('FullyQualifiedName~GiobbySalesOrderTests')
     return {'changed_paths':paths,'api_filter':'|'.join(filters),'r06_offline':r06_offline,'r05a1_offline':r05a1_offline,'r05a2_offline':r05a2_offline,'r05a3_offline':r05a3_offline,'r05a4_offline':r05a4_offline,'r05a5_offline':r05a5_offline,'r05a6_offline':r05a6_offline,'r05b0':r05b0,
             'browser':auth,'ui01b':ui01b,'r03a':r03a,'r03a2':r03a,'r04a':r04a,'r04c1':r04c1,'r04c2':r04c2,'r06b1':r06b1,'r03b':r03b,'r03c':r03c,'migrations':auth or ui01b,'ui_build':auth or ui,'ui_tests':ui,
-            'r05b1':r05b1, 'full_architecture':False}
+            'r05b1':r05b1, 'r06a2':r06a2, 'full_architecture':False}
 
 
 def changed_paths(base, head):
