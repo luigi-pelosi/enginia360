@@ -14,6 +14,9 @@ PATHS = ['AGENTS.md', 'docs/foundation/01-glossary-and-domain-boundaries.md',
          'scripts/test-r04-authority.py', 'scripts/test-r04-authority-impact.py',
          'scripts/test-c00-consistency.py']
 WIRING = ['scripts/select-ci-impact.py', '.github/workflows/ci.yml']
+# D87 / R06.a descoping: documentation plus the register-bound history guards, no executable or runtime path.
+D87_PATHS = PATHS + ['docs/r06-migration-inventory.md', 'scripts/test-r05a2-evidence.py', 'scripts/test-r05a3-evidence.py']
+D87_JOBS = {'r06_offline', 'r05a2_offline', 'r05a3_offline'}
 
 
 def validate_workflow(text):
@@ -41,6 +44,20 @@ class ImpactTests(unittest.TestCase):
                 for key, value in selected.items():
                     if key not in ('changed_paths', 'api_filter', 'r06_offline'):
                         self.assertFalse(value, key)
+
+    def test_d87_descoping_delivery_selects_only_offline_jobs(self):
+        for paths in (D87_PATHS, D87_PATHS + WIRING):
+            with self.subTest(paths=paths):
+                selected = impact.selection(paths)
+                self.assertEqual({k for k, v in selected.items() if v is True}, D87_JOBS)
+                self.assertEqual(selected['api_filter'], '')
+                self.assertFalse(selected['full_architecture'])
+        # The pre-existing authority guards stay in the offline block that these paths select.
+        text = (ROOT/'.github/workflows/ci.yml').read_text()
+        for job, tests in (('affected-r05a2-offline', 'test-r05a2-evidence.py'), ('affected-r05a3-offline', 'test-r05a3-evidence.py')):
+            block = text.split('  '+job+':\n')[1].split('\n  affected-')[0]
+            self.assertIn(tests, block)
+            self.assertNotIn('docker', block)
 
     def test_unknown_executables_fail_closed_even_in_mixed_offline_scope(self):
         for path in ('scripts/test-r04-authority-unknown.py', 'docs/authority.py',
