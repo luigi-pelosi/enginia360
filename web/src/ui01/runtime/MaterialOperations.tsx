@@ -5,6 +5,7 @@ import type { Editor } from "./editorContracts";
 import MaterialPicking from "./MaterialPicking";
 import MaterialCarcass from "./MaterialCarcass";
 import MaterialRelease from "./MaterialRelease";
+import PurchaseIntent from "./PurchaseIntent";
 
 type Warehouse = { id: string; name: string };
 type Stock = {
@@ -51,12 +52,12 @@ export default function MaterialOperations({
     const [uncertain, setUncertain] = useState(false);
     const [pickingBlocked, setPickingBlocked] = useState(false),
         [carcassBlocked, setCarcassBlocked] = useState(false);
-    const [releaseBlocked, setReleaseBlocked] = useState(false);
+    const [releaseBlocked, setReleaseBlocked] = useState(false), [purchaseBlocked, setPurchaseBlocked] = useState(false);
     const [choices, setChoices] = useState<{
         key: string;
         items: { id: string; quantity: string }[];
     }>();
-    const locked = busy || uncertain || pickingBlocked || carcassBlocked || releaseBlocked;
+    const locked = busy || uncertain || pickingBlocked || carcassBlocked || releaseBlocked || purchaseBlocked;
     useEffect(() => { onContextBlocked?.(locked); }, [locked, onContextBlocked]);
     useEffect(() => () => onContextBlocked?.(false), [onContextBlocked]);
     const generation = useRef(0),
@@ -382,6 +383,17 @@ export default function MaterialOperations({
                     blocked={busy || uncertain || pickingBlocked || carcassBlocked}
                     onBlocked={setReleaseBlocked}
                     onApplied={async () => { setStock(undefined); await read(); }}
+                    onError={onError}
+                />
+            )}
+            {row && warehouseId && (
+                <PurchaseIntent
+                    key={"purchase:" + url + warehouseId}
+                    url={url}
+                    warehouseId={warehouseId}
+                    closed={editor.capabilities.closed}
+                    blocked={busy || uncertain || pickingBlocked || carcassBlocked || releaseBlocked}
+                    onBlocked={setPurchaseBlocked}
                     onError={onError}
                 />
             )}

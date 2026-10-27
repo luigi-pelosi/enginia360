@@ -59,7 +59,9 @@ const state = (remaining = "3", physical = "2") => ({
 const response = (value: unknown) => new Response(JSON.stringify(value));
 function api(read: () => Promise<Response>) {
     const fetch = vi.fn(async (path: string, options?: RequestInit) =>
-        path.includes("/warehouses?")
+        path.includes("/purchase-intents")
+            ? new Response("{}", { status: 404 }) // independent sibling panel (R04.b.2a) does not share the material read sequence
+            : path.includes("/warehouses?")
             ? response([{ id: warehouseId, name: "Magazzino" }])
             : path === "/auth/csrf"
               ? response({ requestToken: "unit-only" })
