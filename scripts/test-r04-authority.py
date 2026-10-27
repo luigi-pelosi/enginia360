@@ -64,9 +64,9 @@ def validate(root):
         raise ValueError('active delivery: stale D80/D81 status')
     # Historical decisions remain untouched; the new decision must be unique and next.
     ids = [int(x) for x in re.findall(r'^### D(\d+) —', docs[GLOSSARY], re.M)]
-    if sorted(ids) != list(range(1, 83)):
-        raise ValueError('decision register: retain unique D1–D81 and append D82')
-    decision = docs[GLOSSARY].split('### D82 —')[1]
+    if sorted(ids) != list(range(1, 84)):
+        raise ValueError('decision register: retain unique D1–D82 and append D83')
+    decision = docs[GLOSSARY].split('### D82 —')[1].split('### D83 —')[0]
     require(decision, (QUOTE, '25 ottobre 2026', '3 ordinati / 2 ricevuti',
                        'regola quantitativa condizionata all’autorità',
                        'non autorizza carichi locali Enginia360 nel profilo ERP'), 'D82 provenance')

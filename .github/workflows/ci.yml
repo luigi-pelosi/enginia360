@@ -40,6 +40,7 @@ jobs:
       r03c: ${{ steps.selection.outputs.r03c }}
       migrations: ${{ steps.selection.outputs.migrations }}
       r05a1_offline: ${{ steps.selection.outputs.r05a1_offline }}
+      r05a2_offline: ${{ steps.selection.outputs.r05a2_offline }}
       r06_offline: ${{ steps.selection.outputs.r06_offline }}
     steps:
       - uses: actions/checkout@v4
@@ -54,6 +55,8 @@ jobs:
         run: python3 scripts/test-r05b0-impact.py
       - name: Verify finite Giobby dossier impact
         run: python3 -I scripts/test-r05a1-impact.py
+      - name: Verify finite sandbox evidence impact
+        run: python3 -I scripts/test-r05a2-impact.py
       - name: Select exact changed-file impact
         id: selection
         env:
@@ -66,6 +69,17 @@ jobs:
           fi
           python3 scripts/select-ci-impact.py --base "$BASE_SHA" --head "$HEAD_SHA" > "$RUNNER_TEMP/impact.json"
           python3 -c 'import json,os; d=json.load(open(os.environ["RUNNER_TEMP"]+"/impact.json")); print(json.dumps(d,indent=2)); f=open(os.environ["GITHUB_OUTPUT"],"a"); [f.write(k+"="+(str(v).lower() if isinstance(v,bool) else v)+"\n") for k,v in d.items() if k!="changed_paths"]; f.close(); open(os.environ["GITHUB_STEP_SUMMARY"],"a").write("## Exact change-impact selection\n```json\n"+json.dumps(d,indent=2)+"\n```\nRuntime jobs run only on explicit dispatch; skipped runtime is not acceptance evidence.\n")'
+  affected-r05a2-offline:
+    needs: impact
+    if: needs.impact.outputs.r05a2_offline == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Initialize private sandbox evidence scratch directory
+        run: printf 'TMPDIR=%s\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+      - name: Offline sandbox evidence guards (not provider compatibility)
+        run: python3 -I scripts/test-r05a2-impact.py && python3 -I scripts/test-r05a2-evidence.py
   affected-r05a1-offline:
     needs: impact
     if: needs.impact.outputs.r05a1_offline == 'true'
