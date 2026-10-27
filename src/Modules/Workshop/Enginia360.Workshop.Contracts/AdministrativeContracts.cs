@@ -17,7 +17,7 @@ public sealed record AdministrativeRequestContract(Guid Id, Guid OrderId, Guid L
     AdministrativeConnectorBinding? ConnectorBinding = null);
 
 // Server composition supplies this immutable technical descriptor, never an address or credential.
-// It identifies only the existing synthetic protocol, not a qualified Giobby business identity.
+// Fingerprint pins the host-owned protocol/destination identity; it is neither authentication nor readiness evidence.
 public sealed record AdministrativeConnectorBinding(string Kind, int ProtocolVersion, string DestinationFingerprint);
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]

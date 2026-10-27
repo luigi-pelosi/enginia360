@@ -1,4 +1,6 @@
 using System.Reflection;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Enginia360.Integrations;
 using Enginia360.Workshop.Contracts;
 using Xunit;
@@ -9,7 +11,11 @@ public sealed class WorkshopClosureContractTests
     [Fact]
     public void Registered_adapter_declares_the_simulator_and_never_a_real_erp()
     {
-        Assert.Equal(new AdministrativeRuntime("SimulatorV1", 1), IntegrationsModule.Runtime);
+        var services = new ServiceCollection();
+        services.AddExternalAdministration("Host=unused", new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["SimulatorBaseUrl"] = "https://synthetic.test/" }).Build());
+        using var provider = services.BuildServiceProvider();
+        Assert.Equal(new AdministrativeRuntime("SimulatorV1", 1), provider.GetRequiredService<AdministrativeRuntime>());
         Assert.Equal(new AdministrativeRuntime("Unavailable", 0), AdministrativeRuntime.Unavailable);
     }
 

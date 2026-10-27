@@ -1,0 +1,38 @@
+# Isolated Giobby-protocol fake only. No provider host, account or live traffic.
+services:
+  postgres:
+    extends: {file: compose.r05b0-test.yaml, service: postgres}
+  migrator:
+    extends: {file: compose.r05b0-test.yaml, service: migrator}
+  identity:
+    extends: {file: compose.r05b0-test.yaml, service: identity}
+  admin-simulator:
+    extends: {file: compose.r05b0-test.yaml, service: admin-simulator}
+    command: [python3, -I, /observer/r05b1-giobby.py]
+    volumes:
+      - "${R00_STATE:?required}/giobby-a:/run/giobby:ro"
+      - "./tests/fixtures:/captures:ro"
+  simulator-b:
+    extends: {file: compose.r05b0-test.yaml, service: simulator-b}
+    command: [python3, -I, /observer/r05b1-giobby.py]
+    volumes:
+      - "${R00_STATE:?required}/giobby-b:/run/giobby:ro"
+      - "./tests/fixtures:/captures:ro"
+  api:
+    extends: {file: compose.r05b0-test.yaml, service: api}
+    environment:
+      ExternalAdministration__Protocol: "${R05B0_PROTOCOL:-GiobbyV1}"
+      ExternalAdministration__Giobby__BaseUrl: "${R05B1_BASE_URL:-https://admin-simulator:8443/}"
+      ExternalAdministration__Giobby__CompanyAlias: "${R05B1_ALIAS:-synthetic-company-A}"
+      ExternalAdministration__RetryMilliseconds: "100"
+    volumes:
+      - "${R00_STATE:?required}/giobby.json:/app/appsettings.Production.json:ro"
+      - "${R00_STATE:?required}/token:/run/giobby-token:ro"
+  web:
+    extends: {file: compose.r05b0-test.yaml, service: web}
+  browser:
+    extends: {file: compose.r05b0-test.yaml, service: browser}
+    entrypoint: [sh, -c, 'mkdir -p "$$HOME/.pki/nssdb" && certutil -N -d sql:$$HOME/.pki/nssdb --empty-password && certutil -A -d sql:$$HOME/.pki/nssdb -n runtime-ephemeral-ca -t C,, -i /run/tls/ca.crt && exec node r05b1-acceptance.cjs']
+networks:
+  runtime:
+    internal: true

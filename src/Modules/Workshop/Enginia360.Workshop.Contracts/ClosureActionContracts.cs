@@ -1,7 +1,7 @@
 namespace Enginia360.Workshop.Contracts;
 
 // Advisory read model (R03.c). Flags guide the UI only; every command re-authorizes and re-evaluates under its own lock.
-// Kind is declared by the composition root: "SimulatorV1" for the registered synthetic adapter, otherwise "Unavailable". Never Giobby.
+// Kind is declared from the composition's same frozen configuration: SimulatorV1, GiobbyV1 or Unavailable; never a readiness claim.
 public sealed record AdministrativeRuntime(string Kind, int ContractVersion)
 {
     public static AdministrativeRuntime Unavailable { get; } = new("Unavailable", 0);

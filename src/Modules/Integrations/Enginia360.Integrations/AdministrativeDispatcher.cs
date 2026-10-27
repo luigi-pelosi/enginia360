@@ -6,10 +6,10 @@ using Microsoft.Extensions.Logging;
 
 namespace Enginia360.Integrations;
 
-// One dispatch cycle. Delivery is at least once and never exactly once: the stable request ID lets the receiver
-// deduplicate, Received is acquisition only (D40), and only Completed/Rejected become Workshop outcomes.
+// One dispatch cycle, never an exactly-once guarantee. SimulatorV1 has explicit deduplication/NotFound;
+// GiobbyV1 uses bounded lookup and never returns NotFound. Only Completed/Rejected become Workshop outcomes.
 internal sealed class AdministrativeDispatcher(IWorkshopAdministrativeOutbox outbox, IntegrationsDbContext db,
-    SimulatorConnector connector, ConnectorOptions options, ILogger<AdministrativeDispatcher> logger)
+    IAdministrativeConnector connector, ConnectorOptions options, ILogger<AdministrativeDispatcher> logger)
 {
     private static DateTimeOffset Now()
     {
@@ -111,7 +111,7 @@ internal sealed class AdministrativeDispatcher(IWorkshopAdministrativeOutbox out
                 break;
             default:
                 // A failed response does not establish whether the receiver applied the request (T06).
-                // Reconcile with GET; resubmit the stable ID only after an explicit matching NotFound.
+                // Reconcile with GET; only the synthetic protocol can establish matching NotFound for resubmission.
                 dispatch.Failures++;
                 var next = now + TimeSpan.FromMilliseconds(Math.Min(300000, options.RetryDelay.TotalMilliseconds * Math.Pow(2, Math.Min(dispatch.Failures - 1, 16))));
                 await Save(dispatch, dispatch.Failures >= 4 ? "NeedsReconciliation" : "Uncertain", attempts, next, result.Code, ct);

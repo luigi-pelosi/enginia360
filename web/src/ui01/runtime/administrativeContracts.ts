@@ -67,7 +67,7 @@ const ACTIONS = ['readAdministrativeState', 'completeTechnical', 'requestAdminis
 const REASONS = ['not_authorized', 'capability_disabled', 'route_unavailable', 'administrative_read_required', 'technical_closure_required', 'already_closed', 'already_requested',
   'administrative_destination_missing', 'internal_invoice_already_allocated', 'external_confirmation_required', 'reconciliation_not_available'];
 const FLAGS = ['canReadAdministrativeState', 'canCompleteTechnical', 'canRequestAdministrative', 'mayRequestReconciliation', 'canCompleteAdministrative'] as const;
-export type Actions = Readonly<{ orderId: string; commercialRevision: number; technicalClosure: TechnicalClosure | null; canReadAdministrativeState: boolean; canCompleteTechnical: boolean; canRequestAdministrative: boolean; mayRequestReconciliation: boolean; canCompleteAdministrative: boolean; actionReasons: readonly Readonly<{ action: string; code: string }>[]; administrativeRuntime: Readonly<{ kind: 'SimulatorV1' | 'Unavailable'; contractVersion: 0 | 1 }> }>;
+export type Actions = Readonly<{ orderId: string; commercialRevision: number; technicalClosure: TechnicalClosure | null; canReadAdministrativeState: boolean; canCompleteTechnical: boolean; canRequestAdministrative: boolean; mayRequestReconciliation: boolean; canCompleteAdministrative: boolean; actionReasons: readonly Readonly<{ action: string; code: string }>[]; administrativeRuntime: Readonly<{ kind: 'SimulatorV1' | 'GiobbyV1' | 'Unavailable'; contractVersion: 0 | 1 }> }>;
 export function parseActions(value: unknown, orderId: string): Actions {
   const a = record(value);
   const keys = ['orderId', 'commercialRevision', 'technicalClosure', ...FLAGS, 'actionReasons', 'administrativeRuntime'];
@@ -79,7 +79,7 @@ export function parseActions(value: unknown, orderId: string): Actions {
   check(Array.isArray(a.actionReasons));
   for (const item of a.actionReasons as unknown[]) { const r = record(item); check(ACTIONS.includes(r.action as string) && REASONS.includes(r.code as string)); }
   const runtime = record(a.administrativeRuntime);
-  check((runtime.kind === 'SimulatorV1' && runtime.contractVersion === 1) || (runtime.kind === 'Unavailable' && runtime.contractVersion === 0));
+  check(((runtime.kind === 'SimulatorV1' || runtime.kind === 'GiobbyV1') && runtime.contractVersion === 1) || (runtime.kind === 'Unavailable' && runtime.contractVersion === 0));
   return { ...a, technicalClosure } as unknown as Actions;
 }
 

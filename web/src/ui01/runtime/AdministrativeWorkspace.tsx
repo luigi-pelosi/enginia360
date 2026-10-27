@@ -4,10 +4,11 @@ import { check, record } from './contracts';
 import type { Editor } from './editorContracts';
 import { parseActions, parseAdministrativeClosure, parseClosureState, parseGate, parseRequest, parseTechnical, type Actions, type AdministrativeRequest, type ClosureState, type Gate } from './administrativeContracts';
 
-// R03.c: the EXISTING closure commands, read advice and states. Provider truth: the registered adapter is a synthetic simulator, never Giobby.
+// Existing closure commands; host declares the actual registered protocol, not provider readiness.
 type Frozen = Readonly<{ kind: 'technical' | 'request' | 'reconcile' | 'close'; url: string; body: string; commandId: string; orderId: string; revision: number; requestId?: string; reference?: string }>;
 const PROVIDER = 'Simulatore amministrativo v1 · nessun collegamento Giobby';
 const NO_PROVIDER = 'Connettore amministrativo non registrato · nessun collegamento Giobby';
+const GIOBBY = 'Giobby · ordine cliente (candidato tecnico) · conversione manuale in fattura';
 const DELIVERY: Record<string, string> = {
   Queued: 'In coda: richiesta salvata, nessuna conferma di business.',
   Received: 'Ricevuta dal simulatore: solo acquisizione, non conferma di business.',
@@ -23,7 +24,7 @@ const WHY: Record<string, string> = {
 };
 // Business status first; transport state only explains a still pending request (D40).
 function describe(r: AdministrativeRequest): string {
-  if (r.status === 'Confirmed') return 'Confermata dal simulatore · riferimento ' + r.externalReference + ' (nessuna fattura fiscale, nessun incasso).';
+  if (r.status === 'Confirmed') return (r.externalReference?.startsWith('GiobbyOrder-') ? 'Confermata dal gestionale · riferimento ' : 'Confermata dal simulatore · riferimento ') + r.externalReference + ' (nessuna fattura fiscale, nessun incasso).';
   if (r.status === 'Rejected') return 'Rifiutata dal simulatore · codice ' + r.rejectionCode + '. Nessun nuovo invio né conferma forzata.';
   if (r.delivery.state === 'NeedsReconciliation' && r.delivery.lastError === 'destination_binding_mismatch')
     return 'Destinazione diversa/non verificata; nessun invio.';
@@ -117,7 +118,7 @@ export default function AdministrativeWorkspace({ editor, onError, onChanged, po
   const reason = (action: string) => actions?.actionReasons.find(r => r.action === action)?.code ?? '';
   const canReconcile = actions?.mayRequestReconciliation && req?.status === 'Pending' && req.delivery.state === 'NeedsReconciliation' && !inconsistent;
   return <section aria-label="Chiusura e attesa amministrativa"><h2>Chiusura e attesa amministrativa</h2>
-    <p>{actions?.administrativeRuntime.kind === 'SimulatorV1' ? PROVIDER : NO_PROVIDER}</p>
+    <p>{actions?.administrativeRuntime.kind === 'GiobbyV1' ? GIOBBY : actions?.administrativeRuntime.kind === 'SimulatorV1' ? PROVIDER : NO_PROVIDER}</p>
     <p role="status" id="closure-status" tabIndex={-1} ref={status}>{message}</p>
     <button disabled={busy} onClick={reread}>Rileggi stato</button>
     {inconsistent && <p role="alert">Letture non coerenti: nessuna azione finché lo stato non è riletto.</p>}
@@ -134,7 +135,7 @@ export default function AdministrativeWorkspace({ editor, onError, onChanged, po
       <p>{describe(req)}</p>
       <p>Snapshot richiesta: revisione {req.summary.revision} · {req.summary.lines.length} righe · {new Set(req.summary.lines.map(l => l.workingGroupId)).size} lavorazioni</p>
       <p>Imponibile {req.summary.netAmount} · IVA {req.summary.taxAmount} · <strong>{req.summary.total} EUR</strong></p></> : closure ? <p>Richiesta amministrativa non registrata.</p> : null}
-      {closure?.administrativeClosure && <p>Chiusa amministrativamente · riferimento {closure.administrativeClosure.externalReference} (contratto simulato; nessun incasso né riconsegna).</p>}
+      {closure?.administrativeClosure && <p>Chiusa amministrativamente · riferimento {closure.administrativeClosure.externalReference} ({closure.administrativeClosure.externalReference.startsWith('GiobbyOrder-') ? 'ordine cliente Giobby' : 'contratto simulato'}; nessun incasso né riconsegna).</p>}
       {req?.status === 'Pending' && req.delivery.state === 'NeedsReconciliation' && !canReconcile && actions && <p>Ripresa non disponibile: {WHY[reason('reconcile')] ?? 'rileggi lo stato'}.</p>}
       {actions?.canRequestAdministrative && !req && !inconsistent && <button disabled={busy || uncertain}
         onClick={() => begin('request', '/administrative-requests', () => ({ expectedRevision: technical!.revision }), technical!.revision)}>Richiedi registrazione amministrativa</button>}

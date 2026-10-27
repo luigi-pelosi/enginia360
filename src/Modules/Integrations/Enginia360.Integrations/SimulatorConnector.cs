@@ -11,7 +11,19 @@ internal sealed record ConnectorResult(ConnectorOutcome Outcome, string? Externa
 
 // Anti-corruption layer for simulator contract v1. The domain never sees external fields or HTTP codes;
 // an HTTP 200 alone is never a business confirmation (T07).
-internal sealed partial class SimulatorConnector(HttpClient http)
+internal interface IAdministrativeConnector
+{
+    Task<ConnectorResult> Submit(AdministrativeDispatchMessage message, CancellationToken ct);
+    Task<ConnectorResult> Status(AdministrativeDispatchMessage message, CancellationToken ct);
+}
+
+internal sealed class UnavailableConnector : IAdministrativeConnector
+{
+    public Task<ConnectorResult> Submit(AdministrativeDispatchMessage message, CancellationToken ct) => Task.FromResult(new ConnectorResult(ConnectorOutcome.Failure, Code: "provider_unconfigured"));
+    public Task<ConnectorResult> Status(AdministrativeDispatchMessage message, CancellationToken ct) => Submit(message, ct);
+}
+
+internal sealed partial class SimulatorConnector(HttpClient http) : IAdministrativeConnector
 {
     private const int MaxResponseBytes = 65536;
     [GeneratedRegex(@"^[A-Za-z0-9][A-Za-z0-9-]{0,63}$", RegexOptions.CultureInvariant)]
@@ -19,7 +31,7 @@ internal sealed partial class SimulatorConnector(HttpClient http)
     [GeneratedRegex(@"^[a-z0-9_]{1,64}$", RegexOptions.CultureInvariant)]
     private static partial Regex Code();
 
-    internal Task<ConnectorResult> Submit(AdministrativeDispatchMessage message, CancellationToken ct)
+    public Task<ConnectorResult> Submit(AdministrativeDispatchMessage message, CancellationToken ct)
     {
         var request = new HttpRequestMessage(HttpMethod.Post, "v1/administrative-requests")
         {
@@ -30,7 +42,7 @@ internal sealed partial class SimulatorConnector(HttpClient http)
         return Send(request, message.RequestId, ct);
     }
 
-    internal Task<ConnectorResult> Status(AdministrativeDispatchMessage message, CancellationToken ct) =>
+    public Task<ConnectorResult> Status(AdministrativeDispatchMessage message, CancellationToken ct) =>
         Send(new HttpRequestMessage(HttpMethod.Get, $"v1/administrative-requests/{message.RequestId}"), message.RequestId, ct);
 
     // Minimized technical payload: identifiers and amounts only; no names, labels, tenant or credentials (T11).
