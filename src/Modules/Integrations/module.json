@@ -3,7 +3,7 @@
   "increment": "B10–B11",
   "capability": "external-administration",
   "providedActions": [],
-  "consumedContracts": ["Enginia360.Workshop.Contracts: IWorkshopAdministrativeOutbox"],
+  "consumedContracts": ["Enginia360.Workshop.Contracts: IWorkshopAdministrativeOutbox", "Enginia360.Inventory.Contracts: IPurchaseDispatchOutbox"],
   "implementedContracts": ["Enginia360.Workshop.Contracts: IAdministrativeDeliveries", "Enginia360.Workshop.Contracts: IAdministrativeRecovery"],
   "externalContract": "simulated administrative destination v1 (simulator/administrative-simulator.py), synthetic only",
   "ownedTables": ["integrations.administrative_dispatches", "integrations.administrative_reconciliations"],

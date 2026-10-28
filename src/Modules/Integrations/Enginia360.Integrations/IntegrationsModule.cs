@@ -25,6 +25,9 @@ public static class IntegrationsModule
         services.AddHttpClient<SimulatorConnector>(client => { client.BaseAddress = options.BaseAddress; client.Timeout = options.Timeout; }).RemoveAllLoggers();
         services.AddHttpClient<GiobbySalesOrderConnector>((provider, client) => { client.BaseAddress = provider.GetRequiredService<GiobbyHost>().BaseAddress; client.Timeout = options.Timeout; })
             .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false }).RemoveAllLoggers();
+        services.AddHttpClient<GiobbyPurchaseOrderConnector>((provider, client) => { client.BaseAddress = provider.GetRequiredService<GiobbyHost>().BaseAddress; client.Timeout = options.Timeout; })
+            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false }).RemoveAllLoggers();
+        services.AddScoped<IPurchaseConnector>(p => options.ProtocolVerified && options.Kind == "GiobbyV1" ? p.GetRequiredService<GiobbyPurchaseOrderConnector>() : new UnavailablePurchaseConnector());
         services.AddScoped<IAdministrativeConnector>(p => (options.ProtocolVerified ? options.Kind : "Unavailable") switch
         {
             "GiobbyV1" => p.GetRequiredService<GiobbySalesOrderConnector>(), "SimulatorV1" => p.GetRequiredService<SimulatorConnector>(),

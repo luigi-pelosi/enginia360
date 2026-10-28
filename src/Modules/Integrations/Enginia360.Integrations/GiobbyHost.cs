@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Configuration;
+using Enginia360.Inventory.Contracts;
 using Enginia360.Workshop.Contracts;
 using System.Globalization;
 
@@ -18,7 +19,7 @@ internal sealed class GiobbyHost(IConfiguration section)
             if (BaseAddress is null || !Text("CompanyAlias") || !PositiveInt("CompanyId") || !Text("Cid") || !Guid.TryParse(Value("TenantId"), out _) || !Guid.TryParse(Value("LegalEntityId"), out _) || !Guid.TryParse(Value("SiteId"), out _))
                 return new("Unavailable", 0, "");
             var descriptor = new SortedDictionary<string, string?>(StringComparer.Ordinal);
-            foreach (var pair in values.Where(x => x.Key != "TokenFile" && x.Value is not null)) descriptor[pair.Key] = pair.Value;
+            foreach (var pair in values.Where(x => x.Key != "TokenFile" && !x.Key.StartsWith("PurchaseOrder:", StringComparison.Ordinal) && x.Value is not null)) descriptor[pair.Key] = pair.Value;
             descriptor["BaseUrl"] = BaseAddress.AbsoluteUri;
             descriptor["DocumentType"] = "sales-order:3";
             return new("GiobbyV1", 1, Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(
@@ -57,6 +58,18 @@ internal sealed class GiobbyHost(IConfiguration section)
         && m.Summary.Lines.All(x => x.PayerId == m.Summary.PayerId && x.Kind is "Part" or "Service"
             && Text($"Materials:{x.CatalogItemId}") && Tax(x.TaxRate) is { Length: > 0 and <= 200 }
             && Numeric(x.Quantity, 0.000001m, 999999999m) && Numeric(x.UnitPrice, 0, 999999999m) && Numeric(x.DiscountPercent, 0, 100));
+    // Purchase-order setup: every key is explicit host configuration; there are no invented defaults.
+    internal string? Purchase(string key) => Value("PurchaseOrder:" + key);
+    internal bool PurchaseMapped(PurchaseDispatchMessage m) => Scope("TenantId", m.TenantId) && Scope("LegalEntityId", m.LegalEntityId)
+        && Scope("SiteId", m.SiteId) && m.IntentId != Guid.Empty
+        && Purchase("DocumentType") == "2" && Purchase("OrderType") == "1" && Purchase("Currency") == "EUR" && Purchase("Payments") == "none"
+        && PurchaseText("BusinessUnit") && PurchaseText("Vat") && PurchaseText("Storage") && PurchaseText($"Materials:{m.CatalogItemId}")
+        && int.TryParse(Purchase("Numerator"), NumberStyles.None, CultureInfo.InvariantCulture, out var numerator) && numerator > 0
+        && int.TryParse(Purchase("PosType"), NumberStyles.None, CultureInfo.InvariantCulture, out var pos) && pos > 0
+        && PlainText(m.VendorId) && PlainText(m.VendorName) && PlainText(m.Description)
+        && Numeric(m.Quantity, 0.000001m, 999999.999999m) && Numeric(m.UnitPrice, 0, 999999.999999m);
+    private bool PurchaseText(string key) => Purchase(key) is { Length: > 0 and <= 200 } text && !text.Any(char.IsControl);
+    private static bool PlainText(string value) => value is { Length: > 0 and <= 200 } && !value.Any(char.IsControl);
     private static bool Numeric(string value, decimal min, decimal max) => decimal.TryParse(value,
         NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var number) && number >= min && number <= max && decimal.Round(number, 6) == number;
 }

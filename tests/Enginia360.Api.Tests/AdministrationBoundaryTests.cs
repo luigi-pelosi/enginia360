@@ -62,7 +62,7 @@ public sealed class AdministrationBoundaryTests
     {
         var assembly = typeof(IntegrationsModule).Assembly;
         Assert.Equal([typeof(IntegrationsModule)], assembly.GetExportedTypes());
-        Assert.DoesNotContain(assembly.GetReferencedAssemblies(), a => a.Name!.StartsWith("Enginia360.") && a.Name != "Enginia360.Workshop.Contracts");
+        Assert.DoesNotContain(assembly.GetReferencedAssemblies(), a => a.Name!.StartsWith("Enginia360.") && a.Name != "Enginia360.Workshop.Contracts" && a.Name != "Enginia360.Inventory.Contracts");
         Assert.DoesNotContain(typeof(WorkshopModule).Assembly.GetReferencedAssemblies(), a => a.Name == "Enginia360.Integrations");
     }
 
