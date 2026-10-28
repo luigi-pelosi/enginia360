@@ -4,7 +4,7 @@
   "capability": "external-administration",
   "providedActions": [],
   "consumedContracts": ["Enginia360.Workshop.Contracts: IWorkshopAdministrativeOutbox", "Enginia360.Inventory.Contracts: IPurchaseDispatchOutbox"],
-  "implementedContracts": ["Enginia360.Workshop.Contracts: IAdministrativeDeliveries", "Enginia360.Workshop.Contracts: IAdministrativeRecovery"],
+  "implementedContracts": ["Enginia360.Workshop.Contracts: IAdministrativeDeliveries", "Enginia360.Workshop.Contracts: IAdministrativeRecovery", "Enginia360.Inventory.Contracts: IPurchaseDeliveries"],
   "externalContract": "SimulatorV1 or bounded GiobbyV1 sales/purchase-order adapters; owned captures and isolated TLS fake acceptance, no live compatibility guarantee",
   "ownedTables": ["integrations.administrative_dispatches", "integrations.administrative_reconciliations", "integrations.purchase_dispatches"],
   "publishedEvents": [],

@@ -1,3 +1,4 @@
+using Enginia360.Inventory.Contracts;
 using Enginia360.Workshop.Contracts;
 using Microsoft.EntityFrameworkCore;
 
@@ -41,6 +42,18 @@ internal sealed class AdministrativeDeliveries(IntegrationsDbContext db) : IAdmi
         await tx.CommitAsync(ct);
         return rows.ToDictionary(x => x.RequestId, x => new AdministrativeDelivery(x.State, x.Attempts, x.LastAttemptAt,
             x.State is "Completed" or "Rejected" or "NeedsReconciliation" ? null : x.NextAttemptAt, x.LastError, x.Failures));
+    }
+}
+// Integrations owns purchase_dispatches: Inventory reads the technical state only through IPurchaseDeliveries (tenant-scoped, RLS-bound).
+internal sealed class PurchaseDeliveries(IntegrationsDbContext db) : IPurchaseDeliveries
+{
+    public async Task<IReadOnlyDictionary<Guid, PurchaseDelivery>> Read(Guid verifiedTenantId, IReadOnlyCollection<Guid> intentIds, CancellationToken ct)
+    {
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.tenant_id', {verifiedTenantId.ToString()}, true)", ct);
+        var rows = await db.PurchaseDispatches.AsNoTracking().Where(x => x.TenantId == verifiedTenantId && intentIds.Contains(x.IntentId)).ToListAsync(ct);
+        await tx.CommitAsync(ct);
+        return rows.ToDictionary(x => x.IntentId, x => new PurchaseDelivery(x.State, x.LastError));
     }
 }
 // Technical delivery state of one purchase intent; never a business outcome by itself.

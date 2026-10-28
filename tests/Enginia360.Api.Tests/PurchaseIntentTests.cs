@@ -70,4 +70,53 @@ public sealed class PurchaseIntentTests : IClassFixture<TestApiFactory>
         var result = method == "GET" ? await client.GetAsync(path) : await client.PostAsJsonAsync(path, new {});
         Assert.Equal(HttpStatusCode.Unauthorized, result.StatusCode);
     }
+
+    // R04.b.2b.3 PR2: the dispatch readout is derived from owner-module facts only (Inventory price/outcome + the Integrations-owned technical state published through Inventory.Contracts).
+    private static readonly Guid Priced = Guid.Parse("33333333-3333-4333-8333-333333333331"), Legacy = Guid.Parse("33333333-3333-4333-8333-333333333332");
+    private static (string State, string? Reason, string? Reference) Readout(bool priced, string? outcome, string? state, string? error)
+    {
+        var r = Enginia360.Inventory.Contracts.PurchaseDispatchReadout.From(priced, outcome, state is null ? null : new Enginia360.Inventory.Contracts.PurchaseDelivery(state, error));
+        return (r.State, r.Reason, r.ExternalReference);
+    }
+    [Fact]
+    public void Dispatch_readout_distinguishes_unsendable_queued_uncertain_and_confirmed()
+    {
+        Assert.Equal(("not_sendable", "unpriced", null), Readout(false, null, null, null));
+        Assert.Equal(("not_sendable", "unpriced", null), Readout(false, null, "Queued", null));
+        Assert.Equal(("queued", null, null), Readout(true, null, null, null));
+        Assert.Equal(("queued", null, null), Readout(true, null, "Queued", null));
+        Assert.Equal(("queued", null, null), Readout(true, null, "Queued", "source_unavailable"));
+        Assert.Equal(("uncertain", null, null), Readout(true, null, "Uncertain", "provider_timeout"));
+        Assert.Equal(("uncertain", null, null), Readout(true, null, "Completed", null));
+        Assert.Equal(("confirmed", null, "GiobbyPurchaseOrder-301"), Readout(true, "GiobbyPurchaseOrder-301", "Completed", null));
+        Assert.Equal(("confirmed", null, "GiobbyPurchaseOrder-301"), Readout(true, "GiobbyPurchaseOrder-301", null, null));
+    }
+    [Theory]
+    [InlineData("mapping_missing")]
+    [InlineData("provider_unconfigured")]
+    [InlineData("destination_binding_mismatch")]
+    [InlineData("identity_unverified")]
+    public void Dispatch_readout_reports_missing_purchase_configuration_without_host_detail(string code)
+    {
+        Assert.Equal(("queued", "configuration_missing", null), Readout(true, null, "Queued", code));
+        Assert.Equal(("uncertain", "configuration_missing", null), Readout(true, null, "Uncertain", code));
+        Assert.Equal(("confirmed", null, "GiobbyPurchaseOrder-301"), Readout(true, "GiobbyPurchaseOrder-301", "Uncertain", code));
+    }
+    [Fact]
+    public void Dispatch_readout_merges_into_the_owner_state_and_removes_internal_outcome()
+    {
+        var state = System.Text.Json.Nodes.JsonNode.Parse("""
+            {"state":"ready","intents":[
+             {"id":"33333333-3333-4333-8333-333333333331","status":"Held","acceptedPrice":{"unitPurchasePrice":"1.000000"},"outcome":{"externalReference":"GiobbyPurchaseOrder-301"}},
+             {"id":"33333333-3333-4333-8333-333333333332","status":"Held","acceptedPrice":null,"outcome":null}]}
+            """)!.AsObject();
+        Enginia360.Inventory.Contracts.PurchaseDispatchReadout.Apply(state, new Dictionary<Guid, Enginia360.Inventory.Contracts.PurchaseDelivery> { [Priced] = new("Completed", null), [Legacy] = new("Queued", "mapping_missing") });
+        var intents = state["intents"]!.AsArray();
+        Assert.Equal("confirmed", intents[0]!["dispatch"]!["state"]!.GetValue<string>());
+        Assert.Equal("GiobbyPurchaseOrder-301", intents[0]!["dispatch"]!["externalReference"]!.GetValue<string>());
+        Assert.Equal("not_sendable", intents[1]!["dispatch"]!["state"]!.GetValue<string>());
+        Assert.Equal("unpriced", intents[1]!["dispatch"]!["reason"]!.GetValue<string>());
+        Assert.All(intents, i => Assert.False(i!.AsObject().ContainsKey("outcome")));
+        Assert.DoesNotContain("mapping_missing", state.ToJsonString());
+    }
 }
