@@ -119,4 +119,17 @@ public sealed class PurchaseIntentTests : IClassFixture<TestApiFactory>
         Assert.All(intents, i => Assert.False(i!.AsObject().ContainsKey("outcome")));
         Assert.DoesNotContain("mapping_missing", state.ToJsonString());
     }
+
+    [Theory]
+    [InlineData(true, "Queued", null)]
+    [InlineData(false, "Queued", "provider_unconfigured")]
+    public void An_intent_without_a_delivery_row_is_queued_only_when_a_purchase_connector_would_claim_it(bool giobbyVerified, string state, string? error)
+    {
+        var type = typeof(Enginia360.Integrations.IntegrationsModule).Assembly.GetType("Enginia360.Integrations.PurchaseDeliveries")!;
+        var unclaimed = (Enginia360.Inventory.Contracts.PurchaseDelivery)type.GetMethod("Unclaimed", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!.Invoke(null, [giobbyVerified])!;
+        Assert.Equal((state, error), (unclaimed.State, unclaimed.LastError));
+        // With no purchase connector the readout is the configuration reason, never a promise that the request will be sent.
+        Assert.Equal("queued", Enginia360.Inventory.Contracts.PurchaseDispatchReadout.From(true, null, unclaimed).State);
+        Assert.Equal(giobbyVerified ? null : "configuration_missing", Enginia360.Inventory.Contracts.PurchaseDispatchReadout.From(true, null, unclaimed).Reason);
+    }
 }
