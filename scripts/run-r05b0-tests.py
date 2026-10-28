@@ -25,6 +25,7 @@ run = r00.run
 marker = r03b.marker
 POOL = os.environ.get('R05B0_POOL_SIZE', '4')
 SPEC = os.environ.get('R05B0_SPEC', 'r05b0-acceptance.cjs')
+EXTRA_CONTROL = None  # Fixture-only extension, never loaded by application code.
 SIMULATOR_CONTROL = ('import json,sys,urllib.request\n'
                      'req=urllib.request.Request("http://127.0.0.1:8080"+sys.argv[1],data=(sys.argv[2].encode() if len(sys.argv)>2 else None),'
                      'headers={"Content-Type":"application/json"},method="POST" if len(sys.argv)>2 else "GET")\n'
@@ -48,12 +49,12 @@ def fixtures(state, secret):
 def main():
     if not os.environ.get('TMPDIR'): raise ValueError('private TMPDIR required')
     if POOL not in ('1', '4'): raise ValueError('pool acceptance is explicitly 1 or 4')
-    if SPEC not in ('r05b0-acceptance.cjs', 'r05b0-gaps.cjs', 'r05b1-acceptance.cjs', 'r04b2a-acceptance.cjs'): raise ValueError('unknown binding acceptance specification')
+    if SPEC not in ('r05b0-acceptance.cjs', 'r05b0-gaps.cjs', 'r05b1-acceptance.cjs', 'r04b2a-acceptance.cjs', 'r04b2b1-acceptance.cjs'): raise ValueError('unknown binding acceptance specification')
     if not (ROOT/'web/dist-ui01-runtime/ui01-runtime.html').exists(): raise ValueError('build:ui01-runtime required')
     project = 'enginia360-r00b-' + secrets.token_hex(6)
     before_volumes = r00.inventory('volume')
     before_running = set(run(['docker', 'ps', '-q', '--no-trunc']).splitlines())
-    evidence = Path(os.environ['TMPDIR'])/(('r04b2a-logs' if SPEC == 'r04b2a-acceptance.cjs' else 'r05b1-logs' if SPEC == 'r05b1-acceptance.cjs' else 'r05b0-logs')+'/evidence-pool'+POOL)
+    evidence = Path(os.environ['TMPDIR'])/(('r04b2b1-logs' if SPEC == 'r04b2b1-acceptance.cjs' else 'r04b2a-logs' if SPEC == 'r04b2a-acceptance.cjs' else 'r05b1-logs' if SPEC == 'r05b1-acceptance.cjs' else 'r05b0-logs')+'/evidence-pool'+POOL)
     evidence.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix=project+'-', dir=os.environ['TMPDIR']) as directory:
         state = Path(directory)
@@ -99,7 +100,9 @@ def main():
                         action = request.read_text(); request.unlink()
                         fixture = json.loads((state/'browser.json').read_text())
                         ctx0 = fixture['contexts'][0]
-                        if action == 'hold-dispatch' and POOL == '1':
+                        if EXTRA_CONTROL is not None and EXTRA_CONTROL(action, state, query, fixture, holders):
+                            pass
+                        elif action == 'hold-dispatch' and POOL == '1':
                             # A held physical worker connection deliberately saturates a one-slot pool.
                             # Pool1 proves completion, not contention: gate discovery in the isolated fixture,
                             # preserving/restoring its exact original definition (same rehearsal primitive as R06).
