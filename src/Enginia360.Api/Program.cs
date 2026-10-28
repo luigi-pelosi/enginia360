@@ -59,6 +59,14 @@ if (externalAdministration)
     Enginia360.Integrations.IntegrationsModule.AddExternalAdministration(builder.Services,
         builder.Configuration.GetConnectionString("OrganizationAccess")!, builder.Configuration.GetSection("ExternalAdministration"));
 }
+if (externalAdministration)
+{
+    // The browser never supplies a destination: it is frozen from the verified host binding at creation.
+    builder.Services.AddSingleton(provider => Enginia360.Integrations.IntegrationsModule.PurchaseDestinationDescriptor(
+        provider.GetRequiredService<Enginia360.Workshop.Contracts.AdministrativeConnectorBinding>(),
+        builder.Configuration.GetSection("ExternalAdministration:Giobby")) is { } descriptor
+        ? new Enginia360.Inventory.Contracts.PurchaseDestinationBinding(descriptor) : null!);
+}
 var app = builder.Build();
 using var requestMeter = new Meter("Enginia360.Api", "1.0.0");
 var requestDuration = requestMeter.CreateHistogram<double>("enginia360.http.duration", "s");

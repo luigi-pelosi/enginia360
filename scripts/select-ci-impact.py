@@ -167,6 +167,20 @@ R06A2_FILES = {'scripts/r06a2_transfer.py', 'scripts/r06a2_storage.py', 'scripts
     'scripts/test-r06a2-transfer.py', 'scripts/test-r06a2-storage.py', 'scripts/test-r06a2-impact.py', 'scripts/test-r06a2-lifecycle.py'}
 R06A2_DEPENDENCIES = {'scripts/r06_synthetic.py', 'scripts/r06_reconcile.py', 'scripts/r06b1_restore.py', 'postgres.runtime.Dockerfile'}
 
+R04B2A_FILES = {
+    'scripts/test-r04b2a-impact.py','scripts/test-r04b2a-purchase.py','scripts/run-r04b2a-tests.py','scripts/test-r04b2a-lifecycle.py',
+    'tests/browser/r04b2a-acceptance.cjs','compose.r04b2a-test.yaml','database/runtime/migrations/0028_purchase_intents.sql',
+    'src/Modules/Inventory/Enginia360.Inventory/PurchaseIntentEndpoints.cs',
+    'src/Modules/Inventory/Enginia360.Inventory.Contracts/PurchaseIntentContracts.cs',
+    'src/Modules/Counterparties/Enginia360.Counterparties/PurchaseSuppliers.cs',
+    'src/Modules/Integrations/Enginia360.Integrations/PurchaseDestination.cs',
+    'web/src/ui01/runtime/PurchaseIntent.tsx','web/src/ui01/runtime/PurchaseIntent.test.tsx',
+    'tests/Enginia360.Api.Tests/PurchaseIntentTests.cs'}
+R04B2A_DIRECT = {'web/src/ui01/runtime/WorkshopRuntime.tsx','web/src/ui01/runtime/runtime.css',
+    'src/Modules/Inventory/Enginia360.Inventory/InventoryModule.cs','database/runtime/manifest.json',
+    'src/Modules/Integrations/Enginia360.Integrations/IntegrationsModule.cs',
+    'src/Modules/Counterparties/Enginia360.Counterparties/CounterpartiesModule.cs'}
+
 def selection(paths):
     paths = sorted(set(paths))
     r06a2 = bool(set(paths) & (R06A2_FILES | R06A2_DEPENDENCIES))
@@ -196,11 +210,15 @@ def selection(paths):
     r06_offline = r06_offline or r04c1 or r04c2 or r05b0 or r05b1 or r06a2
     r06b1 = r06b1 or r05b0
     if r05b0 or r05b1: auth = ui = ui01b = r03c = True
+    r04b2a = bool(set(paths) & (R04B2A_FILES | R04B2A_DIRECT))
+    if r04b2a: auth = ui = ui01b = r06_offline = True
     unknown = []
     for path in paths:
         parsed = PurePosixPath(path)
         if not path or parsed.is_absolute() or '..' in parsed.parts or '\\' in path or str(parsed) != path:
             raise ValueError('invalid changed path')
+        if path in R04B2A_FILES:
+            continue
         if path in R06A2_FILES or (staging_only and path in R06_WIRING):
             continue
         if path in R05A6_OFFLINE_FILES or (r05a6_only and path in R06_WIRING):
@@ -277,7 +295,8 @@ def selection(paths):
     if r03b: filters.append('FullyQualifiedName~WorkshopOwnActualTimeTests')
     if r03c: filters.append(R03C_FILTER if r03c_full else R03C_MINIMAL)
     if r05b1: filters.append('FullyQualifiedName~GiobbySalesOrderTests')
-    return {'changed_paths':paths,'api_filter':'|'.join(filters),'r06_offline':r06_offline,'r05a1_offline':r05a1_offline,'r05a2_offline':r05a2_offline,'r05a3_offline':r05a3_offline,'r05a4_offline':r05a4_offline,'r05a5_offline':r05a5_offline,'r05a6_offline':r05a6_offline,'r05b0':r05b0,
+    if r04b2a: filters.append('FullyQualifiedName~PurchaseIntentTests')
+    return {'r04b2a':r04b2a,'changed_paths':paths,'api_filter':'|'.join(filters),'r06_offline':r06_offline,'r05a1_offline':r05a1_offline,'r05a2_offline':r05a2_offline,'r05a3_offline':r05a3_offline,'r05a4_offline':r05a4_offline,'r05a5_offline':r05a5_offline,'r05a6_offline':r05a6_offline,'r05b0':r05b0,
             'browser':auth,'ui01b':ui01b,'r03a':r03a,'r03a2':r03a,'r04a':r04a,'r04c1':r04c1,'r04c2':r04c2,'r06b1':r06b1,'r03b':r03b,'r03c':r03c,'migrations':auth or ui01b,'ui_build':auth or ui,'ui_tests':ui,
             'r05b1':r05b1, 'r06a2':r06a2, 'full_architecture':False}
 

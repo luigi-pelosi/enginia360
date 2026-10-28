@@ -82,7 +82,7 @@ def main():
             query = ['exec','-T','postgres','psql','-X','-qAt','-U','postgres','-d','runtime','-v','ON_ERROR_STOP=1','-c']
             assert run(command+query+["SELECT count(*) FROM runtime_migrations.applied"],capture=True).stdout.strip() == manifest_count
             assert run(command+query+["SHOW data_directory"],capture=True).stdout.strip() == '/var/lib/postgresql/18/docker'
-            for suite in ('scripts/test-r00-migrations.py', 'scripts/test-r00b-bindings.py', 'scripts/test-r01b-grants.py', 'scripts/test-r02b-authority.py', 'scripts/test-r04b1-supplier.py', 'scripts/test-r03a-migration.py'):
+            for suite in ('scripts/test-r00-migrations.py', 'scripts/test-r00b-bindings.py', 'scripts/test-r01b-grants.py', 'scripts/test-r02b-authority.py', 'scripts/test-r04b1-supplier.py', 'scripts/test-r04b2a-purchase.py', 'scripts/test-r03a-migration.py'):
                 run(command + ['run', '--rm', '--no-deps', '-T', '--entrypoint', 'python3',
                     '-e', 'R00_MIGRATION_TESTS=1', '-e', 'PGUSER=postgres', '-e', 'PGPASSWORD',
                     '-e', 'R00_OWNER_USER', '-e', 'R00_OWNER_PASSWORD', '-e', 'R00_APP_PASSWORD',

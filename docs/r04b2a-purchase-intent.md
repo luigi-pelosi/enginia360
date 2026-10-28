@@ -1,0 +1,44 @@
+# R04.b.2a — Richiesta d'acquisto manuale (intento pendente)
+
+Figlio #114 di R04 #44 (Refs #45; il parent chiude). Implementa D88 (creazione manuale da riga Part, fornitore = ruolo condiviso + ID Giobby in estensione societaria, una sola azione dedicata, nessun approvatore) e D90 (tetto cumulativo per riga). D82: Giobby resta l'unica autorità per stock e documenti d'acquisto; questa è **solo un intento/outbox** pendente, **mai** un writer locale di acquisto o stock. Nessun HTTP d'acquisto, nessun connettore (R04.b.2b), nessun ricevimento/overlay D86.
+
+## Contratto
+
+Migrazione append-only `0028_purchase_intents.sql` (0001–0027 invariate, checksum manifest verificati). Tabelle `inventory.purchase_intents` e `inventory.purchase_intent_outbox`: RLS forzata su tenant **e** società, append-only (UPDATE/DELETE/TRUNCATE rifiutati anche al proprietario), nessun privilegio DML all'applicazione; l'unica scrittura è `inventory.create_purchase_intent` (SECURITY DEFINER).
+
+- `GET  /api/v1/inventory/orders/{order}/lines/{line}/purchase-intents?warehouseId=` — stato coerente (stessi lock del writer): revisione/quantità della riga, `pending`, `remaining`, elenco fornitori, intenti con stato dell'outbox. **Nessun ID/nome ERP** nel payload.
+- `POST` stessa rotta, corpo chiuso `{id, warehouseId, supplierId, sourceRevision, supplierRevision, mappingRevision, quantity}`; CSRF come ogni POST di sessione; membro risolto dal server. Il browser **non** può inviare ID fornitore ERP, destinazione o scope (proprietà sconosciute → 400).
+- Esiti: `applied` 201, `replayed` 200, `forbidden` 403, `not_found` 404, `invalid` 400; `conflict`, `exceeds_remaining`, `destination_unavailable`, `master_*` 409.
+- **Azione dedicata esatta** `inventory.purchase-intents.create` su società/sede/magazzino esatti (grant D77 esistente, nessuna nuova delega/ruolo/provisioning), più `workshop.orders.read` della società, capability `workshop` e `inventory` attive e binding d'identità; verificati sulla stessa transazione con `FOR SHARE`, quindi revoca/capability serializzano prima della scrittura.
+- **Selettore fornitori** (`counterparties.purchase_suppliers`, contratto del modulo proprietario): solo controparti con `IsSupplier` **e** mappatura Giobby corrente per la società, sotto la stessa autorità master locale (profilo `external`/`missing` → rifiuto controllato `master_external`/`master_missing`; nessuna proiezione D76 inventata). Nessuna lettura DB tra moduli.
+- **Congelamento atomico** nella stessa transazione di intento e outbox: revisione/quantità/scope della riga sorgente, revisione ruolo, revisione mappatura + `VendorId`/`VendorName`, e descrittore di destinazione `GiobbyPurchaseV1` (host-only, non segreto) con fingerprint del binding Giobby verificato, scope tenant/società/sede e coppia `stockSourceId`/`stockProfileId` che **deve** coincidere con il profilo stock esterno immutabile della società (D82: stock e acquisti nello stesso ERP). Nessun retarget se config/mappatura cambiano: una mappatura nuova produce nuovi intenti, i vecchi restano immutabili.
+- **D90**: `SUM(Quantity)` degli intenti della riga (tutti fornitori/magazzini/UUID) sotto il lock canonico `ordine → inventory:line:{tenant}:{line}` (stesso del R04.a); nuovo UUID non azzera il tetto; stesso UUID/payload → `replayed` senza quantità; payload diverso o UUID di un altro tenant → `conflict` controllato senza lettura dell'altro tenant. Nessuna sottrazione automatica di disponibilità/prenotato; nessuna cancellazione/rilascio/rifiuto/ricevimento (fuori perimetro).
+- q6: `^[0-9]{1,6}(\.[0-9]{1,6})?$`, > 0 (`invalid` altrimenti); revisioni al valore massimo `int` → `conflict` (la riga/ruolo/mappatura reale non può coincidere), oltre `int` → 400; nessuna riga parziale.
+- **Outbox**: stato `Held` con motivo `purchase_connector_not_implemented`; nessun dispatcher; il dispatcher dei sales-order non legge queste tabelle. UI: «In attesa — connettore d'acquisto non ancora attivo».
+
+## UI minima (italiano)
+
+`PurchaseIntent.tsx` dentro il pannello Materiali esistente: riga/magazzino già scelti, selettore fornitore (solo nome), quantità, «Crea richiesta d'acquisto». Esito incerto: congela fornitore, quantità e selettori ancestori e permette solo «Riprova richiesta identica» (stesso URL/UUID/corpo), poi rilettura autorevole; nessun valore ERP mostrato.
+
+## Prove (sintetiche, isolate)
+
+- `scripts/test-r04b2a-impact.py` — selezione finita (percorsi sconosciuti falliscono chiusi); `affected-r04b2a` solo da dispatch exact-head con `full_architecture=false`.
+- `scripts/test-r04b2a-purchase.py` (25 test SQL su PostgreSQL effimero, inclusi gli 8 ereditati da R04.b.1, eseguiti da `run-r00a-tests.py`): chooser, autorità, azione esatta (assenza/azienda/sede/magazzino/scope sbagliati) separata da capability/binding/lettura, tetto cumulativo, gara a due connessioni fisiche con `pg_blocking_pids` (fornitore e magazzino diversi), replay/conflitti, tenant estraneo, bounds, destinazione, append-only/RLS/privilegi.
+- `scripts/run-r04b2a-tests.py` (+ `tests/browser/r04b2a-acceptance.cjs`): Chromium reale su TLS/OIDC/nginx/API/PostgreSQL, pool 4 e pool 1; click UI, risposta accettata persa, retry byte-identico, lettura SQL; 401/CSRF/foreign tenant; rollback a insert e commit differito (trigger solo nel fixture effimero); gare con lock tenuti dal controller per mappatura, grant e ruolo; zero traffico verso il fake Giobby e zero righe sales-order. `scripts/test-r04b2a-lifecycle.py`: TERM effettivo con Chromium e lock di riga vivi.
+- Profilo testato: master locale coerente + stock/acquisti Giobby esterni (D82). Master esterno per i fornitori: fail-closed, nessuna proiezione.
+
+## Cronologia TDD
+
+Ogni comportamento ha avuto un RED mirato prima del codice di produzione (log in `/root/.hermes/cache/scratch/r04b2a-logs/red-*.log`): impatto CI, chooser (schema assente, poi autorità), intento+outbox, azione esatta (capability/lettura/binding separati), tetto cumulativo, gara fisica, replay/conflitto, freschezza/bounds, destinazione, stato coerente, rotta API, descrittore host, UI. Errori di fixture/setup (colonne siti/magazzini, `using` mancante, UUID non valido nel test UI, fixture sibling `MaterialOperations`) sono stati corretti e **non** sono RED. Controlli che passavano subito (browser pool, gare mapping/grant/ruolo, append-only) sono prove di accettazione/regressione, non RED retroattivo.
+
+## Limiti
+
+Nessun traffico live/sandbox, token, connettore, ricevimento, overlay D86, lifecycle (cancellazione/rifiuto/rilascio), proiezione D76 del ruolo, dati reali o readiness. La compatibilità Giobby di acquisto non è provata. Voci di inventario R06: due nuove tabelle UNDECIDED, nessuna approvazione di migrazione. Riavvio con config Giobby diversa: gli intenti già creati mantengono il proprio descrittore; il futuro connettore R04.b.2b dovrà confrontarlo prima di ogni chiamata.
+
+## Rollback
+
+Un revert rivisto della PR rimuove rotta, UI e funzioni; lo schema 0028 resta (append-only, nessun DROP) come registro inerte. Non cancellare né riscrivere intenti: correggere con una migrazione in avanti. Bootstrap, Tailscale 443 → 9119 e volumi/backup protetti non toccati.
+
+## Prossimo gate
+
+R04.b.2b: connettore d'acquisto Giobby limitato (lookup per nome esatto, hold su ambiguità, confronto del descrittore congelato prima di ogni invio) con evidenza sandbox/idempotenza fornitore; poi ricevimento via API e overlay D86.

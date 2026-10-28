@@ -133,5 +133,10 @@
     "id": "0027_supplier_role",
     "path": "migrations/0027_supplier_role.sql",
     "sha256": "067e36e3694ce92e4766ee6e1a28acccf58fe6b186deaa8f682e50e5fc40812c"
+  },
+  {
+    "id": "0028_purchase_intents",
+    "path": "migrations/0028_purchase_intents.sql",
+    "sha256": "b789e453d389dbe9f073d127c4186716b70c98c388af22ef0419aafe7bf4b21e"
   }
 ]

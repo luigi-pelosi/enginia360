@@ -14,6 +14,8 @@ Risultato calcolato sul baseline R05.b.1: **26 migrazioni, 66 definizioni CREATE
 
 **Aggiornamento R04.b.1 (D88):** la migrazione append-only 0027 porta il conteggio a **27 migrazioni, 67 definizioni CREATE, 9 schemi**; la nuova voce `counterparties.giobby_vendor_identity_history` (estensione societaria, storia immutabile dell’ID fornitore Giobby) è UNDECIDED come le altre, nessuna approvazione di migrazione. La colonna `IsSupplier` è un ALTER e non è una definizione CREATE inventariata.
 
+**Aggiornamento R04.b.2a (D88/D90):** la migrazione append-only 0028 porta il conteggio a **28 migrazioni, 69 definizioni CREATE, 9 schemi**; `inventory.purchase_intents` (`operational_fact`) e `inventory.purchase_intent_outbox` (`integration_evidence`) sono UNDECIDED come le altre, `NO_LEGACY_IMPORT_APPROVED`, nessuna approvazione di migrazione o readiness.
+
 Ogni voce registra:
 
 - `table`, `owner`: nome qualificato e modulo/schema proprietario osservato, non una nuova ownership di business;

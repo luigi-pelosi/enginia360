@@ -48,12 +48,12 @@ def fixtures(state, secret):
 def main():
     if not os.environ.get('TMPDIR'): raise ValueError('private TMPDIR required')
     if POOL not in ('1', '4'): raise ValueError('pool acceptance is explicitly 1 or 4')
-    if SPEC not in ('r05b0-acceptance.cjs', 'r05b0-gaps.cjs', 'r05b1-acceptance.cjs'): raise ValueError('unknown binding acceptance specification')
+    if SPEC not in ('r05b0-acceptance.cjs', 'r05b0-gaps.cjs', 'r05b1-acceptance.cjs', 'r04b2a-acceptance.cjs'): raise ValueError('unknown binding acceptance specification')
     if not (ROOT/'web/dist-ui01-runtime/ui01-runtime.html').exists(): raise ValueError('build:ui01-runtime required')
     project = 'enginia360-r00b-' + secrets.token_hex(6)
     before_volumes = r00.inventory('volume')
     before_running = set(run(['docker', 'ps', '-q', '--no-trunc']).splitlines())
-    evidence = Path(os.environ['TMPDIR'])/(('r05b1-logs' if SPEC == 'r05b1-acceptance.cjs' else 'r05b0-logs')+'/evidence-pool'+POOL)
+    evidence = Path(os.environ['TMPDIR'])/(('r04b2a-logs' if SPEC == 'r04b2a-acceptance.cjs' else 'r05b1-logs' if SPEC == 'r05b1-acceptance.cjs' else 'r05b0-logs')+'/evidence-pool'+POOL)
     evidence.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix=project+'-', dir=os.environ['TMPDIR']) as directory:
         state = Path(directory)
@@ -234,6 +234,43 @@ def main():
                             else: run(query+['-c', f'''CREATE FUNCTION workshop.r05b0_fault() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'r05b0 synthetic atomicity fault'; END $$;
                                 GRANT EXECUTE ON FUNCTION workshop.r05b0_fault() TO PUBLIC;
                                 CREATE {'CONSTRAINT ' if mode == 'deferred' else ''}TRIGGER r05b0_fault AFTER INSERT ON workshop.{table} {'DEFERRABLE INITIALLY DEFERRED ' if mode == 'deferred' else ''}FOR EACH ROW EXECUTE FUNCTION workshop.r05b0_fault()'''])
+                        elif SPEC == 'r04b2a-acceptance.cjs' and action == 'purchase-counts':
+                            (state/'control/purchase-counts.json').write_text(run(query+['-c', """SELECT json_build_object('intents',(SELECT count(*) FROM inventory.purchase_intents),'outbox',(SELECT count(*) FROM inventory.purchase_intent_outbox),
+                                'held',(SELECT count(*) FROM inventory.purchase_intent_outbox WHERE "State"='Held'),'quantity',(SELECT coalesce(sum("Quantity"),0)::text FROM inventory.purchase_intents),
+                                'salesOutbox',(SELECT count(*) FROM workshop.administrative_outbox),'salesDispatches',(SELECT count(*) FROM integrations.administrative_dispatches))"""]))
+                        elif SPEC == 'r04b2a-acceptance.cjs' and action.startswith('purchase-row:'):
+                            row = str(uuid.UUID(action.split(':')[1]))
+                            (state/'control/purchase-row.json').write_text(run(query+['-c', f"""SELECT coalesce((SELECT row_to_json(i) FROM (SELECT "Id","Quantity"::text AS "Quantity","Payload","Source","Supplier","Destination","ActorMembershipId" FROM inventory.purchase_intents WHERE "Id"='{row}') i),'null'::json)"""]))
+                        elif SPEC == 'r04b2a-acceptance.cjs' and action.startswith('purchase-fault:'):
+                            _, table, mode = action.split(':'); assert table in ('purchase_intents', 'purchase_intent_outbox') and mode in ('on', 'deferred', 'off')
+                            if mode == 'off': run(query+['-c', f'DROP TRIGGER IF EXISTS r04b2a_fault ON inventory.{table}; DROP FUNCTION IF EXISTS inventory.r04b2a_fault();'])
+                            else: run(query+['-c', f"""CREATE FUNCTION inventory.r04b2a_fault() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'r04b2a synthetic atomicity fault'; END $$;
+                                GRANT EXECUTE ON FUNCTION inventory.r04b2a_fault() TO PUBLIC;
+                                CREATE {'CONSTRAINT ' if mode == 'deferred' else ''}TRIGGER r04b2a_fault AFTER INSERT ON inventory.{table} {'DEFERRABLE INITIALLY DEFERRED ' if mode == 'deferred' else ''}FOR EACH ROW EXECUTE FUNCTION inventory.r04b2a_fault()"""])
+                        elif SPEC == 'r04b2a-acceptance.cjs' and action.startswith(('hold-line:', 'purchase-hold-role', 'purchase-hold-mapping', 'purchase-hold-grant')):
+                            holder = subprocess.Popen(query+['-f', '-'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+                            holders.append(holder)
+                            subject = run(query+['-c', f"""SELECT "IdentitySubject" FROM organization_access.memberships WHERE "Id"='{fixture["adminMembershipId"]}'"""]).strip()
+                            fx = json.loads((state/'purchase-fixture.json').read_text())
+                            ctx = f"set_config('app.tenant_id','{ctx0['tenantId']}',true),set_config('app.identity_subject','{subject}',true),set_config('app.legal_entity_id','{ctx0['legalEntityId']}',true)"
+                            if action.startswith('hold-line:'): lock = f"BEGIN; SELECT pg_advisory_xact_lock(hashtextextended('inventory:line:{ctx0['tenantId']}:{str(uuid.UUID(action.split(':')[1]))}',0));"
+                            elif action.startswith('purchase-hold-role'): lock = f"BEGIN; SET LOCAL ROLE runtime_app; SELECT {ctx}; SELECT counterparties.set_supplier_role('{ctx0['legalEntityId']}','{fx['supplier']}','{uuid.uuid4()}',1,0,false)->>'state';"
+                            elif action.startswith('purchase-hold-mapping'): lock = f"BEGIN; SET LOCAL ROLE runtime_owner; SELECT {ctx}; SELECT counterparties.establish_giobby_vendor_identity('{uuid.uuid4()}','{ctx0['tenantId']}','{ctx0['legalEntityId']}','{fx['supplier']}','{fixture['adminMembershipId']}','{uuid.uuid4()}',1,'GBV-4712','Synthetic Supplier Renamed');"
+                            else: lock = f"""BEGIN; DELETE FROM organization_access.company_permissions WHERE "MembershipId"='{fixture["adminMembershipId"]}' AND "Permission"='inventory.purchase-intents.create';"""
+                            holder.stdin.write(lock+"\nSELECT pg_backend_pid();\n\\echo LOCKED\n"); holder.stdin.flush()
+                            holder_pid = int([x for x in marker(holder, b'LOCKED').splitlines() if x.isdigit()][-1])
+                        elif SPEC == 'r04b2a-acceptance.cjs' and action.startswith('wait-blocked:'):
+                            required = int(action.split(':')[1]); stop = time.monotonic()+10
+                            while True:
+                                count = int(run(query+['-c', f"WITH RECURSIVE chain(pid,blocker) AS (SELECT pid,unnest(pg_blocking_pids(pid)) FROM pg_stat_activity WHERE usename='runtime_app' UNION SELECT chain.pid,unnest(pg_blocking_pids(chain.blocker)) FROM chain) SELECT count(DISTINCT pid) FROM chain WHERE blocker={holder_pid}"]).strip())
+                                if count >= required: break
+                                if time.monotonic() > stop: raise TimeoutError('expected blocked physical application connections absent')
+                                time.sleep(0.02)
+                            print(f'R04B2A_BARRIER holder={holder_pid} blocked_app_connections={count}', flush=True)
+                        elif SPEC == 'r04b2a-acceptance.cjs' and action == 'release-commit':
+                            holder.stdin.write('COMMIT;\n\\q\n'); holder.stdin.flush(); holder.stdin.close(); holder.wait(timeout=5)
+                        elif SPEC == 'r04b2a-acceptance.cjs' and action == 'purchase-restore-grant':
+                            run(query+['-c', f"""INSERT INTO organization_access.company_permissions VALUES ('{uuid.uuid4()}','{fixture["adminMembershipId"]}','{ctx0["tenantId"]}','{ctx0["legalEntityId"]}','inventory.purchase-intents.create','{ctx0["siteId"]}','{ctx0["warehouseId"]}')"""])
                         else: raise ValueError('unknown R03.c lifecycle command')
                         print('R03C_LIFECYCLE '+action.split(':')[0], flush=True)
                         (state/'control/ack.tmp').write_text(action); (state/'control/ack.tmp').replace(state/'control/ack')

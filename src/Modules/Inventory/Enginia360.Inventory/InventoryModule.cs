@@ -32,6 +32,7 @@ public static class InventoryModule
         });
         routes.MapGet("/orders/{orderId:guid}/lines/{lineId:guid}", Read);
         routes.MapPost("/orders/{orderId:guid}/lines/{lineId:guid}/reservations", Reserve);
+        PurchaseIntentEndpoints.Map(routes);
         PickingEndpoints.Map(routes);
         ReleaseEndpoints.Map(routes);
         NewPartReturnEndpoints.Map(routes);
