@@ -150,7 +150,7 @@ public sealed class GiobbyPurchaseOrderTests
         foreach (var operation in new[] { "Submit", "Status" })
         {
             var result = await host.Invoke(operation, message);
-            Assert.Equal(("Failure", "mapping_missing"), (result.Outcome, result.Code));
+            Assert.Equal(("NotSent", "mapping_missing"), (result.Outcome, result.Code));
         }
         Assert.Empty(host.Http.Calls);
     }
@@ -189,7 +189,7 @@ public sealed class GiobbyPurchaseOrderTests
         using var host = new Host((_, _) => Reply(Capture("po-ack").ToJsonString())) { };
         host.Http.Identity = "{\"idCompany\":999,\"cid\":\"SYNTH-CID-A\"}";
         var result = await host.Invoke("Submit", Message());
-        Assert.Equal(("Failure", "identity_unverified"), (result.Outcome, result.Code)); Assert.Empty(host.Http.Calls);
+        Assert.Equal(("NotSent", "identity_unverified"), (result.Outcome, result.Code)); Assert.Empty(host.Http.Calls);
     }
     [Theory]
     [InlineData("price")]
@@ -359,7 +359,7 @@ public sealed class GiobbyPurchaseOrderTests
         var message = Message() with { DestinationFingerprint = new string('a', 64) };
         using var host = new Host((_, _) => Reply(Capture("po-ack").ToJsonString()));
         foreach (var operation in new[] { "Submit", "Status" })
-            Assert.Equal(("Failure", "destination_binding_mismatch"), ((await host.Invoke(operation, message)).Outcome, (await host.Invoke(operation, message)).Code));
+            { var r = await host.Invoke(operation, message); Assert.Equal(("NotSent", "destination_binding_mismatch"), (r.Outcome, r.Code)); }
         Assert.Empty(host.Http.Calls);
     }
     [Fact]
@@ -367,6 +367,6 @@ public sealed class GiobbyPurchaseOrderTests
     {
         using var host = new Host((_, _) => Reply(Capture("po-ack").ToJsonString()), v => v["Giobby:AllowedHosts:0"] = "other.test");
         var result = await host.Invoke("Submit", Message());
-        Assert.Equal("Failure", result.Outcome); Assert.Empty(host.Http.Calls);
+        Assert.Equal("NotSent", result.Outcome); Assert.Empty(host.Http.Calls);
     }
 }

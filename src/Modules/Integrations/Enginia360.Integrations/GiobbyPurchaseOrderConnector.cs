@@ -28,13 +28,13 @@ internal sealed class GiobbyPurchaseOrderConnector(HttpClient http, GiobbyHost h
         }
     };
     // Fail closed before any HTTP: explicit setup, then the destination frozen with the intent must equal this host's binding (R05.b.0).
-    private ConnectorResult? Refusal(PurchaseDispatchMessage m) => !host.PurchaseMapped(m) ? new(ConnectorOutcome.Failure, Code: "mapping_missing")
-        : m.DestinationFingerprint != host.Binding.DestinationFingerprint ? new(ConnectorOutcome.Failure, Code: "destination_binding_mismatch") : null;
+    private ConnectorResult? Refusal(PurchaseDispatchMessage m) => !host.PurchaseMapped(m) ? new(ConnectorOutcome.NotSent, Code: "mapping_missing")
+        : m.DestinationFingerprint != host.Binding.DestinationFingerprint ? new(ConnectorOutcome.NotSent, Code: "destination_binding_mismatch") : null;
     public async Task<ConnectorResult> Submit(PurchaseDispatchMessage message, CancellationToken ct)
     {
         if (Refusal(message) is { } refusal) return refusal;
         var token = await wire.VerifyIdentity(ct);
-        if (token is null) return new(ConnectorOutcome.Failure, Code: "identity_unverified");
+        if (token is null) return new(ConnectorOutcome.NotSent, Code: "identity_unverified");
         var body = await wire.Send(new HttpRequestMessage(HttpMethod.Post, "purchases/orders?simulation=false") { Content = JsonContent.Create(Payload(message)) }, token, ct);
         if (body is { } root && GiobbyWire.Success(root) && root.TryGetProperty("idDocument", out var value) && value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var id) && id > 0)
             return await Readback(message, id, token, ct);
@@ -46,7 +46,7 @@ internal sealed class GiobbyPurchaseOrderConnector(HttpClient http, GiobbyHost h
     {
         if (Refusal(message) is { } refusal) return refusal;
         var token = await wire.VerifyIdentity(ct);
-        if (token is null) return new(ConnectorOutcome.Failure, Code: "identity_unverified");
+        if (token is null) return new(ConnectorOutcome.NotSent, Code: "identity_unverified");
         var name = Uri.EscapeDataString(message.VendorName);
         var body = await wire.Send(new HttpRequestMessage(HttpMethod.Get, $"purchases/orders?offset=0&limit=5&freeText={name}&docStatus=CREATED"), token, ct);
         if (body is not { } root || !GiobbyWire.Success(root)

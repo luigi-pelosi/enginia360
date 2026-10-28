@@ -18,6 +18,7 @@ public static class InventoryModule
         services.AddScoped<IWorkshopPickedParts, WorkshopPickedParts>();
         services.AddScoped<IInstallationStockEffects, InstallationStockEffects>();
         services.AddScoped<IReplacedPartReturns, ReplacedPartReturns>();
+        services.AddScoped<IPurchaseDispatchOutbox, PurchaseDispatchOutbox>();
         return services;
     }
     public static WebApplication MapInventory(this WebApplication app)

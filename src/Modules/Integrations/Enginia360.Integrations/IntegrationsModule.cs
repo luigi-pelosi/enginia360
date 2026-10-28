@@ -22,6 +22,7 @@ public static class IntegrationsModule
         services.AddScoped<IAdministrativeDeliveries, AdministrativeDeliveries>();
         services.AddScoped<IAdministrativeRecovery, AdministrativeRecovery>();
         services.AddScoped<AdministrativeDispatcher>();
+        services.AddScoped<PurchaseDispatcher>();
         services.AddHttpClient<SimulatorConnector>(client => { client.BaseAddress = options.BaseAddress; client.Timeout = options.Timeout; }).RemoveAllLoggers();
         services.AddHttpClient<GiobbySalesOrderConnector>((provider, client) => { client.BaseAddress = provider.GetRequiredService<GiobbyHost>().BaseAddress; client.Timeout = options.Timeout; })
             .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false }).RemoveAllLoggers();
@@ -34,6 +35,7 @@ public static class IntegrationsModule
             _ => new UnavailableConnector()
         });
         services.AddHostedService<AdministrativeDispatchWorker>();
+        services.AddHostedService<PurchaseDispatchWorker>();
         return services;
     }
 }

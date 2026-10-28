@@ -6,7 +6,8 @@ using Enginia360.Workshop.Contracts;
 
 namespace Enginia360.Integrations;
 
-internal enum ConnectorOutcome { Completed, Received, Rejected, NotFound, Failure }
+// NotSent: refused before any business request left this process (setup, binding or identity); the only case that may be attempted again.
+internal enum ConnectorOutcome { Completed, Received, Rejected, NotFound, Failure, NotSent }
 internal sealed record ConnectorResult(ConnectorOutcome Outcome, string? ExternalReference = null, string? Code = null);
 
 // Anti-corruption layer for simulator contract v1. The domain never sees external fields or HTTP codes;
