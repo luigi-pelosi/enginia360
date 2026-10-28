@@ -62,5 +62,19 @@ class CiSelectionTests(unittest.TestCase):
             with self.assertRaises(AssertionError):
                 validate_ci(text.replace(command, 'echo removed'))
 
+import re
+
+# Single recorded Alpine v3.22 python3 pin shared by both runtime images. Alpine drops superseded
+# package revisions, so a stale pin breaks every runtime build: update this constant and both
+# Dockerfiles together after checking availability. Offline check, no network.
+ALPINE_PYTHON3_PIN = 'python3=3.12.16-r0'
+
+class AlpinePinTests(unittest.TestCase):
+    def test_runtime_images_share_the_recorded_explicit_apk_pin(self):
+        for name in ('migrator.runtime.Dockerfile', 'postgres.runtime.Dockerfile'):
+            text = (ROOT / name).read_text()
+            installs = re.findall(r'^RUN apk add .*$', text, re.M)
+            self.assertEqual(['RUN apk add --no-cache ' + ALPINE_PYTHON3_PIN], installs, name + ' apk pin drifted or is unpinned')
+
 if __name__ == '__main__':
     unittest.main()

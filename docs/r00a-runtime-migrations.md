@@ -66,7 +66,7 @@ The new infrastructure entrypoint creates database owner and app roles from requ
 
 Both DB and migrator run UID/GID 70, read-only root, dropped capabilities, no privilege escalation, bounded memory/CPU/PIDs/logs, and no published ports. PostgreSQL 18 PGDATA is explicitly `/var/lib/postgresql/18/docker`, inside tmpfs mounted at the correct **parent `/var/lib/postgresql`**; inspection verifies no inherited anonymous volume. The internal network and tmpfs mean this is deliberately disposable. Stopping PostgreSQL discards this test store; restart reinitializes and reapplies the same manifest. It is not a persistent deployment or an availability claim.
 
-The base PostgreSQL and SDK images retain the repository's exact tag+digest pins. Python is installed as exact Alpine package `python3=3.12.15-r0`; package availability was actually checked before building. No application dependency/lockfile changed. NuGet/npm audits below are not an image-CVE or production security certification.
+The base PostgreSQL and SDK images retain the repository's exact tag+digest pins. Python is installed as exact Alpine package `python3=3.12.16-r0` (bumped from `3.12.15-r0`, which Alpine v3.22 withdrew from its repository; the only pin site is guarded offline by `scripts/test-r00a-ci.py`). Rollback: revert the pin commit, but the old revision is no longer installable, so rollback means pinning the then-current Alpine revision instead; package availability was actually checked before building. No application dependency/lockfile changed. NuGet/npm audits below are not an image-CVE or production security certification.
 
 ## Repeatable verification
 
