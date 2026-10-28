@@ -106,7 +106,7 @@ class EvidenceTests(unittest.TestCase):
         start=register.index('### D1 —'.encode());prefix=register[start:start+d['historical_decisions_d1_d83_bytes']]
         self.assertEqual(hashlib.sha256(prefix).hexdigest(),d['historical_decisions_d1_d83_sha256'])
         ids=list(map(int,re.findall(r'^### D(\d+) —',register.decode(),re.M)))
-        self.assertEqual(sorted(ids),list(range(1,91)))
+        self.assertEqual(sorted(ids),list(range(1,92)))
     def test_cli_mutations_reject_false_promotion(self):
         if NO_MUTATIONS:return
         mutations=[lambda d:d['claims'].__setitem__('positive_adapter',True),

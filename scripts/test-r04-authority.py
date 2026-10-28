@@ -18,7 +18,8 @@ RUNBOOK = 'docs/r06-recovery-runbook.md'
 BACKLOG = 'docs/productization-backlog.json'
 INVENTORY = 'docs/r06-migration-inventory.md'
 SUPPLIER = 'docs/r04b1-supplier-role.md'
-PATHS = ('AGENTS.md', GLOSSARY, PLAN, RUNBOOK, BACKLOG, INVENTORY, SUPPLIER)
+INTENT = 'docs/r04b2a-purchase-intent.md'
+PATHS = ('AGENTS.md', GLOSSARY, PLAN, RUNBOOK, BACKLOG, INVENTORY, SUPPLIER, INTENT)
 QUOTE = 'No approvo B: non si può gestire stock e flusso di acquisti in distinti fonti. La fonte in questo caso resta sempre l’ERP esterno'
 START, END = '<!-- r04-authority:start -->', '<!-- r04-authority:end -->'
 D1_D84_BYTES = 131965
@@ -215,6 +216,80 @@ def validate_d90(docs):
             raise ValueError('D90: contradictory cap, inferred lifecycle or expanded authority')
 
 
+def validate_d91(docs):
+    """Price policy evidence only; no purchase runtime enforcement is claimed."""
+    history = docs[GLOSSARY].encode()
+    history = history[history.index('### D1 —'.encode()):][:148355]
+    if hashlib.sha256(history).hexdigest() != 'a540c2e4d4a87e408de5ec44374e3c56152f70a427344d15296912c6acb5c261':
+        raise ValueError('D91: D1–D90 history changed')
+    register = docs[GLOSSARY].split('### D91 —')[1]
+    require(register, (
+        '> B: prezzo di acquisto definito nei listini di acquisto del fornitore configurabili dall’amministratore o da chi ne ha i permessi. Laddove il prezzo di acquisto non esiste nel listino allora è zero di default ed è delegato all’operatore di inserire obbligatoriamente il prezzo.\n',
+        'DocumentRowApi.price', '28 ottobre 2026',
+        'A: inviare 0 e modificare in ERP; B: costo configurato dall’host; C: inserimento operatore',
+        'ricostruito dal handoff, non citazione verbatim',
+        'Registro D1–D90 verificato prima dell’assegnazione'), 'D91 provenance')
+    tokens = ('D91', 'listini/prezzi ed estensioni societari', 'tenant-wide D26/D65',
+              'configurabili dall’amministratore o da chi ha i permessi',
+              'host-cost-only', 'è superata', 'mai fallback di costo',
+              'default UI 0 solo provvisorio', 'non confermato automaticamente',
+              'inserimento/completamento esplicito obbligatorio',
+              'interpretazione dell’agente correggibile dall’owner',
+              'non impone >0 né vieta uno zero deliberato', 'azione/scope esatti',
+              'etichetta admin senza diritti impliciti', 'concessioni owner-controlled D77',
+              'nessun self-grant o subdelega', 'prezzo sorgente (o assenza)',
+              'prezzo finale accettato e provenienza', 'prima dell’invio',
+              'nessun repricing retroattivo',
+              'prerequisito listini fornitore -> inserimento obbligatorio costo mancante/prezzo acquisto congelato -> ripresa connettore R04.b.2b',
+              '0028 PUBLISHED invariata', 'append-only', 'nessun backfill automatico',
+              'restano non decisi', 'fuori dalla prima implementazione limitata',
+              'nessuna enforcement runtime o consegna adapter',
+              'D76/D77/D82/D88/D89/D90 invariati', 'Esercizio non blocca sviluppo isolato')
+    scopes = [register, docs['AGENTS.md']]
+    for path in (GLOSSARY, PLAN):
+        start, end = '<!-- r04-d91:start -->', '<!-- r04-d91:end -->'
+        if docs[path].count(start) != 1 or docs[path].count(end) != 1:
+            raise ValueError('D91: exactly one active pricing block required: '+path)
+        block = docs[path].split(start)[1].split(end)[0]
+        require(block, tokens, 'D91 '+path)
+        scopes.append(block)
+    for card in json.loads(docs[BACKLOG]):
+        if card['id'] in ('R04', 'R05'):
+            require(card['gate'], tokens, 'D91 backlog '+card['id'])
+            scopes.append(card['gate'])
+    intent = docs[INTENT].split('## Prossimo gate')[1]
+    require(intent, ('D91', 'listini di acquisto fornitore societari',
+        'tenant-wide D26/D65', 'non costo configurato soltanto dall’host',
+        'Azione/scope prezzi esatti', 'etichetta admin senza diritti impliciti',
+        'owner-controlled D77', 'nessun self-grant/subdelega',
+        'default UI 0 solo provvisorio', 'mai conferma/invio automatico',
+        'inserimento/completamento esplicito obbligatorio', 'correggibile owner',
+        'nessun >0 imposto o divieto di zero deliberato', 'prezzo sorgente/assenza',
+        'prezzo finale accettato e provenienza', 'prima dell’invio',
+        'nessun repricing retroattivo', 'Nessun fallback dal prezzo di vendita',
+        'Prima listini fornitore -> inserimento obbligatorio costo mancante/prezzo acquisto congelato -> ripresa connettore R04.b.2b',
+        '0028 PUBLISHED invariata', 'append-only', 'nessun backfill automatico',
+        'non decisi', 'fuori dalla prima implementazione limitata',
+        'nessun adapter/prezzo runtime consegnato', 'Esercizio non blocca sviluppo isolato'), 'D91 purchase intent')
+    scopes.append(intent)
+    agents = [line for line in docs['AGENTS.md'].splitlines() if line.startswith('- D91 ')]
+    if len(agents) != 1:
+        raise ValueError('D91 AGENTS: exactly one active pricing summary required')
+    require(agents[0], D91_AGENTS_TOKENS, 'D91 AGENTS')
+    forbidden = (
+        r'host-cost-only\s+policy\s+approved',
+        r'sales\s+UnitPrice\s+fallback\s+to\s+purchase\s+cost\s+allowed',
+        r'missing-price\s+provisional\s+zero\s+auto-dispatch\s+allowed',
+        r'admin\s+label\s+grants\s+implicit\s+pricing\s+rights',
+        r'frozen\s+purchase\s+intents\s+retroactively\s+repriced',
+        r'prezzo\s+di\s+vendita\s+come\s+costo\s+consentito',
+        r'zero\s+provvisorio\s+inviato\s+automaticamente',
+        r'admin\s+concede\s+diritti\s+prezzi\s+impliciti',
+    )
+    if any(re.search(pattern, '\n'.join(scopes), re.I) for pattern in forbidden):
+        raise ValueError('D91: contradictory pricing, missing-cost dispatch or implicit rights')
+
+
 def validate(root):
     docs = {path: (root/path).read_text() for path in PATHS}
     priority_scope = '\n'.join(docs.values())
@@ -307,8 +382,8 @@ def validate(root):
         raise ValueError('active delivery: stale D80/D81 status')
     # Historical decisions remain untouched; the new decision must be unique and next.
     ids = [int(x) for x in re.findall(r'^### D(\d+) —', docs[GLOSSARY], re.M)]
-    if sorted(ids) != list(range(1, 91)):
-        raise ValueError('decision register: retain unique D1–D89 and append D90')
+    if sorted(ids) != list(range(1, 92)):
+        raise ValueError('decision register: retain unique D1–D90 and append D91')
     prefix = docs[GLOSSARY].encode()
     prefix = prefix[prefix.index(b'### D1 \xe2\x80\x94'):][:D1_D84_BYTES]
     if hashlib.sha256(prefix).hexdigest() != D1_D84_SHA256:
@@ -378,9 +453,113 @@ def validate(root):
         if re.search(pattern, scope, re.I):
             raise ValueError('active authority: forbidden promotion or mixed writer')
     validate_d90(docs)
+    validate_d91(docs)
+
+
+D91_AGENTS_TOKENS = (
+    'supplier PURCHASE PRICE LISTS', 'company-scoped prices',
+    'tenant-wide shared supplier/catalog identities',
+    'admin or user with the exact pricing action/scope', 'no implicit grant or D77 bypass',
+    'missing list cost defaults to provisional 0',
+    'mandatory operator price entry/explicit completion before dispatch',
+    'no automatic provisional-zero dispatch', 'no sales-price fallback',
+    'no host-cost-only default', 'freeze accepted price/source-or-absence/provenance',
+    'no retroactive repricing', 'does not require >0 or forbid deliberate zero',
+    'listed-price overrides and new fiscal policy remain undecided',
+    'supplier price-list prerequisite only after docs merge',
+)
 
 
 class AuthorityTests(unittest.TestCase):
+    def test_d91_agents_summary_preserves_exact_pricing_boundary(self):
+        lines = [line for line in (ROOT/'AGENTS.md').read_text().splitlines()
+                 if line.startswith('- D91 ')]
+        self.assertEqual(len(lines), 1, 'missing unique D91 AGENTS summary')
+        require(lines[0], D91_AGENTS_TOKENS, 'D91 AGENTS')
+
+    def test_d91_agents_summary_removal_is_refused_by_cli(self):
+        for token in D91_AGENTS_TOKENS:
+            with self.subTest(token=token):
+                self.d91_mutation('AGENTS.md', old=token)
+        line = next(line for line in (ROOT/'AGENTS.md').read_text().splitlines()
+                    if line.startswith('- D91 '))
+        self.d91_mutation('AGENTS.md', old=line)
+
+    def test_d91_rejects_unsafe_pricing_policy_in_active_paths(self):
+        claims = ('Host-cost-only policy approved.',
+                  'Sales UnitPrice fallback to purchase cost allowed.',
+                  'Missing-price provisional zero auto-dispatch allowed.',
+                  'Admin label grants implicit pricing rights.',
+                  'Frozen purchase intents retroactively repriced.')
+        paths = (GLOSSARY, PLAN, BACKLOG, 'docs/r04b2a-purchase-intent.md', 'AGENTS.md')
+        for path in paths:
+            for claim in claims:
+                with self.subTest(path=path, claim=claim):
+                    self.d91_mutation(path, claim=claim)
+
+    def test_d91_boundaries_and_provenance_are_required(self):
+        tokens = ('listini/prezzi ed estensioni societari', 'mai fallback di costo',
+                  'default UI 0 solo provvisorio', 'non confermato automaticamente',
+                  'inserimento/completamento esplicito obbligatorio',
+                  'non impone >0 né vieta uno zero deliberato', 'azione/scope esatti',
+                  'etichetta admin senza diritti impliciti', 'concessioni owner-controlled D77',
+                  'nessun self-grant o subdelega', 'prezzo sorgente (o assenza)',
+                  'prezzo finale accettato e provenienza', 'nessun repricing retroattivo',
+                  'prerequisito listini fornitore -> inserimento obbligatorio costo mancante/prezzo acquisto congelato -> ripresa connettore R04.b.2b',
+                  '0028 PUBLISHED invariata', 'append-only', 'nessun backfill automatico',
+                  'restano non decisi', 'fuori dalla prima implementazione limitata',
+                  'nessuna enforcement runtime o consegna adapter')
+        for path in (GLOSSARY, PLAN, BACKLOG):
+            for token in tokens:
+                with self.subTest(path=path, token=token):
+                    self.d91_mutation(path, old=token)
+        for token in ('> B: prezzo di acquisto definito nei listini di acquisto del fornitore',
+                      'A: inviare 0 e modificare in ERP; B: costo configurato dall’host; C: inserimento operatore',
+                      'La scelta B non è approvata.'):
+            with self.subTest(token=token):
+                self.d91_mutation(GLOSSARY, old=token, historical=True)
+
+    def d91_mutation(self, path, claim=None, old=None, historical=False):
+        with tempfile.TemporaryDirectory(prefix='d91-pricing-') as temp:
+            root = Path(temp)
+            for source in (*PATHS, 'docs/r04b2a-purchase-intent.md'):
+                target = root/source
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(ROOT/source, target)
+            target = root/path
+            text = target.read_text()
+            if path in (GLOSSARY, PLAN) and not historical:
+                before, rest = text.split('<!-- r04-d91:start -->')
+                scope, after = rest.split('<!-- r04-d91:end -->')
+                self.assertIn(old, scope) if old else None
+                scope = scope.replace(old, 'REMOVED') if old else scope+'\n'+claim+'\n'
+                text = before+'<!-- r04-d91:start -->'+scope+'<!-- r04-d91:end -->'+after
+            elif claim:
+                if path == BACKLOG:
+                    cards = json.loads(text)
+                    next(c for c in cards if c['id'] == 'R04')['gate'] += ' '+claim
+                    text = json.dumps(cards, ensure_ascii=False)
+                else:
+                    text += '\n'+claim+'\n'
+            else:
+                self.assertIn(old, text, 'valid pricing mutation precondition')
+                text = text.replace(old, 'REMOVED')
+            target.write_text(text)
+            result = self.invoke(root)
+            self.assertEqual(result.returncode, 2, result.stdout+result.stderr)
+            self.assertIn('D91', result.stderr)
+            self.assertNotIn('Traceback', result.stderr)
+
+    def test_d91_records_exact_owner_refinement_and_context(self):
+        text = (ROOT/GLOSSARY).read_text()
+        self.assertIn('### D91 —', text, 'supplier purchase-price policy not recorded')
+        decision = text.split('### D91 —')[1]
+        self.assertIn('> B: prezzo di acquisto definito nei listini di acquisto del fornitore configurabili dall’amministratore o da chi ne ha i permessi. Laddove il prezzo di acquisto non esiste nel listino allora è zero di default ed è delegato all’operatore di inserire obbligatoriamente il prezzo.\n', decision)
+        self.assertIn('DocumentRowApi.price', decision)
+        self.assertIn('A: inviare 0 e modificare in ERP; B: costo configurato dall’host; C: inserimento operatore', decision)
+        self.assertIn('Registro D1–D90 verificato prima dell’assegnazione', decision)
+        self.assertIn('28 ottobre 2026', decision)
+
     def test_d90_records_exact_owner_answer_and_question(self):
         text = (ROOT/GLOSSARY).read_text()
         self.assertIn('### D90 —', text, 'confirmed cumulative purchase-intent cap is not recorded')
