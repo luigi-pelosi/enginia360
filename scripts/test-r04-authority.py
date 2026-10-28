@@ -272,8 +272,10 @@ def validate_d91(docs):
         'non decisi', 'fuori dalla prima implementazione limitata',
         'nessun adapter/prezzo runtime consegnato', 'Esercizio non blocca sviluppo isolato'), 'D91 purchase intent')
     scopes.append(intent)
-    # AGENTS addition is approval-blocked: preserve its existing D77 boundaries;
-    # scan it for contradictions without claiming its D91 reconciliation is done.
+    agents = [line for line in docs['AGENTS.md'].splitlines() if line.startswith('- D91 ')]
+    if len(agents) != 1:
+        raise ValueError('D91 AGENTS: exactly one active pricing summary required')
+    require(agents[0], D91_AGENTS_TOKENS, 'D91 AGENTS')
     forbidden = (
         r'host-cost-only\s+policy\s+approved',
         r'sales\s+UnitPrice\s+fallback\s+to\s+purchase\s+cost\s+allowed',
@@ -454,7 +456,35 @@ def validate(root):
     validate_d91(docs)
 
 
+D91_AGENTS_TOKENS = (
+    'supplier PURCHASE PRICE LISTS', 'company-scoped prices',
+    'tenant-wide shared supplier/catalog identities',
+    'admin or user with the exact pricing action/scope', 'no implicit grant or D77 bypass',
+    'missing list cost defaults to provisional 0',
+    'mandatory operator price entry/explicit completion before dispatch',
+    'no automatic provisional-zero dispatch', 'no sales-price fallback',
+    'no host-cost-only default', 'freeze accepted price/source-or-absence/provenance',
+    'no retroactive repricing', 'does not require >0 or forbid deliberate zero',
+    'listed-price overrides and new fiscal policy remain undecided',
+    'supplier price-list prerequisite only after docs merge',
+)
+
+
 class AuthorityTests(unittest.TestCase):
+    def test_d91_agents_summary_preserves_exact_pricing_boundary(self):
+        lines = [line for line in (ROOT/'AGENTS.md').read_text().splitlines()
+                 if line.startswith('- D91 ')]
+        self.assertEqual(len(lines), 1, 'missing unique D91 AGENTS summary')
+        require(lines[0], D91_AGENTS_TOKENS, 'D91 AGENTS')
+
+    def test_d91_agents_summary_removal_is_refused_by_cli(self):
+        for token in D91_AGENTS_TOKENS:
+            with self.subTest(token=token):
+                self.d91_mutation('AGENTS.md', old=token)
+        line = next(line for line in (ROOT/'AGENTS.md').read_text().splitlines()
+                    if line.startswith('- D91 '))
+        self.d91_mutation('AGENTS.md', old=line)
+
     def test_d91_rejects_unsafe_pricing_policy_in_active_paths(self):
         claims = ('Host-cost-only policy approved.',
                   'Sales UnitPrice fallback to purchase cost allowed.',
