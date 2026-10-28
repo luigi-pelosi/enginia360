@@ -10,7 +10,10 @@ ROOT=Path(__file__).resolve().parents[1]
 spec=importlib.util.spec_from_file_location('freeze_runner',ROOT/'scripts/run-r04b2b2-tests.py');assert spec and spec.loader
 freeze=importlib.util.module_from_spec(spec);spec.loader.exec_module(freeze)
 binding=freeze.binding
-binding.SPEC='r04b2b3-acceptance.cjs'
+import os
+SPECS=('r04b2b3-acceptance.cjs','r04b2b3-readout.cjs')  # dispatch behaviour vs PR2 Italian readout; separate command bounds
+binding.SPEC=os.environ.get('R04B2B3_SPEC','r04b2b3-acceptance.cjs')
+if binding.SPEC not in SPECS:raise ValueError('unknown purchase-order acceptance specification')
 binding.r00.CONFIG=ROOT/'compose.r04b2b3-test.yaml'
 base=binding.fixtures
 controller={}
@@ -81,6 +84,15 @@ def control(action,state,query,fixture,holders):
    racer=controller.pop('racer');info=json.loads(binding.run(['docker','inspect',racer]))[0]
    assert info['Config']['Labels']['com.docker.compose.project']==command[command.index('-p')+1]
    binding.run(['docker','rm','-f',racer],timeout=30)
+ elif action.startswith('po-grant:'):
+  mode=action.split(':')[1];assert mode in ('remove','restore')
+  member=fixture['adminMembershipId'];where=f'''\"MembershipId\"='{member}' AND \"Permission\"='inventory.purchase-intents.create\''''
+  if mode=='remove':
+   saved=sql(f'''SELECT row_to_json(p) FROM organization_access.company_permissions p WHERE {where};''');assert saved.count('\n')==0 and saved.startswith('{'),'exactly one grant row expected'
+   (state/'po-grant.json').write_text(saved);sql(f'''DELETE FROM organization_access.company_permissions WHERE {where};''')
+  else:
+   saved=(state/'po-grant.json').read_text().replace("'","''")
+   sql(f'''INSERT INTO organization_access.company_permissions SELECT * FROM json_populate_record(NULL::organization_access.company_permissions,'{saved}');''')
  elif action=='po-logs-safe':
   logs=binding.run(command+['logs','--no-color','api'])
   for secret in ('synthetic-runtime-token','GBV-4711','Synthetic Supplier','owned-product-1','12.345678','https://admin-simulator','E360-PO-'):

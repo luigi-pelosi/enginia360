@@ -8,8 +8,11 @@ ROOT=Path(__file__).resolve().parents[1]
 spec=importlib.util.spec_from_file_location('impact',ROOT/'scripts/select-ci-impact.py')
 impact=importlib.util.module_from_spec(spec);spec.loader.exec_module(impact)
 OWN={'scripts/test-r04b2b3-impact.py','scripts/test-r04b2b3-dispatch.py','scripts/run-r04b2b3-tests.py','scripts/test-r04b2b3-lifecycle.py',
- 'tests/browser/r04b2b3-acceptance.cjs','tests/browser/r04b2b3-giobby.py','compose.r04b2b3-test.yaml','database/runtime/migrations/0031_purchase_dispatch.sql',
- 'tests/Enginia360.Api.Tests/GiobbyPurchaseOrderTests.cs'}
+ 'tests/browser/r04b2b3-acceptance.cjs','tests/browser/r04b2b3-readout.cjs','tests/browser/r04b2b3-giobby.py','compose.r04b2b3-test.yaml','database/runtime/migrations/0031_purchase_dispatch.sql',
+ 'tests/Enginia360.Api.Tests/GiobbyPurchaseOrderTests.cs','database/runtime/migrations/0032_purchase_dispatch_readout.sql'}
+# PR2 readout: Inventory owner read, Inventory.Contracts delivery contract and the existing purchase panel.
+READOUT={'src/Modules/Inventory/Enginia360.Inventory/PurchaseIntentEndpoints.cs','src/Modules/Inventory/Enginia360.Inventory.Contracts/PurchaseDispatchReadout.cs',
+ 'web/src/ui01/runtime/PurchaseIntent.tsx','web/src/ui01/runtime/PurchaseIntent.test.tsx'}
 INTEGRATIONS='src/Modules/Integrations/Enginia360.Integrations/'
 DIRECT={INTEGRATIONS+name for name in ('Enginia360.Integrations.csproj','GiobbyHost.cs','GiobbyPurchaseOrderConnector.cs','GiobbySalesOrderConnector.cs','GiobbyWire.cs',
  'IntegrationsDbContext.cs','IntegrationsModule.cs','PurchaseDestination.cs','PurchaseConnector.cs','PurchaseDispatcher.cs','SimulatorConnector.cs','packages.lock.json')}|{
@@ -21,7 +24,7 @@ WIRING={'database/runtime/manifest.json','migrator.runtime.Dockerfile','scripts/
 DOCS={'docs/r04b2b3-giobby-purchase-order-connector.md','docs/productization-plan.md','docs/productization-backlog.json','docs/r06-migration-inventory.json','docs/r06-migration-inventory.md'}
 class Impact(unittest.TestCase):
  def test_purchase_acceptance_waits_for_real_tls_api_before_opening_login(self):
-  for name in ('r04b2a-acceptance.cjs','r04b2b1-acceptance.cjs','r04b2b2-acceptance.cjs','r04b2b3-acceptance.cjs'):
+  for name in ('r04b2a-acceptance.cjs','r04b2b1-acceptance.cjs','r04b2b2-acceptance.cjs','r04b2b3-acceptance.cjs','r04b2b3-readout.cjs'):
    text=(ROOT/'tests/browser'/name).read_text()
    with self.subTest(name=name):
     self.assertIn('await waitForTlsApi(browser)',text)
@@ -29,7 +32,7 @@ class Impact(unittest.TestCase):
     self.assertLess(text.index('await waitForTlsApi(browser)'),login.start())
     self.assertIn("origin+'/auth/session'",text);self.assertIn('authenticated === false',text)
  def test_each_own_or_direct_path_selects_the_purchase_connector_runtime_and_security(self):
-  for path in sorted(OWN|DIRECT):
+  for path in sorted(OWN|DIRECT|READOUT):
    with self.subTest(path=path):
     try:s=impact.selection([path])
     except ValueError as e:self.fail(str(e))
@@ -48,13 +51,29 @@ class Impact(unittest.TestCase):
   for needle in ('scripts/run-r04b2b3-tests.py','R05B0_POOL_SIZE=1','scripts/test-r04b2b3-lifecycle.py'):self.assertIn(needle,job)
   self.assertIn('python3 -I scripts/test-r04b2b3-impact.py',text);self.assertIn('r04b2b3: ${{ steps.selection.outputs.r04b2b3 }}',text)
  def test_this_bounded_increment_selects_its_consumers_not_unrelated_historical_runtime(self):
-  s=impact.selection(sorted(OWN|DIRECT|WIRING|DOCS))
+  s=impact.selection(sorted(OWN|DIRECT|READOUT|WIRING|DOCS))
   for key in ('r03a','r03a2','r03b','r03c','r04a','r04c1','r04c2','r05b0','r06b1','r06a2'):self.assertFalse(s[key],key+' is not a direct consumer of purchase dispatch')
   for key in ('browser','migrations','ui01b','r04b2b2','r04b2b3','r05b1','ui_build','r06_offline'):self.assertTrue(s[key],key)
   self.assertFalse(s['ui_tests']);self.assertFalse(s['full_architecture'])
   for name in ('GiobbyPurchaseOrderTests','GiobbySalesOrderTests','PurchaseIntentTests','AdministrationBoundaryTests','InventoryArchitectureTests'):self.assertIn(name,s['api_filter'])
   mixed=impact.selection(sorted(OWN|DIRECT|{'src/Modules/Inventory/Enginia360.Inventory/ReleaseEndpoints.cs'}))
   self.assertTrue(mixed['r04c1']);self.assertTrue(mixed['r04c2'],'a mixed real producer change retains stock acceptance')
+ def test_readout_paths_keep_their_existing_consumers_and_add_the_dispatch_acceptance(self):
+  for path in sorted(READOUT|{'database/runtime/migrations/0032_purchase_dispatch_readout.sql'}):
+   with self.subTest(path=path):
+    s=impact.selection([path]);self.assertTrue(s['r04b2b3']);self.assertTrue(s['migrations']);self.assertTrue(s['ui01b'])
+    if path.endswith('PurchaseIntentEndpoints.cs'):self.assertTrue(s['r04b2a'] and s['r04b2b2'],'existing purchase consumers are retained')
+    if path.endswith('.tsx'):self.assertTrue(s['r04b2a'])
+  # An unrelated real producer never inherits the narrowed purchase slice.
+  mixed=impact.selection(sorted(READOUT|{'src/Modules/Inventory/Enginia360.Inventory/ReleaseEndpoints.cs'}))
+  self.assertTrue(mixed['r04c1'] and mixed['r04c2'])
+ def test_browser_readout_acceptance_covers_states_layout_and_isolation(self):
+  text=(ROOT/'tests/browser/r04b2b3-readout.cjs').read_text()
+  for needle in ('Non inviata','In verifica','Confermata','Non inviabile','po-grant:remove','Aggiungi riga','1366','1920','768','1080','await waitForTlsApi(browser)'):self.assertIn(needle,text,needle)
+  self.assertLess(text.index('await waitForTlsApi(browser)'),text.index('await login(browser,0)'))
+  workflow=(ROOT/'.github/workflows/ci.yml').read_text().split('  affected-r04b2b3:')[1].split('\n  runtime-migrations:')[0]
+  self.assertEqual(workflow.count('R04B2B3_SPEC=r04b2b3-readout.cjs'),2,'readout acceptance runs at pool4 and pool1 in its own command bound')
+  self.assertIn('timeout-minutes: 60',workflow)
  def test_a_lone_integrations_change_keeps_the_generic_administration_consumers(self):
   s=impact.selection([INTEGRATIONS+'GiobbyWire.cs'])
   for key in ('r03c','r03a','r05b1','r04b2b3'):self.assertTrue(s[key],key)

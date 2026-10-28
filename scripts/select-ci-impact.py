@@ -214,8 +214,11 @@ R04B2B2_SCOPE = R04B2B2_FILES | {
 
 INTEGRATIONS_SRC = 'src/Modules/Integrations/Enginia360.Integrations/'
 R04B2B3_FILES = {'scripts/test-r04b2b3-impact.py','scripts/test-r04b2b3-dispatch.py','scripts/run-r04b2b3-tests.py','scripts/test-r04b2b3-lifecycle.py',
-    'tests/browser/r04b2b3-acceptance.cjs','tests/browser/r04b2b3-giobby.py','compose.r04b2b3-test.yaml','database/runtime/migrations/0031_purchase_dispatch.sql',
-    'tests/Enginia360.Api.Tests/GiobbyPurchaseOrderTests.cs'}
+    'tests/browser/r04b2b3-acceptance.cjs','tests/browser/r04b2b3-readout.cjs','tests/browser/r04b2b3-giobby.py','compose.r04b2b3-test.yaml','database/runtime/migrations/0031_purchase_dispatch.sql',
+    'tests/Enginia360.Api.Tests/GiobbyPurchaseOrderTests.cs','database/runtime/migrations/0032_purchase_dispatch_readout.sql'}
+# PR2 readout: selected for the dispatch acceptance in addition to (never instead of) their existing purchase/generic consumers.
+R04B2B3_READOUT = {'src/Modules/Inventory/Enginia360.Inventory/PurchaseIntentEndpoints.cs','src/Modules/Inventory/Enginia360.Inventory.Contracts/PurchaseDispatchReadout.cs',
+    'web/src/ui01/runtime/PurchaseIntent.tsx','web/src/ui01/runtime/PurchaseIntent.test.tsx'}
 R04B2B3_DIRECT = {INTEGRATIONS_SRC+name for name in ('Enginia360.Integrations.csproj','GiobbyHost.cs','GiobbyPurchaseOrderConnector.cs','GiobbySalesOrderConnector.cs',
     'GiobbyWire.cs','IntegrationsDbContext.cs','IntegrationsModule.cs','PurchaseDestination.cs','PurchaseConnector.cs','PurchaseDispatcher.cs','SimulatorConnector.cs','packages.lock.json')} | {
     'src/Modules/Integrations/module.json','src/Modules/Inventory/Enginia360.Inventory.Contracts/PurchaseDispatchContracts.cs',
@@ -223,7 +226,7 @@ R04B2B3_DIRECT = {INTEGRATIONS_SRC+name for name in ('Enginia360.Integrations.cs
     'src/Enginia360.Api/packages.lock.json','tests/Enginia360.Api.Tests/packages.lock.json','tests/Enginia360.Api.Tests/AdministrationBoundaryTests.cs',
     'scripts/test-r00-migrations.py','scripts/test-r04b2a-purchase.py','tests/Enginia360.Api.Tests/PurchaseIntentTests.cs','tests/browser/r04b2b1-acceptance.cjs','tests/browser/r04b2a-acceptance.cjs','tests/browser/r04b2b2-acceptance.cjs'}
 # Only this finite purchase-order connector slice may narrow historical runners; any other real producer keeps the generic direct-consumer selection.
-R04B2B3_SCOPE = R04B2B3_FILES | R04B2B3_DIRECT | {'database/runtime/manifest.json','migrator.runtime.Dockerfile','scripts/run-r00a-tests.py','scripts/run-r05b0-tests.py',
+R04B2B3_SCOPE = R04B2B3_FILES | R04B2B3_DIRECT | R04B2B3_READOUT | {'database/runtime/manifest.json','migrator.runtime.Dockerfile','scripts/run-r00a-tests.py','scripts/run-r05b0-tests.py',
     'scripts/select-ci-impact.py','scripts/test-r03a-impact.py','.github/workflows/ci.yml','docs/r04b2b3-giobby-purchase-order-connector.md','docs/productization-plan.md','docs/productization-backlog.json',
     'docs/r06-migration-inventory.json','docs/r06-migration-inventory.md'}
 
@@ -265,7 +268,7 @@ def selection(paths):
     if r04b2b1: auth = ui = ui01b = r06_offline = True
     r04b2b2 = bool(set(paths) & (R04B2B2_FILES | R04B2B2_DIRECT))
     if r04b2b2: auth = ui = ui01b = r06_offline = True
-    r04b2b3 = bool(set(paths) & (R04B2B3_FILES | R04B2B3_DIRECT))
+    r04b2b3 = bool(set(paths) & (R04B2B3_FILES | R04B2B3_DIRECT | R04B2B3_READOUT))
     if r04b2b3: auth = ui = ui01b = r06_offline = True
     unknown = []
     for path in paths:
