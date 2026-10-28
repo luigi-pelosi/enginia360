@@ -26,6 +26,7 @@ internal sealed class GiobbyHost(IConfiguration section)
                 System.Text.Encoding.UTF8.GetBytes("GiobbyV1\n1\n" + System.Text.Json.JsonSerializer.Serialize(descriptor)))));
         }
     }
+    internal string PurchaseFingerprint => PurchaseDestination.Fingerprint(Binding, values);
     internal Uri? BaseAddress => Uri.TryCreate(Value("BaseUrl"), UriKind.Absolute, out var uri)
         && uri.Scheme == "https" && uri.Port is 443 or 8443 && uri.UserInfo.Length == 0 && uri.Query.Length == 0 && uri.Fragment.Length == 0
         && uri.AbsolutePath.EndsWith('/') && values.Any(x => x.Key.StartsWith("AllowedHosts:", StringComparison.Ordinal) && string.Equals(x.Value, uri.IdnHost, StringComparison.OrdinalIgnoreCase)) ? uri : null;

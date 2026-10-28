@@ -18,12 +18,29 @@ public sealed class PurchaseIntentTests : IClassFixture<TestApiFactory>
         var json = System.Text.Json.JsonDocument.Parse(Enginia360.Integrations.IntegrationsModule.PurchaseDestinationDescriptor(binding, config)!).RootElement;
         Assert.Equal("GiobbyPurchaseV1", json.GetProperty("kind").GetString());
         Assert.Equal(1, json.GetProperty("version").GetInt32());
-        Assert.Equal(new string('a', 64), json.GetProperty("fingerprint").GetString());
+        Assert.Equal(64, json.GetProperty("fingerprint").GetString()!.Length);
+        Assert.NotEqual(binding.DestinationFingerprint, json.GetProperty("fingerprint").GetString());
         Assert.Equal((tenant, company, site), (json.GetProperty("tenantId").GetString(), json.GetProperty("legalEntityId").GetString(), json.GetProperty("siteId").GetString()));
         Assert.Equal(source, json.GetProperty("stockSourceId").GetString());
         Assert.Equal(profile, json.GetProperty("stockProfileId").GetString());
         foreach (var unavailable in new[] { new Enginia360.Workshop.Contracts.AdministrativeConnectorBinding("SimulatorV1", 1, new string('a', 64)), new Enginia360.Workshop.Contracts.AdministrativeConnectorBinding("Unavailable", 0, "") })
             Assert.Null(Enginia360.Integrations.IntegrationsModule.PurchaseDestinationDescriptor(unavailable, config));
+    }
+
+    [Fact]
+    public void Purchase_creation_descriptor_covers_every_purchase_mapping_and_excludes_secrets()
+    {
+        var values = new Dictionary<string, string?> { ["TenantId"] = Guid.NewGuid().ToString(), ["LegalEntityId"] = Guid.NewGuid().ToString(), ["SiteId"] = Guid.NewGuid().ToString(), ["PurchaseStockSourceId"] = Guid.NewGuid().ToString(), ["PurchaseStockProfileId"] = Guid.NewGuid().ToString(), ["PurchaseOrder:Storage"] = "A", ["TokenFile"] = "/secret/a" };
+        var binding = new Enginia360.Workshop.Contracts.AdministrativeConnectorBinding("GiobbyV1", 1, new string('a', 64));
+        string Fingerprint()
+        {
+            var config = new ConfigurationBuilder().AddInMemoryCollection(values).Build();
+            using var json = System.Text.Json.JsonDocument.Parse(Enginia360.Integrations.IntegrationsModule.PurchaseDestinationDescriptor(binding, config)!);
+            return json.RootElement.GetProperty("fingerprint").GetString()!;
+        }
+        var original = Fingerprint();
+        values["TokenFile"] = "/secret/b"; Assert.Equal(original, Fingerprint());
+        values["PurchaseOrder:Storage"] = "B"; Assert.NotEqual(original, Fingerprint());
     }
 
     [Theory]

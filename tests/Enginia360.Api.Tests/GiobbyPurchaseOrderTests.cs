@@ -55,7 +55,8 @@ public sealed class GiobbyPurchaseOrderTests
     private static PurchaseDispatchMessage Message(string quantity = "2.000000", string price = "12.345678", Guid? tenant = null)
     {
         var host = new Host((_, _) => Reply("{}")); // only to learn the frozen binding fingerprint of the host fixture
-        var fingerprint = host.Services.GetRequiredService<AdministrativeConnectorBinding>().DestinationFingerprint; host.Dispose();
+        var type = typeof(IntegrationsModule).Assembly.GetType("Enginia360.Integrations.GiobbyHost")!;
+        var fingerprint = (string)type.GetProperty("PurchaseFingerprint", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(host.Services.GetRequiredService(type))!; host.Dispose();
         return new(tenant ?? Tenant, Company, Site, Guid.NewGuid(), Item, "Pastiglie freno sintetiche", quantity, price, Vendor, VendorName, fingerprint);
     }
     private sealed class Host : IDisposable
@@ -305,6 +306,14 @@ public sealed class GiobbyPurchaseOrderTests
         Assert.Equal("lookup_truncated", (await host.Invoke("Status", message)).Code);
     }
     [Fact]
+    public async Task Full_page_with_one_matching_reference_is_still_truncated_not_unique()
+    {
+        var message = Message();
+        using var host = new Host((request, _) => Reply(request.RequestUri!.AbsolutePath == "/purchases/orders" ? Page(new[] { Header(message, 301) }.Concat(Enumerable.Range(1, 4).Select(i => Header(message, 100 + i, "other-" + i))).ToArray()) : Detail(message)));
+        Assert.Equal(("Failure", "lookup_truncated", (string?)null), await host.Invoke("Status", message));
+        Assert.Single(host.Http.Calls);
+    }
+    [Fact]
     public async Task Duplicate_exact_references_are_nonunique_and_never_guessed()
     {
         var message = Message();
@@ -352,6 +361,24 @@ public sealed class GiobbyPurchaseOrderTests
         Assert.Equal(64, baseline.Length);
         Assert.Equal(baseline, Fingerprint(v => { v["Giobby:PurchaseOrder:BusinessUnit"] = "U2"; v["Giobby:PurchaseOrder:Storage"] = "XX"; v["Giobby:PurchaseOrder:Numerator"] = "3"; }));
         Assert.NotEqual(baseline, Fingerprint(v => v["Giobby:CompanyId"] = "102"));
+    }
+    [Theory]
+    [InlineData("BusinessUnit", "U2")]
+    [InlineData("Numerator", "2")]
+    [InlineData("PosType", "2")]
+    [InlineData("Vat", "10")]
+    [InlineData("Storage", "XX")]
+    [InlineData("Materials", "other-product")]
+    public async Task Purchase_mapping_change_after_creation_blocks_submit_and_status(string key, string value)
+    {
+        var original = Message();
+        using var host = new Host((_, _) => Reply(Capture("po-ack").ToJsonString()), v => v["Giobby:PurchaseOrder:" + (key == "Materials" ? $"Materials:{Item}" : key)] = value);
+        foreach (var operation in new[] { "Submit", "Status" })
+        {
+            var result = await host.Invoke(operation, original);
+            Assert.Equal(("NotSent", "destination_binding_mismatch"), (result.Outcome, result.Code));
+        }
+        Assert.Empty(host.Http.Calls);
     }
     [Fact]
     public async Task A_message_frozen_against_another_destination_is_refused_before_any_http()

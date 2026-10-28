@@ -56,7 +56,9 @@ class R03aImpact(unittest.TestCase):
         # Actual R03.a owners retain their positive acceptance contract above.
         if set(paths) & set(OWNERS):
             offline_wiring_only = result.get('r06_offline') and set(paths) <= module.R06_OFFLINE_FILES | module.R06_WIRING
-            if not offline_wiring_only:
+            # R04.b.2b.3 only appends one purchase-dispatch service registration to InventoryModule.cs: its finite, explicitly mapped slice narrows consumers.
+            bounded_purchase_connector = bool(set(paths) & module.R04B2B3_FILES) and set(paths) <= module.R04B2B3_SCOPE
+            if not offline_wiring_only and not bounded_purchase_connector:
                 self.assertTrue(result['r03a'] and result['ui01b'] and result['migrations'])
 
     def test_unrelated_paths_do_not_select_r03a(self):

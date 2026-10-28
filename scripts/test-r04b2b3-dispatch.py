@@ -12,6 +12,10 @@ spec=importlib.util.spec_from_file_location('freeze',ROOT/'scripts/test-r04b2b2-
 freeze=importlib.util.module_from_spec(spec);spec.loader.exec_module(freeze)
 MIGRATION=ROOT/'database/runtime/migrations/0031_purchase_dispatch.sql'
 class MigrationTextTests(unittest.TestCase):
+ def test_module_metadata_declares_the_actual_purchase_dispatch_owner(self):
+  module=json.loads((ROOT/'src/Modules/Integrations/module.json').read_text())
+  self.assertIn('integrations.purchase_dispatches',module['ownedTables'])
+  self.assertIn('Giobby',module['externalContract'])
  def test_migration_is_appended_only_and_creates_no_stock_or_purchase_writer(self):
   self.assertTrue(MIGRATION.exists(),'migration 0031 is absent')
   text=MIGRATION.read_text()

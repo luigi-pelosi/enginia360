@@ -29,7 +29,7 @@ internal sealed class GiobbyPurchaseOrderConnector(HttpClient http, GiobbyHost h
     };
     // Fail closed before any HTTP: explicit setup, then the destination frozen with the intent must equal this host's binding (R05.b.0).
     private ConnectorResult? Refusal(PurchaseDispatchMessage m) => !host.PurchaseMapped(m) ? new(ConnectorOutcome.NotSent, Code: "mapping_missing")
-        : m.DestinationFingerprint != host.Binding.DestinationFingerprint ? new(ConnectorOutcome.NotSent, Code: "destination_binding_mismatch") : null;
+        : m.DestinationFingerprint != host.PurchaseFingerprint ? new(ConnectorOutcome.NotSent, Code: "destination_binding_mismatch") : null;
     public async Task<ConnectorResult> Submit(PurchaseDispatchMessage message, CancellationToken ct)
     {
         if (Refusal(message) is { } refusal) return refusal;
@@ -52,6 +52,7 @@ internal sealed class GiobbyPurchaseOrderConnector(HttpClient http, GiobbyHost h
         if (body is not { } root || !GiobbyWire.Success(root)
             || !root.TryGetProperty("documentsHeaders", out var headers) || headers.ValueKind != JsonValueKind.Array || headers.GetArrayLength() > 5)
             return new(ConnectorOutcome.Failure, Code: "invalid_response");
+        if (headers.GetArrayLength() == 5) return new(ConnectorOutcome.Failure, Code: "lookup_truncated");
         var matches = headers.EnumerateArray().Where(h => h.ValueKind == JsonValueKind.Object && GiobbyWire.Amount(h, "idDocumentType", 2)
             && GiobbyWire.Text(h, "reference", Reference(message)) && GiobbyWire.Text(h, "idVendor", message.VendorId) && GiobbyWire.Text(h, "docStatus", "CREATED")).ToArray();
         if (matches.Length == 0) return new(ConnectorOutcome.Failure, Code: headers.GetArrayLength() >= 5 ? "lookup_truncated" : "lookup_empty");

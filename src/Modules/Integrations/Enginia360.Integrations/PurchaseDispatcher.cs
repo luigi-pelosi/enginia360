@@ -68,7 +68,7 @@ internal sealed class PurchaseDispatcher(IPurchaseDispatchOutbox outbox, Integra
             return;
         }
         // Binding frozen at creation (R05.b.0): a changed destination holds, never retargets or falls back.
-        if (message.DestinationFingerprint != options.Binding.DestinationFingerprint)
+        if (message.DestinationFingerprint != options.Giobby!.PurchaseFingerprint)
         {
             await Save(dispatch, dispatch.State, dispatch.Attempts, Now() + options.RetryDelay, "destination_binding_mismatch", ct);
             return;

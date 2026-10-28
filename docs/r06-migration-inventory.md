@@ -20,6 +20,8 @@ Risultato calcolato sul baseline R05.b.1: **26 migrazioni, 66 definizioni CREATE
 
 **Aggiornamento R04.b.2b.2 (D91/D92):** migrazione append-only 0030, 30 migrazioni, 72 definizioni CREATE, 9 schemi. `inventory.purchase_intent_prices` (`operational_fact`) registra soltanto il prezzo accettato/provenienza dell’intento, UNDECIDED e NO_LEGACY_IMPORT_APPROVED; nessuna approvazione di migrazione o readiness.
 
+**Aggiornamento R04.b.2b.3:** migrazione append-only 0031, **31 migrazioni, 74 definizioni CREATE, 9 schemi**. `inventory.purchase_intent_outcomes` e `integrations.purchase_dispatches` sono `integration_evidence`, entrambe UNDECIDED / NO_LEGACY_IMPORT_APPROVED. Le 72 voci precedenti restano identiche; esito immutabile e stato tecnico non sono documento acquisti/stock locale né autorizzazione di migrazione.
+
 Ogni voce registra:
 
 - `table`, `owner`: nome qualificato e modulo/schema proprietario osservato, non una nuova ownership di business;

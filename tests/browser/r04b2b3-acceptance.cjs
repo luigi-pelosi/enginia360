@@ -15,7 +15,9 @@ async function login(browser,index){const context=await browser.newContext(),pag
 (async()=>{
  const browser=await chromium.launch({headless:true});let stage='start';
  try{
-  const {page}=await login(browser,0),ctx=fixture.contexts[0],data=fixture.workshop[0],supplier=fixture.purchasePrices.supplierId,item=fixture.purchasePrices.catalogItemId;
+  let {page}=await login(browser,0);
+  async function configure(mode){await control('po-config:'+mode);const stop=Date.now()+30000;while((await json(page,'/auth/session').catch(()=>({status:0}))).status!==200){assert(Date.now()<stop,'API restart readiness');await sleep(100);}({page}=await login(browser,0));}
+  const ctx=fixture.contexts[0],data=fixture.workshop[0],supplier=fixture.purchasePrices.supplierId,item=fixture.purchasePrices.catalogItemId;
   const order=uid(),lines=[];let revision=0;
   assert.equal((await post(page,'/api/v1/workshop/orders',{id:order,legalEntityId:ctx.legalEntityId,siteId:ctx.siteId,documentTypeId:data.documentTypeId,configurationVersion:7,payerId:data.payerId,vehicleId:data.vehicleId})).status,201);
   async function editor(type,extra){const r=await post(page,`/api/v1/workshop/orders/${order}/editor/commands`,{type,commandId:uid(),expectedRevision:revision,expectedLinePolicyVersion:9,expectedStructurePolicyVersion:1,groupId:null,lineId:null,title:null,description:null,catalogItemId:null,catalogVersion:null,quantity:null,unitPrice:null,discountPercent:null,...extra});assert.equal(r.status,201,JSON.stringify(r));revision=r.value.appliedRevision;}
@@ -42,7 +44,15 @@ async function login(browser,index){const context=await browser.newContext(),pag
   const lost=await accept(lines[2],'1','7.5');
   await until(lost,s=>s.dispatch&&s.dispatch.State==='Uncertain'&&s.dispatch.Failures>=1,'uncertain after timeout');
   await sleep(2500);assert.equal((await posts()).length,2,'empty lookup never authorizes second POST');assert.equal((await po(lost)).outcome,null);
-  await control('po-mode:complete');
+  await control('capability:external-administration:false');await sleep(500);
+  await configure('changed');await control('capability:external-administration:true');
+  await until(lost,s=>s.dispatch?.LastError==='destination_binding_mismatch','status binding mismatch');
+  assert.equal((await posts()).length,2);assert.equal((await po(lost)).outcome,null);
+  await control('capability:external-administration:false');await configure('original');
+  await control('po-lease:'+lost+':future');await control('po-mode:complete');
+  const beforeLease=(await wire()).length;await control('capability:external-administration:true');await sleep(1500);
+  assert.equal((await wire()).length,beforeLease,'live lease blocks all provider requests');assert.equal((await po(lost)).outcome,null);
+  await control('po-lease:'+lost+':expired');
   const rec=await until(lost,s=>s.outcome,'lost-success recovery');assert.equal(rec.dispatch.State,'Completed');
   assert.equal((await posts()).length,2,'recovery used GET only');docs=await effects();assert.equal(docs.length,2);
   pass('timeout persisted Uncertain, empty lookup held with no replay, later lookup + exact readback completed without a second POST');
@@ -65,9 +75,29 @@ async function login(browser,index){const context=await browser.newContext(),pag
   assert.equal((await posts()).length,before,'nothing is sent while the claim barrier holds');
   await control('po-release');
   await until(a,s=>s.outcome,'first released');await until(b,s=>s.outcome,'second released');
+  await control('po-racer-stop');
   assert.equal((await posts()).length,before+2);docs=await effects();const refs=docs.map(d=>d.reference);assert.equal(new Set(refs).size,refs.length);
   assert(refs.includes(ref(a))&&refs.includes(ref(b)));
   pass('pool'+fixture.poolSize+' '+(fixture.poolSize===1?'completion with discovery gate':'physical pg_blocking_pids claim barrier')+', one POST per intent');
+  stage='creation binding blocks changed mapping before first dispatch';
+  await control('capability:external-administration:false');
+  const frozen=await accept(lines[6],'1','8'),beforeBinding=(await posts()).length;
+  await configure('changed');await control('capability:external-administration:true');
+  await until(frozen,s=>s.dispatch?.LastError==='destination_binding_mismatch','creation mapping mismatch');
+  assert.equal((await posts()).length,beforeBinding);assert.equal((await po(frozen)).outcome,null);
+  await configure('original');await until(frozen,s=>s.outcome,'restored creation mapping');
+  assert.equal((await posts()).length,beforeBinding+1);
+  pass('mapping frozen at source creation before first worker attempt; changed mapping sends nothing, original setup completes');
+  assert.equal((await state(lines[6])).value.remaining,'2.000000','confirmed outcome does not replenish D90 cap');
+  pass('changed mapping blocks Status; SQL-forced live lease pauses traffic, expired lease recovers GET only');
+  stage='historical incomplete purchase mapping never silently adopts current setup';
+  await control('capability:external-administration:false');await configure('missing');
+  const incomplete=await accept(lines[0],'1','10');await control('capability:external-administration:true');
+  await sleep(1500);assert.equal((await posts()).length,beforeBinding+1);
+  await configure('original');
+  await until(incomplete,s=>s.dispatch?.LastError==='destination_binding_mismatch','historical incomplete binding held');
+  assert.equal((await posts()).length,beforeBinding+1);assert.equal((await po(incomplete)).outcome,null);
+  pass('incomplete creation mapping holds before HTTP and is never backfilled or silently switched');
   stage='isolation and redaction';
   const peer=await login(browser,1);assert.equal((await post(peer.page,url(lines[1])+'/accepted',{id:uid(),warehouseId:ctx.warehouseId,supplierId:supplier,sourceRevision:1,supplierRevision:1,mappingRevision:1,quantity:'1',quoteRevision:0,catalogVersion:8,authorityVersion:1,manualUnitPurchasePrice:'1'})).status,404);
   assert.equal((await wire()).filter(c=>/sales/.test(c.path)).length,0);assert.equal((await po(first)).salesOutbox,0);
