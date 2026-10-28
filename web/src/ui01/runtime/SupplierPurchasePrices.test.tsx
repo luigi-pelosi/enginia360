@@ -59,7 +59,7 @@ test('lost accepted price response freezes resource and ancestor context then re
  fireEvent.click(screen.getByRole('button',{name:'Riprova prezzo identico'}));
  await screen.findByText('Prezzo salvato e riletto — revisione 1');
  expect(writes).toHaveLength(2);expect(writes[1]).toEqual(writes[0]);
- expect((screen.getByLabelText('UUID commessa') as HTMLInputElement).disabled).toBe(false);
+ await waitFor(()=>expect((screen.getByLabelText('UUID commessa') as HTMLInputElement).disabled).toBe(false));
 });
 test('price response uncertainty must fence ancestor order selection before another document can be opened',async()=>{
  vi.stubGlobal('fetch',vi.fn(async(path:string,options:RequestInit)=>{
