@@ -193,6 +193,22 @@ R04B2B1_DIRECT = {'src/Modules/Catalog/Enginia360.Catalog/CatalogModule.cs',
     'database/runtime/manifest.json','web/src/ui01/runtime/WorkshopRuntime.tsx','web/src/ui01/runtime/runtime.css',
     'scripts/run-r05b0-tests.py','scripts/run-r00a-tests.py','migrator.runtime.Dockerfile'}
 
+R04B2B2_FILES = {'scripts/test-r04b2b2-impact.py','scripts/test-r04b2b2-freeze.py','scripts/run-r04b2b2-tests.py','scripts/test-r04b2b2-lifecycle.py',
+    'tests/browser/r04b2b2-acceptance.cjs','compose.r04b2b2-test.yaml','database/runtime/migrations/0030_purchase_price_freeze.sql'}
+R04B2B2_DIRECT = R04B2A_FILES | R04B2A_DIRECT | R04B2B1_FILES | R04B2B1_DIRECT
+# Only this finite quote/freeze vertical slice may narrow historical shared-runner matches.
+# Changes to any other real producer retain the generic direct-consumer selection below.
+R04B2B2_SCOPE = R04B2B2_FILES | {
+    'src/Modules/Inventory/Enginia360.Inventory/PurchaseIntentEndpoints.cs',
+    'src/Modules/Inventory/Enginia360.Inventory.Contracts/PurchaseIntentContracts.cs',
+    'tests/Enginia360.Api.Tests/PurchaseIntentTests.cs','web/src/ui01/runtime/PurchaseIntent.tsx',
+    'web/src/ui01/runtime/PurchaseIntent.test.tsx','tests/browser/r04b2a-acceptance.cjs',
+    'scripts/test-r04b2a-purchase.py','database/runtime/manifest.json','migrator.runtime.Dockerfile',
+    'scripts/run-r00a-tests.py','scripts/run-r05b0-tests.py','scripts/select-ci-impact.py','.github/workflows/ci.yml',
+    'docs/r04b2b2-purchase-price-freeze.md','docs/productization-plan.md','docs/productization-backlog.json',
+    'docs/r06-migration-inventory.json','docs/r06-migration-inventory.md'}
+
+
 def selection(paths):
     paths = sorted(set(paths))
     r06a2 = bool(set(paths) & (R06A2_FILES | R06A2_DEPENDENCIES))
@@ -226,12 +242,14 @@ def selection(paths):
     if r04b2a: auth = ui = ui01b = r06_offline = True
     r04b2b1 = bool(set(paths) & (R04B2B1_FILES | R04B2B1_DIRECT))
     if r04b2b1: auth = ui = ui01b = r06_offline = True
+    r04b2b2 = bool(set(paths) & (R04B2B2_FILES | R04B2B2_DIRECT))
+    if r04b2b2: auth = ui = ui01b = r06_offline = True
     unknown = []
     for path in paths:
         parsed = PurePosixPath(path)
         if not path or parsed.is_absolute() or '..' in parsed.parts or '\\' in path or str(parsed) != path:
             raise ValueError('invalid changed path')
-        if path in R04B2A_FILES or path in R04B2B1_FILES or path == 'src/Modules/Catalog/Enginia360.Catalog/Enginia360.Catalog.csproj':
+        if path in R04B2B2_FILES or path in R04B2A_FILES or path in R04B2B1_FILES or path == 'src/Modules/Catalog/Enginia360.Catalog/Enginia360.Catalog.csproj':
             continue
         if path in R06A2_FILES or (staging_only and path in R06_WIRING):
             continue
@@ -309,11 +327,20 @@ def selection(paths):
     if r03b: filters.append('FullyQualifiedName~WorkshopOwnActualTimeTests')
     if r03c: filters.append(R03C_FILTER if r03c_full else R03C_MINIMAL)
     if r05b1: filters.append('FullyQualifiedName~GiobbySalesOrderTests')
+    if r04b2b2: filters.append('FullyQualifiedName~PurchaseIntentTests|FullyQualifiedName~SupplierPurchasePriceTests')
     if r04b2a: filters.append('FullyQualifiedName~PurchaseIntentTests')
     if r04b2b1: filters.append('FullyQualifiedName~SupplierPurchasePriceTests')
-    return {'r04b2b1':r04b2b1,'r04b2a':r04b2a,'changed_paths':paths,'api_filter':'|'.join(filters),'r06_offline':r06_offline,'r05a1_offline':r05a1_offline,'r05a2_offline':r05a2_offline,'r05a3_offline':r05a3_offline,'r05a4_offline':r05a4_offline,'r05a5_offline':r05a5_offline,'r05a6_offline':r05a6_offline,'r05b0':r05b0,
+    result = {'r04b2b2':r04b2b2,'r04b2b1':r04b2b1,'r04b2a':r04b2a,'changed_paths':paths,'api_filter':'|'.join(filters),'r06_offline':r06_offline,'r05a1_offline':r05a1_offline,'r05a2_offline':r05a2_offline,'r05a3_offline':r05a3_offline,'r05a4_offline':r05a4_offline,'r05a5_offline':r05a5_offline,'r05a6_offline':r05a6_offline,'r05b0':r05b0,
             'browser':auth,'ui01b':ui01b,'r03a':r03a,'r03a2':r03a,'r04a':r04a,'r04c1':r04c1,'r04c2':r04c2,'r06b1':r06b1,'r03b':r03b,'r03c':r03c,'migrations':auth or ui01b,'ui_build':auth or ui,'ui_tests':ui,
             'r05b1':r05b1, 'r06a2':r06a2, 'full_architecture':False}
+    if set(paths) & R04B2B2_FILES and set(paths) <= R04B2B2_SCOPE:
+        for key in ('r03a','r03a2','r03b','r03c','r04a','r04c1','r04c2','r05b0','r05b1','r06b1','r06a2'):
+            result[key] = False
+        for key in ('browser','migrations','ui01b','r04b2a','r04b2b1','r04b2b2','ui_build','ui_tests','r06_offline'):
+            result[key] = True
+        result['api_filter'] = AUTH_FILTER+'|'+WORKSHOP_FILTER+'|FullyQualifiedName~InventoryArchitectureTests|FullyQualifiedName~PurchaseIntentTests|FullyQualifiedName~SupplierPurchasePriceTests'
+    return result
+
 
 
 def changed_paths(base, head):

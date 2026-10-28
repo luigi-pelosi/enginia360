@@ -2,8 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { ApiError, request } from "./workshopApi";
 import { check, decimal, record, uuid } from "./contracts";
 
+type Quote = { revision: number; catalogVersion: number; authorityVersion: number; sourcePresent: boolean; unitPurchasePrice: string | null };
 type Supplier = { id: string; name: string; revision: number; mappingRevision: number };
-type Intent = { id: string; quantity: string; supplierName: string; status: string };
+type AcceptedPrice = { unitPurchasePrice: string; sourcePresent: boolean; revision: number; method: "manual" | "listed" };
+type Intent = { id: string; quantity: string; supplierName: string; status: string; acceptedPrice?: AcceptedPrice | null };
 type State = { source: { revision: number }; remaining: string; suppliers: Supplier[]; intents: Intent[] };
 const q6 = /^\d+(?:\.\d{1,6})?$/;
 // D88/D90: manual pending intent; no vendor identifier, destination or ERP value is ever shown or sent by the browser.
@@ -13,7 +15,19 @@ export default function PurchaseIntent({ url, warehouseId, closed, blocked, onBl
     const [state, setState] = useState<State>(), [supplierId, setSupplierId] = useState(""), [quantity, setQuantity] = useState("");
     const [message, setMessage] = useState("Seleziona fornitore e quantità."), [busy, setBusy] = useState(false), [uncertain, setUncertain] = useState(false);
     const frozen = useRef<{ path: string; body: string } | undefined>(undefined), generation = useRef(0), quantityInput = useRef<HTMLInputElement>(null);
+    const [quoteRefresh, setQuoteRefresh] = useState(0);
+    const [quote, setQuote] = useState<Quote>(), [manualPrice, setManualPrice] = useState("0.000000"), [priceEntered, setPriceEntered] = useState(false);
     const path = url + "/purchase-intents";
+    useEffect(() => {
+        let active = true; setQuote(undefined); setManualPrice("0.000000"); setPriceEntered(false);
+        if (supplierId) void request(path + "/quote?warehouseId=" + encodeURIComponent(warehouseId) + "&supplierId=" + encodeURIComponent(supplierId)).then(value => {
+            const result = record(value), q = record(result.quote);
+            check(result.state === "ready" && Number.isSafeInteger(q.revision) && Number.isSafeInteger(q.catalogVersion) && Number.isSafeInteger(q.authorityVersion)
+                && typeof q.sourcePresent === "boolean" && (q.sourcePresent ? typeof q.unitPurchasePrice === "string" && decimal(q.unitPurchasePrice) : q.unitPurchasePrice === null));
+            if (active) setQuote(q as Quote);
+        }).catch(e => { if (active) { setMessage("Quotazione acquisto non disponibile. Rileggi."); onError(e); } });
+        return () => { active = false; };
+    }, [path, warehouseId, supplierId, quoteRefresh]);
     useEffect(() => { onBlocked(busy || uncertain); }, [busy, uncertain, onBlocked]);
     useEffect(() => () => onBlocked(false), [onBlocked]);
     async function read(gen = generation.current) {
@@ -22,7 +36,10 @@ export default function PurchaseIntent({ url, warehouseId, closed, blocked, onBl
         const source = record(r.source);
         check(Number.isSafeInteger(source.revision));
         for (const value of r.suppliers) { const s = record(value); check(uuid(s.id) && typeof s.name === "string" && Number.isSafeInteger(s.revision) && Number.isSafeInteger(s.mappingRevision)); }
-        for (const value of r.intents) { const i = record(value); check(uuid(i.id) && typeof i.quantity === "string" && typeof i.supplierName === "string" && typeof i.status === "string"); }
+        for (const value of r.intents) {
+            const i = record(value); check(uuid(i.id) && typeof i.quantity === "string" && typeof i.supplierName === "string" && typeof i.status === "string");
+            if (i.acceptedPrice != null) { const p = record(i.acceptedPrice); check(typeof p.unitPurchasePrice === "string" && decimal(p.unitPurchasePrice) && typeof p.sourcePresent === "boolean" && Number.isSafeInteger(p.revision) && (p.method === "manual" || p.method === "listed")); }
+        }
         if (gen === generation.current) setState({ source: { revision: source.revision as number }, remaining: r.remaining, suppliers: r.suppliers as Supplier[], intents: r.intents as Intent[] });
     }
     useEffect(() => {
@@ -30,6 +47,20 @@ export default function PurchaseIntent({ url, warehouseId, closed, blocked, onBl
         void read(gen).catch((e) => { if (gen === generation.current) { setMessage("Lettura richieste d'acquisto non disponibile."); onError(e); } });
         return () => { generation.current++; };
     }, [path, warehouseId]);
+    async function refresh() {
+        if (busy || uncertain || blocked) return;
+        const gen = generation.current;
+        setBusy(true);
+        try {
+            await read(gen);
+            if (gen === generation.current) {
+                setMessage("Richieste rilette. Verifica la quotazione prima di confermare.");
+                setQuoteRefresh(value => value + 1);
+            }
+        } catch (e) {
+            if (gen === generation.current) { setMessage("Lettura richieste d'acquisto non disponibile."); onError(e); }
+        } finally { if (gen === generation.current) setBusy(false); }
+    }
     async function create() {
         if (busy || !state) return;
         const supplier = state.suppliers.find((s) => s.id === supplierId);
@@ -38,7 +69,11 @@ export default function PurchaseIntent({ url, warehouseId, closed, blocked, onBl
             if (!decimal(quantity) || !q6.test(quantity) || !/[1-9]/.test(quantity) || Number(quantity) > Number(state.remaining)) {
                 setMessage("Quantità positiva, massimo 6 decimali e non oltre il residuo richiedibile."); quantityInput.current?.focus(); return;
             }
-            frozen.current = { path, body: JSON.stringify({ id: crypto.randomUUID(), warehouseId, supplierId, sourceRevision: state.source.revision, supplierRevision: supplier.revision, mappingRevision: supplier.mappingRevision, quantity }) };
+            if (!quote) { setMessage("Attendi la quotazione acquisto o rileggi."); return; }
+            if (!quote.sourcePresent && (!priceEntered || !/^[0-9]{1,6}(?:\.[0-9]{1,6})?$/.test(manualPrice))) {
+                setMessage("Prezzo mancante: inserisci esplicitamente il costo, anche zero."); return;
+            }
+            frozen.current = { path: path + "/accepted", body: JSON.stringify({ id: crypto.randomUUID(), warehouseId, supplierId, sourceRevision: state.source.revision, supplierRevision: supplier.revision, mappingRevision: supplier.mappingRevision, quantity, quoteRevision: quote.revision, catalogVersion: quote.catalogVersion, authorityVersion: quote.authorityVersion, manualUnitPurchasePrice: quote.sourcePresent ? null : manualPrice }) };
         }
         const command = frozen.current, gen = generation.current;
         setBusy(true);
@@ -58,6 +93,7 @@ export default function PurchaseIntent({ url, warehouseId, closed, blocked, onBl
         <section aria-label="Richiesta d'acquisto">
             <p role="status">{message}</p>
             {state && <p>Residuo richiedibile: {Number(state.remaining)}</p>}
+            {quote?.sourcePresent && <p>Costo unitario acquisto: {quote.unitPurchasePrice} · listino presente (revisione {quote.revision})</p>}
             <form onSubmit={(e) => { e.preventDefault(); void create(); }}>
                 <label>Fornitore
                     <select value={supplierId} disabled={locked} onChange={(e) => setSupplierId(e.target.value)}>
@@ -68,10 +104,17 @@ export default function PurchaseIntent({ url, warehouseId, closed, blocked, onBl
                 <label>Quantità da richiedere
                     <input ref={quantityInput} value={quantity} disabled={locked} onChange={(e) => setQuantity(e.target.value)} />
                 </label>
+                {quote && !quote.sourcePresent && <label>Prezzo acquisto mancante
+                    <input aria-label="Prezzo acquisto mancante" value={manualPrice} disabled={locked} onChange={e => { setManualPrice(e.target.value); setPriceEntered(true); }} />
+                    <span>Listino assente · 0.000000 provvisorio, inserimento obbligatorio (anche zero).</span>
+                </label>}
                 <button disabled={locked || closed || !state || Number(state.remaining) <= 0}>Crea richiesta d'acquisto</button>
             </form>
+            <button disabled={locked} onClick={() => void refresh()}>Rileggi richieste e quotazione</button>
             {uncertain && <button disabled={busy} onClick={() => void create()}>Riprova richiesta identica</button>}
-            {state?.intents.map((i) => <p key={i.id}>Richiesta {i.id} · {Number(i.quantity)} · {i.supplierName} · {i.status === "Held" ? "In attesa — connettore d'acquisto non ancora attivo" : i.status}</p>)}
+            {state?.intents.map((i) => <div key={i.id}><p>Richiesta {i.id} · {Number(i.quantity)} · {i.supplierName} · {i.status === "Held" ? "In attesa — connettore d'acquisto non ancora attivo" : i.status}</p>
+                {i.acceptedPrice ? <p>Costo accettato: {i.acceptedPrice.unitPurchasePrice} · {i.acceptedPrice.sourcePresent ? "listino presente alla conferma (revisione " + i.acceptedPrice.revision + ")" : "listino assente alla conferma"} · {i.acceptedPrice.method === "manual" ? "inserimento operatore" : "prezzo di listino"}</p> : <p>Prezzo non congelato · richiesta storica bloccata, nessun invio.</p>}
+            </div>)}
         </section>
     );
 }

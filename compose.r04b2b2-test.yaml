@@ -1,0 +1,22 @@
+# D91/D92 isolated quote/frozen-price acceptance. Internal TLS only; no host ports or retained volumes.
+services:
+  postgres:
+    extends: {file: compose.r04b2a-test.yaml, service: postgres}
+  migrator:
+    extends: {file: compose.r04b2a-test.yaml, service: migrator}
+  identity:
+    extends: {file: compose.r04b2a-test.yaml, service: identity}
+  admin-simulator:
+    extends: {file: compose.r04b2a-test.yaml, service: admin-simulator}
+  simulator-b:
+    extends: {file: compose.r04b2a-test.yaml, service: simulator-b}
+  api:
+    extends: {file: compose.r04b2a-test.yaml, service: api}
+  web:
+    extends: {file: compose.r04b2a-test.yaml, service: web}
+  browser:
+    extends: {file: compose.r04b2a-test.yaml, service: browser}
+    entrypoint: [sh, -c, 'mkdir -p "$$HOME/.pki/nssdb" && certutil -N -d sql:$$HOME/.pki/nssdb --empty-password && certutil -A -d sql:$$HOME/.pki/nssdb -n runtime-ephemeral-ca -t C,, -i /run/tls/ca.crt && exec node r04b2b2-acceptance.cjs']
+networks:
+  runtime:
+    internal: true

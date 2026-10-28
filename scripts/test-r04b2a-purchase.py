@@ -184,7 +184,7 @@ class PurchaseSqlTests(supplier.SupplierSqlTests):
   for table in ('inventory.purchase_intents','inventory.purchase_intent_outbox'):
    self.assertEqual(self.sql(f"SELECT relrowsecurity AND relforcerowsecurity FROM pg_class WHERE oid='{table}'::regclass"),'t',table)
    self.assertEqual(self.sql(f"SELECT has_table_privilege('{app}','{table}','SELECT') OR has_table_privilege('{app}','{table}','INSERT') OR has_table_privilege('{app}','{table}','UPDATE') OR has_table_privilege('{app}','{table}','DELETE') OR has_table_privilege('{app}','{table}','TRUNCATE')"),'f',table)
-   for statement in (f'UPDATE {table} SET "TenantId"="TenantId"',f'DELETE FROM {table}','TRUNCATE inventory.purchase_intents, inventory.purchase_intent_outbox'):
+   for statement in (f'UPDATE {table} SET "TenantId"="TenantId"',f'DELETE FROM {table}','TRUNCATE inventory.purchase_intents, inventory.purchase_intent_outbox, inventory.purchase_intent_prices'):
     result=subprocess.run(['psql','-X','-qAt','-v','ON_ERROR_STOP=1'],input=statement+';',env=dict(os.environ,PGDATABASE=self.database),text=True,capture_output=True,timeout=10)
     self.assertNotEqual(result.returncode,0,statement);self.assertIn('append-only',result.stderr)
   self.assertEqual(self.sql(f"SELECT has_function_privilege('{app}','organization_access.purchase_intent_authorized(uuid,uuid,uuid,uuid,uuid)','EXECUTE') OR has_function_privilege('{app}','counterparties.purchase_supplier(uuid,uuid)','EXECUTE')"),'f','internal helpers are not directly callable')

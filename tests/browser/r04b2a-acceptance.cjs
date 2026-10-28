@@ -80,9 +80,10 @@ const ctx = fixture.contexts[0], data = fixture.workshop[0], pool = fixture.pool
     await panel.getByText('Residuo richiedibile: 3').waitFor();
     assert.equal(await panel.getByLabel('Fornitore').locator('option').count(), 2, 'placeholder plus exactly one mapped supplier');
     await panel.getByLabel('Fornitore').selectOption({ label: 'Fornitore sintetico' }); await panel.getByLabel('Quantità da richiedere').fill('2');
+    await panel.getByLabel('Prezzo acquisto mancante').fill('0'); // D91 explicit missing-cost completion; original retry/cap/snapshot assertions below remain unchanged.
     const posts = []; let dropped = false;
-    page.on('request', (r) => { if (r.method() === 'POST' && r.url().endsWith('/purchase-intents')) posts.push({ url: r.url(), body: r.postData() }); });
-    await page.route('**/purchase-intents', async (route) => {
+    page.on('request', (r) => { if (r.method() === 'POST' && r.url().endsWith('/purchase-intents/accepted')) posts.push({ url: r.url(), body: r.postData() }); });
+    await page.route('**/purchase-intents/accepted', async (route) => {
       if (route.request().method() === 'POST' && !dropped) { dropped = true; await route.fetch(); await route.abort('failed'); } else await route.continue();
     });
     await panel.getByRole('button', { name: "Crea richiesta d'acquisto" }).click();
@@ -103,7 +104,7 @@ const ctx = fixture.contexts[0], data = fixture.workshop[0], pool = fixture.pool
     assert.equal(db.Destination.kind, 'GiobbyPurchaseV1');
     let c = await counts(); assert.deepEqual([c.intents, c.outbox, c.held, c.quantity], [1, 1, 1, '2.000000']);
     pass('real UI create, lost accepted response, identical retry, authoritative reread and SQL: one intent, one Held outbox, frozen vendor/source/destination');
-    await page.unroute('**/purchase-intents');
+    await page.unroute('**/purchase-intents/accepted');
 
     // --- cumulative cap, replay and conflicts (API, new UUIDs, same line)
     let st = (await stateOf(lines[0])).value;

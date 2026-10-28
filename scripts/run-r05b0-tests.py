@@ -49,12 +49,12 @@ def fixtures(state, secret):
 def main():
     if not os.environ.get('TMPDIR'): raise ValueError('private TMPDIR required')
     if POOL not in ('1', '4'): raise ValueError('pool acceptance is explicitly 1 or 4')
-    if SPEC not in ('r05b0-acceptance.cjs', 'r05b0-gaps.cjs', 'r05b1-acceptance.cjs', 'r04b2a-acceptance.cjs', 'r04b2b1-acceptance.cjs'): raise ValueError('unknown binding acceptance specification')
+    if SPEC not in ('r05b0-acceptance.cjs', 'r05b0-gaps.cjs', 'r05b1-acceptance.cjs', 'r04b2a-acceptance.cjs', 'r04b2b1-acceptance.cjs', 'r04b2b2-acceptance.cjs'): raise ValueError('unknown binding acceptance specification')
     if not (ROOT/'web/dist-ui01-runtime/ui01-runtime.html').exists(): raise ValueError('build:ui01-runtime required')
     project = 'enginia360-r00b-' + secrets.token_hex(6)
     before_volumes = r00.inventory('volume')
     before_running = set(run(['docker', 'ps', '-q', '--no-trunc']).splitlines())
-    evidence = Path(os.environ['TMPDIR'])/(('r04b2b1-logs' if SPEC == 'r04b2b1-acceptance.cjs' else 'r04b2a-logs' if SPEC == 'r04b2a-acceptance.cjs' else 'r05b1-logs' if SPEC == 'r05b1-acceptance.cjs' else 'r05b0-logs')+'/evidence-pool'+POOL)
+    evidence = Path(os.environ['TMPDIR'])/(('r04b2b2-logs' if SPEC == 'r04b2b2-acceptance.cjs' else 'r04b2b1-logs' if SPEC == 'r04b2b1-acceptance.cjs' else 'r04b2a-logs' if SPEC == 'r04b2a-acceptance.cjs' else 'r05b1-logs' if SPEC == 'r05b1-acceptance.cjs' else 'r05b0-logs')+'/evidence-pool'+POOL)
     evidence.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix=project+'-', dir=os.environ['TMPDIR']) as directory:
         state = Path(directory)

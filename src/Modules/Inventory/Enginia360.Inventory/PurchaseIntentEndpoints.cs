@@ -16,6 +16,37 @@ internal static class PurchaseIntentEndpoints
     {
         routes.MapGet("/orders/{orderId:guid}/lines/{lineId:guid}/purchase-intents", Read);
         routes.MapPost("/orders/{orderId:guid}/lines/{lineId:guid}/purchase-intents", Create);
+        routes.MapGet("/orders/{orderId:guid}/lines/{lineId:guid}/purchase-intents/quote", Quote);
+        routes.MapPost("/orders/{orderId:guid}/lines/{lineId:guid}/purchase-intents/accepted", Accept);
+    }
+    private static async Task<IResult> Quote(Guid orderId, Guid lineId, Guid warehouseId, Guid supplierId, ClaimsPrincipal user,
+        IWorkshopAccess access, InventoryDbContext db, CancellationToken ct)
+    {
+        if (orderId == Guid.Empty || lineId == Guid.Empty || warehouseId == Guid.Empty || supplierId == Guid.Empty) return Results.BadRequest();
+        var member = await access.ResolveMembership(user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "", ct);
+        if (member is null) return Results.StatusCode(403);
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await Context(db, member.TenantId, user, ct);
+        var value = await db.Database.SqlQuery<string>($"SELECT catalog.purchase_intent_quote({orderId},{lineId},{warehouseId},{supplierId})::text AS \"Value\"").SingleAsync(ct);
+        await tx.CommitAsync(ct);
+        return Result(value);
+    }
+    private static async Task<IResult> Accept(Guid orderId, Guid lineId, AcceptedPurchaseIntentRequest request, ClaimsPrincipal user,
+        IWorkshopAccess access, InventoryDbContext db, IServiceProvider services, CancellationToken ct)
+    {
+        if (orderId == Guid.Empty || lineId == Guid.Empty || request.Id == Guid.Empty || request.WarehouseId == Guid.Empty
+            || request.SupplierId == Guid.Empty || request.SourceRevision is not > 0 || request.SupplierRevision is not >= 0
+            || request.MappingRevision is not > 0 || request.QuoteRevision is not >= 0 || request.CatalogVersion is not > 0
+            || request.AuthorityVersion is not > 0 || request.Quantity is not { Length: > 0 and <= 13 }
+            || request.ManualUnitPurchasePrice is { Length: > 13 }) return Results.BadRequest();
+        var member = await access.ResolveMembership(user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "", ct);
+        if (member is null) return Results.StatusCode(403);
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await Context(db, member.TenantId, user, ct);
+        var descriptor = services.GetService<PurchaseDestinationBinding>()?.Descriptor ?? "{}";
+        var value = await db.Database.SqlQuery<string>($"SELECT inventory.accept_purchase_intent({request.Id},{orderId},{lineId},{request.WarehouseId},{request.SupplierId},{request.SourceRevision.Value},{request.SupplierRevision.Value},{request.MappingRevision.Value},{request.Quantity},{request.QuoteRevision.Value},{request.CatalogVersion.Value},{request.AuthorityVersion.Value},{request.ManualUnitPurchasePrice},CAST({descriptor} AS jsonb))::text AS \"Value\"").SingleAsync(ct);
+        await tx.CommitAsync(ct);
+        return Result(value);
     }
     private static async Task<IResult> Read(Guid orderId, Guid lineId, Guid warehouseId, ClaimsPrincipal user,
         IWorkshopAccess access, InventoryDbContext db, CancellationToken ct)
