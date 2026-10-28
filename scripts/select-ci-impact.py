@@ -212,6 +212,21 @@ R04B2B2_SCOPE = R04B2B2_FILES | {
     'docs/r04b2b2-purchase-price-freeze.md','docs/productization-plan.md','docs/productization-backlog.json',
     'docs/r06-migration-inventory.json','docs/r06-migration-inventory.md'}
 
+INTEGRATIONS_SRC = 'src/Modules/Integrations/Enginia360.Integrations/'
+R04B2B3_FILES = {'scripts/test-r04b2b3-impact.py','scripts/test-r04b2b3-dispatch.py','scripts/run-r04b2b3-tests.py','scripts/test-r04b2b3-lifecycle.py',
+    'tests/browser/r04b2b3-acceptance.cjs','tests/browser/r04b2b3-giobby.py','compose.r04b2b3-test.yaml','database/runtime/migrations/0031_purchase_dispatch.sql',
+    'tests/Enginia360.Api.Tests/GiobbyPurchaseOrderTests.cs'}
+R04B2B3_DIRECT = {INTEGRATIONS_SRC+name for name in ('Enginia360.Integrations.csproj','GiobbyHost.cs','GiobbyPurchaseOrderConnector.cs','GiobbySalesOrderConnector.cs',
+    'GiobbyWire.cs','IntegrationsDbContext.cs','IntegrationsModule.cs','PurchaseDestination.cs','PurchaseConnector.cs','PurchaseDispatcher.cs','SimulatorConnector.cs','packages.lock.json')} | {
+    'src/Modules/Integrations/module.json','src/Modules/Inventory/Enginia360.Inventory.Contracts/PurchaseDispatchContracts.cs',
+    'src/Modules/Inventory/Enginia360.Inventory/PurchaseDispatchOutbox.cs','src/Modules/Inventory/Enginia360.Inventory/InventoryModule.cs',
+    'src/Enginia360.Api/packages.lock.json','tests/Enginia360.Api.Tests/packages.lock.json','tests/Enginia360.Api.Tests/AdministrationBoundaryTests.cs',
+    'scripts/test-r00-migrations.py','scripts/test-r04b2a-purchase.py','tests/Enginia360.Api.Tests/PurchaseIntentTests.cs','tests/browser/r04b2b1-acceptance.cjs','tests/browser/r04b2a-acceptance.cjs','tests/browser/r04b2b2-acceptance.cjs'}
+# Only this finite purchase-order connector slice may narrow historical runners; any other real producer keeps the generic direct-consumer selection.
+R04B2B3_SCOPE = R04B2B3_FILES | R04B2B3_DIRECT | {'database/runtime/manifest.json','migrator.runtime.Dockerfile','scripts/run-r00a-tests.py','scripts/run-r05b0-tests.py',
+    'scripts/select-ci-impact.py','scripts/test-r03a-impact.py','.github/workflows/ci.yml','docs/r04b2b3-giobby-purchase-order-connector.md','docs/productization-plan.md','docs/productization-backlog.json',
+    'docs/r06-migration-inventory.json','docs/r06-migration-inventory.md'}
+
 
 def selection(paths):
     paths = sorted(set(paths))
@@ -250,11 +265,16 @@ def selection(paths):
     if r04b2b1: auth = ui = ui01b = r06_offline = True
     r04b2b2 = bool(set(paths) & (R04B2B2_FILES | R04B2B2_DIRECT))
     if r04b2b2: auth = ui = ui01b = r06_offline = True
+    r04b2b3 = bool(set(paths) & (R04B2B3_FILES | R04B2B3_DIRECT))
+    if r04b2b3: auth = ui = ui01b = r06_offline = True
     unknown = []
     for path in paths:
         parsed = PurePosixPath(path)
         if not path or parsed.is_absolute() or '..' in parsed.parts or '\\' in path or str(parsed) != path:
             raise ValueError('invalid changed path')
+        if path in R04B2B3_FILES or path in R04B2B3_DIRECT:
+            if path.startswith('src/Modules/Integrations/'): r03c = r03c_full = r03a = r05b1 = True
+            continue
         if path in R04B2B2_FILES or path in R04B2A_FILES or path in R04B2B1_FILES or path == 'src/Modules/Catalog/Enginia360.Catalog/Enginia360.Catalog.csproj':
             continue
         if path in R06A2_FILES or (staging_only and path in R06_WIRING):
@@ -338,7 +358,8 @@ def selection(paths):
     if r04b2b2: filters.append('FullyQualifiedName~PurchaseIntentTests|FullyQualifiedName~SupplierPurchasePriceTests')
     if r04b2a: filters.append('FullyQualifiedName~PurchaseIntentTests')
     if r04b2b1: filters.append('FullyQualifiedName~SupplierPurchasePriceTests')
-    result = {'r04b2b2':r04b2b2,'r04b2b1':r04b2b1,'r04b2a':r04b2a,'changed_paths':paths,'api_filter':'|'.join(filters),'r06_offline':r06_offline,'r05a1_offline':r05a1_offline,'r05a2_offline':r05a2_offline,'r05a3_offline':r05a3_offline,'r05a4_offline':r05a4_offline,'r05a5_offline':r05a5_offline,'r05a6_offline':r05a6_offline,'r05a7_offline':r05a7_offline,'r05b0':r05b0,
+    if r04b2b3: filters.append('FullyQualifiedName~GiobbyPurchaseOrderTests|FullyQualifiedName~GiobbySalesOrderTests|FullyQualifiedName~AdministrationBoundaryTests')
+    result = {'r04b2b3':r04b2b3,'r04b2b2':r04b2b2,'r04b2b1':r04b2b1,'r04b2a':r04b2a,'changed_paths':paths,'api_filter':'|'.join(filters),'r06_offline':r06_offline,'r05a1_offline':r05a1_offline,'r05a2_offline':r05a2_offline,'r05a3_offline':r05a3_offline,'r05a4_offline':r05a4_offline,'r05a5_offline':r05a5_offline,'r05a6_offline':r05a6_offline,'r05a7_offline':r05a7_offline,'r05b0':r05b0,
             'browser':auth,'ui01b':ui01b,'r03a':r03a,'r03a2':r03a,'r04a':r04a,'r04c1':r04c1,'r04c2':r04c2,'r06b1':r06b1,'r03b':r03b,'r03c':r03c,'migrations':auth or ui01b,'ui_build':auth or ui,'ui_tests':ui,
             'r05b1':r05b1, 'r06a2':r06a2, 'full_architecture':False}
     if set(paths) & R04B2B2_FILES and set(paths) <= R04B2B2_SCOPE:
@@ -347,6 +368,18 @@ def selection(paths):
         for key in ('browser','migrations','ui01b','r04b2a','r04b2b1','r04b2b2','ui_build','ui_tests','r06_offline'):
             result[key] = True
         result['api_filter'] = AUTH_FILTER+'|'+WORKSHOP_FILTER+'|FullyQualifiedName~InventoryArchitectureTests|FullyQualifiedName~PurchaseIntentTests|FullyQualifiedName~SupplierPurchasePriceTests'
+    if set(paths) & R04B2B3_FILES and set(paths) <= R04B2B3_SCOPE:
+        for key in ('r03a','r03a2','r03b','r03c','r04a','r04c1','r04c2','r05b0','r06b1','r06a2'):
+            result[key] = False
+        for key in ('browser','migrations','ui01b','r04b2a','r04b2b2','r04b2b3','r05b1','ui_build','r06_offline'):
+            result[key] = True
+        result['ui_tests'] = False
+        result['api_filter'] = AUTH_FILTER+'|'+WORKSHOP_FILTER+'|FullyQualifiedName~InventoryArchitectureTests|FullyQualifiedName~PurchaseIntentTests|FullyQualifiedName~SupplierPurchasePriceTests|FullyQualifiedName~GiobbySalesOrderTests|FullyQualifiedName~GiobbyPurchaseOrderTests|FullyQualifiedName~AdministrationBoundaryTests'
+    # Earlier bounded producer slices may replace their API filter; never discard an already selected purchase consumer.
+    if result['r04b2b3']:
+        for consumer in ('GiobbyPurchaseOrderTests','GiobbySalesOrderTests','AdministrationBoundaryTests'):
+            if consumer not in result['api_filter']:
+                result['api_filter'] += '|FullyQualifiedName~'+consumer
     return result
 
 

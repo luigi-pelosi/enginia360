@@ -148,5 +148,10 @@
     "id": "0030_purchase_price_freeze",
     "path": "migrations/0030_purchase_price_freeze.sql",
     "sha256": "0deb29ee2fbcb61514990aa008ebf2776e9100f11f54c8683318511255f9232d"
+  },
+  {
+    "id": "0031_purchase_dispatch",
+    "path": "migrations/0031_purchase_dispatch.sql",
+    "sha256": "6c9987a388cff2a1089ab61b33a5dd65645323c881ea2a12c3b09193a803d212"
   }
 ]

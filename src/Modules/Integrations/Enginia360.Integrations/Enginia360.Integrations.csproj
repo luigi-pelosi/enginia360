@@ -4,5 +4,6 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
     <ProjectReference Include="../../Workshop/Enginia360.Workshop.Contracts/Enginia360.Workshop.Contracts.csproj" />
+    <ProjectReference Include="../../Inventory/Enginia360.Inventory.Contracts/Enginia360.Inventory.Contracts.csproj" />
   </ItemGroup>
 </Project>
