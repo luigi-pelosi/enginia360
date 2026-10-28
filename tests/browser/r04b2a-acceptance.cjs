@@ -32,9 +32,23 @@ async function login(browser, index) {
   return { context, page };
 }
 const ctx = fixture.contexts[0], data = fixture.workshop[0], pool = fixture.poolSize;
+async function waitForTlsApi(browser) {
+ const probe = await browser.newPage(), deadline = Date.now() + 30000;
+ try {
+  while (Date.now() < deadline) {
+   try {
+    const response = await probe.goto(origin+'/auth/session', {timeout: 3000, waitUntil: 'domcontentloaded'});
+    if (response?.status() === 200 && (await response.json()).authenticated === false) return;
+   } catch { /* The isolated API may still be starting; never relax TLS validation. */ }
+   await new Promise(resolve => setTimeout(resolve, 100));
+  }
+  assert.fail('Real TLS API session endpoint did not become ready before login');
+ } finally { await probe.close(); }
+}
 (async () => {
   const browser = await chromium.launch({ headless: true });
   try {
+    await waitForTlsApi(browser);
     const { page } = await login(browser, 0);
     // Order with three independent Part lines of quantity 3 (UI line, race line, role/mapping/grant line).
     const order = uid(); let revision = 0;

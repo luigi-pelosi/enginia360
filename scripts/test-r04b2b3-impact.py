@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Finite R04.b.2b.3 purchase-order connector selection; unknown executables fail closed, runtime acceptance is dispatch-only."""
 import importlib.util
+import re
 from pathlib import Path
 import unittest
 ROOT=Path(__file__).resolve().parents[1]
@@ -15,16 +16,17 @@ DIRECT={INTEGRATIONS+name for name in ('Enginia360.Integrations.csproj','GiobbyH
  'src/Modules/Integrations/module.json','src/Modules/Inventory/Enginia360.Inventory.Contracts/PurchaseDispatchContracts.cs',
  'src/Modules/Inventory/Enginia360.Inventory/PurchaseDispatchOutbox.cs','src/Modules/Inventory/Enginia360.Inventory/InventoryModule.cs',
  'src/Enginia360.Api/packages.lock.json','tests/Enginia360.Api.Tests/packages.lock.json','tests/Enginia360.Api.Tests/AdministrationBoundaryTests.cs',
- 'scripts/test-r00-migrations.py','scripts/test-r04b2a-purchase.py','tests/Enginia360.Api.Tests/PurchaseIntentTests.cs','tests/browser/r04b2b1-acceptance.cjs'}
+ 'scripts/test-r00-migrations.py','scripts/test-r04b2a-purchase.py','tests/Enginia360.Api.Tests/PurchaseIntentTests.cs','tests/browser/r04b2b1-acceptance.cjs','tests/browser/r04b2a-acceptance.cjs','tests/browser/r04b2b2-acceptance.cjs'}
 WIRING={'database/runtime/manifest.json','migrator.runtime.Dockerfile','scripts/run-r00a-tests.py','scripts/run-r05b0-tests.py','scripts/select-ci-impact.py','scripts/test-r03a-impact.py','.github/workflows/ci.yml'}
 DOCS={'docs/r04b2b3-giobby-purchase-order-connector.md','docs/productization-plan.md','docs/productization-backlog.json','docs/r06-migration-inventory.json','docs/r06-migration-inventory.md'}
 class Impact(unittest.TestCase):
  def test_purchase_acceptance_waits_for_real_tls_api_before_opening_login(self):
-  for name in ('r04b2b1-acceptance.cjs','r04b2b3-acceptance.cjs'):
+  for name in ('r04b2a-acceptance.cjs','r04b2b1-acceptance.cjs','r04b2b2-acceptance.cjs','r04b2b3-acceptance.cjs'):
    text=(ROOT/'tests/browser'/name).read_text()
    with self.subTest(name=name):
     self.assertIn('await waitForTlsApi(browser)',text)
-    self.assertLess(text.index('await waitForTlsApi(browser)'),text.index('await login(browser,0)'))
+    login=re.search(r'await login\(browser,\s*0\)',text);assert login is not None
+    self.assertLess(text.index('await waitForTlsApi(browser)'),login.start())
     self.assertIn("origin+'/auth/session'",text);self.assertIn('authenticated === false',text)
  def test_each_own_or_direct_path_selects_the_purchase_connector_runtime_and_security(self):
   for path in sorted(OWN|DIRECT):
