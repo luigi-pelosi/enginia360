@@ -2473,7 +2473,7 @@
     "definition": {
       "migration": "0031_purchase_dispatch",
       "path": "database/runtime/migrations/0031_purchase_dispatch.sql",
-      "file_sha256": "d5b12f72e3fe8a020c58ec785a096a406597689ce85cc55382c30a2eb15fff47",
+      "file_sha256": "6c9987a388cff2a1089ab61b33a5dd65645323c881ea2a12c3b09193a803d212",
       "create_sql": "CREATE TABLE inventory.purchase_intent_outcomes (\n \"IntentId\" uuid PRIMARY KEY,\"TenantId\" uuid NOT NULL,\"LegalEntityId\" uuid NOT NULL,\n \"Status\" text NOT NULL DEFAULT 'Confirmed' CHECK (\"Status\"='Confirmed'),\n \"ExternalReference\" varchar(64) NOT NULL CHECK (\"ExternalReference\" ~ '^[A-Za-z0-9][A-Za-z0-9-]{0,63}$'),\n \"RecordedAt\" timestamptz NOT NULL DEFAULT clock_timestamp(),\n FOREIGN KEY(\"IntentId\",\"TenantId\",\"LegalEntityId\") REFERENCES inventory.purchase_intents(\"Id\",\"TenantId\",\"LegalEntityId\"),\n FOREIGN KEY(\"IntentId\") REFERENCES inventory.purchase_intent_prices(\"IntentId\")\n);",
       "columns": [
         "IntentId",
@@ -2503,7 +2503,7 @@
     "definition": {
       "migration": "0031_purchase_dispatch",
       "path": "database/runtime/migrations/0031_purchase_dispatch.sql",
-      "file_sha256": "d5b12f72e3fe8a020c58ec785a096a406597689ce85cc55382c30a2eb15fff47",
+      "file_sha256": "6c9987a388cff2a1089ab61b33a5dd65645323c881ea2a12c3b09193a803d212",
       "create_sql": "CREATE TABLE integrations.purchase_dispatches (\n \"IntentId\" uuid PRIMARY KEY,\"TenantId\" uuid NOT NULL,\"LegalEntityId\" uuid NOT NULL,\n \"State\" varchar(20) NOT NULL CHECK (\"State\" IN ('Queued','Uncertain','Completed')),\n \"Attempts\" integer NOT NULL CHECK (\"Attempts\">=0),\"Failures\" integer NOT NULL DEFAULT 0 CHECK (\"Failures\">=0),\n \"LastAttemptAt\" timestamptz,\"NextAttemptAt\" timestamptz NOT NULL,\"LeaseUntil\" timestamptz,\n \"ExternalReference\" varchar(64),\"LastError\" varchar(64),\"UpdatedAt\" timestamptz NOT NULL\n);",
       "columns": [
         "IntentId",

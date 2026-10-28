@@ -152,6 +152,6 @@
   {
     "id": "0031_purchase_dispatch",
     "path": "migrations/0031_purchase_dispatch.sql",
-    "sha256": "d5b12f72e3fe8a020c58ec785a096a406597689ce85cc55382c30a2eb15fff47"
+    "sha256": "6c9987a388cff2a1089ab61b33a5dd65645323c881ea2a12c3b09193a803d212"
   }
 ]

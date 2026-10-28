@@ -43,6 +43,10 @@ class DispatchSqlTests(unittest.TestCase):
   return self.sql(self.ctx(ids,changes.get('tenant'),changes.get('company'))+f"SELECT coalesce(inventory.read_purchase_dispatch('{changes.get('arg_tenant') or ids['tenant']}','{changes.get('arg_company') or ids['companies'][0]}','{intent}')::text,'null'); COMMIT;",app=True).splitlines()[-1]
  def record(self,ids,intent,reference='GiobbyPurchaseOrder-301',**changes):
   return self.sql(self.ctx(ids,changes.get('tenant'),changes.get('company'))+f"SELECT inventory.record_purchase_outcome('{changes.get('arg_tenant') or ids['tenant']}','{changes.get('arg_company') or ids['companies'][0]}','{intent}','{reference}'); COMMIT;",app=True).splitlines()[-1]
+ def test_discovery_is_not_publicly_executable_and_has_an_explicit_app_grant(self):
+  self.freeze_world()
+  self.assertEqual(self.sql("SELECT EXISTS(SELECT 1 FROM pg_proc p CROSS JOIN LATERAL aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) a WHERE p.oid='inventory.pending_purchase_dispatch(integer,integer)'::regprocedure AND a.grantee=0 AND a.privilege_type='EXECUTE')"),'f','cross-tenant envelope discovery is not a PUBLIC function')
+  self.assertEqual(self.sql("SELECT EXISTS(SELECT 1 FROM pg_proc p CROSS JOIN LATERAL aclexplode(p.proacl) a JOIN pg_roles r ON r.oid=a.grantee WHERE p.oid='inventory.pending_purchase_dispatch(integer,integer)'::regprocedure AND r.rolname='runtime_app' AND a.privilege_type='EXECUTE')"),'t','app execution must be explicitly granted')
  def test_dispatch_surface_and_privileges(self):
   self.freeze_world()
   self.assertEqual(self.sql("SELECT to_regprocedure('inventory.pending_purchase_dispatch(integer,integer)') IS NOT NULL AND to_regprocedure('inventory.read_purchase_dispatch(uuid,uuid,uuid)') IS NOT NULL AND to_regprocedure('inventory.record_purchase_outcome(uuid,uuid,uuid,text)') IS NOT NULL"),'t')

@@ -48,10 +48,11 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$
   AND NOT EXISTS(SELECT 1 FROM inventory.purchase_intent_outcomes o WHERE o."IntentId"=i."Id")
  ORDER BY i."CreatedAt",i."Id" LIMIT least(greatest(max_items,1),100) OFFSET greatest(scan_offset,0)
 $$;
-ALTER FUNCTION inventory.pending_purchase_dispatch(integer,integer) OWNER TO enginia360_outbox_reader;
-REVOKE CREATE ON SCHEMA inventory FROM enginia360_outbox_reader;
+-- Set ACLs while the migration role still owns the function: ALTER OWNER first would turn these into warning-only no-ops.
 REVOKE ALL ON FUNCTION inventory.pending_purchase_dispatch(integer,integer) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION inventory.pending_purchase_dispatch(integer,integer) TO :"app_user";
+ALTER FUNCTION inventory.pending_purchase_dispatch(integer,integer) OWNER TO enginia360_outbox_reader;
+REVOKE CREATE ON SCHEMA inventory FROM enginia360_outbox_reader;
 
 -- Frozen facts of one priced intent. The caller must already be in the verified tenant context; the arguments only select the row.
 CREATE FUNCTION inventory.read_purchase_dispatch(tenant uuid,company uuid,intent uuid) RETURNS jsonb
