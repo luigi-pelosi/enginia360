@@ -2349,5 +2349,76 @@
         "IntentId"
       ]
     }
+  },
+  {
+    "table": "catalog.supplier_purchase_price_history",
+    "owner": "catalog",
+    "category": "company_extension",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "CommandId"
+    ],
+    "definition": {
+      "migration": "0029_supplier_purchase_prices",
+      "path": "database/runtime/migrations/0029_supplier_purchase_prices.sql",
+      "file_sha256": "b334cce8027352fd8f7a5e6a77a57901a0f8ae13e10efc547c0381bc9a970575",
+      "create_sql": "CREATE TABLE catalog.supplier_purchase_price_history (\n \"CommandId\" uuid PRIMARY KEY CHECK (\"CommandId\"<>'00000000-0000-0000-0000-000000000000'),\n \"TenantId\" uuid NOT NULL,\"LegalEntityId\" uuid NOT NULL,\"SupplierId\" uuid NOT NULL,\"CatalogItemId\" uuid NOT NULL,\n \"Revision\" integer NOT NULL CHECK (\"Revision\">0),\n \"UnitPurchasePrice\" numeric(12,6) NOT NULL CHECK (\"UnitPurchasePrice\">=0),\n \"ActorMembershipId\" uuid NOT NULL,\"SupplierRevision\" integer NOT NULL,\"CatalogVersion\" integer NOT NULL,\"AuthorityVersion\" integer NOT NULL,\n \"Payload\" jsonb NOT NULL,\"RecordedAt\" timestamptz NOT NULL DEFAULT clock_timestamp(),\n UNIQUE(\"TenantId\",\"LegalEntityId\",\"SupplierId\",\"CatalogItemId\",\"Revision\"),\n FOREIGN KEY(\"LegalEntityId\",\"TenantId\") REFERENCES organization_access.legal_entities(\"Id\",\"TenantId\"),\n FOREIGN KEY(\"ActorMembershipId\",\"TenantId\") REFERENCES organization_access.memberships(\"Id\",\"TenantId\")\n);",
+      "columns": [
+        "CommandId",
+        "TenantId",
+        "LegalEntityId",
+        "SupplierId",
+        "CatalogItemId",
+        "Revision",
+        "UnitPurchasePrice",
+        "ActorMembershipId",
+        "SupplierRevision",
+        "CatalogVersion",
+        "AuthorityVersion",
+        "Payload",
+        "RecordedAt"
+      ],
+      "primary_key": [
+        "CommandId"
+      ]
+    }
+  },
+  {
+    "table": "organization_access.purchase_price_grant_history",
+    "owner": "organization_access",
+    "category": "security_evidence",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "CommandId"
+    ],
+    "definition": {
+      "migration": "0029_supplier_purchase_prices",
+      "path": "database/runtime/migrations/0029_supplier_purchase_prices.sql",
+      "file_sha256": "b334cce8027352fd8f7a5e6a77a57901a0f8ae13e10efc547c0381bc9a970575",
+      "create_sql": "CREATE TABLE organization_access.purchase_price_grant_history (\n \"CommandId\" uuid PRIMARY KEY,\"TenantId\" uuid NOT NULL,\"LegalEntityId\" uuid NOT NULL,\n \"ActorMembershipId\" uuid NOT NULL,\"TargetMembershipId\" uuid NOT NULL,\"VerificationReference\" uuid NOT NULL,\n \"Revision\" integer NOT NULL CHECK (\"Revision\">0),\"Action\" text NOT NULL,\"Operation\" text NOT NULL,\n \"OccurredAt\" timestamptz NOT NULL DEFAULT clock_timestamp(),\n UNIQUE(\"TenantId\",\"LegalEntityId\",\"TargetMembershipId\",\"Action\",\"Revision\"),\n FOREIGN KEY(\"LegalEntityId\",\"TenantId\") REFERENCES organization_access.legal_entities(\"Id\",\"TenantId\"),\n FOREIGN KEY(\"ActorMembershipId\",\"TenantId\") REFERENCES organization_access.memberships(\"Id\",\"TenantId\"),\n FOREIGN KEY(\"TargetMembershipId\",\"TenantId\") REFERENCES organization_access.memberships(\"Id\",\"TenantId\")\n);",
+      "columns": [
+        "CommandId",
+        "TenantId",
+        "LegalEntityId",
+        "ActorMembershipId",
+        "TargetMembershipId",
+        "VerificationReference",
+        "Revision",
+        "Action",
+        "Operation",
+        "OccurredAt"
+      ],
+      "primary_key": [
+        "CommandId"
+      ]
+    }
   }
 ]

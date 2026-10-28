@@ -138,5 +138,10 @@
     "id": "0028_purchase_intents",
     "path": "migrations/0028_purchase_intents.sql",
     "sha256": "b789e453d389dbe9f073d127c4186716b70c98c388af22ef0419aafe7bf4b21e"
+  },
+  {
+    "id": "0029_supplier_purchase_prices",
+    "path": "migrations/0029_supplier_purchase_prices.sql",
+    "sha256": "b334cce8027352fd8f7a5e6a77a57901a0f8ae13e10efc547c0381bc9a970575"
   }
 ]

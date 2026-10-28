@@ -6,6 +6,7 @@ namespace Enginia360.Catalog;
 
 public static class CatalogModule
 {
+    public static void MapSupplierPurchasePrices(Microsoft.AspNetCore.Builder.WebApplication app) => PurchasePriceEndpoints.Map(app);
     public static IServiceCollection AddWorkshopCatalog(this IServiceCollection services, string connection)
     {
         services.AddDbContext<CatalogDbContext>(o => o.UseNpgsql(connection));
