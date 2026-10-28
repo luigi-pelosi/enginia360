@@ -5,6 +5,7 @@ import OrderWorkspace from './OrderWorkspace';
 import MaterialOperations from './MaterialOperations';
 import OwnActualTime from './OwnActualTime';
 const AdministrativeWorkspace = lazy(() => import('./AdministrativeWorkspace'));
+const SupplierPurchasePrices = lazy(() => import('./SupplierPurchasePrices'));
 import OrderList from './OrderList';
 import OwnContexts from './OwnContexts';
 import MasterAuthority from './MasterAuthority';
@@ -18,9 +19,12 @@ export default function WorkshopRuntime() {
   const [authenticated, setAuthenticated] = useState(false), [csrf, setCsrf] = useState('');
   const generation = useRef(0);
   const [materialsOpen, setMaterialsOpen] = useState(false);
-  const [materialContextBlocked, setMaterialContextBlocked] = useState(false);
+  const [materialBlocked, setMaterialContextBlocked] = useState(false);
+  const [priceBlocked, setPriceBlocked] = useState(false);
+  const materialContextBlocked = materialBlocked || priceBlocked;
   const [timeOpen, setTimeOpen] = useState(false);
   const [closureOpen, setClosureOpen] = useState(false);
+  const [pricesOpen, setPricesOpen] = useState(false);
   function failed(e: unknown) {
     setStatus(e instanceof Error ? e.message : 'Servizio non disponibile.');
     if (e instanceof ApiError && e.status === 401) { generation.current++; setAuthenticated(false); setCsrf(''); setEditor(undefined); setBusy(false); }
@@ -55,5 +59,6 @@ export default function WorkshopRuntime() {
     <details open={timeOpen} onToggle={e => setTimeOpen(e.currentTarget.open)}><summary>Tempo effettivo mio</summary>{timeOpen && <OwnActualTime key={'time:'+editor.order.id} editor={editor} onError={optionalFailed} />}</details>
     <details open={closureOpen} onToggle={e => setClosureOpen(e.currentTarget.open)}><summary>Chiusura e attesa amministrativa</summary>{closureOpen && <Suspense fallback={<p role="status">Caricamento pannello…</p>}><AdministrativeWorkspace key={'closure:'+editor.order.id} editor={editor} onError={optionalFailed} onChanged={() => load(editor.order.id, true)} /></Suspense>}</details></div>}
     {authenticated && order && <MasterAuthority key={'authority:'+order.legalEntityId} companyId={order.legalEntityId} counterpartyId={order.payerId} onError={optionalFailed} />}
+    {authenticated && order && <details open={pricesOpen} onToggle={e=>{if(priceBlocked&&!e.currentTarget.open)e.currentTarget.open=true;else setPricesOpen(e.currentTarget.open);}}><summary onClick={e=>{if(priceBlocked)e.preventDefault();}} aria-disabled={priceBlocked}>Listini acquisto fornitori</summary>{pricesOpen && <Suspense fallback={<p role="status">Caricamento listini…</p>}><SupplierPurchasePrices key={'prices:'+order.legalEntityId} companyId={order.legalEntityId} onError={optionalFailed} onBlocked={setPriceBlocked}/></Suspense>}</details>}
     </section></div><footer className="ui01-summary">{summary ? <><span>Imponibile {summary.netAmount}</span><span>IVA {summary.taxAmount}</span><strong>{summary.total} EUR</strong></> : 'Riepilogo non verificato'}</footer></main>;
 }
