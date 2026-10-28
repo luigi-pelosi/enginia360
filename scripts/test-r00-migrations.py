@@ -319,7 +319,7 @@ class PostgreSqlTests(unittest.TestCase):
         self.assertEqual(self.sql(f"SELECT count(*) FROM pg_class WHERE relowner=(SELECT oid FROM pg_roles WHERE rolname='{app}')"), '0')
         self.assertEqual(self.sql(f"SELECT pg_has_role('{app}','enginia360_outbox_reader','MEMBER') OR pg_has_role('{app}','{self.owner}','MEMBER')"), 'f')
         self.assertEqual(self.sql("SELECT NOT rolcanlogin AND rolbypassrls AND NOT (rolsuper OR rolcreatedb OR rolcreaterole) FROM pg_roles WHERE rolname='enginia360_outbox_reader'"), 't')
-        self.assertEqual(self.sql("SELECT count(*) FROM pg_proc p JOIN pg_roles r ON r.oid=p.proowner WHERE r.rolname='enginia360_outbox_reader' AND p.prosecdef AND p.proconfig=ARRAY['search_path=pg_catalog, pg_temp']"), '2')
+        self.assertEqual(self.sql("SELECT count(*) FROM pg_proc p JOIN pg_roles r ON r.oid=p.proowner WHERE r.rolname='enginia360_outbox_reader' AND p.prosecdef AND p.proconfig=ARRAY['search_path=pg_catalog, pg_temp']"), '3')  # 0011/0012 workshop envelopes + 0031 inventory purchase envelopes; same owner/search_path/no extra table access
         self.assertEqual(self.sql("SELECT has_schema_privilege('enginia360_outbox_reader','workshop','CREATE') OR has_table_privilege('enginia360_outbox_reader','workshop.administrative_requests','SELECT')"), 'f')
         for statement in ['SET ROLE enginia360_outbox_reader', f'SET ROLE "{self.owner}"', 'CREATE ROLE forbidden', "INSERT INTO runtime_migrations.applied(id,checksum) VALUES('9999_fake',repeat('0',64))", 'CREATE TABLE public.forbidden(id int)']:
             env = dict(os.environ, PGDATABASE=self.database, PGUSER=app, PGPASSWORD=os.environ['R00_APP_PASSWORD'])
