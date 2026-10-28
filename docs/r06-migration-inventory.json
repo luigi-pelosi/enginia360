@@ -2282,6 +2282,43 @@
     }
   },
   {
+    "table": "inventory.purchase_intent_prices",
+    "owner": "inventory",
+    "category": "operational_fact",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": {
+      "source": "src/Modules/Inventory/Enginia360.Inventory/PurchaseIntentEndpoints.cs",
+      "registration": "routes.MapPost(\"/orders/{orderId:guid}/lines/{lineId:guid}/purchase-intents/accepted\", Accept);",
+      "purpose": "EXISTING_OPERATION_NOT_IMPORT_AUTHORIZATION"
+    },
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "IntentId"
+    ],
+    "definition": {
+      "migration": "0030_purchase_price_freeze",
+      "path": "database/runtime/migrations/0030_purchase_price_freeze.sql",
+      "file_sha256": "0deb29ee2fbcb61514990aa008ebf2776e9100f11f54c8683318511255f9232d",
+      "create_sql": "CREATE TABLE inventory.purchase_intent_prices (\n \"IntentId\" uuid PRIMARY KEY,\"TenantId\" uuid NOT NULL,\"LegalEntityId\" uuid NOT NULL,\n \"AcceptedUnitPurchasePrice\" numeric(12,6) NOT NULL CHECK (\"AcceptedUnitPurchasePrice\">=0),\n \"PriceSource\" jsonb NOT NULL,\"Method\" text NOT NULL CHECK (\"Method\" IN ('manual','listed')),\n \"ActorMembershipId\" uuid NOT NULL,\"AcceptedAt\" timestamptz NOT NULL DEFAULT clock_timestamp(),\n \"Version\" integer NOT NULL DEFAULT 1 CHECK (\"Version\"=1),\n FOREIGN KEY(\"IntentId\",\"TenantId\",\"LegalEntityId\") REFERENCES inventory.purchase_intents(\"Id\",\"TenantId\",\"LegalEntityId\"),\n FOREIGN KEY(\"ActorMembershipId\",\"TenantId\") REFERENCES organization_access.memberships(\"Id\",\"TenantId\")\n);",
+      "columns": [
+        "IntentId",
+        "TenantId",
+        "LegalEntityId",
+        "AcceptedUnitPurchasePrice",
+        "PriceSource",
+        "Method",
+        "ActorMembershipId",
+        "AcceptedAt",
+        "Version"
+      ],
+      "primary_key": [
+        "IntentId"
+      ]
+    }
+  },
+  {
     "table": "inventory.purchase_intents",
     "owner": "inventory",
     "category": "operational_fact",

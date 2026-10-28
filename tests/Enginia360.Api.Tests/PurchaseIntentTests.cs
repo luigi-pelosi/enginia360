@@ -27,6 +27,20 @@ public sealed class PurchaseIntentTests : IClassFixture<TestApiFactory>
     }
 
     [Theory]
+    [InlineData("GET", "quote")]
+    [InlineData("POST", "accepted")]
+    public async Task Quoted_and_priced_intent_surfaces_require_real_authentication(string method, string suffix)
+    {
+        using var app = factory.WithWebHostBuilder(b => b.UseSetting("Inventory:Enabled", "true").UseSetting("Workshop:Enabled", "true").UseSetting("Counterparties:Enabled", "true"));
+        using var client = app.CreateClient();
+        client.DefaultRequestHeaders.Add("X-Tenant-Id", Guid.NewGuid().ToString());
+        client.DefaultRequestHeaders.Add("X-Identity-Subject", Guid.NewGuid().ToString());
+        var path = "/api/v1/inventory/orders/11111111-1111-4111-8111-111111111111/lines/11111111-1111-4111-8111-111111111111/purchase-intents/" + suffix + "?warehouseId=11111111-1111-4111-8111-111111111111&supplierId=11111111-1111-4111-8111-111111111111";
+        var result = method == "GET" ? await client.GetAsync(path) : await client.PostAsJsonAsync(path, new {});
+        Assert.Equal(HttpStatusCode.Unauthorized, result.StatusCode);
+    }
+
+    [Theory]
     [InlineData("GET")]
     [InlineData("POST")]
     public async Task Purchase_intents_require_real_authentication_not_identity_headers(string method)
