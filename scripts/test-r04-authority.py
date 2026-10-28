@@ -19,7 +19,7 @@ BACKLOG = 'docs/productization-backlog.json'
 INVENTORY = 'docs/r06-migration-inventory.md'
 SUPPLIER = 'docs/r04b1-supplier-role.md'
 INTENT = 'docs/r04b2a-purchase-intent.md'
-PATHS = ('AGENTS.md', GLOSSARY, PLAN, RUNBOOK, BACKLOG, INVENTORY, SUPPLIER, INTENT)
+PATHS = ('AGENTS.md', GLOSSARY, PLAN, RUNBOOK, BACKLOG, INVENTORY, SUPPLIER, INTENT, 'docs/r04b2b1-supplier-purchase-prices.md')
 QUOTE = 'No approvo B: non si può gestire stock e flusso di acquisti in distinti fonti. La fonte in questo caso resta sempre l’ERP esterno'
 START, END = '<!-- r04-authority:start -->', '<!-- r04-authority:end -->'
 D1_D84_BYTES = 131965
@@ -290,6 +290,49 @@ def validate_d91(docs):
         raise ValueError('D91: contradictory pricing, missing-cost dispatch or implicit rights')
 
 
+def validate_d92(docs):
+    """Decision evidence/active boundaries only, never purchasing runtime acceptance."""
+    history = docs[GLOSSARY].encode().split('### D1 —'.encode(), 1)[1]
+    history = '### D1 —'.encode()+history
+    if hashlib.sha256(history[:152968]).hexdigest() != '53551d8c884be224783f2a0d8ad4d353fb32d80203a99c608ca6608d9d8a3ad7':
+        raise ValueError('D92: D1–D91 history changed')
+    decision = docs[GLOSSARY].split('### D92 —')[1]
+    require(decision, (D92_QUESTION, '> Confermo A\n', '28 ottobre 2026',
+                      'Registro D1–D91 verificato', 'B non selezionata',
+                      'distinta dal «Confermo A» di D90'), 'D92 provenance')
+    scopes = []
+    for path in D92_DOC_PATHS:
+        text = docs[path]
+        start, end = '<!-- r04-d92:start -->', '<!-- r04-d92:end -->'
+        if text.count(start) != 1 or text.count(end) != 1:
+            raise ValueError('D92: exactly one active quote block required: '+path)
+        block = text.split(start)[1].split(end)[0]
+        require(block, D92_TOKENS, 'D92 '+path)
+        scopes.append(block)
+    for card in json.loads(docs[BACKLOG]):
+        if card['id'] in ('R04', 'R05'):
+            require(card['gate'], D92_TOKENS, 'D92 backlog '+card['id'])
+            scopes.append(card['gate'])
+    lines = [line for line in docs['AGENTS.md'].splitlines() if line.startswith('- D92 ')]
+    if len(lines) != 1:
+        raise ValueError('D92: exactly one active AGENTS summary required')
+    require(lines[0], D92_AGENTS_TOKENS, 'D92 AGENTS')
+    scopes.extend((docs['AGENTS.md'], decision))
+    forbidden = (
+        r'purchasing\s+grants\s+full\s+price-list\s+browsing',
+        r'purchasing\s+grants\s+price\s+history\s+and\s+maintenance',
+        r'purchasing\s+automatically\s+grants\s+catalog[.]purchase-prices[.]read/manage',
+        r'arbitrary\s+tenant-wide\s+quote\s+lookup\s+allowed',
+        r'bulk\s+quote\s+browsing\s+allowed', r'source\s+access\s+bypass\s+allowed',
+        r'tenant\s+from\s+browser\s+trusted\s+for\s+quote',
+        r'quote\s+runtime\s+delivered\s+by\s+D92',
+        r'runtime\s+starts\s+before\s+docs\s+merge',
+        r'quote\s+requires\s+catalog[.]purchase-prices[.]read\s+in\s+addition\s+to\s+purchase\s+permission',
+    )
+    if any(re.search(pattern, '\n'.join(scopes), re.I) for pattern in forbidden):
+        raise ValueError('D92: expanded quote authority, B prerequisite or false runtime claim')
+
+
 def validate(root):
     docs = {path: (root/path).read_text() for path in PATHS}
     priority_scope = '\n'.join(docs.values())
@@ -382,8 +425,8 @@ def validate(root):
         raise ValueError('active delivery: stale D80/D81 status')
     # Historical decisions remain untouched; the new decision must be unique and next.
     ids = [int(x) for x in re.findall(r'^### D(\d+) —', docs[GLOSSARY], re.M)]
-    if sorted(ids) != list(range(1, 92)):
-        raise ValueError('decision register: retain unique D1–D90 and append D91')
+    if sorted(ids) != list(range(1, 93)):
+        raise ValueError('decision register: retain unique D1–D91 and append D92')
     prefix = docs[GLOSSARY].encode()
     prefix = prefix[prefix.index(b'### D1 \xe2\x80\x94'):][:D1_D84_BYTES]
     if hashlib.sha256(prefix).hexdigest() != D1_D84_SHA256:
@@ -454,7 +497,59 @@ def validate(root):
             raise ValueError('active authority: forbidden promotion or mixed writer')
     validate_d90(docs)
     validate_d91(docs)
+    validate_d92(docs)
 
+
+D92_TOKENS = (
+    'D92',
+    'quotazione corrente minima di proprietà Catalog',
+    'riga Part sorgente selezionata, fornitore e società autorizzati',
+    'inventory.purchase-intents.create',
+    'workshop.orders.read',
+    'senza catalog.purchase-prices.read/manage',
+    'nessuna consultazione completa, storico o manutenzione listini',
+    'nessun grant implicito o globale',
+    'nessun lookup arbitrario tenant-wide, consultazione massiva o bypass della sorgente',
+    'server deriva identità, tenant, contesto, grant correnti e accesso corrente alla sorgente',
+    'mai tenant dal browser',
+    'D91 manutenzione invariata',
+    'D77 nessun self-grant, subdelega o nuovo potere delegabile',
+    'D82/D88/D90 invariati',
+    '#121 POLICY_RESOLVED_PENDING_DOCS_MERGE_RUNTIME',
+    '#121/#44/#45 aperte',
+    'runtime solo dopo merge docs/guardie',
+    'completamento costo mancante e prezzo/provenienza congelati prima del connettore',
+    'nessun runtime consegnato qui',
+    '0028 Held e 0029 invariati',
+    'nessun backfill automatico o repricing retroattivo',
+    'D89 solo offline, nessuna full architecture ora',
+)
+D92_AGENTS_TOKENS = (
+    'D92',
+    'minimal Catalog-owned current quote',
+    'selected source Part line/supplier/company',
+    'inventory.purchase-intents.create + workshop.orders.read',
+    'without catalog.purchase-prices.read/manage',
+    'no list browsing/history/maintenance',
+    'no implicit/global pricing grant',
+    'no arbitrary tenant-wide lookup, bulk browsing or source bypass',
+    'server derives identity/tenant/context/current grants/current source access',
+    'never tenant from browser',
+    'D91 maintenance unchanged',
+    'D77 no self-grant/subdelegation/new delegation',
+    'D82/D88/D90 unchanged',
+    '#121 POLICY_RESOLVED_PENDING_DOCS_MERGE_RUNTIME',
+    '#121/#44/#45 stay open',
+    'runtime only after docs/guards merge',
+    'missing-cost completion/frozen price/provenance before connector',
+    'no runtime delivered here',
+    '0028 Held/0029 unchanged',
+    'no automatic backfill/repricing',
+    'D89 offline only, no full architecture now',
+)
+D92_DOC_PATHS = (GLOSSARY, PLAN, INTENT, "docs/r04b2b1-supplier-purchase-prices.md")
+
+D92_QUESTION = 'Serve una decisione sui permessi: un operatore autorizzato a creare richieste d’acquisto, ma senza accesso ai listini, può vedere e accettare il prezzo corrente del fornitore per quella richiesta? A — consigliata: il permesso d’acquisto consente di vedere il solo prezzo necessario alla richiesta selezionata, senza accesso alla consultazione completa, allo storico o alla modifica dei listini. B: serve anche il permesso esplicito catalog.purchase-prices.read, concesso tramite il percorso controllato dal proprietario.'
 
 D91_AGENTS_TOKENS = (
     'supplier PURCHASE PRICE LISTS', 'company-scoped prices',
@@ -471,6 +566,113 @@ D91_AGENTS_TOKENS = (
 
 
 class AuthorityTests(unittest.TestCase):
+    def d92_mutation(self, path, old=None, claim=None, card_id=None, history=False):
+        with tempfile.TemporaryDirectory(prefix='d92-quote-') as temp:
+            root = Path(temp)
+            for source in PATHS:
+                target = root/source
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(ROOT/source, target)
+            target = root/path
+            text = target.read_text()
+            if card_id:
+                cards = json.loads(text)
+                card = next(c for c in cards if c['id'] == card_id)
+                self.assertIn(old, card['gate']) if old else None
+                card['gate'] = card['gate'].replace(old, 'REMOVED') if old else card['gate']+' '+claim
+                text = json.dumps(cards, ensure_ascii=False)
+            elif path in D92_DOC_PATHS and not history:
+                before, rest = text.split('<!-- r04-d92:start -->')
+                scope, after = rest.split('<!-- r04-d92:end -->')
+                self.assertIn(old, scope) if old else None
+                scope = scope.replace(old, 'REMOVED') if old else scope+' '+claim
+                text = before+'<!-- r04-d92:start -->'+scope+'<!-- r04-d92:end -->'+after
+            elif history and old == '### D91 —':
+                self.assertIn(old, text)
+                text = text.replace(old, '### D91 — MODIFIED')
+            elif history:
+                before, scope = text.split('### D92 —')
+                self.assertIn(old, scope)
+                text = before+'### D92 —'+scope.replace(old, 'REMOVED')
+            else:
+                self.assertIn(old, text) if old else None
+                text = text.replace(old, 'REMOVED') if old else text+'\n'+claim
+            target.write_text(text)
+            result = self.invoke(root)
+            self.assertEqual(result.returncode, 2, result.stdout+result.stderr)
+            self.assertIn('D92', result.stderr)
+            self.assertNotIn('Traceback', result.stderr)
+
+    def test_d92_cli_refuses_each_removed_active_boundary(self):
+        for path in D92_DOC_PATHS:
+            for token in D92_TOKENS:
+                with self.subTest(path=path, token=token):
+                    self.d92_mutation(path, old=token)
+        for card_id in ('R04', 'R05'):
+            for token in D92_TOKENS:
+                with self.subTest(card=card_id, token=token):
+                    self.d92_mutation(BACKLOG, old=token, card_id=card_id)
+        for token in D92_AGENTS_TOKENS:
+            with self.subTest(path='AGENTS.md', token=token):
+                # Mutate only the active D92 summary, not older decisions.
+                line = next(l for l in (ROOT/'AGENTS.md').read_text().splitlines() if l.startswith('- D92 '))
+                self.d92_mutation('AGENTS.md', old=line, claim=None) if token == 'D92' else self.d92_mutation('AGENTS.md', old=token)
+
+    def test_d92_cli_refuses_quote_question_and_history_changes(self):
+        for token in ('> Confermo A\n', D92_QUESTION, 'B non selezionata'):
+            with self.subTest(token=token):
+                self.d92_mutation(GLOSSARY, old=token, history=True)
+        self.d92_mutation(GLOSSARY, old='### D91 —', history=True)
+
+    def test_d92_cli_refuses_expanded_authority_or_runtime_claims(self):
+        claims = ('Purchasing grants full price-list browsing.',
+                  'Purchasing grants price history and maintenance.',
+                  'Purchasing automatically grants catalog.purchase-prices.read/manage.',
+                  'Arbitrary tenant-wide quote lookup allowed.',
+                  'Bulk quote browsing allowed.', 'Source access bypass allowed.',
+                  'Tenant from browser trusted for quote.',
+                  'Quote runtime delivered by D92.',
+                  'Runtime starts before docs merge.',
+                  'Quote requires catalog.purchase-prices.read in addition to purchase permission.')
+        for path in (*D92_DOC_PATHS, 'AGENTS.md'):
+            for claim in claims:
+                with self.subTest(path=path, claim=claim):
+                    self.d92_mutation(path, claim=claim)
+        for card_id in ('R04', 'R05'):
+            for claim in claims:
+                with self.subTest(card=card_id, claim=claim):
+                    self.d92_mutation(BACKLOG, claim=claim, card_id=card_id)
+
+    def test_d92_active_quote_boundary_and_agents_summary(self):
+        for path in D92_DOC_PATHS:
+            text = (ROOT/path).read_text()
+            self.assertEqual(text.count('<!-- r04-d92:start -->'), 1, path)
+            self.assertEqual(text.count('<!-- r04-d92:end -->'), 1, path)
+            block = text.split('<!-- r04-d92:start -->')[1].split('<!-- r04-d92:end -->')[0]
+            require(block, D92_TOKENS, 'D92 '+path)
+        for card in json.loads((ROOT/BACKLOG).read_text()):
+            if card['id'] in ('R04', 'R05'):
+                require(card['gate'], D92_TOKENS, 'D92 backlog '+card['id'])
+
+    def test_d92_agents_summary(self):
+        lines = [line for line in (ROOT/'AGENTS.md').read_text().splitlines()
+                 if line.startswith('- D92 ')]
+        self.assertEqual(len(lines), 1, 'missing unique D92 AGENTS summary')
+        require(lines[0], D92_AGENTS_TOKENS, 'D92 AGENTS')
+
+    def test_d92_records_exact_question_answer_and_old_history(self):
+        text = (ROOT/GLOSSARY).read_text()
+        self.assertIn('### D92 —', text, 'quote visibility decision not recorded')
+        before, decision = text.split('### D92 —')
+        history = before.encode().split('### D1 —'.encode(), 1)[1]
+        history = '### D1 —'.encode()+history
+        self.assertEqual(len(history[:152968]), 152968)
+        self.assertEqual(hashlib.sha256(history[:152968]).hexdigest(),
+                         '53551d8c884be224783f2a0d8ad4d353fb32d80203a99c608ca6608d9d8a3ad7')
+        require(decision, (D92_QUESTION, '> Confermo A\n', '28 ottobre 2026',
+                          'Registro D1–D91 verificato', 'B non selezionata',
+                          'distinta dal «Confermo A» di D90'), 'D92 provenance')
+
     def test_d91_agents_summary_preserves_exact_pricing_boundary(self):
         lines = [line for line in (ROOT/'AGENTS.md').read_text().splitlines()
                  if line.startswith('- D91 ')]

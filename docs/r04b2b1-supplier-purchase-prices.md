@@ -51,6 +51,10 @@ Nessuna valuta, IVA/fiscalità, scaglioni, validità temporale, sconti, importaz
 
 Un revert rivisto della PR rimuove rotta, UI, tool e funzioni; lo schema 0029 resta (append-only, nessun DROP) come registro inerte e una versione precedente dell'applicazione lo ignora. Non cancellare né riscrivere revisioni o grant: correggere con una nuova revisione o una migrazione in avanti. Bootstrap, Tailscale 443 → 9119 e volumi/backup protetti non toccati.
 
+<!-- r04-d92:start -->
+**D92 — quotazione corrente minima di proprietà Catalog per riga Part sorgente selezionata, fornitore e società autorizzati: inventory.purchase-intents.create + workshop.orders.read, senza catalog.purchase-prices.read/manage; nessuna consultazione completa, storico o manutenzione listini, nessun grant implicito o globale; nessun lookup arbitrario tenant-wide, consultazione massiva o bypass della sorgente. Il server deriva identità, tenant, contesto, grant correnti e accesso corrente alla sorgente, mai tenant dal browser. D91 manutenzione invariata; D77 nessun self-grant, subdelega o nuovo potere delegabile; D82/D88/D90 invariati. #121 POLICY_RESOLVED_PENDING_DOCS_MERGE_RUNTIME, #121/#44/#45 aperte: runtime solo dopo merge docs/guardie; completamento costo mancante e prezzo/provenienza congelati prima del connettore. Solo decisione e guardie: nessun runtime consegnato qui, 0028 Held e 0029 invariati, nessun backfill automatico o repricing retroattivo. D89 solo offline, nessuna full architecture ora.**
+<!-- r04-d92:end -->
+
 ## Prossimo gate
 
 **Inserimento obbligatorio del costo mancante e prezzo d'acquisto congelato negli intenti** (fetta successiva, migrazione append-only successiva, nessun backfill automatico degli intenti 0028): congelare prezzo sorgente o assenza, prezzo finale accettato e provenienza prima dell'invio, con completamento esplicito dell'operatore del caso mancante. Poi il connettore R04.b.2b.
