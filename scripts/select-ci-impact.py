@@ -121,6 +121,10 @@ R05A1_OFFLINE_FILES = {'docs/r05a1-giobby-read-contract.md', 'docs/r05a1-evidenc
 R05A2_OFFLINE_FILES = {'docs/r05a2-sandbox-contract.md', 'docs/r05a2-evidence.json',
     'scripts/test-r05a2-evidence.py', 'scripts/test-r05a2-impact.py'}
 
+R05A7_OFFLINE_FILES = {'docs/r05a7-sandbox-purchase-order-contract.md', 'docs/r05a7-evidence.json',
+    'tests/fixtures/r05a7-owned-captures.json', 'scripts/r05a7_purchase_order.py',
+    'scripts/test-r05a7-evidence.py', 'scripts/test-r05a7-impact.py'}
+
 R05A6_OFFLINE_FILES = {'docs/r05a6-order-vs-proforma.md', 'docs/r05a6-evidence.json',
     'tests/fixtures/r05a6-owned-captures.json', 'scripts/r05a6_document_type.py',
     'scripts/test-r05a6-evidence.py', 'scripts/test-r05a6-impact.py'}
@@ -213,6 +217,8 @@ def selection(paths):
     paths = sorted(set(paths))
     r06a2 = bool(set(paths) & (R06A2_FILES | R06A2_DEPENDENCIES))
     staging_only = r06a2 and set(paths) <= R06A2_FILES | R06_OFFLINE_FILES | R06_WIRING | {'docs/r06a2-synthetic-import-export.md'}
+    r05a7_offline = bool(set(paths) & R05A7_OFFLINE_FILES)
+    r05a7_only = r05a7_offline and set(paths) <= R05A7_OFFLINE_FILES | R06_OFFLINE_FILES | R06_WIRING
     r05a6_offline = bool(set(paths) & R05A6_OFFLINE_FILES)
     r05a6_only = r05a6_offline and set(paths) <= R05A6_OFFLINE_FILES | R06_OFFLINE_FILES | R06_WIRING
     r05a5_offline = bool(set(paths) & R05A5_OFFLINE_FILES)
@@ -252,6 +258,8 @@ def selection(paths):
         if path in R04B2B2_FILES or path in R04B2A_FILES or path in R04B2B1_FILES or path == 'src/Modules/Catalog/Enginia360.Catalog/Enginia360.Catalog.csproj':
             continue
         if path in R06A2_FILES or (staging_only and path in R06_WIRING):
+            continue
+        if path in R05A7_OFFLINE_FILES or (r05a7_only and path in R06_WIRING):
             continue
         if path in R05A6_OFFLINE_FILES or (r05a6_only and path in R06_WIRING):
             continue
@@ -330,7 +338,7 @@ def selection(paths):
     if r04b2b2: filters.append('FullyQualifiedName~PurchaseIntentTests|FullyQualifiedName~SupplierPurchasePriceTests')
     if r04b2a: filters.append('FullyQualifiedName~PurchaseIntentTests')
     if r04b2b1: filters.append('FullyQualifiedName~SupplierPurchasePriceTests')
-    result = {'r04b2b2':r04b2b2,'r04b2b1':r04b2b1,'r04b2a':r04b2a,'changed_paths':paths,'api_filter':'|'.join(filters),'r06_offline':r06_offline,'r05a1_offline':r05a1_offline,'r05a2_offline':r05a2_offline,'r05a3_offline':r05a3_offline,'r05a4_offline':r05a4_offline,'r05a5_offline':r05a5_offline,'r05a6_offline':r05a6_offline,'r05b0':r05b0,
+    result = {'r04b2b2':r04b2b2,'r04b2b1':r04b2b1,'r04b2a':r04b2a,'changed_paths':paths,'api_filter':'|'.join(filters),'r06_offline':r06_offline,'r05a1_offline':r05a1_offline,'r05a2_offline':r05a2_offline,'r05a3_offline':r05a3_offline,'r05a4_offline':r05a4_offline,'r05a5_offline':r05a5_offline,'r05a6_offline':r05a6_offline,'r05a7_offline':r05a7_offline,'r05b0':r05b0,
             'browser':auth,'ui01b':ui01b,'r03a':r03a,'r03a2':r03a,'r04a':r04a,'r04c1':r04c1,'r04c2':r04c2,'r06b1':r06b1,'r03b':r03b,'r03c':r03c,'migrations':auth or ui01b,'ui_build':auth or ui,'ui_tests':ui,
             'r05b1':r05b1, 'r06a2':r06a2, 'full_architecture':False}
     if set(paths) & R04B2B2_FILES and set(paths) <= R04B2B2_SCOPE:
