@@ -1,0 +1,910 @@
+{
+ "increment": "R05.a.7",
+ "phase": "purchase-order-contract-evidence",
+ "refs": [
+  "#124",
+  "#44",
+  "#45"
+ ],
+ "new_decision": null,
+ "base_main": "33a75fbb070b49b7de11b5472c56c78559fe7768",
+ "scope": "Existing D83/D84 sandbox scope (owner assertion, not independent technical proof); owned objects only; no deletion, no send, no receipt, no connector code.",
+ "classes": [
+  "public-declaration",
+  "sandbox-observation",
+  "local-guard"
+ ],
+ "historical": {
+  "r05a5_matrix_sha256": "1d165e7936e02cc90a2633838bbfe22496da86fd5358188b5db7004ec19db205",
+  "r05a5_fixtures_sha256": "a877fa7e4f17fad49ee8f3bb99e84bcf853b47a1360725b9e323010ab31639f7",
+  "r05a6_matrix_sha256": "936bb0fbb5fdcc0c71072396ca159807a93e7c9e91bfa1ccb684d08443b828a2",
+  "r05a6_fixtures_sha256": "36fe6dcb91e46793a91e1f2e0229ac61c72d7d870fb1c0263672853ff8e844c2",
+  "earlier_ledgers_and_intents_untouched": true
+ },
+ "run": {
+  "synthetic_prefix": "E360-SB-R05A7-20261028T155140Z",
+  "caps": {
+   "persisted_POST": 3,
+   "simulation_POST": 2,
+   "business_requests": 45,
+   "lookup_limit": 5,
+   "min_interval_s": 0.5
+  },
+  "business_requests": 17,
+  "persisted_post_requests": 1,
+  "simulation_post_requests": 2,
+  "ui_read_only_views": 0,
+  "vendor": "reused owned R05.a.4 vendor (alias owned-vendor-A); no new vendor created"
+ },
+ "claims": {
+  "server_idempotency": false,
+  "exactly_once": false,
+  "receipt_link_proved": false,
+  "header_total_q6": false,
+  "lost_response_replay_authorized": false,
+  "connector_implemented": false,
+  "owner_decision_made": false,
+  "r04_complete": false,
+  "r05_complete": false,
+  "readiness": false,
+  "provider_compatibility": false
+ },
+ "public_declaration": {
+  "swagger_sha256": "6774bc1d03f3c890c5c249cbf4dbe20a1b56c4ce889798a3382acef808b04194",
+  "observation_differs_from_declaration": true,
+  "notes": [
+   "DocumentApi declares idContact required; the sandbox accepted idContact null with a string idVendor on both simulation and persisted POSTs and returned a numeric idContact on readback.",
+   "Declarations do not state response schemas; every response shape here is an observation."
+  ],
+  "extracts": [
+   {
+    "name": "document-required",
+    "pointer": "/definitions/DocumentApi/required",
+    "extract": [
+     "docDate",
+     "idBu",
+     "idContact",
+     "idNumerator",
+     "payments",
+     "rows"
+    ],
+    "extract_sha256": "1cd3d1eda6cd2a766f0614488ee9cc1af0de4ffd9ecf5713eaaa3bf685d26b36"
+   },
+   {
+    "name": "row-required",
+    "pointer": "/definitions/DocumentRowApi/required",
+    "extract": [
+     "description",
+     "idMaterial",
+     "idPosType",
+     "price"
+    ],
+    "extract_sha256": "c3a8d3b4c5d212db17c67b9bce61c8abdeee1b5a16fd8d378385051460b4c703"
+   },
+   {
+    "name": "purchase-orders-get-parameters",
+    "pointer": "/paths/~1purchases~1orders/get/parameters",
+    "extract": [
+     "docStatus",
+     "freeText",
+     "gtDocDateMillins",
+     "idContact",
+     "limit",
+     "neDocStatus",
+     "offset"
+    ],
+    "extract_sha256": "0c1f5bbec7eb098f8e28b81443f11abd2ad426c0669c8da9f29052ab80de1657"
+   },
+   {
+    "name": "purchase-orders-post-parameters",
+    "pointer": "/paths/~1purchases~1orders/post/parameters",
+    "extract": [
+     "body",
+     "simulation"
+    ],
+    "extract_sha256": "558d5bcd421ab853b222f145eb09bf2c9fa92bc51fab516c33d2d13e84d25a96"
+   }
+  ]
+ },
+ "ledger": {
+  "writes": [
+   {
+    "seq": 5,
+    "mode": "SIMULATION",
+    "path": "/purchases/orders",
+    "query_keys": [
+     "simulation"
+    ],
+    "label": "sim idVendor string, idContact null",
+    "state": "RESPONSE_OBSERVED",
+    "http_status": 200,
+    "business_status": {
+     "responseCode": 200,
+     "errorCode": 0
+    },
+    "owned_prefix_in_body": true,
+    "intent_body_sha256": "2776b796701dfc0db3b2564bea3f682281122ec58fc850c95de639c3f6e9fb04",
+    "intent_written_utc": "2026-10-28T15:53:27.835706+00:00",
+    "flagged_simulation": true
+   },
+   {
+    "seq": 6,
+    "mode": "SIMULATION",
+    "path": "/purchases/orders",
+    "query_keys": [
+     "simulation"
+    ],
+    "label": "sim idContact numeric, idVendor null",
+    "state": "RESPONSE_OBSERVED",
+    "http_status": 400,
+    "business_status": {
+     "responseCode": 400,
+     "errorCode": 324
+    },
+    "owned_prefix_in_body": true,
+    "intent_body_sha256": "9a6bd1b10641c61d1bfa92734e0522234735bf77ca58099e2334a67e687447d6",
+    "intent_written_utc": "2026-10-28T15:53:28.712692+00:00",
+    "flagged_simulation": true
+   },
+   {
+    "seq": 10,
+    "mode": "PERSISTED",
+    "path": "/purchases/orders",
+    "query_keys": [
+     "simulation"
+    ],
+    "label": "P3 persisted purchase order",
+    "state": "RESPONSE_OBSERVED",
+    "http_status": 200,
+    "business_status": {
+     "responseCode": 200,
+     "errorCode": 0
+    },
+    "owned_prefix_in_body": true,
+    "intent_body_sha256": "a382f2870becfc793bb9d25827d1e0204dd1a17f8a868772773a4b754f64a0ce",
+    "intent_written_utc": "2026-10-28T15:53:51.879306+00:00"
+   }
+  ],
+  "objects": [
+   {
+    "kind": "purchase-orders",
+    "owned_alias": "R05A7-PO-1",
+    "create_seq": 10,
+    "readback_seq": 11,
+    "lookup_seq": 12
+   }
+  ],
+  "counts": {
+   "write_intents": 3,
+   "persisted_posts": 1,
+   "simulation_posts": 2,
+   "verified_objects": 1
+  }
+ },
+ "request_bodies": {
+  "simulation-idvendor": {
+   "idDocumentType": 2,
+   "idDocumentTypeExt": 0,
+   "idOrderType": 1,
+   "idContact": null,
+   "idCustomer": null,
+   "idVendor": "owned-vendor-A",
+   "docDate": "epochmillis",
+   "docStatus": "CREATED",
+   "docCurrency": "EUR",
+   "idBu": "U1",
+   "idNumerator": 1,
+   "note": "E360-SB-R05A7-20261028T155140Z synthetic purchase order SIM-VENDOR; sandbox; never send",
+   "internalNote": "E360-SB-R05A7-20261028T155140Z SIM-VENDOR",
+   "reference": "E360-SB-R05A7-20261028T155140Z-SIM1",
+   "payments": [],
+   "rows": [
+    {
+     "idMaterial": "owned-product-1",
+     "idAttributeCombination": 0,
+     "idPosType": 1,
+     "description": "E360-SB-R05A7-20261028T155140Z SIM-VENDOR line",
+     "quantity": 1,
+     "price": 12.345678,
+     "idVat": "22",
+     "idStorage": "MB",
+     "note": "E360-SB-R05A7-20261028T155140Z SIM-VENDOR"
+    }
+   ]
+  },
+  "simulation-contact-only": {
+   "idDocumentType": 2,
+   "idDocumentTypeExt": 0,
+   "idOrderType": 1,
+   "idContact": 9001,
+   "idCustomer": null,
+   "idVendor": null,
+   "docDate": "epochmillis",
+   "docStatus": "CREATED",
+   "docCurrency": "EUR",
+   "idBu": "U1",
+   "idNumerator": 1,
+   "note": "E360-SB-R05A7-20261028T155140Z synthetic purchase order SIM-CONTACT; sandbox; never send",
+   "internalNote": "E360-SB-R05A7-20261028T155140Z SIM-CONTACT",
+   "reference": "E360-SB-R05A7-20261028T155140Z-SIM2",
+   "payments": [],
+   "rows": [
+    {
+     "idMaterial": "owned-product-1",
+     "idAttributeCombination": 0,
+     "idPosType": 1,
+     "description": "E360-SB-R05A7-20261028T155140Z SIM-CONTACT line",
+     "quantity": 1,
+     "price": 12.345678,
+     "idVat": "22",
+     "idStorage": "MB",
+     "note": "E360-SB-R05A7-20261028T155140Z SIM-CONTACT"
+    }
+   ]
+  },
+  "persisted": {
+   "idDocumentType": 2,
+   "idDocumentTypeExt": 0,
+   "idOrderType": 1,
+   "idContact": null,
+   "idCustomer": null,
+   "idVendor": "owned-vendor-A",
+   "docDate": "epochmillis",
+   "docStatus": "CREATED",
+   "docCurrency": "EUR",
+   "idBu": "U1",
+   "idNumerator": 1,
+   "note": "E360-SB-R05A7-20261028T155140Z synthetic purchase order P3; sandbox; never send",
+   "internalNote": "E360-SB-R05A7-20261028T155140Z P3",
+   "reference": "E360-SB-R05A7-20261028T155140Z-PO",
+   "payments": [],
+   "rows": [
+    {
+     "idMaterial": "owned-product-1",
+     "idAttributeCombination": 0,
+     "idPosType": 1,
+     "description": "E360-SB-R05A7-20261028T155140Z P3 line",
+     "quantity": 1,
+     "price": 12.345678,
+     "idVat": "22",
+     "idStorage": "MB",
+     "note": "E360-SB-R05A7-20261028T155140Z P3"
+    }
+   ]
+  }
+ },
+ "request_body_sha256": {
+  "simulation-idvendor": "2776b796701dfc0db3b2564bea3f682281122ec58fc850c95de639c3f6e9fb04",
+  "simulation-contact-only": "9a6bd1b10641c61d1bfa92734e0522234735bf77ca58099e2334a67e687447d6",
+  "persisted": "a382f2870becfc793bb9d25827d1e0204dd1a17f8a868772773a4b754f64a0ce"
+ },
+ "points": {
+  "vendor_identity": {
+   "record": {
+    "vendor_id": "owned-vendor-A",
+    "contact_id": 9001,
+    "contact_vendor_id": "owned-vendor-A",
+    "sent": {
+     "idVendor": "owned-vendor-A",
+     "idContact": null
+    },
+    "order": {
+     "idVendor": "owned-vendor-A",
+     "idContact": 9001
+    },
+    "contact_only_rejected": true
+   },
+   "verdict": "VENDOR_STRING_ID_REQUIRED_CONTACT_SERVER_RESOLVED",
+   "observed": "GET /vendors lookup returns vendor id (string) and contact.id (integer, equal to the order idContact on readback); the order is created with string idVendor and idContact null; a body with only the numeric idContact is rejected 400/324."
+  },
+  "simulation": {
+   "idvendor_variant": {
+    "seq": 5,
+    "http_status": 200,
+    "decoded_as": "preview (id null, docNumber empty)"
+   },
+   "contact_only": {
+    "seq": 6,
+    "http_status": 400,
+    "errorCode": 324
+   },
+   "stock_effect_verdict": "NO_STOCK_EFFECT",
+   "note": "a preview also includes a computed single installment although payments was sent empty"
+  },
+  "nonpersistence": {
+   "record": {
+    "ids_before": [
+     201
+    ],
+    "ids_after": [
+     201
+    ],
+    "stock_before": {
+     "availableQty": 1.0,
+     "orderedToSuppliersQty": 6.0,
+     "quantity": 2.0,
+     "reservedByOrdersQty": 1.0,
+     "stockForecastQty": 7.0
+    },
+    "stock_after": {
+     "availableQty": 1.0,
+     "orderedToSuppliersQty": 6.0,
+     "quantity": 2.0,
+     "reservedByOrdersQty": 1.0,
+     "stockForecastQty": 7.0
+    }
+   },
+   "verdict": "NOT_PERSISTED_BY_VENDOR_LIST_AND_STOCK",
+   "note": "also an unfiltered first-5 list (obs 8) showed no new id; it contains a non-owned row that is deliberately not recorded"
+  },
+  "price_readback": {
+   "record": {
+    "sent_price": 12.345678,
+    "quantity": 1.0,
+    "vat_rate": 22
+   },
+   "verdict": {
+    "row_price": "Q6_PRESERVED",
+    "header_totals": "ROUNDED_2DP_FROM_ROUNDED_NET"
+   },
+   "observed": "row price returned exactly (6 decimals); taxableAmount 12.35, vatAmount 2.72, totalAmount 15.07 are two-decimal values computed from the rounded net; list headers carry totalAmount but no price or description."
+  },
+  "stock_effect": {
+   "quantity": 1.0,
+   "before": {
+    "availableQty": 1.0,
+    "orderedToSuppliersQty": 6.0,
+    "quantity": 2.0,
+    "reservedByOrdersQty": 1.0,
+    "stockForecastQty": 7.0
+   },
+   "after": {
+    "availableQty": 1.0,
+    "orderedToSuppliersQty": 7.0,
+    "quantity": 2.0,
+    "reservedByOrdersQty": 1.0,
+    "stockForecastQty": 8.0
+   },
+   "verdict": "ORDERED_ONLY",
+   "observed": "physical, reserved and available unchanged; orderedToSuppliersQty and stockForecastQty +1"
+  },
+  "lookup": {
+   "key": "freeText=vendor name + docStatus=CREATED, offset 0, limit 5, newest first, then client-side exact reference filter",
+   "key_declared_before_oracle": true,
+   "oracle_after_lookup": "ack id compared after the lookup; ids equal",
+   "pages": {
+    "po-lookup-vendor-name-status": {
+     "limit": 5,
+     "verdict": "UNIQUE_AFTER_CLIENT_REFERENCE_FILTER"
+    },
+    "po-lookup-limit1-offset0": {
+     "limit": 1,
+     "verdict": "UNIQUE_AFTER_CLIENT_REFERENCE_FILTER"
+    },
+    "po-lookup-limit1-offset1": {
+     "limit": 1,
+     "verdict": "HOLD_PAGE_FULL_NOT_FOUND"
+    },
+    "po-lookup-reference-empty": {
+     "limit": 5,
+     "verdict": "HOLD_NOT_FOUND"
+    },
+    "po-lookup-idcontact-empty": {
+     "limit": 5,
+     "verdict": "HOLD_NOT_FOUND"
+    }
+   },
+   "ordering_newest_first_observed": true,
+   "limits": [
+    "metadata.totalCount equals the number of rows returned in the page (limit 1 gives totalCount 1), so it is not a completeness signal",
+    "freeText on the reference and idContact filter returned 0 rows",
+    "list headers have idContact null while the detail has an integer",
+    "the lookup ran after the ack was received (response not lost): this is not a forensic lost-response proof"
+   ]
+  }
+ },
+ "adapter_may_rely_on": [
+  "idvendor-string-with-null-idcontact-accepted",
+  "ack-integer-iddocument-then-detail-readback",
+  "row-price-q6-readback-exact",
+  "purchase-order-stock-effect-ordered-only",
+  "vendor-name-status-lookup-with-client-reference-filter"
+ ],
+ "adapter_must_not_rely_on": [
+  "server-idempotency",
+  "exactly-once",
+  "receipt-link-order-reference",
+  "header-total-q6",
+  "totalcount-completeness",
+  "empty-lookup-is-absence",
+  "numeric-contact-only",
+  "price-in-list-header",
+  "docnumber-correlation",
+  "client-set-docstatus",
+  "numerator-by-document-type-filter",
+  "blind-replay-after-lost-response"
+ ],
+ "incidents": [
+  "A session-search result and the vault list shown to the worker exposed the sandbox login identifier, API client id and CID in the worker transcript (no password or token); none was written to the ledger, fixtures, doc, repo or logs. Treat those values as exposed to the transcript only.",
+  "The vault fill populated only the password field of the injected form; the login identifier was typed from the vault list metadata. No token was persisted; browser RAM cleared and tab blanked at the end of probing.",
+  "The unfiltered first-5 purchase-order list (obs 8) contained a non-owned order; it was only counted and compared by id, and is not recorded.",
+  "No new vendor was created: the owned R05.a.4 vendor was reused, so the order lookup page holds an R05.a.5 owned order alongside the new one; those earlier objects and ledgers were not modified.",
+  "Observation utc is taken before the intent file is written and reused in the response record; chronology is therefore evidenced by private file modification times (intent_written_utc, response_recorded_utc), not by separate request/response clocks.",
+  "RED chronology: assessors RED (stub returning None, 75 failures/25 errors); the evidence-matrix tests were first RED only because the matrix file did not exist (setup class), not a behavioral failure."
+ ],
+ "remaining_blockers": [
+  "Receipt link via the order reference (D86) was not probed: no receipt created, POST cap not used for it.",
+  "Lost-response recovery for the purchase POST was not simulated; the lookup ran after the ack. No duplicate/replay test was run and none is authorized.",
+  "One vendor, one row, quantity 1, price 12.345678, VAT 22, storage MB, one purchase numerator; multi-row rounding, other VAT codes and attribute combinations are unobserved.",
+  "idBu, idNumerator, idVat, idStorage and material mappings are host configuration that this slice does not derive (the numerator query returns two numerators regardless of document type).",
+  "No cancel/delete/status transition tested; the persisted owned order stays in the sandbox.",
+  "Paging beyond 5 rows and delay between POST and lookup visibility (first lookup 12 s after POST) are not characterized."
+ ],
+ "observations": [
+  {
+   "seq": 1,
+   "utc": "2026-10-28T15:53:02.965130+00:00",
+   "intent_written_utc": "2026-10-28T15:53:02.963121+00:00",
+   "response_recorded_utc": "2026-10-28T15:53:03.884105+00:00",
+   "method": "GET",
+   "mode": "READ",
+   "endpoint_template": "/stocks/avaibility/report",
+   "label": "stock-before",
+   "query_keys": [
+    "idMaterial",
+    "idStorage",
+    "limit",
+    "offset"
+   ],
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "f2d793afec014619ec301a78a8548828f41c57d8706d92aa37db271cafa79245",
+   "shape_sha256": "fa71dd0ae4e0db9a363cb2ee5d3e7bafa8be9f83aac1743a0c2927f21897e7f1"
+  },
+  {
+   "seq": 2,
+   "utc": "2026-10-28T15:53:03.886188+00:00",
+   "intent_written_utc": "2026-10-28T15:53:03.885105+00:00",
+   "response_recorded_utc": "2026-10-28T15:53:04.587094+00:00",
+   "method": "GET",
+   "mode": "READ",
+   "endpoint_template": "/vendors",
+   "label": "vendor-lookup-owned",
+   "query_keys": [
+    "limit",
+    "name",
+    "offset"
+   ],
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "f81b30d6daf2a7f9993334517ff1a16e4fa743a1ed2e597158621cc8aac38da0",
+   "shape_sha256": "0fcf550e9cab20da618bce954188049c1a363ebad0ee0c1f65b64f540f7116f8"
+  },
+  {
+   "seq": 3,
+   "utc": "2026-10-28T15:53:04.588810+00:00",
+   "intent_written_utc": "2026-10-28T15:53:04.588094+00:00",
+   "response_recorded_utc": "2026-10-28T15:53:05.244083+00:00",
+   "method": "GET",
+   "mode": "READ",
+   "endpoint_template": "/purchases/orders",
+   "label": "orders-baseline-vendor-owned",
+   "query_keys": [
+    "freeText",
+    "limit",
+    "offset"
+   ],
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "b5177a4680e7bab0f371b28bb3ed6f02f9123dd3c29d19e9d6aa0eb9854d18c1",
+   "shape_sha256": "97634c69ca88bdf228e18d93f30ffb28c8f42706698711525016749a4137b5b2"
+  },
+  {
+   "seq": 4,
+   "utc": "2026-10-28T15:53:27.201276+00:00",
+   "intent_written_utc": "2026-10-28T15:53:27.199717+00:00",
+   "response_recorded_utc": "2026-10-28T15:53:27.833706+00:00",
+   "method": "GET",
+   "mode": "READ",
+   "endpoint_template": "/companysettings/bupnumerators",
+   "label": "numerators-type2",
+   "query_keys": [
+    "idDocumentType"
+   ],
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "b53599856a1703499b7538040bfc3e5181b6efb2c804eb565b70dec7f869e162",
+   "shape_sha256": "b09bcc47f7c159d07765d649e9f87e844c3a80878c85f2bb40f1c7a79f1c09b0"
+  },
+  {
+   "seq": 5,
+   "utc": "2026-10-28T15:53:27.836063+00:00",
+   "intent_written_utc": "2026-10-28T15:53:27.835706+00:00",
+   "response_recorded_utc": "2026-10-28T15:53:28.711692+00:00",
+   "method": "POST",
+   "mode": "SIMULATION",
+   "endpoint_template": "/purchases/orders",
+   "label": "sim idVendor string, idContact null",
+   "query_keys": [
+    "simulation"
+   ],
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "fe2a6061eb91c0fea7378130914a711aae2f9442ba590929bf30ed1bc72324df",
+   "shape_sha256": "c3bd816bbd963e933c495cb6b8689dc24c6e9f8f3f22c947482c34af91789068"
+  },
+  {
+   "seq": 6,
+   "utc": "2026-10-28T15:53:28.713848+00:00",
+   "intent_written_utc": "2026-10-28T15:53:28.712692+00:00",
+   "response_recorded_utc": "2026-10-28T15:53:29.334681+00:00",
+   "method": "POST",
+   "mode": "SIMULATION",
+   "endpoint_template": "/purchases/orders",
+   "label": "sim idContact numeric, idVendor null",
+   "query_keys": [
+    "simulation"
+   ],
+   "http_status": 400,
+   "business_status": {
+    "responseCode": 400,
+    "errorCode": 324
+   },
+   "source_sha256": "c1ce12f94db51ba62818a0b363b27788f6b4d4880f3fecb1ea98b571e98eb8ed",
+   "shape_sha256": "d0abf5b8eb303155db02235d29bdbe2f810f80473c7db3ab89968f2b725dab7b"
+  },
+  {
+   "seq": 7,
+   "utc": "2026-10-28T15:53:37.836572+00:00",
+   "intent_written_utc": "2026-10-28T15:53:37.836540+00:00",
+   "response_recorded_utc": "2026-10-28T15:53:38.455529+00:00",
+   "method": "GET",
+   "mode": "READ",
+   "endpoint_template": "/purchases/orders",
+   "label": "orders-after-simulation-vendor",
+   "query_keys": [
+    "freeText",
+    "limit",
+    "offset"
+   ],
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "b5177a4680e7bab0f371b28bb3ed6f02f9123dd3c29d19e9d6aa0eb9854d18c1",
+   "shape_sha256": "97634c69ca88bdf228e18d93f30ffb28c8f42706698711525016749a4137b5b2"
+  },
+  {
+   "seq": 8,
+   "utc": "2026-10-28T15:53:38.457437+00:00",
+   "intent_written_utc": "2026-10-28T15:53:38.457529+00:00",
+   "response_recorded_utc": "2026-10-28T15:53:39.069519+00:00",
+   "method": "GET",
+   "mode": "READ",
+   "endpoint_template": "/purchases/orders",
+   "label": "orders-all-first5-after-simulation",
+   "query_keys": [
+    "limit",
+    "offset"
+   ],
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "2de9db35cdf348a00eb95eff56d9b4dbbe0217d2a8895fb4b0e8b671eb2e564f",
+   "shape_sha256": "4efa67d8e5264f6042db83806797859b2e6e3fe3033f8bcd1c320f211ca99352"
+  },
+  {
+   "seq": 9,
+   "utc": "2026-10-28T15:53:39.071997+00:00",
+   "intent_written_utc": "2026-10-28T15:53:39.071519+00:00",
+   "response_recorded_utc": "2026-10-28T15:53:39.690509+00:00",
+   "method": "GET",
+   "mode": "READ",
+   "endpoint_template": "/stocks/avaibility/report",
+   "label": "stock-after-simulation",
+   "query_keys": [
+    "idMaterial",
+    "idStorage",
+    "limit",
+    "offset"
+   ],
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "f2d793afec014619ec301a78a8548828f41c57d8706d92aa37db271cafa79245",
+   "shape_sha256": "fa71dd0ae4e0db9a363cb2ee5d3e7bafa8be9f83aac1743a0c2927f21897e7f1"
+  },
+  {
+   "seq": 10,
+   "utc": "2026-10-28T15:53:51.880265+00:00",
+   "intent_written_utc": "2026-10-28T15:53:51.879306+00:00",
+   "response_recorded_utc": "2026-10-28T15:53:52.649293+00:00",
+   "method": "POST",
+   "mode": "PERSISTED",
+   "endpoint_template": "/purchases/orders",
+   "label": "P3 persisted purchase order",
+   "query_keys": [
+    "simulation"
+   ],
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "edeec360fc809d19f7685593433ee749db2f0c77351d39f29473db85fca1020d",
+   "shape_sha256": "25e8dfde745c5578307cfe9b87419bce06f47c35d343b8179eacd99a9d34fbd9"
+  },
+  {
+   "seq": 11,
+   "utc": "2026-10-28T15:53:52.652240+00:00",
+   "intent_written_utc": "2026-10-28T15:53:52.651293+00:00",
+   "response_recorded_utc": "2026-10-28T15:53:53.353281+00:00",
+   "method": "GET",
+   "mode": "READ",
+   "endpoint_template": "/purchases/{id}/orders",
+   "label": "P3 readback detail",
+   "query_keys": [],
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "7e0f3455b08ef24b3667d4f8394648d8ede7fc59b5a569d0c275fbc6b2e29a67",
+   "shape_sha256": "eb3fd989e27f4cfc41457af6f93e2f478ace1a352504a07232c6e1bddd98324a"
+  },
+  {
+   "seq": 12,
+   "utc": "2026-10-28T15:54:04.962222+00:00",
+   "intent_written_utc": "2026-10-28T15:54:04.961087+00:00",
+   "response_recorded_utc": "2026-10-28T15:54:05.557078+00:00",
+   "method": "GET",
+   "mode": "READ",
+   "endpoint_template": "/purchases/orders",
+   "label": "P4 lookup vendor name + docStatus",
+   "query_keys": [
+    "docStatus",
+    "freeText",
+    "limit",
+    "offset"
+   ],
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "38f6e540ed25ce02d09ab7a01b45b116ce87bd1913322e5d1b6a4eca33bd902e",
+   "shape_sha256": "77c12ffd53a01794c1070889ecba22ab420e5a21136709042d6669a5b0399b74"
+  },
+  {
+   "seq": 13,
+   "utc": "2026-10-28T15:54:05.558904+00:00",
+   "intent_written_utc": "2026-10-28T15:54:05.558078+00:00",
+   "response_recorded_utc": "2026-10-28T15:54:06.145068+00:00",
+   "method": "GET",
+   "mode": "READ",
+   "endpoint_template": "/purchases/orders",
+   "label": "P4 limit1 offset0",
+   "query_keys": [
+    "docStatus",
+    "freeText",
+    "limit",
+    "offset"
+   ],
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "414712591cb192eb64716d4a30b4053efe56c6d16bd4bdb652658ba9d3baa2b5",
+   "shape_sha256": "97634c69ca88bdf228e18d93f30ffb28c8f42706698711525016749a4137b5b2"
+  },
+  {
+   "seq": 14,
+   "utc": "2026-10-28T15:54:06.148097+00:00",
+   "intent_written_utc": "2026-10-28T15:54:06.147068+00:00",
+   "response_recorded_utc": "2026-10-28T15:54:06.731058+00:00",
+   "method": "GET",
+   "mode": "READ",
+   "endpoint_template": "/purchases/orders",
+   "label": "P4 limit1 offset1",
+   "query_keys": [
+    "docStatus",
+    "freeText",
+    "limit",
+    "offset"
+   ],
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "5300834c63d1f7466be45b4adc2ecc3b415afe1d09696afea293dd4657ffa24b",
+   "shape_sha256": "97634c69ca88bdf228e18d93f30ffb28c8f42706698711525016749a4137b5b2"
+  },
+  {
+   "seq": 15,
+   "utc": "2026-10-28T15:54:06.733831+00:00",
+   "intent_written_utc": "2026-10-28T15:54:06.733058+00:00",
+   "response_recorded_utc": "2026-10-28T15:54:07.321048+00:00",
+   "method": "GET",
+   "mode": "READ",
+   "endpoint_template": "/purchases/orders",
+   "label": "P4 freeText reference negative",
+   "query_keys": [
+    "freeText",
+    "limit",
+    "offset"
+   ],
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "9e0a8db95645bcad9976b59f1e668560beb0469e30ea0b8c306e5d18ebb3f853",
+   "shape_sha256": "b503a7b75ca223fc2bf64e7b066090c6f5048ce74deb872272479adedeecf07f"
+  },
+  {
+   "seq": 16,
+   "utc": "2026-10-28T15:54:07.323707+00:00",
+   "intent_written_utc": "2026-10-28T15:54:07.323048+00:00",
+   "response_recorded_utc": "2026-10-28T15:54:07.913038+00:00",
+   "method": "GET",
+   "mode": "READ",
+   "endpoint_template": "/purchases/orders",
+   "label": "P4 idContact filter",
+   "query_keys": [
+    "idContact",
+    "limit",
+    "offset"
+   ],
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "9e0a8db95645bcad9976b59f1e668560beb0469e30ea0b8c306e5d18ebb3f853",
+   "shape_sha256": "b503a7b75ca223fc2bf64e7b066090c6f5048ce74deb872272479adedeecf07f"
+  },
+  {
+   "seq": 17,
+   "utc": "2026-10-28T15:54:07.916210+00:00",
+   "intent_written_utc": "2026-10-28T15:54:07.915038+00:00",
+   "response_recorded_utc": "2026-10-28T15:54:08.544028+00:00",
+   "method": "GET",
+   "mode": "READ",
+   "endpoint_template": "/stocks/avaibility/report",
+   "label": "stock-after-P3",
+   "query_keys": [
+    "idMaterial",
+    "idStorage",
+    "limit",
+    "offset"
+   ],
+   "http_status": 200,
+   "business_status": {
+    "responseCode": 200,
+    "errorCode": 0
+   },
+   "source_sha256": "b99aa81615ebe2f3aefd04f8c3004fe06c9210b3fcc0a840dbdb0bc305743109",
+   "shape_sha256": "fa71dd0ae4e0db9a363cb2ee5d3e7bafa8be9f83aac1743a0c2927f21897e7f1"
+  }
+ ],
+ "captures": [
+  {
+   "name": "stock-before-p2",
+   "source_seq": 1,
+   "source_sha256": "f2d793afec014619ec301a78a8548828f41c57d8706d92aa37db271cafa79245",
+   "sanitized_sha256": "4499af599b9b8d3d41fe3cc2e3ca03492db0d4665a8938d9fa885a65320badb6"
+  },
+  {
+   "name": "vendor-lookup-owned",
+   "source_seq": 2,
+   "source_sha256": "f81b30d6daf2a7f9993334517ff1a16e4fa743a1ed2e597158621cc8aac38da0",
+   "sanitized_sha256": "4027bf092d5834c82b819ac557d3c48765ee9d3c8b7883654902a0e332161602"
+  },
+  {
+   "name": "orders-vendor-before",
+   "source_seq": 3,
+   "source_sha256": "b5177a4680e7bab0f371b28bb3ed6f02f9123dd3c29d19e9d6aa0eb9854d18c1",
+   "sanitized_sha256": "92a64362d95df560a51b722315006c172cbad08b9058b9bcea31bfaeeacd1365"
+  },
+  {
+   "name": "numerators-type2",
+   "source_seq": 4,
+   "source_sha256": "b53599856a1703499b7538040bfc3e5181b6efb2c804eb565b70dec7f869e162",
+   "sanitized_sha256": "b677bd76e880e5b95430a9ee1aad64b870c96d97c3f8fdd54ae2b8f9346100af"
+  },
+  {
+   "name": "sim-vendor-preview",
+   "source_seq": 5,
+   "source_sha256": "fe2a6061eb91c0fea7378130914a711aae2f9442ba590929bf30ed1bc72324df",
+   "sanitized_sha256": "0accd4e02c2737a01615d6765c23d902ff9ba57f980f17db17cd4e54a6e569f4"
+  },
+  {
+   "name": "sim-contact-only-rejected",
+   "source_seq": 6,
+   "source_sha256": "c1ce12f94db51ba62818a0b363b27788f6b4d4880f3fecb1ea98b571e98eb8ed",
+   "sanitized_sha256": "6a4bc1bcadc7ac95f096bd98900fe79ce94b79aa96a3f174bea98156123e9984"
+  },
+  {
+   "name": "orders-vendor-after-simulation",
+   "source_seq": 7,
+   "source_sha256": "b5177a4680e7bab0f371b28bb3ed6f02f9123dd3c29d19e9d6aa0eb9854d18c1",
+   "sanitized_sha256": "92a64362d95df560a51b722315006c172cbad08b9058b9bcea31bfaeeacd1365"
+  },
+  {
+   "name": "stock-after-simulation",
+   "source_seq": 9,
+   "source_sha256": "f2d793afec014619ec301a78a8548828f41c57d8706d92aa37db271cafa79245",
+   "sanitized_sha256": "4499af599b9b8d3d41fe3cc2e3ca03492db0d4665a8938d9fa885a65320badb6"
+  },
+  {
+   "name": "po-ack",
+   "source_seq": 10,
+   "source_sha256": "edeec360fc809d19f7685593433ee749db2f0c77351d39f29473db85fca1020d",
+   "sanitized_sha256": "1ca05442444518470ddaa1d1798c612b03149d452edbe672c9bf823a3e74830f"
+  },
+  {
+   "name": "po-readback",
+   "source_seq": 11,
+   "source_sha256": "7e0f3455b08ef24b3667d4f8394648d8ede7fc59b5a569d0c275fbc6b2e29a67",
+   "sanitized_sha256": "cee25e09ddc306f6c50e215ad858b9d0acc7a8913998f82c17e65d73248f8895"
+  },
+  {
+   "name": "po-lookup-vendor-name-status",
+   "source_seq": 12,
+   "source_sha256": "38f6e540ed25ce02d09ab7a01b45b116ce87bd1913322e5d1b6a4eca33bd902e",
+   "sanitized_sha256": "8aefc675299b39ab3655179c2a319402d34cf460e6877474c4d3b4685451556e"
+  },
+  {
+   "name": "po-lookup-limit1-offset0",
+   "source_seq": 13,
+   "source_sha256": "414712591cb192eb64716d4a30b4053efe56c6d16bd4bdb652658ba9d3baa2b5",
+   "sanitized_sha256": "8bbede79d44c6657f948b31b56797fad0d3a0929709b904f232ab93e206a6b6a"
+  },
+  {
+   "name": "po-lookup-limit1-offset1",
+   "source_seq": 14,
+   "source_sha256": "5300834c63d1f7466be45b4adc2ecc3b415afe1d09696afea293dd4657ffa24b",
+   "sanitized_sha256": "82907f2339f583f49b25ace6e9c7fedff4db65d1667e8a61288b4b95ff2b6340"
+  },
+  {
+   "name": "po-lookup-reference-empty",
+   "source_seq": 15,
+   "source_sha256": "9e0a8db95645bcad9976b59f1e668560beb0469e30ea0b8c306e5d18ebb3f853",
+   "sanitized_sha256": "f2ab4739a2aeb8b156195918c047e603c789ad5bd7a334b80e3d46d5babb96a4"
+  },
+  {
+   "name": "po-lookup-idcontact-empty",
+   "source_seq": 16,
+   "source_sha256": "9e0a8db95645bcad9976b59f1e668560beb0469e30ea0b8c306e5d18ebb3f853",
+   "sanitized_sha256": "f2ab4739a2aeb8b156195918c047e603c789ad5bd7a334b80e3d46d5babb96a4"
+  },
+  {
+   "name": "stock-after-po",
+   "source_seq": 17,
+   "source_sha256": "b99aa81615ebe2f3aefd04f8c3004fe06c9210b3fcc0a840dbdb0bc305743109",
+   "sanitized_sha256": "9b75c9af2d423947d652e96abbcdedc719fc81d21b7e1e75c4bde1364e526dfb"
+  }
+ ]
+}

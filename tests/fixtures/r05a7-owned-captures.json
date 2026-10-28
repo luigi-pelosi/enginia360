@@ -1,0 +1,328 @@
+{
+  "numerators-type2": {
+    "bupNumerators": [
+      {
+        "externalNumerator": false,
+        "idBu": "U1",
+        "idNum": 1,
+        "numType": "ANNUAL"
+      },
+      {
+        "externalNumerator": false,
+        "idBu": "U1",
+        "idNum": 3,
+        "numType": "ANNUAL"
+      }
+    ],
+    "errorCode": 0,
+    "responseCode": 200
+  },
+  "orders-vendor-after-simulation": {
+    "documentsHeaders": [
+      {
+        "docCurrency": "EUR",
+        "docNumber": "3",
+        "docStatus": "CREATED",
+        "id": 201,
+        "idContact": null,
+        "idDocumentType": 2,
+        "idOrderType": 1,
+        "idVendor": "owned-vendor-A",
+        "reference": "E360-SB-R05A5-20261027T115822Z-PO-LOOKUP",
+        "totalAmount": 1.22
+      }
+    ],
+    "errorCode": 0,
+    "metadata": {
+      "limit": 5,
+      "offset": 0,
+      "totalCount": 1
+    },
+    "responseCode": 200
+  },
+  "orders-vendor-before": {
+    "documentsHeaders": [
+      {
+        "docCurrency": "EUR",
+        "docNumber": "3",
+        "docStatus": "CREATED",
+        "id": 201,
+        "idContact": null,
+        "idDocumentType": 2,
+        "idOrderType": 1,
+        "idVendor": "owned-vendor-A",
+        "reference": "E360-SB-R05A5-20261027T115822Z-PO-LOOKUP",
+        "totalAmount": 1.22
+      }
+    ],
+    "errorCode": 0,
+    "metadata": {
+      "limit": 5,
+      "offset": 0,
+      "totalCount": 1
+    },
+    "responseCode": 200
+  },
+  "po-ack": {
+    "concatWarningMessages": "docStatus input ignored warning present",
+    "errorCode": 0,
+    "idDocument": 301,
+    "responseCode": 200
+  },
+  "po-lookup-idcontact-empty": {
+    "documentsHeaders": [],
+    "errorCode": 0,
+    "metadata": {
+      "limit": 5,
+      "offset": 0,
+      "totalCount": 0
+    },
+    "responseCode": 200
+  },
+  "po-lookup-limit1-offset0": {
+    "documentsHeaders": [
+      {
+        "docCurrency": "EUR",
+        "docNumber": "5",
+        "docStatus": "CREATED",
+        "id": 301,
+        "idContact": null,
+        "idDocumentType": 2,
+        "idOrderType": 1,
+        "idVendor": "owned-vendor-A",
+        "reference": "E360-SB-R05A7-20261028T155140Z-PO",
+        "totalAmount": 15.07
+      }
+    ],
+    "errorCode": 0,
+    "metadata": {
+      "limit": 1,
+      "offset": 0,
+      "totalCount": 1
+    },
+    "responseCode": 200
+  },
+  "po-lookup-limit1-offset1": {
+    "documentsHeaders": [
+      {
+        "docCurrency": "EUR",
+        "docNumber": "3",
+        "docStatus": "CREATED",
+        "id": 201,
+        "idContact": null,
+        "idDocumentType": 2,
+        "idOrderType": 1,
+        "idVendor": "owned-vendor-A",
+        "reference": "E360-SB-R05A5-20261027T115822Z-PO-LOOKUP",
+        "totalAmount": 1.22
+      }
+    ],
+    "errorCode": 0,
+    "metadata": {
+      "limit": 1,
+      "offset": 1,
+      "totalCount": 1
+    },
+    "responseCode": 200
+  },
+  "po-lookup-reference-empty": {
+    "documentsHeaders": [],
+    "errorCode": 0,
+    "metadata": {
+      "limit": 5,
+      "offset": 0,
+      "totalCount": 0
+    },
+    "responseCode": 200
+  },
+  "po-lookup-vendor-name-status": {
+    "documentsHeaders": [
+      {
+        "docCurrency": "EUR",
+        "docNumber": "5",
+        "docStatus": "CREATED",
+        "id": 301,
+        "idContact": null,
+        "idDocumentType": 2,
+        "idOrderType": 1,
+        "idVendor": "owned-vendor-A",
+        "reference": "E360-SB-R05A7-20261028T155140Z-PO",
+        "totalAmount": 15.07
+      },
+      {
+        "docCurrency": "EUR",
+        "docNumber": "3",
+        "docStatus": "CREATED",
+        "id": 201,
+        "idContact": null,
+        "idDocumentType": 2,
+        "idOrderType": 1,
+        "idVendor": "owned-vendor-A",
+        "reference": "E360-SB-R05A5-20261027T115822Z-PO-LOOKUP",
+        "totalAmount": 1.22
+      }
+    ],
+    "errorCode": 0,
+    "metadata": {
+      "limit": 5,
+      "offset": 0,
+      "totalCount": 2
+    },
+    "responseCode": 200
+  },
+  "po-readback": {
+    "document": {
+      "docCurrency": "EUR",
+      "docNumber": "5",
+      "docStatus": "CREATED",
+      "id": 301,
+      "idBu": "U1",
+      "idContact": 9001,
+      "idDocumentType": 2,
+      "idNumerator": 1,
+      "idOrderType": 1,
+      "idVendor": "owned-vendor-A",
+      "payments": [
+        {
+          "amount": 15.07,
+          "description": "Unica rata",
+          "paidAmount": 0.0,
+          "rateNumber": 1
+        }
+      ],
+      "reference": "E360-SB-R05A7-20261028T155140Z-PO",
+      "rows": [
+        {
+          "description": "E360-SB-R05A7-20261028T155140Z P3 line",
+          "docposstatus": "CREATED",
+          "idMaterial": "owned-product-1",
+          "idPos": 1,
+          "idPosType": 1,
+          "idStorage": "MB",
+          "idVat": "22",
+          "materialmovementposref": null,
+          "materialmovementref": null,
+          "price": 12.345678,
+          "quantity": 1.0,
+          "saleorderposref": null,
+          "saleorderref": null
+        }
+      ],
+      "taxableAmount": 12.35,
+      "totalAmount": 15.07,
+      "vatAmount": 2.72
+    },
+    "errorCode": 0,
+    "responseCode": 200
+  },
+  "sim-contact-only-rejected": {
+    "developerMessage": "Errore nelle righe del documento: Il campo Fornitore \u00e8 obbligatorio",
+    "errorCode": 324,
+    "responseCode": 400
+  },
+  "sim-vendor-preview": {
+    "document": {
+      "docCurrency": "EUR",
+      "docNumber": "",
+      "docStatus": "CREATED",
+      "id": null,
+      "idBu": "U1",
+      "idContact": null,
+      "idDocumentType": 2,
+      "idNumerator": 1,
+      "idOrderType": 1,
+      "idVendor": "owned-vendor-A",
+      "payments": [
+        {
+          "amount": 15.07,
+          "description": "Unica rata",
+          "paidAmount": 0.0,
+          "rateNumber": 1
+        }
+      ],
+      "reference": "E360-SB-R05A7-20261028T155140Z-SIM1",
+      "rows": [
+        {
+          "description": "E360-SB-R05A7-20261028T155140Z SIM-VENDOR line",
+          "docposstatus": "CREATED",
+          "idMaterial": "owned-product-1",
+          "idPos": 1,
+          "idPosType": 1,
+          "idStorage": "MB",
+          "idVat": "22",
+          "materialmovementposref": null,
+          "materialmovementref": null,
+          "price": 12.345678,
+          "quantity": 1.0,
+          "saleorderposref": null,
+          "saleorderref": null
+        }
+      ],
+      "taxableAmount": 12.35,
+      "totalAmount": 15.07,
+      "vatAmount": 2.72
+    },
+    "errorCode": 0,
+    "responseCode": 200
+  },
+  "stock-after-po": {
+    "errorCode": 0,
+    "responseCode": 200,
+    "stockReports": [
+      {
+        "availableQty": 1.0,
+        "orderedToSuppliersQty": 7.0,
+        "quantity": 2.0,
+        "reservedByOrdersQty": 1.0,
+        "stockForecastQty": 8.0
+      }
+    ]
+  },
+  "stock-after-simulation": {
+    "errorCode": 0,
+    "responseCode": 200,
+    "stockReports": [
+      {
+        "availableQty": 1.0,
+        "orderedToSuppliersQty": 6.0,
+        "quantity": 2.0,
+        "reservedByOrdersQty": 1.0,
+        "stockForecastQty": 7.0
+      }
+    ]
+  },
+  "stock-before-p2": {
+    "errorCode": 0,
+    "responseCode": 200,
+    "stockReports": [
+      {
+        "availableQty": 1.0,
+        "orderedToSuppliersQty": 6.0,
+        "quantity": 2.0,
+        "reservedByOrdersQty": 1.0,
+        "stockForecastQty": 7.0
+      }
+    ]
+  },
+  "vendor-lookup-owned": {
+    "errorCode": 0,
+    "metadata": {
+      "limit": 5,
+      "offset": 0,
+      "totalCount": 1
+    },
+    "responseCode": 200,
+    "vendors": [
+      {
+        "contact": {
+          "id": 9001,
+          "idVendor": "owned-vendor-A",
+          "type": "COMPANY"
+        },
+        "currency": "EUR",
+        "id": "owned-vendor-A",
+        "locked": false
+      }
+    ]
+  }
+}
