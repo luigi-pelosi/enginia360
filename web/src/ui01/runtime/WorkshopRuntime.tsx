@@ -5,6 +5,7 @@ import OrderWorkspace from './OrderWorkspace';
 import MaterialOperations from './MaterialOperations';
 import OwnActualTime from './OwnActualTime';
 const AdministrativeWorkspace = lazy(() => import('./AdministrativeWorkspace'));
+const SupplierPurchasePrices = lazy(() => import('./SupplierPurchasePrices'));
 import OrderList from './OrderList';
 import OwnContexts from './OwnContexts';
 import MasterAuthority from './MasterAuthority';
@@ -18,9 +19,12 @@ export default function WorkshopRuntime() {
   const [authenticated, setAuthenticated] = useState(false), [csrf, setCsrf] = useState('');
   const generation = useRef(0);
   const [materialsOpen, setMaterialsOpen] = useState(false);
-  const [materialContextBlocked, setMaterialContextBlocked] = useState(false);
+  const [materialBlocked, setMaterialContextBlocked] = useState(false);
+  const [priceBlocked, setPriceBlocked] = useState(false);
+  const materialContextBlocked = materialBlocked || priceBlocked;
   const [timeOpen, setTimeOpen] = useState(false);
   const [closureOpen, setClosureOpen] = useState(false);
+  const [pricesOpen, setPricesOpen] = useState(false);
   function failed(e: unknown) {
     setStatus(e instanceof Error ? e.message : 'Servizio non disponibile.');
     if (e instanceof ApiError && e.status === 401) { generation.current++; setAuthenticated(false); setCsrf(''); setEditor(undefined); setBusy(false); }
@@ -47,7 +51,7 @@ export default function WorkshopRuntime() {
   return <main className="ui01-workspace"><header className="ui01-topbar"><strong>Enginia360 · Editor runtime</strong><a href="/" aria-disabled={materialContextBlocked} onClick={e => { if (materialContextBlocked) e.preventDefault(); }}>Accesso e amministrazione</a></header>
     <div className="ui01-runtime-session"><span role="status">{status}</span>{materialContextBlocked && <span role="status">Operazione materiali in corso o incerta: risolvi il comando prima di cambiare commessa.</span>}<Button size="small" disabled={busy || materialContextBlocked} onClick={() => void session()}>Riprova sessione</Button>{!authenticated && csrf && <form method="post" action="/auth/login"><input type="hidden" name="__RequestVerificationToken" value={csrf} /><button>Accedi</button></form>}</div>
     <form onSubmit={e => { e.preventDefault(); void load(locator); }}><label>UUID commessa<input disabled={materialContextBlocked} value={locator} onChange={e => setLocator(e.target.value)} /></label><button disabled={busy || materialContextBlocked || !authenticated}>Rileggi commessa</button></form>
-    <div className="ui01-body"><aside className="ui01-context"><fieldset className="ui01-context-freeze" disabled={materialContextBlocked}>{authenticated && <OwnContexts onError={optionalFailed} />}{authenticated && <OrderList onOpen={id => { setLocator(id); void load(id); }} onError={optionalFailed} />}{order ? <details open><summary>Testata salvata · sola lettura</summary><p>Società: {order.legalEntityId}</p><p>Sede: {order.siteId}</p><p>Tipo documento: {order.documentTypeId}</p><p>Configurazione documento: {order.configurationVersion}</p><p>Ordine cliente: {order.isCustomerOrder ? 'Sì' : 'No'}</p><p>Pagante: {order.payerId}</p><p>Veicolo: {order.vehicleId}</p><p>Intestatario: {order.vehicleHolderId}</p></details> : authenticated && !busy && !locator && <CreateOrder onCreated={async id => { setLocator(id); window.location.hash = 'order='+id; await load(id, true); }} onError={failed} />}</fieldset></aside><section className="ui01-document">
+    <div className="ui01-body"><aside className="ui01-context"><fieldset className="ui01-context-freeze" disabled={materialContextBlocked}>{authenticated && <OwnContexts onError={optionalFailed} />}{authenticated && <OrderList onOpen={id => { setLocator(id); void load(id); }} onError={optionalFailed} />}{order ? <details open><summary>Testata salvata · sola lettura</summary><p>Società: {order.legalEntityId}</p><p>Sede: {order.siteId}</p><p>Tipo documento: {order.documentTypeId}</p><p>Configurazione documento: {order.configurationVersion}</p><p>Ordine cliente: {order.isCustomerOrder ? 'Sì' : 'No'}</p><p>Pagante: {order.payerId}</p><p>Veicolo: {order.vehicleId}</p><p>Intestatario: {order.vehicleHolderId}</p></details> : authenticated && !busy && !locator && <CreateOrder onCreated={async id => { setLocator(id); window.location.hash = 'order='+id; await load(id, true); }} onError={failed} />}</fieldset>{authenticated && order && <details open={pricesOpen} onToggle={e=>{if(priceBlocked&&!e.currentTarget.open)e.currentTarget.open=true;else setPricesOpen(e.currentTarget.open);}}><summary onClick={e=>{if(priceBlocked)e.preventDefault();}} aria-disabled={priceBlocked}>Listini acquisto fornitori</summary>{pricesOpen && <Suspense fallback={<p role="status">Caricamento listini…</p>}><SupplierPurchasePrices key={'prices:'+order.legalEntityId} companyId={order.legalEntityId} onError={optionalFailed} onBlocked={setPriceBlocked}/></Suspense>}</details>}</aside><section className="ui01-document">
     <h1>{order ? 'Commessa '+order.id : 'Nessuna commessa caricata'}</h1>
     <div className="ui01-operations">{['Prenotazione','Prelievo','Preparazione','Installazione / consumo','Carcassa','Esito amministrativo esterno'].map(name => <div key={name}><span>{name}</span><strong>{name === 'Esito amministrativo esterno' ? 'Disponibile nel pannello Chiusura e attesa amministrativa' : 'Disponibile nel pannello Materiali'}</strong></div>)}</div>
     {authenticated && editor && <fieldset className="ui01-context-freeze" disabled={materialContextBlocked}><OrderWorkspace key={editor.order.id} editor={editor} onApplied={async () => { await load(editor.order.id, true); }} onError={optionalFailed} /></fieldset>}

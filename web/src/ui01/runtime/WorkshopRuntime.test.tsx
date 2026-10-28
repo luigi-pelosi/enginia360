@@ -137,3 +137,9 @@ test('closure panel is lazy, keeps editor, footer and sibling panels reachable, 
   await screen.findByText('Sessione terminata. Accedi nuovamente.');
   expect(screen.queryByLabelText('Workspace commessa')).toBeNull();
 });
+test('supplier price list panel lives in the context sidebar so the scrolled document keeps the add control reachable', async () => {
+  window.location.hash = 'order='+id; server(); render(<WorkshopRuntime />);
+  const summary = await screen.findByText('Listini acquisto fornitori');
+  expect(summary.closest('aside.ui01-context')).not.toBeNull();
+  expect(summary.closest('section.ui01-document')).toBeNull();
+});

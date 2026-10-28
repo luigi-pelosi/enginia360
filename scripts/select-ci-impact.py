@@ -181,6 +181,18 @@ R04B2A_DIRECT = {'web/src/ui01/runtime/WorkshopRuntime.tsx','web/src/ui01/runtim
     'src/Modules/Integrations/Enginia360.Integrations/IntegrationsModule.cs',
     'src/Modules/Counterparties/Enginia360.Counterparties/CounterpartiesModule.cs'}
 
+R04B2B1_FILES = {
+    'scripts/test-r04b2b1-impact.py','scripts/test-r04b2b1-prices.py','scripts/run-r04b2b1-tests.py','scripts/test-r04b2b1-lifecycle.py',
+    'scripts/owner-purchase-price-grant.py','tests/browser/r04b2b1-acceptance.cjs','compose.r04b2b1-test.yaml',
+    'database/runtime/migrations/0029_supplier_purchase_prices.sql',
+    'src/Modules/Catalog/Enginia360.Catalog/PurchasePriceEndpoints.cs',
+    'tests/Enginia360.Api.Tests/SupplierPurchasePriceTests.cs',
+    'web/src/ui01/runtime/SupplierPurchasePrices.tsx','web/src/ui01/runtime/SupplierPurchasePrices.test.tsx'}
+R04B2B1_DIRECT = {'src/Modules/Catalog/Enginia360.Catalog/CatalogModule.cs',
+    'src/Modules/Catalog/Enginia360.Catalog/Enginia360.Catalog.csproj','src/Enginia360.Api/Program.cs',
+    'database/runtime/manifest.json','web/src/ui01/runtime/WorkshopRuntime.tsx','web/src/ui01/runtime/runtime.css',
+    'scripts/run-r05b0-tests.py','scripts/run-r00a-tests.py','migrator.runtime.Dockerfile'}
+
 def selection(paths):
     paths = sorted(set(paths))
     r06a2 = bool(set(paths) & (R06A2_FILES | R06A2_DEPENDENCIES))
@@ -212,12 +224,14 @@ def selection(paths):
     if r05b0 or r05b1: auth = ui = ui01b = r03c = True
     r04b2a = bool(set(paths) & (R04B2A_FILES | R04B2A_DIRECT))
     if r04b2a: auth = ui = ui01b = r06_offline = True
+    r04b2b1 = bool(set(paths) & (R04B2B1_FILES | R04B2B1_DIRECT))
+    if r04b2b1: auth = ui = ui01b = r06_offline = True
     unknown = []
     for path in paths:
         parsed = PurePosixPath(path)
         if not path or parsed.is_absolute() or '..' in parsed.parts or '\\' in path or str(parsed) != path:
             raise ValueError('invalid changed path')
-        if path in R04B2A_FILES:
+        if path in R04B2A_FILES or path in R04B2B1_FILES or path == 'src/Modules/Catalog/Enginia360.Catalog/Enginia360.Catalog.csproj':
             continue
         if path in R06A2_FILES or (staging_only and path in R06_WIRING):
             continue
@@ -296,7 +310,8 @@ def selection(paths):
     if r03c: filters.append(R03C_FILTER if r03c_full else R03C_MINIMAL)
     if r05b1: filters.append('FullyQualifiedName~GiobbySalesOrderTests')
     if r04b2a: filters.append('FullyQualifiedName~PurchaseIntentTests')
-    return {'r04b2a':r04b2a,'changed_paths':paths,'api_filter':'|'.join(filters),'r06_offline':r06_offline,'r05a1_offline':r05a1_offline,'r05a2_offline':r05a2_offline,'r05a3_offline':r05a3_offline,'r05a4_offline':r05a4_offline,'r05a5_offline':r05a5_offline,'r05a6_offline':r05a6_offline,'r05b0':r05b0,
+    if r04b2b1: filters.append('FullyQualifiedName~SupplierPurchasePriceTests')
+    return {'r04b2b1':r04b2b1,'r04b2a':r04b2a,'changed_paths':paths,'api_filter':'|'.join(filters),'r06_offline':r06_offline,'r05a1_offline':r05a1_offline,'r05a2_offline':r05a2_offline,'r05a3_offline':r05a3_offline,'r05a4_offline':r05a4_offline,'r05a5_offline':r05a5_offline,'r05a6_offline':r05a6_offline,'r05b0':r05b0,
             'browser':auth,'ui01b':ui01b,'r03a':r03a,'r03a2':r03a,'r04a':r04a,'r04c1':r04c1,'r04c2':r04c2,'r06b1':r06b1,'r03b':r03b,'r03c':r03c,'migrations':auth or ui01b,'ui_build':auth or ui,'ui_tests':ui,
             'r05b1':r05b1, 'r06a2':r06a2, 'full_architecture':False}
 

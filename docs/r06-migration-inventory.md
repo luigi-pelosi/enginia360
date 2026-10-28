@@ -16,6 +16,8 @@ Risultato calcolato sul baseline R05.b.1: **26 migrazioni, 66 definizioni CREATE
 
 **Aggiornamento R04.b.2a (D88/D90):** la migrazione append-only 0028 porta il conteggio a **28 migrazioni, 69 definizioni CREATE, 9 schemi**; `inventory.purchase_intents` (`operational_fact`) e `inventory.purchase_intent_outbox` (`integration_evidence`) sono UNDECIDED come le altre, `NO_LEGACY_IMPORT_APPROVED`, nessuna approvazione di migrazione o readiness.
 
+**Aggiornamento R04.b.2b.1 (D91):** la migrazione append-only 0029 porta il conteggio a **29 migrazioni, 71 definizioni CREATE, 9 schemi**; `catalog.supplier_purchase_price_history` (`company_extension`) e `organization_access.purchase_price_grant_history` (`security_evidence`) sono UNDECIDED come le altre, `NO_LEGACY_IMPORT_APPROVED`, nessuna approvazione di migrazione o readiness.
+
 Ogni voce registra:
 
 - `table`, `owner`: nome qualificato e modulo/schema proprietario osservato, non una nuova ownership di business;
