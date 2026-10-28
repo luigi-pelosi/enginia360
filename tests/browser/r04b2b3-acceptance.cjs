@@ -12,9 +12,23 @@ async function wire(){await control('traffic');return read('traffic.json').A;}
 const posts=async()=>(await wire()).filter(c=>c.method==='POST');
 async function effects(){await control('remote-effects');return read('effects.json');}
 async function login(browser,index){const context=await browser.newContext(),page=await context.newPage();await page.goto(origin+'/');await page.getByRole('button',{name:'Accedi',exact:true}).click();await page.locator('#username').fill(fixture.users[index].username);await page.locator('#password').fill(fixture.users[index].password);await Promise.all([page.waitForURL(u=>u.hostname==='app.r00.test'),page.locator('#kc-login').click()]);return {context,page};}
+async function waitForTlsApi(browser) {
+ const probe = await browser.newPage(), deadline = Date.now() + 30000;
+ try {
+  while (Date.now() < deadline) {
+   try {
+    const response = await probe.goto(origin+'/auth/session', {timeout: 3000, waitUntil: 'domcontentloaded'});
+    if (response?.status() === 200 && (await response.json()).authenticated === false) return;
+   } catch { /* The isolated API may still be starting; never relax TLS validation. */ }
+   await new Promise(resolve => setTimeout(resolve, 100));
+  }
+  assert.fail('Real TLS API session endpoint did not become ready before login');
+ } finally { await probe.close(); }
+}
 (async()=>{
  const browser=await chromium.launch({headless:true});let stage='start';
  try{
+  await waitForTlsApi(browser);
   let {page}=await login(browser,0);
   async function configure(mode){await control('po-config:'+mode);const stop=Date.now()+30000;while((await json(page,'/auth/session').catch(()=>({status:0}))).status!==200){assert(Date.now()<stop,'API restart readiness');await sleep(100);}({page}=await login(browser,0));}
   const ctx=fixture.contexts[0],data=fixture.workshop[0],supplier=fixture.purchasePrices.supplierId,item=fixture.purchasePrices.catalogItemId;

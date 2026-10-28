@@ -12,9 +12,23 @@ const read=name=>JSON.parse(fs.readFileSync('/run/control/'+name,'utf8'));
 async function counts(){await control('price-counts');return read('price-counts.json');}
 async function row(id){await control('price-row:'+id);return read('price-row.json');}
 async function login(browser,index){const context=await browser.newContext(),page=await context.newPage();await page.goto(origin+'/');await page.getByRole('button',{name:'Accedi',exact:true}).click();await page.locator('#username').fill(fixture.users[index].username);await page.locator('#password').fill(fixture.users[index].password);await Promise.all([page.waitForURL(u=>u.hostname==='app.r00.test'),page.locator('#kc-login').click()]);return {context,page};}
+async function waitForTlsApi(browser) {
+ const probe = await browser.newPage(), deadline = Date.now() + 30000;
+ try {
+  while (Date.now() < deadline) {
+   try {
+    const response = await probe.goto(origin+'/auth/session', {timeout: 3000, waitUntil: 'domcontentloaded'});
+    if (response?.status() === 200 && (await response.json()).authenticated === false) return;
+   } catch { /* The isolated API may still be starting; never relax TLS validation. */ }
+   await new Promise(resolve => setTimeout(resolve, 100));
+  }
+  assert.fail('Real TLS API session endpoint did not become ready before login');
+ } finally { await probe.close(); }
+}
 (async()=>{
  const browser=await chromium.launch({headless:true});let stage='start';
  try{
+  await waitForTlsApi(browser);
   const {page}=await login(browser,0),ctx=fixture.contexts[0],data=fixture.workshop[0],supplier=fixture.purchasePrices.supplierId,item=fixture.purchasePrices.catalogItemId;
   const url=(s=supplier,i=item)=>`/api/v1/catalog/suppliers/${s}/items/${i}/purchase-price`;
   const get=()=>json(page,url()+'?legalEntityId='+ctx.legalEntityId);
