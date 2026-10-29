@@ -121,6 +121,10 @@ R05A1_OFFLINE_FILES = {'docs/r05a1-giobby-read-contract.md', 'docs/r05a1-evidenc
 R05A2_OFFLINE_FILES = {'docs/r05a2-sandbox-contract.md', 'docs/r05a2-evidence.json',
     'scripts/test-r05a2-evidence.py', 'scripts/test-r05a2-impact.py'}
 
+R05A8_OFFLINE_FILES = {'docs/r05a8-sandbox-receipt-contract.md', 'docs/r05a8-evidence.json',
+    'tests/fixtures/r05a8-owned-captures.json', 'scripts/r05a8_receipt.py',
+    'scripts/test-r05a8-evidence.py', 'scripts/test-r05a8-impact.py'}
+
 R05A7_OFFLINE_FILES = {'docs/r05a7-sandbox-purchase-order-contract.md', 'docs/r05a7-evidence.json',
     'tests/fixtures/r05a7-owned-captures.json', 'scripts/r05a7_purchase_order.py',
     'scripts/test-r05a7-evidence.py', 'scripts/test-r05a7-impact.py'}
@@ -235,6 +239,8 @@ def selection(paths):
     paths = sorted(set(paths))
     r06a2 = bool(set(paths) & (R06A2_FILES | R06A2_DEPENDENCIES))
     staging_only = r06a2 and set(paths) <= R06A2_FILES | R06_OFFLINE_FILES | R06_WIRING | {'docs/r06a2-synthetic-import-export.md'}
+    r05a8_offline = bool(set(paths) & R05A8_OFFLINE_FILES)
+    r05a8_only = r05a8_offline and set(paths) <= R05A8_OFFLINE_FILES | R06_OFFLINE_FILES | R06_WIRING
     r05a7_offline = bool(set(paths) & R05A7_OFFLINE_FILES)
     r05a7_only = r05a7_offline and set(paths) <= R05A7_OFFLINE_FILES | R06_OFFLINE_FILES | R06_WIRING
     r05a6_offline = bool(set(paths) & R05A6_OFFLINE_FILES)
@@ -281,6 +287,8 @@ def selection(paths):
         if path in R04B2B2_FILES or path in R04B2A_FILES or path in R04B2B1_FILES or path == 'src/Modules/Catalog/Enginia360.Catalog/Enginia360.Catalog.csproj':
             continue
         if path in R06A2_FILES or (staging_only and path in R06_WIRING):
+            continue
+        if path in R05A8_OFFLINE_FILES or (r05a8_only and path in R06_WIRING):
             continue
         if path in R05A7_OFFLINE_FILES or (r05a7_only and path in R06_WIRING):
             continue
@@ -383,6 +391,7 @@ def selection(paths):
         for consumer in ('GiobbyPurchaseOrderTests','GiobbySalesOrderTests','AdministrationBoundaryTests'):
             if consumer not in result['api_filter']:
                 result['api_filter'] += '|FullyQualifiedName~'+consumer
+    result['r05a8_offline'] = r05a8_offline
     return result
 
 

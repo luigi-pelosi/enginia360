@@ -1,0 +1,240 @@
+{
+  "api-ack": {
+    "errorCode": 0,
+    "idDocument": 301,
+    "responseCode": 200
+  },
+  "api-detail": {
+    "document": {
+      "docStatus": "CREATED",
+      "id": 301,
+      "idBu": "owned-bu-1",
+      "idDocumentType": 0,
+      "idNumerator": 101,
+      "idVendor": "owned-vendor-1",
+      "reference": "E360-SB-R05A5-20261027T115822Z-PO-RECEIPT",
+      "rows": [
+        {
+          "description": "E360-SB-R05A5-20261027T115822Z-grline-1",
+          "docposstatus": "CREATED",
+          "idMaterial": "owned-product-1",
+          "idPos": 1,
+          "idPosType": 1,
+          "idStorage": "owned-storage-1",
+          "idVat": "owned-vat-1",
+          "materialmovementposref": null,
+          "materialmovementref": null,
+          "price": 1.0,
+          "quantity": 1.0,
+          "saleorderposref": null,
+          "saleorderref": null
+        }
+      ]
+    },
+    "errorCode": 0,
+    "responseCode": 200
+  },
+  "order-after": {
+    "document": {
+      "docStatus": "CREATED",
+      "id": 102,
+      "idBu": "owned-bu-1",
+      "idDocumentType": 2,
+      "idNumerator": 101,
+      "idVendor": "owned-vendor-1",
+      "reference": "E360-SB-R05A5-20261027T115822Z-PO-RECEIPT",
+      "rows": [
+        {
+          "description": "E360-SB-R05A5-20261027T115822Z-lineB-1",
+          "docposstatus": "CREATED",
+          "idMaterial": "owned-product-1",
+          "idPos": 1,
+          "idPosType": 1,
+          "idStorage": "owned-storage-1",
+          "idVat": "owned-vat-1",
+          "materialmovementposref": null,
+          "materialmovementref": null,
+          "price": 1.0,
+          "quantity": 1.0,
+          "saleorderposref": null,
+          "saleorderref": null
+        },
+        {
+          "description": "E360-SB-R05A5-20261027T115822Z-lineB-2",
+          "docposstatus": "CREATED",
+          "idMaterial": "owned-product-1",
+          "idPos": 2,
+          "idPosType": 1,
+          "idStorage": "owned-storage-1",
+          "idVat": "owned-vat-1",
+          "materialmovementposref": null,
+          "materialmovementref": null,
+          "price": 1.0,
+          "quantity": 2.0,
+          "saleorderposref": null,
+          "saleorderref": null
+        }
+      ]
+    },
+    "errorCode": 0,
+    "responseCode": 200
+  },
+  "order-before": {
+    "document": {
+      "docStatus": "CREATED",
+      "id": 102,
+      "idBu": "owned-bu-1",
+      "idDocumentType": 2,
+      "idNumerator": 101,
+      "idVendor": "owned-vendor-1",
+      "reference": "E360-SB-R05A5-20261027T115822Z-PO-RECEIPT",
+      "rows": [
+        {
+          "description": "E360-SB-R05A5-20261027T115822Z-lineB-1",
+          "docposstatus": "CREATED",
+          "idMaterial": "owned-product-1",
+          "idPos": 1,
+          "idPosType": 1,
+          "idStorage": "owned-storage-1",
+          "idVat": "owned-vat-1",
+          "materialmovementposref": null,
+          "materialmovementref": null,
+          "price": 1.0,
+          "quantity": 1.0,
+          "saleorderposref": null,
+          "saleorderref": null
+        },
+        {
+          "description": "E360-SB-R05A5-20261027T115822Z-lineB-2",
+          "docposstatus": "CREATED",
+          "idMaterial": "owned-product-1",
+          "idPos": 2,
+          "idPosType": 1,
+          "idStorage": "owned-storage-1",
+          "idVat": "owned-vat-1",
+          "materialmovementposref": null,
+          "materialmovementref": null,
+          "price": 1.0,
+          "quantity": 2.0,
+          "saleorderposref": null,
+          "saleorderref": null
+        }
+      ]
+    },
+    "errorCode": 0,
+    "responseCode": 200
+  },
+  "sent-comparison": {
+    "idBu": "owned-bu-1",
+    "idDocumentType": 0,
+    "idNumerator": 101,
+    "idVendor": "owned-vendor-1",
+    "reference": "E360-SB-R05A5-20261027T115822Z-PO-RECEIPT",
+    "rows": [
+      {
+        "description": "E360-SB-R05A5-20261027T115822Z-grline-1",
+        "idMaterial": "owned-product-1",
+        "idPosType": 1,
+        "idStorage": "owned-storage-1",
+        "idVat": "owned-vat-1",
+        "price": 1.0,
+        "quantity": 1.0
+      }
+    ]
+  },
+  "stock-after": {
+    "errorCode": 0,
+    "responseCode": 200,
+    "stockReports": [
+      {
+        "availableQty": 2.0,
+        "idMaterial": "owned-product-1",
+        "idStorage": "owned-storage-1",
+        "orderedToSuppliersQty": 6.0,
+        "quantity": 2.0,
+        "reservedByOrdersQty": 0.0,
+        "stockForecastQty": 8.0
+      }
+    ]
+  },
+  "stock-before": {
+    "errorCode": 0,
+    "responseCode": 200,
+    "stockReports": [
+      {
+        "availableQty": 1.0,
+        "idMaterial": "owned-product-1",
+        "idStorage": "owned-storage-1",
+        "orderedToSuppliersQty": 6.0,
+        "quantity": 1.0,
+        "reservedByOrdersQty": 0.0,
+        "stockForecastQty": 7.0
+      }
+    ]
+  },
+  "ui-linked-detail": {
+    "document": {
+      "docStatus": "CREATED",
+      "id": 401,
+      "idBu": "owned-bu-1",
+      "idDocumentType": 0,
+      "idNumerator": 101,
+      "idVendor": "owned-vendor-2",
+      "reference": "E360-SB-R05A3-20261027T102351Z-PO",
+      "rows": [
+        {
+          "description": "[owned-generated-source-note-redacted]",
+          "docposstatus": "CREATED",
+          "idMaterial": null,
+          "idPos": 1,
+          "idPosType": 5,
+          "idStorage": null,
+          "idVat": "owned-vat-2",
+          "materialmovementposref": null,
+          "materialmovementref": null,
+          "price": 0.0,
+          "quantity": 0.0,
+          "saleorderposref": null,
+          "saleorderref": null
+        },
+        {
+          "description": "E360-SB-R05A3-20261027T102351Z-line-2",
+          "docposstatus": "CREATED",
+          "idMaterial": "owned-product-1",
+          "idPos": 3,
+          "idPosType": 1,
+          "idStorage": "owned-storage-1",
+          "idVat": "owned-vat-1",
+          "materialmovementposref": null,
+          "materialmovementref": null,
+          "price": 1.0,
+          "quantity": 2.0,
+          "saleorderposref": null,
+          "saleorderref": null
+        }
+      ]
+    },
+    "errorCode": 0,
+    "responseCode": 200
+  },
+  "ui-ordinary-list": {
+    "documentsHeaders": [
+      {
+        "docStatus": "CREATED",
+        "id": 401,
+        "idBu": "owned-bu-1",
+        "idDocumentType": 0,
+        "idNumerator": 101,
+        "idVendor": "owned-vendor-2",
+        "reference": "E360-SB-R05A3-20261027T102351Z-PO"
+      }
+    ],
+    "errorCode": 0,
+    "metadata": {
+      "limit": 5,
+      "offset": 0,
+      "totalCount": 1
+    },
+    "responseCode": 200
+  }
+}
