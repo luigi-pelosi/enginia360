@@ -104,3 +104,47 @@ test('quantity beyond remaining is refused locally without posting', async () =>
   await screen.findByText('Quantità positiva, massimo 6 decimali e non oltre il residuo richiedibile.');
   expect(fetchMock.mock.calls.some(call => (call as unknown[])[1] && ((call as unknown[])[1] as RequestInit).method === 'POST')).toBe(false);
 });
+
+// R04.b.2b.3 PR2: Italian readout of the server-derived dispatch state per intent. The browser never derives it from vendor identifiers or ERP values.
+const intentWith = (dispatch: unknown, extra: Record<string, unknown> = {}) => ({ id: '33333333-3333-4333-8333-333333333333', quantity: '1.000000', supplierName: 'Fornitore sintetico', status: 'Held', dispatch,
+  acceptedPrice: { unitPurchasePrice: '1.000000', sourcePresent: false, revision: 0, method: 'manual' }, ...extra });
+test.each([
+  [{ state: 'queued', reason: null, externalReference: null }, "Non inviata · in coda per l'invio"],
+  [{ state: 'queued', reason: 'configuration_missing', externalReference: null }, 'Non inviata · configurazione acquisti mancante: richiesta trattenuta'],
+  [{ state: 'uncertain', reason: null, externalReference: null }, "In verifica · esito dell'ordine incerto: nessun nuovo invio automatico"],
+  [{ state: 'confirmed', reason: null, externalReference: 'GiobbyPurchaseOrder-301' }, 'Confermata · riferimento ordine Giobby: GiobbyPurchaseOrder-301'],
+  [{ state: 'not_sendable', reason: 'unpriced', externalReference: null }, 'Non inviabile · richiesta senza prezzo: mai inviata'],
+])('dispatch readout %j is shown in Italian and replaces the obsolete connector-not-active text', async (dispatch, text) => {
+  vi.stubGlobal('fetch', vi.fn(async () => response(state('2', [intentWith(dispatch, dispatch.state === 'not_sendable' ? { acceptedPrice: null } : {})]))));
+  mount(); await screen.findByText(text);
+  expect(screen.queryByText(/connettore d'acquisto non ancora attivo/)).toBeNull();
+  expect(document.body.textContent).not.toMatch(/vendorId|GBV|idDocument|owned-product/i);
+});
+
+test('confirmed readout states that the Giobby order is not stock authority and offers no dispatch action', async () => {
+  vi.stubGlobal('fetch', vi.fn(async () => response(state('2', [intentWith({ state: 'confirmed', reason: null, externalReference: 'GiobbyPurchaseOrder-301' })]))));
+  mount(); await screen.findByText('Confermata · riferimento ordine Giobby: GiobbyPurchaseOrder-301');
+  expect(screen.getByText(/stato dell'ordine non modifica le giacenze/)).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /invia|reinvia|annulla|ricevi/i })).toBeNull();
+});
+
+test('a malformed dispatch readout fails closed instead of showing an invented state', async () => {
+  const errors: unknown[] = [];
+  vi.stubGlobal('fetch', vi.fn(async () => response(state('2', [intentWith({ state: 'delivered', reason: null, externalReference: null })]))));
+  render(<PurchaseIntent url='/api/v1/inventory/orders/x/lines/y' warehouseId={line} closed={false} blocked={false} onBlocked={() => undefined} onError={e => errors.push(e)} />);
+  await screen.findByText("Lettura richieste d'acquisto non disponibile.");
+  expect(screen.queryByText(/Consegnata|delivered/)).toBeNull();
+});
+
+test('a refused reread (grant or source access removed) hides the previously shown dispatch readout and reference', async () => {
+  let reads = 0;
+  vi.stubGlobal('fetch', vi.fn(async (path: string) => {
+    if (path.includes('/quote?')) return response({ state: 'unavailable' }, 503);
+    reads++;
+    return reads === 1 ? response(state('2', [intentWith({ state: 'confirmed', reason: null, externalReference: 'GiobbyPurchaseOrder-301' })])) : response({ state: 'forbidden' }, 403);
+  }));
+  mount(); await screen.findByText('Confermata · riferimento ordine Giobby: GiobbyPurchaseOrder-301');
+  fireEvent.click(screen.getByRole('button', { name: 'Rileggi richieste e quotazione' }));
+  await screen.findByText("Lettura richieste d'acquisto non disponibile.");
+  expect(document.body.textContent).not.toMatch(/GiobbyPurchaseOrder-301|Confermata/);
+});

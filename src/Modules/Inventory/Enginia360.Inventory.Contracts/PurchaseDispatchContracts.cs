@@ -17,3 +17,12 @@ public interface IPurchaseDispatchOutbox
     // Insert-only and idempotent: an identical outcome is accepted again, a different one is refused.
     Task<bool> Record(PurchaseOutboxEnvelope envelope, PurchaseOutcome outcome, CancellationToken ct);
 }
+
+// Technical delivery state owned by Integrations (Queued/Uncertain/Completed + bounded error code). Never a business outcome or stock authority.
+public sealed record PurchaseDelivery(string State, string? LastError);
+
+// Implemented by Integrations, the owner of purchase_dispatches; Inventory reads delivery state only through this contract, never the table.
+public interface IPurchaseDeliveries
+{
+    Task<IReadOnlyDictionary<Guid, PurchaseDelivery>> Read(Guid verifiedTenantId, IReadOnlyCollection<Guid> intentIds, CancellationToken ct);
+}

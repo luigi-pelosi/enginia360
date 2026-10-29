@@ -116,4 +116,24 @@ class DispatchSqlTests(unittest.TestCase):
   with self.assertRaises(Exception):self.sql(f"BEGIN; SELECT set_config('app.tenant_id','{ids['tenant']}',true); UPDATE integrations.purchase_dispatches SET \"TenantId\"='{other}'; COMMIT;",app=True)
   with self.assertRaises(Exception):self.sql(f"BEGIN; SELECT set_config('app.tenant_id','{ids['tenant']}',true); UPDATE integrations.purchase_dispatches SET \"State\"='Exploded'; COMMIT;",app=True)
   self.assertEqual(self.sql('SELECT count(*) FROM inventory.purchase_intent_outcomes'),'0','a dispatch row confirms nothing')
+
+ # R04.b.2b.3 PR2 (migration 0032): the owner read function exposes only the confirmation reference of each intent, under the unchanged grant/source authorization.
+ def state(self,ids,subject=None,company=None):
+  return json.loads(self.sql(self.app_prefix(ids,company or ids['companies'][0],subject)+f"SELECT inventory.purchase_intent_state('{ids['order']}','{ids['line']}','{ids['warehouse']}')::text; COMMIT;",app=True).splitlines()[-1])
+ def test_state_exposes_only_the_confirmation_reference_after_the_outcome_is_recorded(self):
+  ids=self.freeze_world();priced=self.priced(ids,quantity='1');legacy=str(uuid.uuid4())
+  self.assertEqual(self.purchase(ids,command=legacy,quantity='1')['state'],'applied')
+  def find(got,key):return next(i for i in got['intents'] if i['id']==key)
+  before=self.state(ids)
+  self.assertIsNone(find(before,priced)['outcome']);self.assertIsNone(find(before,legacy)['outcome'])
+  self.assertEqual(self.record(ids,priced),'recorded')
+  after=self.state(ids)
+  self.assertEqual(find(after,priced)['outcome'],{'externalReference':'GiobbyPurchaseOrder-301'})
+  self.assertIsNone(find(after,legacy)['outcome']);self.assertEqual(find(after,legacy)['acceptedPrice'],None)
+  text=json.dumps(after);self.assertNotIn('RecordedAt',text);self.assertNotIn('TenantId',text);self.assertNotIn('vendorId',text)
+  self.assertEqual(after['remaining'],before['remaining'],'a confirmation never replenishes the D90 cap')
+ def test_state_with_an_outcome_still_refuses_a_caller_without_the_purchase_grant(self):
+  ids=self.freeze_world();priced=self.priced(ids,quantity='1');self.assertEqual(self.record(ids,priced),'recorded')
+  self.sql(f"DELETE FROM organization_access.company_permissions WHERE \"MembershipId\"='{ids['member']}' AND \"Permission\"='inventory.purchase-intents.create';")
+  got=self.state(ids);self.assertEqual(got['state'],'forbidden');self.assertNotIn('GiobbyPurchaseOrder',json.dumps(got))
 if __name__=='__main__':unittest.main()

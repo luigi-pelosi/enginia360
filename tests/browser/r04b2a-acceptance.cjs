@@ -107,7 +107,12 @@ async function waitForTlsApi(browser) {
     await panel.getByRole('button', { name: 'Riprova richiesta identica' }).click();
     await panel.getByText('Richiesta registrata e riletta dal server.').waitFor();
     await panel.getByText('Residuo richiedibile: 1').waitFor();
-    await panel.getByText(/In attesa — connettore d'acquisto non ancora attivo/).waitFor();
+    // PR2 (R04.b.2b.3): the obsolete «connettore non ancora attivo» label is replaced by the server-derived readout; this simulator fixture has no purchase connector, so the priced intent is held for missing purchase setup.
+    // The purchase worker records its first (refused, nothing sent) attempt asynchronously; reread the authoritative state until the held reason appears (bounded 45 s).
+    for (let stop = Date.now() + 45000; await panel.getByText('Non inviata · configurazione acquisti mancante: richiesta trattenuta').count() === 0;) {
+      assert(Date.now() < stop, 'held purchase-setup readout not shown');
+      await new Promise((resolve) => setTimeout(resolve, 1000)); await panel.getByRole('button', { name: 'Rileggi richieste e quotazione' }).click();
+    }
     assert.equal(posts.length, 2); assert.deepEqual(posts[1], posts[0], 'byte-identical URL and body');
     assert(!(await page.locator('body').innerText()).match(/GBV|vendorId/i));
     const first = JSON.parse(posts[0].body);

@@ -153,5 +153,10 @@
     "id": "0031_purchase_dispatch",
     "path": "migrations/0031_purchase_dispatch.sql",
     "sha256": "6c9987a388cff2a1089ab61b33a5dd65645323c881ea2a12c3b09193a803d212"
+  },
+  {
+    "id": "0032_purchase_dispatch_readout",
+    "path": "migrations/0032_purchase_dispatch_readout.sql",
+    "sha256": "e31411628aeeb7060d8cd3d0038d12322bb7a95d7b6a88dff991d232b922883e"
   }
 ]

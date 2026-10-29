@@ -1,3 +1,4 @@
+using Enginia360.Inventory.Contracts;
 using Enginia360.Workshop.Contracts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -21,6 +22,7 @@ public static class IntegrationsModule
         services.AddDbContext<IntegrationsDbContext>(o => o.UseNpgsql(connection));
         services.AddScoped<IAdministrativeDeliveries, AdministrativeDeliveries>();
         services.AddScoped<IAdministrativeRecovery, AdministrativeRecovery>();
+        services.AddScoped<IPurchaseDeliveries, PurchaseDeliveries>();
         services.AddScoped<AdministrativeDispatcher>();
         services.AddScoped<PurchaseDispatcher>();
         services.AddHttpClient<SimulatorConnector>(client => { client.BaseAddress = options.BaseAddress; client.Timeout = options.Timeout; }).RemoveAllLoggers();

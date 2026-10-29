@@ -49,7 +49,7 @@ internal static class PurchaseIntentEndpoints
         return Result(value);
     }
     private static async Task<IResult> Read(Guid orderId, Guid lineId, Guid warehouseId, ClaimsPrincipal user,
-        IWorkshopAccess access, InventoryDbContext db, CancellationToken ct)
+        IWorkshopAccess access, InventoryDbContext db, IServiceProvider services, CancellationToken ct)
     {
         var member = await access.ResolveMembership(user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "", ct);
         if (member is null) return Results.StatusCode(403);
@@ -57,7 +57,17 @@ internal static class PurchaseIntentEndpoints
         await Context(db, member.TenantId, user, ct);
         var value = await db.Database.SqlQuery<string>($"SELECT inventory.purchase_intent_state({orderId},{lineId},{warehouseId})::text AS \"Value\"").SingleAsync(ct);
         await tx.CommitAsync(ct);
-        return Result(value);
+        // The shared pool may have one slot: the Inventory connection is released before the Integrations-owned delivery state is read.
+        await tx.DisposeAsync();
+        if (System.Text.Json.Nodes.JsonNode.Parse(value) is not System.Text.Json.Nodes.JsonObject state) return Result(value);
+        if (state["state"]?.GetValue<string>() == "ready" && state["intents"] is System.Text.Json.Nodes.JsonArray list)
+        {
+            var ids = list.Select(i => Guid.Parse(i!["id"]!.GetValue<string>())).ToArray();
+            var deliveries = ids.Length == 0 || services.GetService<IPurchaseDeliveries>() is not { } reader
+                ? new Dictionary<Guid, PurchaseDelivery>() : new Dictionary<Guid, PurchaseDelivery>(await reader.Read(member.TenantId, ids, ct));
+            PurchaseDispatchReadout.Apply(state, deliveries);
+        }
+        return Result(state.ToJsonString());
     }
     private static async Task<IResult> Create(Guid orderId, Guid lineId, PurchaseIntentRequest request, ClaimsPrincipal user,
         IWorkshopAccess access, InventoryDbContext db, IServiceProvider services, CancellationToken ct)
