@@ -83,6 +83,8 @@ def pointer_types(value,pointer=''):
     return {pointer:'null' if value is None else 'boolean' if type(value) is bool else 'integer' if type(value) is int else 'number' if type(value) is float else 'string'}
 
 def validate_artifacts(matrix, fixture_bytes, doc, root):
+    if matrix.get('increment') == 'R05.a.9':
+        return validate_isolated(matrix, fixture_bytes, doc, root)
     import hashlib
     sha=lambda b:hashlib.sha256(b).hexdigest()
     require(sha(fixture_bytes)=='f0dd3a100b522265c5c6043517d75456bd2d0a3ef6ed73ae9856a16eadce5189','owned projection changed; no invented response or private fields')
@@ -124,6 +126,44 @@ def validate_artifacts(matrix, fixture_bytes, doc, root):
     require(isinstance(matrix['incidents'],list) and len(matrix['incidents'])==5,'historical incidents missing')
     require(all(token in doc for token in BOUNDARIES),'document boundary removed')
     require(not any(token in doc for token in ('R04_COMPLETE=true','R05_COMPLETE=true','RECEIPT_Q6_PROVEN=true','RECOVERY_PRECOMMITTED=true','LOCAL_STOCK_WRITER=true')),'unsafe document promotion')
+
+def validate_isolated(matrix, fixture_bytes, doc, root):
+    import hashlib
+    require(hashlib.sha256(fixture_bytes).hexdigest() == '60f56415863a3397b7757aa43b4202599a1ca44b1ec65985a2d2be5b97442ed8', 'isolated owned projection changed')
+    f=json.loads(fixture_bytes)
+    require(compare_receipt(f['sent'],f['receipt-detail'],902)=={'matches':True,'fractional_q6_stress_observed':True},'fractional receipt direct detail mismatch')
+    # This catalog is a fixed acquired campaign, not a trust-on-input registry.
+    require(hashlib.sha256(canonical(matrix)).hexdigest()=='402f143b23523600ae3fcc1ab88ca259e2a6578099919b6744e3e6105069464a','isolated acquisition/provenance/authorization catalog changed')
+    require(matrix['fixture_sha256']==hashlib.sha256(fixture_bytes).hexdigest(),'projection digest mismatch')
+    ledger=matrix['ledger']
+    require([x['seq'] for x in ledger]==list(range(1,23)),'intent chronology incomplete')
+    require(sum(x['sent'] for x in ledger)==20 and sum(not x['sent'] for x in ledger)==2,'sent versus aborted counts differ')
+    require(len(ledger)<=matrix['authorization']['caps']['business_intents'],'business cap exceeded')
+    from datetime import datetime
+    for x in ledger:
+        if x['sent']:
+            require(datetime.fromisoformat(x['intent_utc'])<datetime.fromisoformat(x['response_utc']),'response preceded intent')
+            require(all(isinstance(x[k],str) and len(x[k])==64 for k in ('intent_sha256','original_response_sha256','redacted_response_sha256')),'missing retained hash')
+    for kind in ('order','simulation','receipt'):
+        require(sum(x['post_kind']==kind and x['method']=='POST' for x in ledger)==1,'write cap/retry violation')
+    require(f['order-before']==f['order-after'],'source order changed')
+    require(f['order-before']['document']['id']==901 and f['receipt-detail']['document']['id']==902,'source ownership aliases differ')
+    source=f['order-before']['document'];receipt=f['receipt-detail']['document']
+    require(source['reference']!=receipt['reference'] and source['idVendor']==receipt['idVendor'],'source/reference mismatch')
+    require(source['rows'][0]['quantity']==1 and receipt['rows'][0]['quantity']==0.123456 and receipt['rows'][0]['price']==12.345678,'q6 observation changed')
+    require(Decimal('1')-Decimal(str(receipt['rows'][0]['quantity']))==Decimal(matrix['internal_source']['overlay_remaining']),'internal overlay mismatch')
+    require(f['simulation']['document']['id'] is None and f['stock-before']==f['stock-after-simulation'] and f['preflight']==f['list-after-simulation'],'simulation independent observations differ')
+    require(assess_lookup(f['receipt-lookup'],receipt['reference'],receipt['idVendor'],f['receipt-detail'],True)=='HOLD_NO_REPOST','negative lookup improperly promoted')
+    before=f['stock-before']['stockReports'][0];after=f['stock-after']['stockReports'][0]
+    require(Decimal(str(after['quantity']))-Decimal(str(before['quantity']))==Decimal('0.12346'),'stock rounding observation changed')
+    require(after['orderedToSuppliersQty']==before['orderedToSuppliersQty'],'pool ordered changed')
+    for p in matrix['provenance']:
+        require(p['projection_sha256']==hashlib.sha256(canonical(f[p['name']])).hexdigest(),'projection provenance differs')
+        entry=ledger[p['seq']-1]
+        require(p['original_sha256']==entry['original_response_sha256'] and p['utc']==entry['response_utc'],'original capture chronology differs')
+    for path,digest in matrix['historical_files'].items():
+        require(hashlib.sha256((root/path).read_bytes()).hexdigest()==digest,'historical artifact modified')
+    require(all(t in doc for t in ('UNPROVEN_GET_ONLY_HELD','OPEN_NOT_REPAIRED','D93_DISTINCT_OWNER_GRANT','D90_NO_REPLENISHMENT','FULL_ARCHITECTURE_FALSE','Stock precision discrepancy')),'isolated boundary removed')
 
 def main():
     import argparse

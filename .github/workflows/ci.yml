@@ -117,7 +117,7 @@ jobs:
       - name: Initialize private receipt evidence scratch directory
         run: printf 'TMPDIR=%s\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
       - name: Offline receipt reprojection and guards (not provider compatibility)
-        run: python3 -I scripts/test-r05a8-impact.py && python3 -I scripts/test-r05a8-evidence.py
+        run: python3 -I scripts/test-r05a8-impact.py && python3 -I scripts/test-r05a8-evidence.py && python3 -I scripts/test-r05a9-evidence.py
   affected-r05a7-offline:
     needs: impact
     if: needs.impact.outputs.r05a7_offline == 'true'

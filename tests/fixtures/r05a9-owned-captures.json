@@ -1,0 +1,269 @@
+{
+  "list-after-simulation": {
+    "documentsHeaders": [],
+    "errorCode": 0,
+    "metadata": {
+      "limit": 5,
+      "offset": 0,
+      "totalCount": 0
+    },
+    "responseCode": 200
+  },
+  "order-ack": {
+    "errorCode": 0,
+    "idDocument": 901,
+    "responseCode": 200
+  },
+  "order-after": {
+    "document": {
+      "docNumber": "owned-order-number",
+      "docStatus": "CREATED",
+      "id": 901,
+      "idBu": "owned-bu-A",
+      "idDocumentType": 2,
+      "idNumerator": 71,
+      "idOrderType": 1,
+      "idVendor": "owned-vendor-A",
+      "reference": "E360-SB-R05A9-OWNED-PO",
+      "rows": [
+        {
+          "description": "E360-SB-R05A9-OWNED frozen source line",
+          "docposstatus": "CREATED",
+          "idMaterial": "owned-material-A",
+          "idPos": 1,
+          "idPosType": 1,
+          "idStorage": "owned-storage-A",
+          "idVat": "owned-vat-A",
+          "materialmovementposref": null,
+          "materialmovementref": null,
+          "price": 12.345678,
+          "quantity": 1,
+          "saleorderposref": null,
+          "saleorderref": null
+        }
+      ]
+    },
+    "errorCode": 0,
+    "responseCode": 200
+  },
+  "order-before": {
+    "document": {
+      "docNumber": "owned-order-number",
+      "docStatus": "CREATED",
+      "id": 901,
+      "idBu": "owned-bu-A",
+      "idDocumentType": 2,
+      "idNumerator": 71,
+      "idOrderType": 1,
+      "idVendor": "owned-vendor-A",
+      "reference": "E360-SB-R05A9-OWNED-PO",
+      "rows": [
+        {
+          "description": "E360-SB-R05A9-OWNED frozen source line",
+          "docposstatus": "CREATED",
+          "idMaterial": "owned-material-A",
+          "idPos": 1,
+          "idPosType": 1,
+          "idStorage": "owned-storage-A",
+          "idVat": "owned-vat-A",
+          "materialmovementposref": null,
+          "materialmovementref": null,
+          "price": 12.345678,
+          "quantity": 1,
+          "saleorderposref": null,
+          "saleorderref": null
+        }
+      ]
+    },
+    "errorCode": 0,
+    "responseCode": 200
+  },
+  "preflight": {
+    "documentsHeaders": [],
+    "errorCode": 0,
+    "metadata": {
+      "limit": 5,
+      "offset": 0,
+      "totalCount": 0
+    },
+    "responseCode": 200
+  },
+  "receipt-ack": {
+    "errorCode": 0,
+    "idDocument": 902,
+    "responseCode": 200
+  },
+  "receipt-detail": {
+    "document": {
+      "docNumber": "owned-receipt-number",
+      "docStatus": "CREATED",
+      "id": 902,
+      "idBu": "owned-bu-A",
+      "idDocumentType": 0,
+      "idNumerator": 71,
+      "idOrderType": 1,
+      "idVendor": "owned-vendor-A",
+      "reference": "E360-SB-R05A9-OWNED-GR",
+      "rows": [
+        {
+          "description": "E360-SB-R05A9-OWNED frozen source line",
+          "docposstatus": "CREATED",
+          "idMaterial": "owned-material-A",
+          "idPos": 1,
+          "idPosType": 1,
+          "idStorage": "owned-storage-A",
+          "idVat": "owned-vat-A",
+          "materialmovementposref": null,
+          "materialmovementref": null,
+          "price": 12.345678,
+          "quantity": 0.123456,
+          "saleorderposref": null,
+          "saleorderref": null
+        }
+      ]
+    },
+    "errorCode": 0,
+    "responseCode": 200
+  },
+  "receipt-lookup": {
+    "documentsHeaders": [],
+    "errorCode": 0,
+    "metadata": {
+      "limit": 5,
+      "offset": 0,
+      "totalCount": 0
+    },
+    "responseCode": 200
+  },
+  "sent": {
+    "docNumber": "owned-receipt-number",
+    "idBu": "owned-bu-A",
+    "idDocumentType": 0,
+    "idNumerator": 71,
+    "idVendor": "owned-vendor-A",
+    "reference": "E360-SB-R05A9-OWNED-GR",
+    "rows": [
+      {
+        "description": "E360-SB-R05A9-OWNED frozen source line",
+        "idMaterial": "owned-material-A",
+        "idPosType": 1,
+        "idStorage": "owned-storage-A",
+        "idVat": "owned-vat-A",
+        "price": 12.345678,
+        "quantity": 0.123456
+      }
+    ]
+  },
+  "simulation": {
+    "document": {
+      "docNumber": "owned-receipt-number",
+      "docStatus": "CREATED",
+      "id": null,
+      "idBu": "owned-bu-A",
+      "idDocumentType": 0,
+      "idNumerator": 71,
+      "idOrderType": null,
+      "idVendor": "owned-vendor-A",
+      "reference": "E360-SB-R05A9-OWNED-GR",
+      "rows": [
+        {
+          "description": "E360-SB-R05A9-OWNED frozen source line",
+          "docposstatus": "CREATED",
+          "idMaterial": "owned-material-A",
+          "idPos": 1,
+          "idPosType": 1,
+          "idStorage": "owned-storage-A",
+          "idVat": "owned-vat-A",
+          "materialmovementposref": null,
+          "materialmovementref": null,
+          "price": 12.345678,
+          "quantity": 0.123456,
+          "saleorderposref": null,
+          "saleorderref": null
+        }
+      ]
+    },
+    "errorCode": 0,
+    "responseCode": 200
+  },
+  "source-sent": {
+    "docStatus": "CREATED",
+    "idBu": "owned-bu-A",
+    "idDocumentType": 2,
+    "idNumerator": 71,
+    "idOrderType": 1,
+    "idVendor": "owned-vendor-A",
+    "reference": "E360-SB-R05A9-OWNED-PO",
+    "rows": [
+      {
+        "description": "E360-SB-R05A9-OWNED frozen source line",
+        "idMaterial": "owned-material-A",
+        "idPosType": 1,
+        "idStorage": "owned-storage-A",
+        "idVat": "owned-vat-A",
+        "price": 12.345678,
+        "quantity": 1.0
+      }
+    ]
+  },
+  "stock-after": {
+    "errorCode": 0,
+    "metadata": {
+      "limit": 5,
+      "offset": 0,
+      "totalCount": 1
+    },
+    "responseCode": 200,
+    "stockReports": [
+      {
+        "availableQty": 1.1234600000000001,
+        "idMaterial": "owned-material-A",
+        "idStorage": "owned-storage-A",
+        "orderedToSuppliersQty": 8,
+        "quantity": 2.12346,
+        "reservedByOrdersQty": 1,
+        "stockForecastQty": 9.12346
+      }
+    ]
+  },
+  "stock-after-simulation": {
+    "errorCode": 0,
+    "metadata": {
+      "limit": 5,
+      "offset": 0,
+      "totalCount": 1
+    },
+    "responseCode": 200,
+    "stockReports": [
+      {
+        "availableQty": 1,
+        "idMaterial": "owned-material-A",
+        "idStorage": "owned-storage-A",
+        "orderedToSuppliersQty": 8,
+        "quantity": 2,
+        "reservedByOrdersQty": 1,
+        "stockForecastQty": 9
+      }
+    ]
+  },
+  "stock-before": {
+    "errorCode": 0,
+    "metadata": {
+      "limit": 5,
+      "offset": 0,
+      "totalCount": 1
+    },
+    "responseCode": 200,
+    "stockReports": [
+      {
+        "availableQty": 1,
+        "idMaterial": "owned-material-A",
+        "idStorage": "owned-storage-A",
+        "orderedToSuppliersQty": 8,
+        "quantity": 2,
+        "reservedByOrdersQty": 1,
+        "stockForecastQty": 9
+      }
+    ]
+  }
+}

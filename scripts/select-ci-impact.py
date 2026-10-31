@@ -121,7 +121,9 @@ R05A1_OFFLINE_FILES = {'docs/r05a1-giobby-read-contract.md', 'docs/r05a1-evidenc
 R05A2_OFFLINE_FILES = {'docs/r05a2-sandbox-contract.md', 'docs/r05a2-evidence.json',
     'scripts/test-r05a2-evidence.py', 'scripts/test-r05a2-impact.py'}
 
-R05A8_OFFLINE_FILES = {'docs/r05a8-sandbox-receipt-contract.md', 'docs/r05a8-evidence.json',
+R05A8_OFFLINE_FILES = {'docs/r05a9-isolated-receipt-contract.md', 'docs/r05a9-evidence.json',
+    'tests/fixtures/r05a9-owned-captures.json', 'scripts/test-r05a9-evidence.py',
+    'docs/r05a8-sandbox-receipt-contract.md', 'docs/r05a8-evidence.json',
     'tests/fixtures/r05a8-owned-captures.json', 'scripts/r05a8_receipt.py',
     'scripts/test-r05a8-evidence.py', 'scripts/test-r05a8-impact.py'}
 
