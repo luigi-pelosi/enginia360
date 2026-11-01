@@ -44,6 +44,7 @@ class ImpactTests(unittest.TestCase):
         self.assertTrue(mixed['browser'] and mixed['migrations'])
         self.assertFalse(mixed['full_architecture'])
         block = (ROOT/'.github/workflows/ci.yml').read_text().split('  affected-r06-offline:\n')[1].split('\n  affected-api:')[0]
+        self.assertIn("run: printf 'TMPDIR=%s\\n' \"$RUNNER_TEMP\" >> \"$GITHUB_ENV\"", block)
         for command in ('python3 -I scripts/test-c00-consistency.py', 'python3 -I scripts/test-productization-consistency.py'):
             self.assertIn(command, block)
 

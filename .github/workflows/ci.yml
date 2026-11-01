@@ -204,6 +204,8 @@ jobs:
     timeout-minutes: 3
     steps:
       - uses: actions/checkout@v4
+      - name: Initialize private readiness scratch directory
+        run: printf 'TMPDIR=%s\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
       - name: Offline inventory, reconciliation and readiness registry (not operational approval)
         run: python3 -I scripts/test-c00-consistency.py && python3 -I scripts/test-productization-consistency.py && python3 -I scripts/test-r06-impact.py && python3 -I scripts/test-r06-inventory.py && python3 -I scripts/test-r06-reconcile.py && python3 -I scripts/test-r06b2-impact.py && python3 -I scripts/test-r06-readiness.py && python3 -I scripts/r06_readiness.py
       - name: Offline staging transfer input and lifecycle guards (not runtime proof)
