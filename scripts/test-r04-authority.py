@@ -131,6 +131,29 @@ COMMON = (
 )
 
 
+LOOKBEHIND_CANDIDATES = {
+    D85_FORBIDDEN[1]: r'fattura|invoice',
+    D85_FORBIDDEN[5]: r'authoritative',
+    D87_FORBIDDEN[0]: r'rilascio|annullo|annullamento|cancellazione',
+    D87_FORBIDDEN[1]: r'reservation|reserve',
+    D87_FORBIDDEN[2]: r'conversione',
+    D87_FORBIDDEN[3]: r'order|invoice',
+    D87_FORBIDDEN[4]: r'divieto',
+    D88_FORBIDDEN[0]: r'richiesta|purchase',
+}
+
+
+def has_forbidden_claim(pattern, text):
+    # Leading lookbehind prevents the regex engine's literal-prefix acceleration.
+    # Retain each original regex and its full context; only enumerate possible starts.
+    prefix = LOOKBEHIND_CANDIDATES.get(pattern)
+    if prefix is None:
+        return re.search(pattern, text, re.I) is not None
+    compiled = re.compile(pattern, re.I)
+    return any(compiled.match(text, candidate.start()) is not None
+               for candidate in re.finditer(prefix, text, re.I))
+
+
 def require(text, tokens, label):
     for token in tokens:
         if token not in text:
@@ -561,7 +584,7 @@ def validate(root):
         r'(?:setup coherence|coerenza setup)\s+(?:already enforced|già implementata)',
     )
     for pattern in forbidden+D85_FORBIDDEN+D87_FORBIDDEN+D88_FORBIDDEN:
-        if re.search(pattern, scope, re.I):
+        if has_forbidden_claim(pattern, scope):
             raise ValueError('active authority: forbidden promotion or mixed writer')
     validate_d90(docs)
     validate_d91(docs)
@@ -734,6 +757,43 @@ D94_HANDOFF = (
 
 
 class AuthorityTests(unittest.TestCase):
+    def test_literal_candidate_scan_preserves_original_regex_semantics(self):
+        witnesses = (
+            'fattura numerata automatica', 'invoice numerata automatic',
+            'authoritative residual', 'rilascio della riserva provato',
+            'annullo della riserva verificato', 'annullamento della riserva dimostrato',
+            'cancellazione della prenotazione esercitato', 'reservation release proven',
+            'reserve cancellation confirmed', 'conversione ordine→fattura provata',
+            'order to invoice conversion proven', 'invoice conversion verified',
+            'divieto permanente', 'richiesta d’acquisto creata automaticamente su',
+            'purchase request created automatically on',
+        )
+        contexts = ('', 'non ', 'not ', 'non è un ', 'not a ', 'mai ', 'mai una ',
+                    'never ', 'never an ', 'non-', 'un', 'prefix\n')
+        for pattern in LOOKBEHIND_CANDIDATES:
+            positives = 0
+            negatives = 0
+            for witness in witnesses:
+                for context in contexts:
+                    for text in (context+witness, (context+witness).upper(),
+                                 context+witness.replace('i', 'İ').replace('s', 'ſ')):
+                        expected = re.search(pattern, text, re.I) is not None
+                        with self.subTest(pattern=pattern, text=text):
+                            self.assertEqual(has_forbidden_claim(pattern, text), expected)
+                        positives += expected
+                        negatives += not expected
+            self.assertGreater(positives, 0, pattern)
+            self.assertGreater(negatives, 0, pattern)
+
+    def test_lookbehind_guards_do_not_rescan_every_document_character(self):
+        from unittest.mock import patch
+        with patch.object(re, 'search', wraps=re.search) as search:
+            validate(ROOT)
+        expensive = [call for call in search.call_args_list
+                     if str(call.args[0]).startswith('(?<!') and len(call.args[1]) > 50000]
+        self.assertEqual(len(expensive), 0,
+                         'negative-lookbehind guards must match literal candidates, not rescan the whole document')
+
     def test_d94_records_exact_owner_answer_question_and_history(self):
         text = (ROOT/GLOSSARY).read_text()
         self.assertIn('### D94 —', text, 'cumulative receiving decision missing')
