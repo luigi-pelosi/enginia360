@@ -86,6 +86,7 @@ R06_OFFLINE_FILES = R04_AUTHORITY_OFFLINE_FILES | {'scripts/r06_inventory.py', '
     'docs/r06-migration-inventory.json', 'docs/r06-migration-inventory.md',
     'scripts/r06_readiness.py', 'scripts/test-r06-readiness.py', 'scripts/test-r06b2-impact.py',
     'docs/r06-readiness-registry.json', 'docs/r06-recovery-runbook.md',
+    'docs/r04b3-receipt-runtime.md', 'scripts/test-productization-consistency.py',
     'docs/r06-restore-rehearsal.md', 'docs/productization-plan.md', 'docs/productization-backlog.json',
     'docs/foundation/12-costs-and-operations.md'}
 # The existing changed-path guard must not assume every later increment is R03.a.

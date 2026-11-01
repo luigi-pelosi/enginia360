@@ -117,6 +117,30 @@ for card in cards:
     if identifier in ("R02", "R04", "R05"):
         require(card["gate"], "AUTHORITY", identifier)
     seen.add(identifier)
+# Finite, freshly read receipt delivery snapshot; never a live readiness claim.
+receipt_blocks = []
+for path in ('docs/productization-plan.md', 'docs/r06-recovery-runbook.md', 'docs/r04b3-receipt-runtime.md'):
+    text = Path(path).read_text()
+    start, end = '<!-- receipt-delivery:start -->', '<!-- receipt-delivery:end -->'
+    reject(text.count(start) != 1 or text.count(end) != 1, path+': receipt delivery markers missing/duplicate')
+    block = text.split(start)[1].split(end)[0].strip()
+    receipt_blocks.append(block)
+    for token in ('PR #133', 'PR #134 MERGED', '#128 CLOSED/Completato', '#44/#45 OPEN',
+                  'c1a503fa1d17782c6dce358a8a7b76a4781b025c',
+                  'b9256e5f490148fa4dca3e4a7949ce8801c6c096',
+                  '7dd6d35a1f4184bafc5b4ea0e668413004acd18b',
+                  'PR41336663865:4 job/42 step', 'dispatch41336683551:15 job/145 step',
+                  'full_architecture=false', 'R04/R05 NON complete', 'provider lost ACK HOLD',
+                  'nessun blind POST', 'OPEN_NOT_REPAIRED', 'ERP per-order residual UNKNOWN',
+                  'receipt0.123456/stock0.12346', 'proiezione master esterna D76',
+                  'D89 operazioni OPEN/BACKLOG', 'FINAL full architecture soltanto dopo completamento funzionale'):
+        require(block, token, path+': receipt delivery')
+reject(len(set(receipt_blocks)) != 1, 'receipt delivery summaries disagree')
+receipt_card = next(card for card in cards if card['id'] == 'R04')['slices'][0]
+for token in ('R04.b.3 current delivery:', 'PR #133 + PR #134 MERGED', '#128 CLOSED', '#44/#45 OPEN',
+              'not R04/R05 completion', 'D76 external master projection', 'OPEN_NOT_REPAIRED'):
+    require(receipt_card, token, 'R04: receipt delivery backlog')
+
 require(plan, "unica autorità del nucleo anagrafico condiviso tenant-wide D26/D65", plan_path)
 for value in ("D76", "direzione unilaterale configurabile", "societarie", "profilo tecnico concreto",
               "Non servono nuova approvazione D26", "Nessun writer bidirezionale concorrente"):
