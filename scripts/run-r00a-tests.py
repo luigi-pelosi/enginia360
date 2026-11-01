@@ -12,6 +12,17 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 manifest_count = str(len(json.loads((ROOT/'database/runtime/manifest.json').read_text())))
 
+FOUNDATION_SUITES = ('scripts/test-r00-migrations.py', 'scripts/test-r00b-bindings.py', 'scripts/test-r01b-grants.py', 'scripts/test-r02b-authority.py', 'scripts/test-r04b1-supplier.py', 'scripts/test-r03a-migration.py')
+PURCHASING_SUITES = ('scripts/test-r04b2a-purchase.py', 'scripts/test-r04b2b1-prices.py', 'scripts/test-r04b2b2-freeze.py', 'scripts/test-r04b2b3-dispatch.py')
+
+def selected_suites(name):
+    groups = {'foundation': FOUNDATION_SUITES, 'purchasing': PURCHASING_SUITES,
+              'receipts': ('scripts/test-r04b3-receipts.py',), 'all': FOUNDATION_SUITES + PURCHASING_SUITES}
+    if name not in groups:
+        raise ValueError('unknown bounded migration suite')
+    return groups[name]
+
+
 
 def validate_project(project):
     if not re.fullmatch(r'enginia360-r00a-[0-9a-f]{12}', project):
@@ -82,7 +93,11 @@ def main():
             query = ['exec','-T','postgres','psql','-X','-qAt','-U','postgres','-d','runtime','-v','ON_ERROR_STOP=1','-c']
             assert run(command+query+["SELECT count(*) FROM runtime_migrations.applied"],capture=True).stdout.strip() == manifest_count
             assert run(command+query+["SHOW data_directory"],capture=True).stdout.strip() == '/var/lib/postgresql/18/docker'
-            for suite in ('scripts/test-r00-migrations.py', 'scripts/test-r00b-bindings.py', 'scripts/test-r01b-grants.py', 'scripts/test-r02b-authority.py', 'scripts/test-r04b1-supplier.py', 'scripts/test-r04b2a-purchase.py', 'scripts/test-r04b2b1-prices.py', 'scripts/test-r04b2b2-freeze.py', 'scripts/test-r04b2b3-dispatch.py', 'scripts/test-r03a-migration.py'):
+            selected = selected_suites(os.environ.get('R00_MIGRATION_SUITE', 'all'))
+            # Keep the explicit executable inventory for the existing AST mutation guards.
+            for suite in ('scripts/test-r00-migrations.py', 'scripts/test-r00b-bindings.py', 'scripts/test-r01b-grants.py', 'scripts/test-r02b-authority.py', 'scripts/test-r04b1-supplier.py', 'scripts/test-r04b2a-purchase.py', 'scripts/test-r04b2b1-prices.py', 'scripts/test-r04b2b2-freeze.py', 'scripts/test-r04b2b3-dispatch.py', 'scripts/test-r04b3-receipts.py', 'scripts/test-r03a-migration.py'):
+                if suite not in selected:
+                    continue
                 run(command + ['run', '--rm', '--no-deps', '-T', '--entrypoint', 'python3',
                     '-e', 'R00_MIGRATION_TESTS=1', '-e', 'PGUSER=postgres', '-e', 'PGPASSWORD',
                     '-e', 'R00_OWNER_USER', '-e', 'R00_OWNER_PASSWORD', '-e', 'R00_APP_PASSWORD',

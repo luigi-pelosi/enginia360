@@ -49,7 +49,7 @@ def fixtures(state, secret):
 def main():
     if not os.environ.get('TMPDIR'): raise ValueError('private TMPDIR required')
     if POOL not in ('1', '4'): raise ValueError('pool acceptance is explicitly 1 or 4')
-    if SPEC not in ('r05b0-acceptance.cjs', 'r05b0-gaps.cjs', 'r05b1-acceptance.cjs', 'r04b2a-acceptance.cjs', 'r04b2b1-acceptance.cjs', 'r04b2b2-acceptance.cjs', 'r04b2b3-acceptance.cjs', 'r04b2b3-readout.cjs'): raise ValueError('unknown binding acceptance specification')
+    if SPEC not in ('r05b0-acceptance.cjs', 'r05b0-gaps.cjs', 'r05b1-acceptance.cjs', 'r04b2a-acceptance.cjs', 'r04b2b1-acceptance.cjs', 'r04b2b2-acceptance.cjs', 'r04b2b3-acceptance.cjs', 'r04b2b3-readout.cjs', 'r04b3-acceptance.cjs'): raise ValueError('unknown binding acceptance specification')
     if not (ROOT/'web/dist-ui01-runtime/ui01-runtime.html').exists(): raise ValueError('build:ui01-runtime required')
     project = 'enginia360-r00b-' + secrets.token_hex(6)
     before_volumes = r00.inventory('volume')

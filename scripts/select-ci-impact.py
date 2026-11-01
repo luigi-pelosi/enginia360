@@ -222,6 +222,12 @@ INTEGRATIONS_SRC = 'src/Modules/Integrations/Enginia360.Integrations/'
 R04B2B3_FILES = {'scripts/test-r04b2b3-impact.py','scripts/test-r04b2b3-dispatch.py','scripts/run-r04b2b3-tests.py','scripts/test-r04b2b3-lifecycle.py',
     'tests/browser/r04b2b3-acceptance.cjs','tests/browser/r04b2b3-readout.cjs','tests/browser/r04b2b3-giobby.py','compose.r04b2b3-test.yaml','database/runtime/migrations/0031_purchase_dispatch.sql',
     'tests/Enginia360.Api.Tests/GiobbyPurchaseOrderTests.cs','database/runtime/migrations/0032_purchase_dispatch_readout.sql'}
+R04B2B3_FILES |= {'scripts/test-r04b3-migration-selection.py','scripts/test-r04b3-lifecycle.py','scripts/run-r04b3-tests.py','scripts/owner-receipt-grant.py','tests/browser/r04b3-acceptance.cjs','tests/browser/r04b3-giobby.py','compose.r04b3-test.yaml',
+    'scripts/test-r04b3-impact.py','scripts/test-r04b3-receipts.py','database/runtime/migrations/0033_receipt_intents.sql',
+    'src/Modules/Inventory/Enginia360.Inventory/ReceiptIntentEndpoints.cs','src/Modules/Inventory/Enginia360.Inventory/ReceiptDispatchOutbox.cs',
+    'src/Modules/Inventory/Enginia360.Inventory.Contracts/ReceiptContracts.cs','src/Modules/Integrations/Enginia360.Integrations/ReceiptDispatcher.cs',
+    'src/Modules/Integrations/Enginia360.Integrations/GiobbyReceiptConnector.cs','src/Modules/Integrations/Enginia360.Integrations/ReceiptDestination.cs',
+    'tests/Enginia360.Api.Tests/GiobbyReceiptTests.cs'}
 # PR2 readout: selected for the dispatch acceptance in addition to (never instead of) their existing purchase/generic consumers.
 R04B2B3_READOUT = {'src/Modules/Inventory/Enginia360.Inventory/PurchaseIntentEndpoints.cs','src/Modules/Inventory/Enginia360.Inventory.Contracts/PurchaseDispatchReadout.cs',
     'web/src/ui01/runtime/PurchaseIntent.tsx','web/src/ui01/runtime/PurchaseIntent.test.tsx'}
@@ -232,7 +238,7 @@ R04B2B3_DIRECT = {INTEGRATIONS_SRC+name for name in ('Enginia360.Integrations.cs
     'src/Enginia360.Api/packages.lock.json','tests/Enginia360.Api.Tests/packages.lock.json','tests/Enginia360.Api.Tests/AdministrationBoundaryTests.cs',
     'scripts/test-r00-migrations.py','scripts/test-r04b2a-purchase.py','tests/Enginia360.Api.Tests/PurchaseIntentTests.cs','tests/browser/r04b2b1-acceptance.cjs','tests/browser/r04b2a-acceptance.cjs','tests/browser/r04b2b2-acceptance.cjs'}
 # Only this finite purchase-order connector slice may narrow historical runners; any other real producer keeps the generic direct-consumer selection.
-R04B2B3_SCOPE = R04B2B3_FILES | R04B2B3_DIRECT | R04B2B3_READOUT | {'database/runtime/manifest.json','migrator.runtime.Dockerfile','scripts/run-r00a-tests.py','scripts/run-r05b0-tests.py',
+R04B2B3_SCOPE = R04B2B3_FILES | R04B2B3_DIRECT | R04B2B3_READOUT | {'scripts/test-r04-authority.py','docs/r04b3-receipt-runtime.md','src/Modules/Inventory/module.json','src/Modules/Inventory/Enginia360.Inventory/TechnicalAuditFilter.cs','database/runtime/manifest.json','migrator.runtime.Dockerfile','scripts/run-r00a-tests.py','scripts/run-r05b0-tests.py',
     'scripts/select-ci-impact.py','scripts/test-r03a-impact.py','.github/workflows/ci.yml','docs/r04b2b3-giobby-purchase-order-connector.md','docs/productization-plan.md','docs/productization-backlog.json',
     'docs/r06-migration-inventory.json','docs/r06-migration-inventory.md'}
 
@@ -390,7 +396,7 @@ def selection(paths):
         result['api_filter'] = AUTH_FILTER+'|'+WORKSHOP_FILTER+'|FullyQualifiedName~InventoryArchitectureTests|FullyQualifiedName~PurchaseIntentTests|FullyQualifiedName~SupplierPurchasePriceTests|FullyQualifiedName~GiobbySalesOrderTests|FullyQualifiedName~GiobbyPurchaseOrderTests|FullyQualifiedName~AdministrationBoundaryTests'
     # Earlier bounded producer slices may replace their API filter; never discard an already selected purchase consumer.
     if result['r04b2b3']:
-        for consumer in ('GiobbyPurchaseOrderTests','GiobbySalesOrderTests','AdministrationBoundaryTests'):
+        for consumer in ('GiobbyReceiptTests','GiobbyPurchaseOrderTests','GiobbySalesOrderTests','AdministrationBoundaryTests'):
             if consumer not in result['api_filter']:
                 result['api_filter'] += '|FullyQualifiedName~'+consumer
     result['r05a8_offline'] = r05a8_offline

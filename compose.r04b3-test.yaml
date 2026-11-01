@@ -1,0 +1,23 @@
+# R04.b.2b.3 isolated purchase-order dispatch acceptance. Internal TLS fake only; no host ports or retained volumes.
+services:
+  postgres:
+    extends: {file: compose.r04b2b2-test.yaml, service: postgres}
+  migrator:
+    extends: {file: compose.r04b2b2-test.yaml, service: migrator}
+  identity:
+    extends: {file: compose.r04b2b2-test.yaml, service: identity}
+  admin-simulator:
+    extends: {file: compose.r04b2b2-test.yaml, service: admin-simulator}
+    command: [python3, -I, /observer/r04b3-giobby.py]
+  simulator-b:
+    extends: {file: compose.r04b2b2-test.yaml, service: simulator-b}
+  api:
+    extends: {file: compose.r04b2b2-test.yaml, service: api}
+  web:
+    extends: {file: compose.r04b2b2-test.yaml, service: web}
+  browser:
+    extends: {file: compose.r04b2b2-test.yaml, service: browser}
+    entrypoint: [sh, -c, 'mkdir -p "$$HOME/.pki/nssdb" && certutil -N -d sql:$$HOME/.pki/nssdb --empty-password && certutil -A -d sql:$$HOME/.pki/nssdb -n runtime-ephemeral-ca -t C,, -i /run/tls/ca.crt && exec node ${R05B0_SPEC:-r04b3-acceptance.cjs}']
+networks:
+  runtime:
+    internal: true

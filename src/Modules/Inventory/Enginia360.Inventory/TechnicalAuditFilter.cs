@@ -24,6 +24,9 @@ internal sealed class TechnicalAuditFilter(ILogger<TechnicalAuditFilter> logger)
             if (result is IValueHttpResult { Value: PickContract pick }) resource = pick.Id;
             if (result is IValueHttpResult { Value: NewPartReturnContract newReturn }) resource = newReturn.Id;
             if (result is IValueHttpResult { Value: CarcassReturnContract carcass }) resource = carcass.Id;
+            if (result is IValueHttpResult { Value: System.Text.Json.JsonElement receipt } && status is 200 or 201
+                && receipt.ValueKind == System.Text.Json.JsonValueKind.Object && receipt.TryGetProperty("id", out var id)
+                && id.ValueKind == System.Text.Json.JsonValueKind.String && id.TryGetGuid(out var receiptId)) resource = receiptId;
             return result;
         }
         finally

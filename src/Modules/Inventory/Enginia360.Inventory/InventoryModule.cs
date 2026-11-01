@@ -18,6 +18,7 @@ public static class InventoryModule
         services.AddScoped<IWorkshopPickedParts, WorkshopPickedParts>();
         services.AddScoped<IInstallationStockEffects, InstallationStockEffects>();
         services.AddScoped<IReplacedPartReturns, ReplacedPartReturns>();
+        services.AddScoped<IReceiptDispatchOutbox, ReceiptDispatchOutbox>();
         services.AddScoped<IPurchaseDispatchOutbox, PurchaseDispatchOutbox>();
         return services;
     }
@@ -33,6 +34,7 @@ public static class InventoryModule
         });
         routes.MapGet("/orders/{orderId:guid}/lines/{lineId:guid}", Read);
         routes.MapPost("/orders/{orderId:guid}/lines/{lineId:guid}/reservations", Reserve);
+        ReceiptIntentEndpoints.Map(routes);
         PurchaseIntentEndpoints.Map(routes);
         PickingEndpoints.Map(routes);
         ReleaseEndpoints.Map(routes);
