@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Offline documentary coherence only; does NOT enforce product setup or call an ERP."""
 import argparse
+from functools import lru_cache
 import hashlib
 import json
 from pathlib import Path
@@ -143,7 +144,38 @@ LOOKBEHIND_CANDIDATES = {
 }
 
 
+CLAIM_PATTERNS = frozenset(D85_FORBIDDEN + D87_FORBIDDEN + D88_FORBIDDEN)
+# Every possible literal start of the unchanged claim regexes. These are conservative
+# prefixes, not replacements for the original expressions or their lookbehind context.
+_CLAIM_START = re.compile(
+    r'crea|emet|issu|invi|send|fatt|invo|engi|loca|resi|auth|prof|ordi|'
+    r'rila|annu|canc|rese|conv|orde|divi|migr|viet|proi|lega|data|eleg|'
+    r'r06|rich|purc|writ|scri|id|vend|supp|appr|sepa|proj')
+_CLAIM_CASE = str.maketrans({
+    **{chr(code): chr(code + 32) for code in range(ord('A'), ord('Z') + 1)},
+    'İ': 'i', 'ı': 'i', 'ſ': 's', 'K': 'k',
+})
+
+
+@lru_cache(maxsize=8)
+def claim_starts(text):
+    # One-character replacements preserve offsets, unlike a general Unicode casefold.
+    # The exhaustive case-closure regression checks these mappings against re.I.
+    candidates = text.translate(_CLAIM_CASE)
+    starts = []
+    position = 0
+    while (candidate := _CLAIM_START.search(candidates, position)) is not None:
+        starts.append(candidate.start())
+        # Different prefixes may overlap (e.g. resID). Never skip another start.
+        position = candidate.start() + 1
+    return tuple(starts)
+
+
 def has_forbidden_claim(pattern, text):
+    if pattern in CLAIM_PATTERNS:
+        compiled = re.compile(pattern, re.I)
+        return any(compiled.match(text, position) is not None for position in claim_starts(text))
+    # Unknown patterns retain the original search path; mapping is never an allowlist.
     # Leading lookbehind prevents the regex engine's literal-prefix acceleration.
     # Retain each original regex and its full context; only enumerate possible starts.
     prefix = LOOKBEHIND_CANDIDATES.get(pattern)
@@ -757,6 +789,59 @@ D94_HANDOFF = (
 
 
 class AuthorityTests(unittest.TestCase):
+    def test_candidate_case_map_matches_unicode_regex_ascii_letter_closure(self):
+        ascii_letter = re.compile('[a-z]', re.I)
+        extras = {char for code in range(128, sys.maxunicode + 1)
+                  if ascii_letter.fullmatch(char := chr(code))}
+        self.assertEqual(extras, {'İ', 'ı', 'ſ', 'K'})
+        for char in 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz' + ''.join(sorted(extras)):
+            normalized = char.translate(_CLAIM_CASE)
+            self.assertEqual(len(normalized), 1)
+            self.assertIsNotNone(re.fullmatch(normalized, char, re.I))
+
+    def test_all_large_claim_patterns_share_a_candidate_scan(self):
+        from unittest.mock import patch
+        patterns = set(D85_FORBIDDEN + D87_FORBIDDEN + D88_FORBIDDEN)
+        with patch.object(re, 'search', wraps=re.search) as search:
+            validate(ROOT)
+        scans = [call for call in search.call_args_list
+                 if call.args[0] in patterns and len(call.args[1]) > 50000]
+        self.assertEqual(len(scans), 0,
+                         'all known claim guards must share candidate starts instead of rescanning the full document')
+
+    def test_shared_candidates_preserve_every_claim_regex_and_overlapping_starts(self):
+        witnesses = (
+            'crea automaticamente una fattura numerata', 'fattura numerata automatica',
+            'Enginia360 scrive stock', 'residuo aggiorna', 'residuo ERP autorevole',
+            'authoritative residual', 'residuo sostituisce', 'proforma scelta',
+            'ordine cliente scelto come tipo esatto',
+            'rilascio della riserva provato', 'reservation release proven',
+            'conversione ordine→fattura provata', 'order to invoice conversion proven',
+            'divieto permanente', 'migrazione legacy è permanentemente vietata',
+            'vietato per sempre', 'migration is permanently prohibited',
+            'migrazione è approvata', 'legacy data migration is approved',
+            'eleggibilità approvata', 'R06 è COMPLETA',
+            'richiesta d’acquisto creata automaticamente su',
+            'creazione automatica della richiesta d’acquisto',
+            'writer locale di acquisto consentito', 'Enginia360 crea un purchase order',
+            'ID Giobby è nel master condiviso', 'vendor ID is in the shared master',
+            'approvatore separato è richiesto', 'separate approver is required',
+            'proiezione D76 implementata', 'resID Giobby è nel master condiviso',
+        )
+        for pattern in D85_FORBIDDEN + D87_FORBIDDEN + D88_FORBIDDEN:
+            positive = negative = 0
+            for witness in witnesses + ('unrelated documentary text',):
+                for context in ('', 'non ', 'not ', 'mai ', 'never an ', 'un', 'prefix\n'):
+                    for text in (context + witness, (context + witness).upper(),
+                                 context + witness.replace('i', 'İ').replace('s', 'ſ')):
+                        expected = re.search(pattern, text, re.I) is not None
+                        with self.subTest(pattern=pattern, text=text):
+                            self.assertEqual(has_forbidden_claim(pattern, text), expected)
+                        positive += expected
+                        negative += not expected
+            self.assertGreater(positive, 0, pattern)
+            self.assertGreater(negative, 0, pattern)
+
     def test_literal_candidate_scan_preserves_original_regex_semantics(self):
         witnesses = (
             'fattura numerata automatica', 'invoice numerata automatic',

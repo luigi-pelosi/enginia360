@@ -22,7 +22,7 @@ class Impact(unittest.TestCase):
     for name in ('GiobbyReceiptTests','GiobbyPurchaseOrderTests','AdministrationBoundaryTests'):self.assertIn(name,s['api_filter'])
     self.assertFalse(s['full_architecture'])
  def test_receipt_manifest_narrows_only_finite_direct_consumers(self):
-  shared={'docs/r04b3-receipt-runtime.md','src/Modules/Inventory/module.json','src/Modules/Inventory/Enginia360.Inventory/TechnicalAuditFilter.cs','database/runtime/manifest.json','migrator.runtime.Dockerfile','scripts/run-r00a-tests.py','scripts/run-r05b0-tests.py','scripts/select-ci-impact.py','.github/workflows/ci.yml'}
+  shared={'scripts/test-r04-authority.py','docs/r04b3-receipt-runtime.md','src/Modules/Inventory/module.json','src/Modules/Inventory/Enginia360.Inventory/TechnicalAuditFilter.cs','database/runtime/manifest.json','migrator.runtime.Dockerfile','scripts/run-r00a-tests.py','scripts/run-r05b0-tests.py','scripts/select-ci-impact.py','.github/workflows/ci.yml'}
   selected=impact.selection(sorted(OWN|shared))
   for key in ('r04b2b3','r04b2a','r04b2b2','r05b1','browser','migrations','ui01b','r06_offline'):self.assertTrue(selected[key],key)
   for key in ('r03a','r03a2','r03b','r03c','r04a','r04c1','r04c2','r05b0','r06b1','r06a2'):self.assertFalse(selected[key],key)

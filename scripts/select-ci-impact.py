@@ -238,7 +238,7 @@ R04B2B3_DIRECT = {INTEGRATIONS_SRC+name for name in ('Enginia360.Integrations.cs
     'src/Enginia360.Api/packages.lock.json','tests/Enginia360.Api.Tests/packages.lock.json','tests/Enginia360.Api.Tests/AdministrationBoundaryTests.cs',
     'scripts/test-r00-migrations.py','scripts/test-r04b2a-purchase.py','tests/Enginia360.Api.Tests/PurchaseIntentTests.cs','tests/browser/r04b2b1-acceptance.cjs','tests/browser/r04b2a-acceptance.cjs','tests/browser/r04b2b2-acceptance.cjs'}
 # Only this finite purchase-order connector slice may narrow historical runners; any other real producer keeps the generic direct-consumer selection.
-R04B2B3_SCOPE = R04B2B3_FILES | R04B2B3_DIRECT | R04B2B3_READOUT | {'docs/r04b3-receipt-runtime.md','src/Modules/Inventory/module.json','src/Modules/Inventory/Enginia360.Inventory/TechnicalAuditFilter.cs','database/runtime/manifest.json','migrator.runtime.Dockerfile','scripts/run-r00a-tests.py','scripts/run-r05b0-tests.py',
+R04B2B3_SCOPE = R04B2B3_FILES | R04B2B3_DIRECT | R04B2B3_READOUT | {'scripts/test-r04-authority.py','docs/r04b3-receipt-runtime.md','src/Modules/Inventory/module.json','src/Modules/Inventory/Enginia360.Inventory/TechnicalAuditFilter.cs','database/runtime/manifest.json','migrator.runtime.Dockerfile','scripts/run-r00a-tests.py','scripts/run-r05b0-tests.py',
     'scripts/select-ci-impact.py','scripts/test-r03a-impact.py','.github/workflows/ci.yml','docs/r04b2b3-giobby-purchase-order-connector.md','docs/productization-plan.md','docs/productization-backlog.json',
     'docs/r06-migration-inventory.json','docs/r06-migration-inventory.md'}
 
