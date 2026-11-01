@@ -205,7 +205,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Offline inventory, reconciliation and readiness registry (not operational approval)
-        run: python3 -I scripts/test-r06-impact.py && python3 -I scripts/test-r06-inventory.py && python3 -I scripts/test-r06-reconcile.py && python3 -I scripts/test-r06b2-impact.py && python3 -I scripts/test-r06-readiness.py && python3 -I scripts/r06_readiness.py
+        run: python3 -I scripts/test-c00-consistency.py && python3 -I scripts/test-productization-consistency.py && python3 -I scripts/test-r06-impact.py && python3 -I scripts/test-r06-inventory.py && python3 -I scripts/test-r06-reconcile.py && python3 -I scripts/test-r06b2-impact.py && python3 -I scripts/test-r06-readiness.py && python3 -I scripts/r06_readiness.py
       - name: Offline staging transfer input and lifecycle guards (not runtime proof)
         run: python3 -I scripts/test-r06a2-transfer.py && python3 -I scripts/test-r06a2-lifecycle.py
       - name: Offline stock and purchasing authority correction (not product setup enforcement)

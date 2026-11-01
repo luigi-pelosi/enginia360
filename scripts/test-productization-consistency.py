@@ -64,6 +64,56 @@ class ConsistencyGuardTests(unittest.TestCase):
         self.mutate('docs/productization-plan.md',old,card['gate'])
         self.run_guard('D77 bounded mandate')
 
+    def test_receipt_delivery_has_one_current_summary_not_candidate_status(self):
+        for name in ('productization-plan.md', 'r06-recovery-runbook.md', 'r04b3-receipt-runtime.md'):
+            text = (ROOT/'docs'/name).read_text()
+            with self.subTest(document=name):
+                self.assertEqual(text.count('<!-- receipt-delivery:start -->'), 1)
+                active = text.split('<!-- receipt-delivery:start -->')[1].split('<!-- receipt-delivery:end -->')[0]
+                for token in ('PR #133', 'PR #134', '#128 CLOSED', '#44/#45 OPEN',
+                              'c1a503fa1d17782c6dce358a8a7b76a4781b025c', '41336683551',
+                              'OPEN_NOT_REPAIRED', 'D76', 'full_architecture=false'):
+                    self.assertIn(token, active)
+
+    def test_receipt_delivery_cli_rejects_stale_metadata_and_scope_promotions(self):
+        for old, new in (
+            ('#128 CLOSED', '#128 OPEN'),
+            ('#44/#45 OPEN', '#44/#45 CLOSED'),
+            ('c1a503fa1d17782c6dce358a8a7b76a4781b025c', 'f'*40),
+            ('41336683551', '41336683550'),
+            ('15 job/145 step', '15 job/144 step'),
+            ('full_architecture=false', 'full_architecture=true'),
+            ('OPEN_NOT_REPAIRED', 'REPAIRED'),
+            ('ERP per-order residual UNKNOWN', 'ERP per-order residual KNOWN'),
+            ('provider lost ACK HOLD', 'provider automatic POST retry'),
+            ('R04/R05 NON complete', 'R04/R05 complete'),
+        ):
+            with self.subTest(mutation=new):
+                saved = {}
+                for name in ('productization-plan.md', 'r06-recovery-runbook.md', 'r04b3-receipt-runtime.md'):
+                    path = self.root/'docs'/name
+                    original = path.read_text()
+                    start, end = original.index('<!-- receipt-delivery:start -->'), original.index('<!-- receipt-delivery:end -->')
+                    block = original[start:end]
+                    self.assertIn(old, block)
+                    saved[path] = original
+                    path.write_text(original[:start]+block.replace(old, new)+original[end:])
+                try:
+                    self.run_guard('receipt delivery')
+                finally:
+                    for path, original in saved.items():
+                        path.write_text(original)
+
+    def test_receipt_delivery_cli_rejects_missing_or_divergent_active_summary(self):
+        path = self.root/'docs/r04b3-receipt-runtime.md'
+        original = path.read_text()
+        for text in (original.replace('<!-- receipt-delivery:start -->', ''),
+                     original.replace('costo q6 congelato', 'costo variabile', 1),
+                     original+'\n<!-- receipt-delivery:start -->duplicate<!-- receipt-delivery:end -->'):
+            path.write_text(text)
+            self.run_guard('receipt delivery')
+        path.write_text(original)
+
     def test_current_documentation_passes(self):
         self.run_guard()
 

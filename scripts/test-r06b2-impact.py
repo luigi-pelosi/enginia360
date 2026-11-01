@@ -28,6 +28,25 @@ def validate_workflow(text):
 
 
 class ImpactTests(unittest.TestCase):
+    def test_post_receipt_reconciliation_is_offline_with_executable_guards(self):
+        paths = ['docs/productization-plan.md', 'docs/productization-backlog.json',
+                 'docs/r04b3-receipt-runtime.md', 'docs/r06-recovery-runbook.md',
+                 'scripts/test-productization-consistency.py', 'scripts/test-c00-consistency.py',
+                 'scripts/select-ci-impact.py', 'scripts/test-r06b2-impact.py', '.github/workflows/ci.yml']
+        selected = impact.selection(paths)
+        self.assertTrue(selected['r06_offline'])
+        self.assertEqual(selected['api_filter'], '')
+        self.assertFalse(any(v for k, v in selected.items() if k not in ('r06_offline', 'changed_paths', 'api_filter')))
+        for unsafe in ('scripts/post_receipt_unknown.py', 'docs/post_receipt_unknown.cs'):
+            with self.assertRaises(ValueError):
+                impact.selection(paths+[unsafe])
+        mixed = impact.selection(paths+['src/Enginia360.Api/Program.cs'])
+        self.assertTrue(mixed['browser'] and mixed['migrations'])
+        self.assertFalse(mixed['full_architecture'])
+        block = (ROOT/'.github/workflows/ci.yml').read_text().split('  affected-r06-offline:\n')[1].split('\n  affected-api:')[0]
+        for command in ('python3 -I scripts/test-c00-consistency.py', 'python3 -I scripts/test-productization-consistency.py'):
+            self.assertIn(command, block)
+
     def test_workflow_runs_readiness_acceptance_and_cli(self):
         text = (ROOT/'.github/workflows/ci.yml').read_text()
         validate_workflow(text)

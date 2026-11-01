@@ -6,6 +6,10 @@ Refs #82, parent #46 **aperta**. Artefatto offline documentale/eseguibile, non c
 **Readiness attuale R06.b.2:** OPE01=OPEN; OPE02=OPEN; OPE03=OPEN; OPE04=OPEN; OPE05=OPEN; #46 OPEN; R06 NON COMPLETA; nessuna readiness operativa.
 <!-- r06b2-summary:end -->
 
+<!-- receipt-delivery:start -->
+**Consegna verificata D86/D93/D94 — 1 novembre 2026:** backend PR #133 e UI PR #134 MERGED; main `c1a503fa1d17782c6dce358a8a7b76a4781b025c`, tree `b9256e5f490148fa4dca3e4a7949ce8801c6c096` identico al candidato `7dd6d35a1f4184bafc5b4ea0e668413004acd18b`. PR41336663865:4 job/42 step; dispatch41336683551:15 job/145 step selezionati SUCCESS, `full_architecture=false`; skip non pass, tree equivalence non nuova CI main. #128 CLOSED/Completato; #44/#45 OPEN, R04/R05 NON complete. Consegnati grant ricevimento owner-controlled, costo q6 congelato, cap accepted+uncertain, retry client identico e rilettura; provider lost ACK HOLD, nessun blind POST, rilascio incerti, stock writer locale o replenishment D90. Overlay interno non autorevole, ERP per-order residual UNKNOWN, limite osservato receipt0.123456/stock0.12346 e gap storico OPEN_NOT_REPAIRED preservati. Residuo precedente nella sequenza: proiezione master esterna D76 (R02/#42; ruolo fornitore esterno ancora 409 fail-closed), poi acceptance del codice reale Giobby/auth e percorso end-to-end; idempotenza/riserve/conversione restano lacune, non garanzie. D89 operazioni OPEN/BACKLOG: identity/revoca produzione, off-host/RPO/privacy/manutenzione/costi bloccano futuro go-live, non sviluppo isolato. FINAL full architecture soltanto dopo completamento funzionale, non ora. Nessun provider call, deployment o nuovo ambiente. Tailscale443→9119 preservato: endpoint Hermes estraneo, non prova candidato; vecchio smoke localhost80 non prova deployment candidato.
+<!-- receipt-delivery:end -->
+
 ## 1. Contratto del registro (nessuna nuova approvazione)
 
 <!-- pilot-priority:start -->
@@ -82,7 +86,11 @@ Fatti fiscali/contabili/stock confermati e audit non si correggono cancellando r
 **D93; Opzione A. Procedi; azione di ricevimento distinta; inventory.purchase-intents.create non concede ricevimento; grant esplicito owner-controlled; binding/membership già trusted; verifica identità offline e riferimento audit immutabile; azione/scope esatti e finiti da implementare; nessuna estensione delega tenant-admin; nessun self-grant, subdelega o provisioning; ordine3/ricevimento2 è esempio di permesso, non nuova policy quantitativa; nessun nuovo ruolo o approvatore; overreceipt e nuove regole fiscali non decisi; ricevimento ERP standalone; collegamento interno esplicito all’ordine confermato e alle righe congelate; overlay residuo non autorevole con discrepanza Giobby visibile; D82 Giobby unica autorità stock/documenti; nessun writer stock locale o correzione silenziosa; D90 lifecycle e riapertura cap fuori perimetro; D91 prezzo/provenienza congelati e D92 quote minima invariati; docs/guardie prima del runtime; nessun runtime consegnato qui; #128/#44/#45 OPEN; D89 Esercizio OPEN/BACKLOG; solo offline full_architecture=false.**
 <!-- r04-d93:end -->
 
-### D86/D93 — handoff evidenza dopo merge documentale
+### Archivio D86/D93/D94 — handoff di fase superato dalla consegna verificata sopra
+
+I seguenti handoff conservano i vincoli e la cronologia, non sono il prossimo incarico: evidenza e runtime limitati sono consegnati tramite PR #130–#134; #128 chiusa. Nessuna nuova prova sandbox receipt richiesta.
+
+### D86/D93 — handoff evidenza dopo merge documentale (storico)
 
 #128 registra soltanto la policy di permesso «Opzione A. Procedi»: D93 non estende D83/D84, non concede accesso sandbox agli utenti e non sana il gap di risposta provider. Il parent verifica il merge docs/guardie, poi invia un **executor evidenza separato**, poi il runtime D86. Non eseguire questo piano nel worker documentale. Checkpoint precedente read-only: `/root/.hermes/cache/scratch/r04-d86-logs/R04-D86-checkpoint.md`, risultato `R04-D86-final-result.json` (il nome generico `final-result.json` non esiste), inventario `receipt-evidence-inventory.json`, manifest `artifact-sha256.json`. Otto hash verificati prima della registrazione D93; conservare gli originali e i loro limiti/incidenti, non sovrascriverli.
 
