@@ -17,13 +17,18 @@ public static class IntegrationsModule
         var options = ConnectorOptions.From(section);
         services.AddSingleton(options);
         services.AddSingleton(options.Giobby!);
+        services.AddSingleton(new ReceiptDestinationBinding(ReceiptDestination.Descriptor(options.Binding, section.GetSection("Giobby"))));
         services.AddSingleton(options.Binding);
         services.AddSingleton(options.Binding.Kind == "Unavailable" ? AdministrativeRuntime.Unavailable : new AdministrativeRuntime(options.Binding.Kind, 1));
         services.AddDbContext<IntegrationsDbContext>(o => o.UseNpgsql(connection));
         services.AddScoped<IAdministrativeDeliveries, AdministrativeDeliveries>();
         services.AddScoped<IAdministrativeRecovery, AdministrativeRecovery>();
+        services.AddScoped<IReceiptDeliveries, ReceiptDeliveries>();
         services.AddScoped<IPurchaseDeliveries, PurchaseDeliveries>();
         services.AddScoped<AdministrativeDispatcher>();
+        services.AddHttpClient<GiobbyReceiptConnector>((provider, client) => { client.BaseAddress = provider.GetRequiredService<GiobbyHost>().BaseAddress; client.Timeout = options.Timeout; })
+            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false }).RemoveAllLoggers();
+        services.AddScoped<ReceiptDispatcher>();
         services.AddScoped<PurchaseDispatcher>();
         services.AddHttpClient<SimulatorConnector>(client => { client.BaseAddress = options.BaseAddress; client.Timeout = options.Timeout; }).RemoveAllLoggers();
         services.AddHttpClient<GiobbySalesOrderConnector>((provider, client) => { client.BaseAddress = provider.GetRequiredService<GiobbyHost>().BaseAddress; client.Timeout = options.Timeout; })
@@ -37,6 +42,7 @@ public static class IntegrationsModule
             _ => new UnavailableConnector()
         });
         services.AddHostedService<AdministrativeDispatchWorker>();
+        services.AddHostedService<ReceiptDispatchWorker>();
         services.AddHostedService<PurchaseDispatchWorker>();
         return services;
     }

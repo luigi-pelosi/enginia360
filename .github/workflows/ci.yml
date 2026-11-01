@@ -71,6 +71,8 @@ jobs:
         run: python3 -I scripts/test-r04b2b1-impact.py && python3 -I scripts/test-r04b2b1-prices.py OwnerInputTests
       - name: Verify finite purchase quote and frozen-price impact
         run: python3 -I scripts/test-r04b2b2-impact.py
+      - name: Verify finite receipt runtime impact
+        run: python3 -I scripts/test-r04b3-impact.py && python3 -I scripts/test-r04b3-migration-selection.py
       - name: Verify finite purchase-order connector impact
         run: python3 -I scripts/test-r04b2b3-impact.py
       - name: Verify immutable binding impact and dispatch guard
@@ -241,6 +243,16 @@ jobs:
       - name: Initialize private migration scratch directory
         run: printf 'TMPDIR=%s\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
       - name: Direct fixture-free migrations, binding, RLS and pool dependencies
+        env:
+          R00_MIGRATION_SUITE: foundation
+        run: timeout 600 sh scripts/run-r00a-tests.sh
+      - name: Direct purchasing SQL dependencies in a separate finite partition
+        env:
+          R00_MIGRATION_SUITE: purchasing
+        run: timeout 600 sh scripts/run-r00a-tests.sh
+      - name: Receipt SQL with retained uncertain capacity and exact grants
+        env:
+          R00_MIGRATION_SUITE: receipts
         run: timeout 600 sh scripts/run-r00a-tests.sh
       - name: Direct migration failure and TERM cleanup
         run: timeout 180 python3 scripts/test-r00a-lifecycle.py
@@ -537,6 +549,12 @@ jobs:
         run: R04B2B3_SPEC=r04b2b3-readout.cjs timeout 600 python3 scripts/run-r04b2b3-tests.py
       - name: Italian dispatch readout acceptance pool1
         run: R04B2B3_SPEC=r04b2b3-readout.cjs R05B0_POOL_SIZE=1 timeout 600 python3 scripts/run-r04b2b3-tests.py
+      - name: Receipt type0 TLS OIDC API PostgreSQL acceptance pool4
+        run: timeout 600 python3 scripts/run-r04b3-tests.py
+      - name: Receipt pool1 completion
+        run: R05B0_POOL_SIZE=1 timeout 600 python3 scripts/run-r04b3-tests.py
+      - name: Actual receipt TERM with held receipt claim lock and Chromium
+        run: timeout 420 python3 scripts/test-r04b3-lifecycle.py
       - name: Actual TERM with held claim lock and Chromium
         run: timeout 420 python3 scripts/test-r04b2b3-lifecycle.py
   runtime-migrations:

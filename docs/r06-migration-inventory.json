@@ -2523,5 +2523,173 @@
         "IntentId"
       ]
     }
+  },
+  {
+    "table": "organization_access.receipt_grant_history",
+    "owner": "organization_access",
+    "category": "security_evidence",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "SiteId",
+      "WarehouseId",
+      "CommandId"
+    ],
+    "definition": {
+      "migration": "0033_receipt_intents",
+      "path": "database/runtime/migrations/0033_receipt_intents.sql",
+      "file_sha256": "3716114675e9fc0834972f5cb546e753c18244705b4b297bbe9f86c8e5f6eb3d",
+      "create_sql": "CREATE TABLE organization_access.receipt_grant_history (\n \"CommandId\" uuid PRIMARY KEY,\"TenantId\" uuid NOT NULL,\"LegalEntityId\" uuid NOT NULL,\"SiteId\" uuid NOT NULL,\"WarehouseId\" uuid NOT NULL,\n \"ActorMembershipId\" uuid NOT NULL,\"TargetMembershipId\" uuid NOT NULL,\"VerificationReference\" uuid NOT NULL,\n \"Revision\" integer NOT NULL CHECK(\"Revision\">0),\"Operation\" text NOT NULL CHECK(\"Operation\" IN ('grant','revoke')),\n \"OccurredAt\" timestamptz NOT NULL DEFAULT clock_timestamp(),\n UNIQUE(\"TenantId\",\"LegalEntityId\",\"SiteId\",\"WarehouseId\",\"TargetMembershipId\",\"Revision\"),\n FOREIGN KEY(\"WarehouseId\",\"SiteId\",\"LegalEntityId\",\"TenantId\") REFERENCES organization_access.warehouses(\"Id\",\"SiteId\",\"LegalEntityId\",\"TenantId\"),\n FOREIGN KEY(\"ActorMembershipId\",\"TenantId\") REFERENCES organization_access.memberships(\"Id\",\"TenantId\"),\n FOREIGN KEY(\"TargetMembershipId\",\"TenantId\") REFERENCES organization_access.memberships(\"Id\",\"TenantId\")\n);",
+      "columns": [
+        "CommandId",
+        "TenantId",
+        "LegalEntityId",
+        "SiteId",
+        "WarehouseId",
+        "ActorMembershipId",
+        "TargetMembershipId",
+        "VerificationReference",
+        "Revision",
+        "Operation",
+        "OccurredAt"
+      ],
+      "primary_key": [
+        "CommandId"
+      ]
+    }
+  },
+  {
+    "table": "inventory.receipt_intents",
+    "owner": "inventory",
+    "category": "operational_fact",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "SiteId",
+      "WarehouseId",
+      "Id"
+    ],
+    "definition": {
+      "migration": "0033_receipt_intents",
+      "path": "database/runtime/migrations/0033_receipt_intents.sql",
+      "file_sha256": "3716114675e9fc0834972f5cb546e753c18244705b4b297bbe9f86c8e5f6eb3d",
+      "create_sql": "CREATE TABLE inventory.receipt_intents (\n \"Id\" uuid PRIMARY KEY CHECK(\"Id\"<>'00000000-0000-0000-0000-000000000000'),\n \"TenantId\" uuid NOT NULL,\"LegalEntityId\" uuid NOT NULL,\"SiteId\" uuid NOT NULL,\"WarehouseId\" uuid NOT NULL,\n \"SourceIntentId\" uuid NOT NULL,\"ActorMembershipId\" uuid NOT NULL,\"Quantity\" numeric(12,6) NOT NULL CHECK(\"Quantity\">0),\n \"Payload\" jsonb NOT NULL,\"Snapshot\" jsonb NOT NULL,\"Destination\" jsonb NOT NULL,\"CreatedAt\" timestamptz NOT NULL DEFAULT clock_timestamp(),\n UNIQUE(\"Id\",\"TenantId\",\"LegalEntityId\"),\n FOREIGN KEY(\"SourceIntentId\",\"TenantId\",\"LegalEntityId\") REFERENCES inventory.purchase_intents(\"Id\",\"TenantId\",\"LegalEntityId\"),\n FOREIGN KEY(\"SourceIntentId\") REFERENCES inventory.purchase_intent_outcomes(\"IntentId\"),\n FOREIGN KEY(\"WarehouseId\",\"SiteId\",\"LegalEntityId\",\"TenantId\") REFERENCES organization_access.warehouses(\"Id\",\"SiteId\",\"LegalEntityId\",\"TenantId\"),\n FOREIGN KEY(\"ActorMembershipId\",\"TenantId\") REFERENCES organization_access.memberships(\"Id\",\"TenantId\")\n);",
+      "columns": [
+        "Id",
+        "TenantId",
+        "LegalEntityId",
+        "SiteId",
+        "WarehouseId",
+        "SourceIntentId",
+        "ActorMembershipId",
+        "Quantity",
+        "Payload",
+        "Snapshot",
+        "Destination",
+        "CreatedAt"
+      ],
+      "primary_key": [
+        "Id"
+      ]
+    }
+  },
+  {
+    "table": "inventory.receipt_outbox",
+    "owner": "inventory",
+    "category": "technical_ledger",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "ReceiptId"
+    ],
+    "definition": {
+      "migration": "0033_receipt_intents",
+      "path": "database/runtime/migrations/0033_receipt_intents.sql",
+      "file_sha256": "3716114675e9fc0834972f5cb546e753c18244705b4b297bbe9f86c8e5f6eb3d",
+      "create_sql": "CREATE TABLE inventory.receipt_outbox (\n \"ReceiptId\" uuid PRIMARY KEY,\"TenantId\" uuid NOT NULL,\"LegalEntityId\" uuid NOT NULL,\n FOREIGN KEY(\"ReceiptId\",\"TenantId\",\"LegalEntityId\") REFERENCES inventory.receipt_intents(\"Id\",\"TenantId\",\"LegalEntityId\")\n);",
+      "columns": [
+        "ReceiptId",
+        "TenantId",
+        "LegalEntityId"
+      ],
+      "primary_key": [
+        "ReceiptId"
+      ]
+    }
+  },
+  {
+    "table": "inventory.receipt_outcomes",
+    "owner": "inventory",
+    "category": "integration_evidence",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "ReceiptId"
+    ],
+    "definition": {
+      "migration": "0033_receipt_intents",
+      "path": "database/runtime/migrations/0033_receipt_intents.sql",
+      "file_sha256": "3716114675e9fc0834972f5cb546e753c18244705b4b297bbe9f86c8e5f6eb3d",
+      "create_sql": "CREATE TABLE inventory.receipt_outcomes (\n \"ReceiptId\" uuid PRIMARY KEY,\"TenantId\" uuid NOT NULL,\"LegalEntityId\" uuid NOT NULL,\n \"ExternalReference\" varchar(64) NOT NULL CHECK(\"ExternalReference\" ~ '^GiobbyReceipt-[1-9][0-9]*$'),\n \"RecordedAt\" timestamptz NOT NULL DEFAULT clock_timestamp(),\n FOREIGN KEY(\"ReceiptId\",\"TenantId\",\"LegalEntityId\") REFERENCES inventory.receipt_intents(\"Id\",\"TenantId\",\"LegalEntityId\"),\n UNIQUE(\"TenantId\",\"LegalEntityId\",\"ExternalReference\")\n);",
+      "columns": [
+        "ReceiptId",
+        "TenantId",
+        "LegalEntityId",
+        "ExternalReference",
+        "RecordedAt"
+      ],
+      "primary_key": [
+        "ReceiptId"
+      ]
+    }
+  },
+  {
+    "table": "integrations.receipt_dispatches",
+    "owner": "integrations",
+    "category": "technical_ledger",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "ReceiptId"
+    ],
+    "definition": {
+      "migration": "0033_receipt_intents",
+      "path": "database/runtime/migrations/0033_receipt_intents.sql",
+      "file_sha256": "3716114675e9fc0834972f5cb546e753c18244705b4b297bbe9f86c8e5f6eb3d",
+      "create_sql": "CREATE TABLE integrations.receipt_dispatches (\n \"ReceiptId\" uuid PRIMARY KEY,\"TenantId\" uuid NOT NULL,\"LegalEntityId\" uuid NOT NULL,\n \"State\" varchar(20) NOT NULL CHECK(\"State\" IN ('Queued','Uncertain','Completed')),\n \"Attempts\" integer NOT NULL CHECK(\"Attempts\">=0),\"Failures\" integer NOT NULL DEFAULT 0 CHECK(\"Failures\">=0),\n \"KnownDocumentId\" integer CHECK(\"KnownDocumentId\">0),\"LastAttemptAt\" timestamptz,\"NextAttemptAt\" timestamptz NOT NULL,\"LeaseUntil\" timestamptz,\n \"ExternalReference\" varchar(64),\"LastError\" varchar(64),\"UpdatedAt\" timestamptz NOT NULL\n);",
+      "columns": [
+        "ReceiptId",
+        "TenantId",
+        "LegalEntityId",
+        "State",
+        "Attempts",
+        "Failures",
+        "KnownDocumentId",
+        "LastAttemptAt",
+        "NextAttemptAt",
+        "LeaseUntil",
+        "ExternalReference",
+        "LastError",
+        "UpdatedAt"
+      ],
+      "primary_key": [
+        "ReceiptId"
+      ]
+    }
   }
 ]
