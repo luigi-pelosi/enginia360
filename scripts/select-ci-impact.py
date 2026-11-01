@@ -229,6 +229,7 @@ R04B2B3_FILES |= {'scripts/test-r04b3-migration-selection.py','scripts/test-r04b
     'src/Modules/Integrations/Enginia360.Integrations/GiobbyReceiptConnector.cs','src/Modules/Integrations/Enginia360.Integrations/ReceiptDestination.cs',
     'tests/Enginia360.Api.Tests/GiobbyReceiptTests.cs'}
 # PR2 readout: selected for the dispatch acceptance in addition to (never instead of) their existing purchase/generic consumers.
+R04B2B3_FILES |= {'web/src/ui01/runtime/ReceiptReceiving.tsx','web/src/ui01/runtime/ReceiptReceiving.test.tsx','database/runtime/migrations/0034_receipt_sources.sql'}
 R04B2B3_READOUT = {'src/Modules/Inventory/Enginia360.Inventory/PurchaseIntentEndpoints.cs','src/Modules/Inventory/Enginia360.Inventory.Contracts/PurchaseDispatchReadout.cs',
     'web/src/ui01/runtime/PurchaseIntent.tsx','web/src/ui01/runtime/PurchaseIntent.test.tsx'}
 R04B2B3_DIRECT = {INTEGRATIONS_SRC+name for name in ('Enginia360.Integrations.csproj','GiobbyHost.cs','GiobbyPurchaseOrderConnector.cs','GiobbySalesOrderConnector.cs',
@@ -240,7 +241,7 @@ R04B2B3_DIRECT = {INTEGRATIONS_SRC+name for name in ('Enginia360.Integrations.cs
 # Only this finite purchase-order connector slice may narrow historical runners; any other real producer keeps the generic direct-consumer selection.
 R04B2B3_SCOPE = R04B2B3_FILES | R04B2B3_DIRECT | R04B2B3_READOUT | {'scripts/test-r04-authority.py','docs/r04b3-receipt-runtime.md','src/Modules/Inventory/module.json','src/Modules/Inventory/Enginia360.Inventory/TechnicalAuditFilter.cs','database/runtime/manifest.json','migrator.runtime.Dockerfile','scripts/run-r00a-tests.py','scripts/run-r05b0-tests.py',
     'scripts/select-ci-impact.py','scripts/test-r03a-impact.py','.github/workflows/ci.yml','docs/r04b2b3-giobby-purchase-order-connector.md','docs/productization-plan.md','docs/productization-backlog.json',
-    'docs/r06-migration-inventory.json','docs/r06-migration-inventory.md'}
+    'docs/r06-migration-inventory.json','docs/r06-migration-inventory.md','web/src/ui01/runtime/MaterialOperations.tsx','web/src/ui01/runtime/MaterialOperations.test.tsx'}
 
 
 def selection(paths):
@@ -394,6 +395,10 @@ def selection(paths):
             result[key] = True
         result['ui_tests'] = False
         result['api_filter'] = AUTH_FILTER+'|'+WORKSHOP_FILTER+'|FullyQualifiedName~InventoryArchitectureTests|FullyQualifiedName~PurchaseIntentTests|FullyQualifiedName~SupplierPurchasePriceTests|FullyQualifiedName~GiobbySalesOrderTests|FullyQualifiedName~GiobbyPurchaseOrderTests|FullyQualifiedName~AdministrationBoundaryTests'
+    if set(paths) & R04B2B3_FILES and set(paths) <= R04B2B3_SCOPE and set(paths) & {'web/src/ui01/runtime/MaterialOperations.tsx','web/src/ui01/runtime/MaterialOperations.test.tsx'}:
+        # The receiving freeze is composed into the existing material siblings: execute their real regressions.
+        for key in ('r04a','r04c1','r04c2'):
+            result[key] = True
     # Earlier bounded producer slices may replace their API filter; never discard an already selected purchase consumer.
     if result['r04b2b3']:
         for consumer in ('GiobbyReceiptTests','GiobbyPurchaseOrderTests','GiobbySalesOrderTests','AdministrationBoundaryTests'):

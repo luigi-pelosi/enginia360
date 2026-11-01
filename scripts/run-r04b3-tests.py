@@ -86,6 +86,13 @@ def control(action,state,query,fixture,holders):
  elif action.startswith('receipt-audit:'):
   receipt=str(uuid.UUID(action.split(':')[1]));logs=binding.run(command+['logs','--no-color','api'])
   assert any(json.loads(line.split('|',1)[-1].strip()).get('State',{}).get('ResourceId')==receipt for line in logs.splitlines() if line.split('|',1)[-1].strip().startswith('{')),'successful receipt audit must identify committed command UUID'
+ elif action.startswith('receipt-ui-proof:'):
+  receipt=str(uuid.UUID(action.split(':')[1]));logs=binding.run(command+['logs','--no-color','api'])
+  audits=[json.loads(line.split('|',1)[-1].strip()) for line in logs.splitlines() if line.split('|',1)[-1].strip().startswith('{')]
+  events=[v.get('State',{}) for v in audits if v.get('EventId')==606 and v.get('State',{}).get('ResourceId')==receipt]
+  value=json.loads(sql(f"""SELECT json_build_object('intents',(SELECT count(*) FROM inventory.receipt_intents WHERE "Id"='{receipt}'),'outbox',(SELECT count(*) FROM inventory.receipt_outbox WHERE "ReceiptId"='{receipt}'))"""))
+  value.update(createdAudit=sum(v.get('Outcome')==201 for v in events),replayAudit=sum(v.get('Outcome')==200 for v in events))
+  (state/'control/receipt-ui-proof.json').write_text(json.dumps(value))
  elif action.startswith('receipt-state:'):
   receipt=str(uuid.UUID(action.split(':')[1]))
   (state/'control/receipt-state.json').write_text(sql(f'''SELECT json_build_object('dispatch',(SELECT row_to_json(d) FROM integrations.receipt_dispatches d WHERE "ReceiptId"='{receipt}'),'outcome',(SELECT row_to_json(o) FROM inventory.receipt_outcomes o WHERE "ReceiptId"='{receipt}'),'count',(SELECT count(*) FROM inventory.receipt_intents),'outbox',(SELECT count(*) FROM inventory.receipt_outbox),'sales',(SELECT count(*) FROM workshop.administrative_outbox))'''))

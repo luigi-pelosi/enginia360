@@ -13,6 +13,16 @@ OWN={'scripts/test-r04b3-migration-selection.py','scripts/test-r04b3-lifecycle.p
  'src/Modules/Integrations/Enginia360.Integrations/GiobbyReceiptConnector.cs','src/Modules/Integrations/Enginia360.Integrations/ReceiptDestination.cs',
  'tests/Enginia360.Api.Tests/GiobbyReceiptTests.cs'}
 class Impact(unittest.TestCase):
+ def test_receiving_composition_retains_material_siblings_without_unrelated_producers(self):
+  paths=OWN|{'web/src/ui01/runtime/ReceiptReceiving.tsx','web/src/ui01/runtime/ReceiptReceiving.test.tsx','web/src/ui01/runtime/MaterialOperations.tsx','web/src/ui01/runtime/MaterialOperations.test.tsx','database/runtime/migrations/0034_receipt_sources.sql'}
+  s=impact.selection(sorted(paths))
+  for key in ('r04a','r04c1','r04c2','r04b2b3','ui01b','browser','migrations'):self.assertTrue(s[key],key)
+  for key in ('r03a','r03a2','r03b','r03c','r05b0','r06a2','r06b1'):self.assertFalse(s[key],key)
+  self.assertTrue(impact.selection(sorted(paths|{'web/src/ui01/runtime/MaterialPicking.tsx'}))['r03a'])
+ def test_receiving_ui_and_forward_read_paths_select_receipt_acceptance(self):
+  for path in ('web/src/ui01/runtime/ReceiptReceiving.tsx','web/src/ui01/runtime/ReceiptReceiving.test.tsx','database/runtime/migrations/0034_receipt_sources.sql'):
+   with self.subTest(path=path):
+    s=impact.selection([path]);self.assertTrue(s['r04b2b3']);self.assertTrue(s['ui_build']);self.assertTrue(s['browser']);self.assertFalse(s['full_architecture'])
  def test_receipt_paths_select_real_runtime_security_and_consumers(self):
   for path in sorted(OWN):
    with self.subTest(path=path):

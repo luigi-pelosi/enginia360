@@ -85,6 +85,54 @@ afterEach(() => {
     cleanup();
     vi.unstubAllGlobals();
 });
+test("receiving is a separate lazy panel, not an implicit purchase permission", async () => {
+    const fetch = api(async () => response(state()));
+    render(<MaterialOperations editor={editor} onError={() => undefined} />);
+    await choose();
+    expect(screen.getByRole('button', { name: 'Apri ricevimento merce' })).toBeTruthy();
+    expect(fetch.mock.calls.some(call => String(call[0]).includes('receipt-sources'))).toBe(false);
+});
+
+test("dedicated receiving shows confirmed source and frozen q6 cost independently of purchasing", async () => {
+    vi.stubGlobal('fetch', vi.fn(async (path: string) => {
+        if (path.includes('/receipt-sources?')) return response({ state: 'ready', sources: [{ id: groupId, orderedQuantity: '3.000000', unitPurchasePrice: '12.345678', supplierName: 'Fornitore', description: 'Ricambio', externalOrderReference: 'GiobbyPurchaseOrder-301' }] });
+        if (path.includes('/receipts')) return response({ state: 'ready', sourceIntentId: groupId, orderedQuantity: '3.000000', acceptedQuantity: '0.000000', uncertainQuantity: '2.000000', remainingQuantity: '1.000000', nonAuthoritative: true, erpPerOrderResidual: null, precisionDiscrepancy: 'receipt_q6_stock_report_q5_observed', linkKind: 'internal_standalone_not_erp_native', receipts: [] });
+        if (path.includes('/warehouses?')) return response([{ id: warehouseId, name: 'Magazzino' }]);
+        if (path.includes('/purchase-intents')) return new Response('{}', { status: 403 });
+        return response(state());
+    }));
+    render(<MaterialOperations editor={editor} onError={() => undefined} />); await choose();
+    fireEvent.click(screen.getByRole('button', { name: 'Apri ricevimento merce' }));
+    await screen.findByRole('option', { name: /GiobbyPurchaseOrder-301/ });
+    fireEvent.change(screen.getByLabelText('Ordine acquisto confermato'), { target: { value: groupId } });
+    await screen.findByText('Capacità ricevimento disponibile: 1.000000');
+    expect(screen.getByText('Costo acquisto congelato: 12.345678')).toBeTruthy();
+    expect(screen.getByText(/Residuo ERP per ordine: SCONOSCIUTO/)).toBeTruthy();
+    expect(screen.getByText(/limite osservato sandbox/)).toBeTruthy();
+});
+
+test("uncertain receipt freezes ancestor material context and survives a source row tombstone until exact retry", async () => {
+    const posts: string[] = []; const blocked = vi.fn();
+    vi.stubGlobal('fetch', vi.fn(async (path: string, options?: RequestInit) => {
+        if (path === '/auth/csrf') return response({requestToken:'x'});
+        if (options?.method === 'POST') { posts.push(String(options.body)); throw new TypeError('accepted response lost'); }
+        if (path.includes('/receipt-sources?')) return response({ state: 'ready', sources: [{ id: groupId, orderedQuantity: '3.000000', unitPurchasePrice: '12.345678', supplierName: 'Fornitore', description: 'Ricambio', externalOrderReference: 'GiobbyPurchaseOrder-301' }] });
+        if (path.includes('/receipts')) return response({ state: 'ready', sourceIntentId: groupId, orderedQuantity: '3.000000', acceptedQuantity: '0.000000', uncertainQuantity: '0.000000', remainingQuantity: '3.000000', nonAuthoritative: true, erpPerOrderResidual: null, precisionDiscrepancy: 'receipt_q6_stock_report_q5_observed', linkKind: 'internal_standalone_not_erp_native', receipts: [] });
+        if (path.includes('/warehouses?')) return response([{ id: warehouseId, name: 'Magazzino' }]);
+        if (path.includes('/purchase-intents')) return new Response('{}', { status: 403 });
+        return response(state());
+    }));
+    const view=render(<MaterialOperations editor={editor} onError={() => undefined} onContextBlocked={blocked} />); await choose();
+    fireEvent.click(screen.getByRole('button',{name:'Apri ricevimento merce'}));await screen.findByRole('option',{name:/GiobbyPurchaseOrder-301/});
+    fireEvent.change(screen.getByLabelText('Ordine acquisto confermato'),{target:{value:groupId}});await screen.findByText('Capacità ricevimento disponibile: 3.000000');
+    fireEvent.change(screen.getByLabelText('Quantità da ricevere'),{target:{value:'2'}});fireEvent.click(screen.getByRole('button',{name:'Crea ricevimento esplicito'}));await screen.findByText(/Risposta client incerta/);
+    for(const label of ['Riga ricambio','Magazzino materiali','Quantità da prenotare'])expect((screen.getByLabelText(label) as HTMLInputElement).disabled,label).toBe(true);
+    expect(blocked).toHaveBeenLastCalledWith(true);
+    expect((screen.getByRole('button',{name:'Chiudi ricevimento merce'}) as HTMLButtonElement).disabled).toBe(true);
+    view.rerender(<MaterialOperations editor={{...editor,rows:[]}} onError={() => undefined} onContextBlocked={blocked} />);
+    fireEvent.click(screen.getByRole('button',{name:'Riprova comando identico'}));await act(async()=>undefined);expect(posts).toHaveLength(2);expect(posts[1]).toBe(posts[0]);
+});
+
 test("reservation-specific explicit release is available independently from picking", async () => {
     api(async () => response(state()));
     render(<MaterialOperations editor={editor} onError={() => undefined} />);

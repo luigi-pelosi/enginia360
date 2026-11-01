@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { ApiError, request } from "./workshopApi";
 import { check, decimal, record, uuid } from "./contracts";
 import type { Editor } from "./editorContracts";
@@ -6,6 +6,7 @@ import MaterialPicking from "./MaterialPicking";
 import MaterialCarcass from "./MaterialCarcass";
 import MaterialRelease from "./MaterialRelease";
 import PurchaseIntent from "./PurchaseIntent";
+const ReceiptReceiving = lazy(() => import('./ReceiptReceiving'));
 
 type Warehouse = { id: string; name: string };
 type Stock = {
@@ -53,11 +54,12 @@ export default function MaterialOperations({
     const [pickingBlocked, setPickingBlocked] = useState(false),
         [carcassBlocked, setCarcassBlocked] = useState(false);
     const [releaseBlocked, setReleaseBlocked] = useState(false), [purchaseBlocked, setPurchaseBlocked] = useState(false);
+    const [receivingOpen, setReceivingOpen] = useState(false), [receivingBlocked, setReceivingBlocked] = useState(false);
     const [choices, setChoices] = useState<{
         key: string;
         items: { id: string; quantity: string }[];
     }>();
-    const locked = busy || uncertain || pickingBlocked || carcassBlocked || releaseBlocked || purchaseBlocked;
+    const locked = busy || uncertain || pickingBlocked || carcassBlocked || releaseBlocked || purchaseBlocked || receivingBlocked;
     useEffect(() => { onContextBlocked?.(locked); }, [locked, onContextBlocked]);
     useEffect(() => () => onContextBlocked?.(false), [onContextBlocked]);
     const generation = useRef(0),
@@ -331,7 +333,7 @@ export default function MaterialOperations({
                     busy ||
                     pickingBlocked ||
                     releaseBlocked ||
-                    carcassBlocked
+                    carcassBlocked || receivingBlocked || purchaseBlocked
                 }
                 onClick={() =>
                     void read().catch((e) => {
@@ -350,7 +352,7 @@ export default function MaterialOperations({
                         choices?.key === url + warehouseId ? choices.items : []
                     }
                     closed={editor.capabilities.closed}
-                    blocked={busy || uncertain || carcassBlocked || releaseBlocked}
+                    blocked={busy || uncertain || carcassBlocked || releaseBlocked || receivingBlocked}
                     onBlocked={setPickingBlocked}
                     onApplied={async () => {
                         setStock(undefined);
@@ -365,7 +367,7 @@ export default function MaterialOperations({
                     url={url}
                     warehouseId={warehouseId}
                     closed={editor.capabilities.closed}
-                    blocked={busy || uncertain || pickingBlocked || releaseBlocked}
+                    blocked={busy || uncertain || pickingBlocked || releaseBlocked || receivingBlocked}
                     onBlocked={setCarcassBlocked}
                     onApplied={async () => {
                         setStock(undefined);
@@ -380,7 +382,7 @@ export default function MaterialOperations({
                     url={url}
                     reservations={choices?.key === url + warehouseId ? choices.items : []}
                     closed={editor.capabilities.closed}
-                    blocked={busy || uncertain || pickingBlocked || carcassBlocked}
+                    blocked={busy || uncertain || pickingBlocked || carcassBlocked || receivingBlocked}
                     onBlocked={setReleaseBlocked}
                     onApplied={async () => { setStock(undefined); await read(); }}
                     onError={onError}
@@ -392,11 +394,13 @@ export default function MaterialOperations({
                     url={url}
                     warehouseId={warehouseId}
                     closed={editor.capabilities.closed}
-                    blocked={busy || uncertain || pickingBlocked || carcassBlocked || releaseBlocked}
+                    blocked={busy || uncertain || pickingBlocked || carcassBlocked || releaseBlocked || receivingBlocked}
                     onBlocked={setPurchaseBlocked}
                     onError={onError}
                 />
             )}
+            {row && warehouseId && <button disabled={locked} onClick={() => setReceivingOpen(!receivingOpen)}>{receivingOpen ? 'Chiudi ricevimento merce' : 'Apri ricevimento merce'}</button>}
+            {receivingOpen && (row || receivingBlocked) && warehouseId && <Suspense fallback={<p role="status">Caricamento ricevimento…</p>}><ReceiptReceiving key={'receiving:' + url + warehouseId} url={url} warehouseId={warehouseId} onError={onError} onBlocked={setReceivingBlocked} closed={editor.capabilities.closed} blocked={busy || uncertain || pickingBlocked || carcassBlocked || releaseBlocked || purchaseBlocked} /></Suspense>}
         </section>
     );
 }
