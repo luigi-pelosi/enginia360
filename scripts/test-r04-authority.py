@@ -19,7 +19,7 @@ BACKLOG = 'docs/productization-backlog.json'
 INVENTORY = 'docs/r06-migration-inventory.md'
 SUPPLIER = 'docs/r04b1-supplier-role.md'
 INTENT = 'docs/r04b2a-purchase-intent.md'
-PATHS = ('AGENTS.md', GLOSSARY, PLAN, RUNBOOK, BACKLOG, INVENTORY, SUPPLIER, INTENT, 'docs/r04b2b1-supplier-purchase-prices.md')
+PATHS = ('AGENTS.md', GLOSSARY, PLAN, RUNBOOK, BACKLOG, INVENTORY, SUPPLIER, INTENT, 'docs/r04b2b1-supplier-purchase-prices.md', 'docs/r05a9-isolated-receipt-contract.md')
 QUOTE = 'No approvo B: non si può gestire stock e flusso di acquisti in distinti fonti. La fonte in questo caso resta sempre l’ERP esterno'
 START, END = '<!-- r04-authority:start -->', '<!-- r04-authority:end -->'
 D1_D84_BYTES = 131965
@@ -129,6 +129,29 @@ COMMON = (
     'proiezione/integrazione ERP supportata da evidenze provider',
     'R04.b ERP BLOCKED', 'contratto ufficiale assente',
 )
+
+
+LOOKBEHIND_CANDIDATES = {
+    D85_FORBIDDEN[1]: r'fattura|invoice',
+    D85_FORBIDDEN[5]: r'authoritative',
+    D87_FORBIDDEN[0]: r'rilascio|annullo|annullamento|cancellazione',
+    D87_FORBIDDEN[1]: r'reservation|reserve',
+    D87_FORBIDDEN[2]: r'conversione',
+    D87_FORBIDDEN[3]: r'order|invoice',
+    D87_FORBIDDEN[4]: r'divieto',
+    D88_FORBIDDEN[0]: r'richiesta|purchase',
+}
+
+
+def has_forbidden_claim(pattern, text):
+    # Leading lookbehind prevents the regex engine's literal-prefix acceleration.
+    # Retain each original regex and its full context; only enumerate possible starts.
+    prefix = LOOKBEHIND_CANDIDATES.get(pattern)
+    if prefix is None:
+        return re.search(pattern, text, re.I) is not None
+    compiled = re.compile(pattern, re.I)
+    return any(compiled.match(text, candidate.start()) is not None
+               for candidate in re.finditer(prefix, text, re.I))
 
 
 def require(text, tokens, label):
@@ -367,6 +390,40 @@ def validate_d93(docs):
         raise ValueError('D93: implicit receiving grant, expanded delegation/lifecycle or false delivery')
 
 
+def validate_d94(docs):
+    """Offline receiving-cap policy only; not runtime capacity enforcement."""
+    text = docs[GLOSSARY]
+    history = text.encode()[text.encode().index('### D1 —'.encode()):]
+    if hashlib.sha256(history[:D94_HISTORY_BYTES]).hexdigest() != D94_HISTORY_SHA256:
+        raise ValueError('D94: D1–D93 history changed')
+    if text.count('### D94 —') != 1:
+        raise ValueError('D94: exactly one receiving-cap decision required')
+    decision = text.split('### D94 —')[1]
+    require(decision, D94_PROVENANCE+D94_TOKENS, 'D94 decision')
+    scopes = [decision]
+    for path in D94_DOC_PATHS:
+        start, end = '<!-- r04-d94:start -->', '<!-- r04-d94:end -->'
+        if docs[path].count(start) != 1 or docs[path].count(end) != 1:
+            raise ValueError('D94: exactly one active receiving-cap block required: '+path)
+        block = docs[path].split(start)[1].split(end)[0]
+        require(block, D94_TOKENS, 'D94 '+path)
+        scopes.append(block)
+    for card in json.loads(docs[BACKLOG]):
+        if card['id'] in ('R04', 'R05'):
+            if card['gate'].count('**D94;') != 1:
+                raise ValueError('D94: exactly one backlog receiving-cap boundary required')
+            block = 'D94;'+card['gate'].split('**D94;', 1)[1]
+            require(block, D94_TOKENS, 'D94 backlog '+card['id'])
+            scopes.append(block)
+    lines = [line for line in docs['AGENTS.md'].splitlines() if line.startswith('- D94 ')]
+    if len(lines) != 1:
+        raise ValueError('D94: exactly one AGENTS receiving-cap summary required')
+    require(lines[0], D94_TOKENS, 'D94 AGENTS')
+    scopes.append(lines[0])
+    if any(claim.casefold() in '\n'.join(scopes).casefold() for claim in D94_FORBIDDEN):
+        raise ValueError('D94: unsafe receiving capacity, authority or runtime claim')
+
+
 def validate(root):
     docs = {path: (root/path).read_text() for path in PATHS}
     priority_scope = '\n'.join(docs.values())
@@ -459,8 +516,8 @@ def validate(root):
         raise ValueError('active delivery: stale D80/D81 status')
     # Historical decisions remain untouched; the new decision must be unique and next.
     ids = [int(x) for x in re.findall(r'^### D(\d+) —', docs[GLOSSARY], re.M)]
-    if sorted(ids) != list(range(1, 94)):
-        raise ValueError('decision register: retain unique D1–D92 and append D93')
+    if sorted(ids) != list(range(1, 95)):
+        raise ValueError('decision register: retain unique D1–D93 and append D94')
     prefix = docs[GLOSSARY].encode()
     prefix = prefix[prefix.index(b'### D1 \xe2\x80\x94'):][:D1_D84_BYTES]
     if hashlib.sha256(prefix).hexdigest() != D1_D84_SHA256:
@@ -527,12 +584,13 @@ def validate(root):
         r'(?:setup coherence|coerenza setup)\s+(?:already enforced|già implementata)',
     )
     for pattern in forbidden+D85_FORBIDDEN+D87_FORBIDDEN+D88_FORBIDDEN:
-        if re.search(pattern, scope, re.I):
+        if has_forbidden_claim(pattern, scope):
             raise ValueError('active authority: forbidden promotion or mixed writer')
     validate_d90(docs)
     validate_d91(docs)
     validate_d92(docs)
     validate_d93(docs)
+    validate_d94(docs)
 
 
 D92_TOKENS = (
@@ -653,7 +711,201 @@ D93_FORBIDDEN_CLAIMS = (
 )
 
 
+D94_QUESTION = 'Ordine confermato di 3 pezzi: 2 già ricevuti oppure impegnati in un ricevimento con esito incerto. A — consigliata: consento al massimo un altro pezzo; blocco 2 anche con nuovo UUID e non libero la quota incerta per timeout. B: vuoi consentire eccedenze rispetto ai 3 ordinati, con una regola da specificare? Confermi A?'
+D94_HISTORY_BYTES = 161719
+D94_HISTORY_SHA256 = '399e7bbeba91fc352b812795a4c0fffc5daea3efce387a13fb620e3ef975c5ef'
+D94_DOC_PATHS = (GLOSSARY, PLAN, RUNBOOK, 'docs/r05a9-isolated-receipt-contract.md')
+D94_TOKENS = (
+    'D94;', 'owner «Confermo A»',
+    'cumulative receiving cap per confirmed source purchase-order line',
+    'accepted receipts plus in-flight uncertain quantity plus new quantity <= ordered quantity',
+    'ordered3/received-or-uncertain2 leaves1; reject2, allow at most1',
+    'new UUID does not reset the cap', 'identical UUID/payload is exact replay without extra quantity',
+    'timeout does not release uncertain quantity', 'no oversupply',
+    'distinct from D90 Part-line pending purchase-intent cap and D92 quote visibility',
+    'receipt completion does not replenish D90',
+    'cancellation/rejection/manual uncertain release/overdelivery exceptions/new fiscal rules out of scope',
+    'D93 dedicated owner-controlled receiving grant; no implicit purchase permission; D77 no bypass',
+    'D82 Giobby sole stock/document authority',
+    'D86 explicit internal confirmed-order/frozen-line relationship, not native ERP linkage',
+    'non-authoritative overlay; ERP per-order residual UNKNOWN; stock precision discrepancy visible; no silent correction',
+    'lost ACK HOLD; no blind POST', 'existing R05.a.9 provider proof sufficient; no new sandbox calls',
+    'POLICY_RESOLVED_PENDING_DOCS_MERGE_RUNTIME', 'docs/guards merge before runtime',
+    '#128/#44/#45 OPEN', 'offline full_architecture=false; D89 operations OPEN/BACKLOG',
+    'no runtime delivered here',
+)
+D94_PROVENANCE = (D94_QUESTION, '> Confermo A\n', '1 novembre 2026',
+                  'Registro D1–D93 verificato', 'A selezionata; B non selezionata',
+                  'B: regola UNDECIDED', 'distinta dalle risposte «Confermo A» di D90 e D92')
+D94_FORBIDDEN = (
+    'Receiving cap resets with a new UUID.',
+    'Uncertain quantity is released automatically on timeout.',
+    'Only accepted receipts consume receiving capacity.',
+    'Overdelivery is allowed by D94.',
+    'Receipt completion replenishes D90.',
+    'Purchase permission implicitly grants receiving.',
+    'ERP residual is the internal overlay.',
+    'Lost ACK allows another POST.',
+    'D94 runtime delivered.',
+)
+D94_HANDOFF = (
+    'physical-connection race pool4', 'single-connection completion pool1',
+    'accepted AND in-flight uncertain quantities count', 'exact replay after completion and timeout',
+    'no automatic release', 'distinct UUIDs cannot oversupply the same confirmed source line',
+    'source-line lock and atomic capacity/receipt/outbox recording',
+)
+
+
 class AuthorityTests(unittest.TestCase):
+    def test_literal_candidate_scan_preserves_original_regex_semantics(self):
+        witnesses = (
+            'fattura numerata automatica', 'invoice numerata automatic',
+            'authoritative residual', 'rilascio della riserva provato',
+            'annullo della riserva verificato', 'annullamento della riserva dimostrato',
+            'cancellazione della prenotazione esercitato', 'reservation release proven',
+            'reserve cancellation confirmed', 'conversione ordine→fattura provata',
+            'order to invoice conversion proven', 'invoice conversion verified',
+            'divieto permanente', 'richiesta d’acquisto creata automaticamente su',
+            'purchase request created automatically on',
+        )
+        contexts = ('', 'non ', 'not ', 'non è un ', 'not a ', 'mai ', 'mai una ',
+                    'never ', 'never an ', 'non-', 'un', 'prefix\n')
+        for pattern in LOOKBEHIND_CANDIDATES:
+            positives = 0
+            negatives = 0
+            for witness in witnesses:
+                for context in contexts:
+                    for text in (context+witness, (context+witness).upper(),
+                                 context+witness.replace('i', 'İ').replace('s', 'ſ')):
+                        expected = re.search(pattern, text, re.I) is not None
+                        with self.subTest(pattern=pattern, text=text):
+                            self.assertEqual(has_forbidden_claim(pattern, text), expected)
+                        positives += expected
+                        negatives += not expected
+            self.assertGreater(positives, 0, pattern)
+            self.assertGreater(negatives, 0, pattern)
+
+    def test_lookbehind_guards_do_not_rescan_every_document_character(self):
+        from unittest.mock import patch
+        with patch.object(re, 'search', wraps=re.search) as search:
+            validate(ROOT)
+        expensive = [call for call in search.call_args_list
+                     if str(call.args[0]).startswith('(?<!') and len(call.args[1]) > 50000]
+        self.assertEqual(len(expensive), 0,
+                         'negative-lookbehind guards must match literal candidates, not rescan the whole document')
+
+    def test_d94_records_exact_owner_answer_question_and_history(self):
+        text = (ROOT/GLOSSARY).read_text()
+        self.assertIn('### D94 —', text, 'cumulative receiving decision missing')
+        before, decision = text.split('### D94 —')
+        history = before.encode()[before.encode().index('### D1 —'.encode()):]
+        self.assertEqual(hashlib.sha256(history[:D94_HISTORY_BYTES]).hexdigest(), D94_HISTORY_SHA256)
+        require(decision, D94_PROVENANCE, 'D94 provenance')
+
+    def test_d94_active_boundaries(self):
+        for path in D94_DOC_PATHS:
+            text = (ROOT/path).read_text()
+            self.assertEqual(text.count('<!-- r04-d94:start -->'), 1, path)
+            self.assertEqual(text.count('<!-- r04-d94:end -->'), 1, path)
+            require(text.split('<!-- r04-d94:start -->')[1].split('<!-- r04-d94:end -->')[0], D94_TOKENS, 'D94 '+path)
+        for card in json.loads((ROOT/BACKLOG).read_text()):
+            if card['id'] in ('R04', 'R05'):
+                require(card['gate'], D94_TOKENS, 'D94 backlog '+card['id'])
+
+    def test_d94_agents_summary(self):
+        lines = [line for line in (ROOT/'AGENTS.md').read_text().splitlines() if line.startswith('- D94 ')]
+        self.assertEqual(len(lines), 1, 'missing unique D94 AGENTS summary')
+        require(lines[0], D94_TOKENS, 'D94 AGENTS')
+
+    def test_d94_runtime_handoff(self):
+        text = (ROOT/RUNBOOK).read_text()
+        self.assertIn('### D94 — next implementation handoff', text)
+        require(text.split('### D94 — next implementation handoff')[1].split('## 5.')[0], D94_HANDOFF, 'D94 handoff')
+
+    def d94_mutation(self, path, token=None, claim=None, card_id=None, decision=False):
+        with tempfile.TemporaryDirectory(prefix='d94-cap-') as temp:
+            root = Path(temp)
+            for source in (*PATHS, *D94_DOC_PATHS):
+                target = root/source
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(ROOT/source, target)
+            target = root/path
+            text = target.read_text()
+            if card_id:
+                cards = json.loads(text)
+                card = next(c for c in cards if c['id'] == card_id)
+                before, scope = card['gate'].split('**D94;', 1)
+                scope = '**D94;'+scope
+                after = ''
+            elif decision:
+                before, scope = text.split('### D94 —')
+                before += '### D94 —'
+                after = ''
+            elif path == 'AGENTS.md':
+                scope = next(line for line in text.splitlines() if line.startswith('- D94 '))
+                before, after = text.split(scope)
+            else:
+                before, rest = text.split('<!-- r04-d94:start -->')
+                scope, after = rest.split('<!-- r04-d94:end -->')
+                before += '<!-- r04-d94:start -->'
+                after = '<!-- r04-d94:end -->'+after
+            if token:
+                self.assertIn(token, scope, 'valid D94 mutation precondition')
+                scope = scope.replace(token, 'REMOVED')
+            else:
+                scope += ' '+claim
+            if card_id:
+                card['gate'] = before+scope
+                text = json.dumps(cards, ensure_ascii=False)
+            else:
+                text = before+scope+after
+            target.write_text(text)
+            result = self.invoke(root)
+            self.assertEqual(result.returncode, 2, result.stdout+result.stderr)
+            self.assertIn('D94', result.stderr)
+            self.assertNotIn('Traceback', result.stderr)
+
+    def test_d94_cli_refuses_each_removed_boundary(self):
+        for path in (*D94_DOC_PATHS, 'AGENTS.md'):
+            for token in D94_TOKENS:
+                with self.subTest(path=path, token=token):
+                    self.d94_mutation(path, token=token)
+        for card_id in ('R04', 'R05'):
+            for token in D94_TOKENS:
+                with self.subTest(card=card_id, token=token):
+                    self.d94_mutation(BACKLOG, token=token, card_id=card_id)
+
+    def test_d94_cli_refuses_provenance_changes(self):
+        for token in D94_PROVENANCE:
+            with self.subTest(token=token):
+                self.d94_mutation(GLOSSARY, token=token, decision=True)
+
+    def test_d94_cli_refuses_prior_d93_history_edit(self):
+        with tempfile.TemporaryDirectory(prefix='d94-history-') as temp:
+            root = Path(temp)
+            for source in (*PATHS, *D94_DOC_PATHS):
+                target = root/source
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(ROOT/source, target)
+            target = root/GLOSSARY
+            text = target.read_text()
+            self.assertEqual(text.count('### D93 —'), 1)
+            target.write_text(text.replace('### D93 —', '### D93 — MODIFIED'))
+            result = self.invoke(root)
+            self.assertEqual(result.returncode, 2, result.stdout+result.stderr)
+            self.assertIn('D94', result.stderr)
+            self.assertNotIn('Traceback', result.stderr)
+
+    def test_d94_cli_refuses_unsafe_claims(self):
+        for path in (*D94_DOC_PATHS, 'AGENTS.md'):
+            for claim in D94_FORBIDDEN:
+                with self.subTest(path=path, claim=claim):
+                    self.d94_mutation(path, claim=claim)
+        for card_id in ('R04', 'R05'):
+            for claim in D94_FORBIDDEN:
+                with self.subTest(card=card_id, claim=claim):
+                    self.d94_mutation(BACKLOG, claim=claim, card_id=card_id)
+
     def d93_mutation(self, path, old=None, claim=None, card_id=None, history=False):
         with tempfile.TemporaryDirectory(prefix='d93-receipt-') as temp:
             root = Path(temp)
