@@ -30,6 +30,22 @@ class ReceiptSqlTests(unittest.TestCase):
   self.assertEqual(self.sql('SELECT count(*) FROM organization_access.receipt_grant_history'),'1')
   self.assertEqual(self.grant(ids,expected=1,operation='revoke'),'applied')
   self.assertEqual(self.sql('SELECT count(*) FROM organization_access.company_permissions WHERE "Permission"=\'inventory.receipts.create\''),'0')
+ def test_receiving_sources_require_dedicated_grant_not_purchase_permission(self):
+  ids=self.receipt_world();source=self.confirmed(ids)
+  # Resolve through to_regprocedure first: missing surface is reported explicitly, not a SQL setup error.
+  exists=self.sql("SELECT to_regprocedure('inventory.receipt_sources(uuid,uuid,uuid)') IS NOT NULL")
+  self.assertEqual(exists,'t','dedicated receiving source read is absent (surface RED only)')
+  def read():return json.loads(self.sql(self.app_prefix(ids,ids['companies'][0])+f"SELECT inventory.receipt_sources('{ids['order']}','{ids['line']}','{ids['warehouse']}')::text; COMMIT;",app=True).splitlines()[-1])
+  self.assertEqual(read(),{'state':'forbidden'})
+ def test_receiving_sources_return_only_confirmed_frozen_lines_without_purchase_grant(self):
+  ids=self.receipt_world();source=self.confirmed(ids);self.grant(ids)
+  self.sql('''DELETE FROM organization_access.company_permissions WHERE "Permission"='inventory.purchase-intents.create';''')
+  def read(order=None,line=None,warehouse=None):return json.loads(self.sql(self.app_prefix(ids,ids['companies'][0])+f"SELECT inventory.receipt_sources('{order or ids['order']}','{line or ids['line']}','{warehouse or ids['warehouse']}')::text; COMMIT;",app=True).splitlines()[-1])
+  got=read();self.assertEqual(got['state'],'ready','dedicated receiving grant must discover confirmed source without purchasing rights')
+  self.assertEqual(got['sources'],[dict(id=source,orderedQuantity='3.000000',unitPurchasePrice='12.345678',externalOrderReference='GiobbyPurchaseOrder-301',supplierName='Supplier candidate',description='Part')])
+  self.assertEqual(read(warehouse=str(uuid.uuid4())),{'state':'forbidden'})
+  self.assertEqual(read(order=str(uuid.uuid4())),{'state':'not_found'})
+  self.sql('''DELETE FROM organization_access.company_permissions WHERE "Permission"='inventory.receipts.create';''');self.assertEqual(read(),{'state':'forbidden'})
  def test_receipt_intent_surface(self):
   self.freeze_world()
   self.assertEqual(self.sql("SELECT to_regprocedure('inventory.create_receipt_intent(uuid,uuid,text,jsonb)') IS NOT NULL"),'t','receipt command surface absent')

@@ -16,6 +16,18 @@ internal static class ReceiptIntentEndpoints
     {
         routes.MapPost("/purchase-intents/{sourceIntentId:guid}/receipts", Create);
         routes.MapGet("/purchase-intents/{sourceIntentId:guid}/receipts", Read);
+        routes.MapGet("/orders/{orderId:guid}/lines/{lineId:guid}/receipt-sources", Sources);
+    }
+    private static async Task<IResult> Sources(Guid orderId, Guid lineId, Guid warehouseId, ClaimsPrincipal user,
+        IWorkshopAccess access, InventoryDbContext db, CancellationToken ct)
+    {
+        var member = await access.ResolveMembership(user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "", ct);
+        if (member is null) return Results.StatusCode(403);
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await Context(db, member.TenantId, user, ct);
+        var value = await db.Database.SqlQuery<string>($"SELECT inventory.receipt_sources({orderId},{lineId},{warehouseId})::text AS \"Value\"").SingleAsync(ct);
+        await tx.CommitAsync(ct);
+        return Result(value);
     }
     private static async Task<IResult> Create(Guid sourceIntentId, ReceiptIntentRequest request, ClaimsPrincipal user,
         IWorkshopAccess access, InventoryDbContext db, IServiceProvider services, CancellationToken ct)

@@ -66,7 +66,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self.reply(copy.deepcopy(RECEIPTS['receipt-lookup']))
             elif self.command == 'GET' and p.path == '/purchases/orders':
                 result = copy.deepcopy(CAPTURES['po-lookup-vendor-name-status'])
-                entries = [] if mode in ('empty', 'lost-response-empty') else sorted(state['documents'].values(), key=lambda e: -e['id'])
+                entries = [] if mode in ('empty', 'lost-response-empty') else sorted((e for e in state['documents'].values() if e['body']['idDocumentType'] == 2), key=lambda e: -e['id'])
                 result['documentsHeaders'] = []
                 for entry in entries:
                     h = {k: v for k, v in entry['document']['document'].items() if k not in ('rows', 'idContact', 'payments', 'idBu', 'idNumerator', 'taxableAmount', 'vatAmount')}; h['idContact'] = None

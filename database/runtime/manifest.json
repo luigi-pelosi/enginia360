@@ -163,5 +163,10 @@
     "id": "0033_receipt_intents",
     "path": "migrations/0033_receipt_intents.sql",
     "sha256": "3716114675e9fc0834972f5cb546e753c18244705b4b297bbe9f86c8e5f6eb3d"
+  },
+  {
+    "id": "0034_receipt_sources",
+    "path": "migrations/0034_receipt_sources.sql",
+    "sha256": "2dbc7189fa7cbb1b1e763fe41fd3373017830cf9171dc34bdb73763527e14b3c"
   }
 ]

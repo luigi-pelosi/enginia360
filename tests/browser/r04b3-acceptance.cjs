@@ -34,14 +34,17 @@ async function waitForTlsApi(browser) {
   const ctx=fixture.contexts[0],data=fixture.workshop[0],supplier=fixture.purchasePrices.supplierId,item=fixture.purchasePrices.catalogItemId;
   const order=uid(),lines=[];let revision=0;
   assert.equal((await post(page,'/api/v1/workshop/orders',{id:order,legalEntityId:ctx.legalEntityId,siteId:ctx.siteId,documentTypeId:data.documentTypeId,configurationVersion:7,payerId:data.payerId,vehicleId:data.vehicleId})).status,201);
-  async function editor(type,extra){const r=await post(page,`/api/v1/workshop/orders/${order}/editor/commands`,{type,commandId:uid(),expectedRevision:revision,expectedLinePolicyVersion:9,expectedStructurePolicyVersion:1,groupId:null,lineId:null,title:null,description:null,catalogItemId:null,catalogVersion:null,quantity:null,unitPrice:null,discountPercent:null,...extra});assert.equal(r.status,201,JSON.stringify(r));revision=r.value.appliedRevision;}
+  async function editor(type,extra){const r=await post(page,`/api/v1/workshop/orders/${order}/editor/commands`,{type,commandId:uid(),expectedRevision:revision,expectedLinePolicyVersion:9,expectedStructurePolicyVersion:1,groupId:null,lineId:null,title:null,description:null,catalogItemId:null,catalogVersion:null,quantity:null,unitPrice:null,discountPercent:null,...extra});assert.equal(r.status,type==='EditCommercialLine'?200:201,JSON.stringify(r));revision=r.value.appliedRevision;}
   for(let i=0;i<3;i++){const group=uid(),line=uid();lines.push(line);await editor('AddGroup',{groupId:group,title:'Acquisto '+i});await editor('AddCommercialLine',{lineId:line,groupId:group,catalogItemId:item,catalogVersion:8,quantity:'3',unitPrice:'111',discountPercent:'0'});}
   const url=line=>`/api/v1/inventory/orders/${order}/lines/${line}/purchase-intents`,state=line=>json(page,url(line)+'?warehouseId='+ctx.warehouseId);
   const quote=line=>json(page,url(line)+`/quote?warehouseId=${ctx.warehouseId}&supplierId=${supplier}`);
   async function accept(line,quantity,price){const st=(await state(line)).value,q=(await quote(line)).value.quote;assert.equal(q.sourcePresent,false);const b={id:uid(),warehouseId:ctx.warehouseId,supplierId:supplier,sourceRevision:st.source.revision,supplierRevision:st.suppliers[0].revision,mappingRevision:st.suppliers[0].mappingRevision,quantity,quoteRevision:q.revision,catalogVersion:q.catalogVersion,authorityVersion:q.authorityVersion,manualUnitPurchasePrice:price};const r=await post(page,url(line)+'/accepted',b);assert.equal(r.status,201,JSON.stringify(r));return b.id;}
   const source=await accept(lines[0],'3','12.345678');
   await until(source,s=>s.outcome,'confirmed source purchase');
+  const sourcesUrl=`/api/v1/inventory/orders/${order}/lines/${lines[0]}/receipt-sources?warehouseId=${ctx.warehouseId}`;
+  assert.equal((await json(page,sourcesUrl)).status,403,'receiving discovery must not accept purchase-only permission');
   await control('receipt-grant');
+  assert.equal((await json(page,sourcesUrl)).value.sources[0].unitPurchasePrice,'12.345678','receiving discovery uses frozen price, not a list quote');
   const receiptUrl=`/api/v1/inventory/purchase-intents/${source}/receipts`;
   const command={id:uid(),quantity:'0.123456'};
   assert.equal((await post(page,receiptUrl,command,null)).status,400,'CSRF required');
@@ -108,6 +111,47 @@ async function waitForTlsApi(browser) {
    await control('receipt-permission:restore');
    pass('real API grant revocation both physical lock orderings, no authorization snapshot race');
   }
+  stage='Italian receiving UI, exact client retry and authoritative history';
+  async function openReceiving(line,sourceId){
+   await page.goto('about:blank');await page.goto(origin+'/ui01-runtime.html#order='+order);await page.getByLabel('Workspace commessa').waitFor();await page.getByText('Operazioni materiali',{exact:true}).click();
+   const materials=page.getByRole('region',{name:'Operazioni materiali'});await materials.getByLabel('Riga ricambio').selectOption(line);await materials.getByLabel('Magazzino materiali').selectOption(ctx.warehouseId);
+   await materials.getByRole('button',{name:'Apri ricevimento merce'}).click();const panel=page.getByRole('region',{name:'Ricevimento merce'});
+   if(sourceId){await panel.getByLabel('Ordine acquisto confermato').selectOption(sourceId);await panel.getByText(/^Capacità ricevimento disponibile:/).waitFor();}return panel;
+  }
+  await control('po-grant:remove'); // receiving works with its own grant, without purchase/list visibility.
+  let panel=await openReceiving(lines[2],source3);
+  await panel.getByText('Costo acquisto congelato: 12.345678',{exact:true}).waitFor();
+  await panel.getByText('Capacità ricevimento disponibile: 2.000000',{exact:true}).waitFor();
+  const writes=[],results=[];
+  await page.route('**/api/v1/inventory/purchase-intents/'+source3+'/receipts',async route=>{
+   if(route.request().method()!=='POST')return route.continue();writes.push(route.request().postData());
+   const result=await route.fetch();results.push({status:result.status(),value:await result.json()});
+   if(writes.length===1)return route.abort('failed');return route.fulfill({response:result});
+  });
+  await panel.getByLabel('Quantità da ricevere').fill('1.000000');await panel.getByRole('button',{name:'Crea ricevimento esplicito'}).click();await panel.getByText(/Risposta client incerta/).waitFor();
+  for(const control of [page.getByLabel('UUID commessa'),page.getByLabel('Riga ricambio'),page.getByLabel('Magazzino materiali'),panel.getByLabel('Ordine acquisto confermato'),panel.getByLabel('Quantità da ricevere'),page.getByRole('button',{name:'Chiudi ricevimento merce'})])assert(await control.isDisabled(),'ancestor/source control must remain frozen');
+  await control('freeze-list:99');await editor('EditCommercialLine',{lineId:lines[2],description:'Descrizione successiva',unitPrice:'222'});
+  await panel.getByRole('button',{name:'Riprova comando identico'}).click();await panel.getByText('Ricevimento registrato e riletto dal server.',{exact:true}).waitFor();
+  assert.equal(writes.length,2);assert.equal(writes[1],writes[0]);assert.deepEqual(results.map(r=>r.status),[201,200]);assert.deepEqual(results[1].value,{...results[0].value,state:'replayed'});
+  assert.equal(results[0].value.snapshot.unitPrice,'12.345678');assert.equal(results[0].value.snapshot.quantity,'1.000000');assert.notEqual(results[0].value.snapshot.source.description,'Descrizione successiva');
+  const uiReceipt=JSON.parse(writes[0]).id;
+  await control('receipt-ui-proof:'+uiReceipt);const proof=read('receipt-ui-proof.json');assert.equal(proof.intents,1);assert.equal(proof.outbox,1);assert.equal(proof.createdAudit,1);assert.equal(proof.replayAudit,1);
+  let uiStop=Date.now()+30000;
+  while(await panel.getByText(/^Confermato dopo readback esatto/).count()<2){assert(Date.now()<uiStop,'exact readback receipt UI');await sleep(300);await panel.getByRole('button',{name:'Rileggi ricevimenti'}).click();}
+  await panel.getByText('Capacità ricevimento disponibile: 1.000000',{exact:true}).waitFor();await panel.getByText('Ricevuto confermato cumulativo: 2.000000',{exact:true}).waitFor();
+  await panel.getByText(/Residuo interno non autorevole.*1.000000/).waitFor();await panel.getByText(/Residuo ERP per ordine: SCONOSCIUTO/).waitFor();await panel.getByText(/limite osservato sandbox.*non è una lettura stock live/).waitFor();
+  const beforeInvalid=writes.length;
+  for(const q of ['', '0','-1','1.0000001','2','1.000001']){await panel.getByLabel('Quantità da ricevere').fill(q);await panel.getByRole('button',{name:'Crea ricevimento esplicito'}).click();await panel.getByText(/Quantità positiva q6/).waitFor();}
+  assert.equal(writes.length,beforeInvalid,'invalid/excess UI quantity must never POST');
+  await page.unroute('**/api/v1/inventory/purchase-intents/'+source3+'/receipts');
+  for(const q of ['', '0','1.0000001'])assert.equal((await post(page,u3,{id:uid(),quantity:q})).status,400);
+  assert.equal((await post(page,u3,{id:uid(),quantity:'2'})).status,409,'server remains cumulative authority after UI validation');
+  for(const [width,height]of [[1366,768],[1920,1080]]){await page.setViewportSize({width,height});const add=page.getByRole('button',{name:'Aggiungi riga',exact:true});await add.scrollIntoViewIfNeeded();await add.focus();const box=await add.evaluate(e=>{const r=e.getBoundingClientRect(),f=document.querySelector('.ui01-summary').getBoundingClientRect();return {top:r.top,bottom:r.bottom,footer:f.top};});assert(box.top>=0&&box.bottom<=box.footer,'Aggiungi riga receiving layout '+width);console.log('RECEIVING_LAYOUT '+JSON.stringify({width,height,box}));await panel.getByRole('button',{name:'Crea ricevimento esplicito'}).scrollIntoViewIfNeeded();assert(await panel.getByRole('button',{name:'Crea ricevimento esplicito'}).isVisible());}
+  pass('Italian receiving-only UI, client lost response exact UUID retry after list/source edit, one intent/outbox/creation audit, q6 limits, authoritative residual and layout');
+  await control('receipt-permission:remove');await panel.getByRole('button',{name:'Rileggi ricevimenti'}).click();await panel.getByText(/Ricevimento non autorizzato/).waitFor();assert.doesNotMatch(await panel.innerText(),/GiobbyPurchaseOrder-301|GiobbyReceipt-|12.345678|Capacità ricevimento/);await control('receipt-permission:restore');
+  panel=await openReceiving(lines[1],source2);await panel.getByText('HOLD · ACK sconosciuto: nessun reinvio, quota impegnata',{exact:true}).waitFor();await panel.getByText('Quantità impegnata non confermata (include coda e HOLD): 2.000000',{exact:true}).waitFor();await panel.getByText('Capacità ricevimento disponibile: 0.000000',{exact:true}).waitFor();assert.equal(await panel.getByRole('button',{name:/reinvio|nuovo UUID|rilascia|annulla|riprova comando/i}).count(),0);
+  pass('grant revocation hides old receipt readout; unknown ACK remains HOLD with retained capacity and no retry/release action');
+  await control('po-grant:restore');
   await control('receipt-claim-hold'); // TERM harness stops here with Chromium and an actual SQL receipt claim lock alive.
   await control('receipt-release');
   fs.writeFileSync('/run/control/result.json',JSON.stringify({checks,pool:fixture.poolSize}));
