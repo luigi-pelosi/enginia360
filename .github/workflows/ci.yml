@@ -54,6 +54,7 @@ jobs:
       r05a7_offline: ${{ steps.selection.outputs.r05a7_offline }}
       r05a8_offline: ${{ steps.selection.outputs.r05a8_offline }}
       r06_offline: ${{ steps.selection.outputs.r06_offline }}
+      frontend: ${{ steps.selection.outputs.frontend }}
       mvp_offline: ${{ steps.selection.outputs.mvp_offline }}
     steps:
       - uses: actions/checkout@v4
@@ -100,6 +101,8 @@ jobs:
         run: python3 -I scripts/test-r05a7-impact.py
       - name: Verify finite receipt evidence impact
         run: python3 -I scripts/test-r05a8-impact.py
+      - name: Verify finite new frontend impact
+        run: python3 -I scripts/test-mvp01-impact.py
       - name: Select exact changed-file impact
         id: selection
         env:
@@ -112,6 +115,36 @@ jobs:
           fi
           python3 scripts/select-ci-impact.py --base "$BASE_SHA" --head "$HEAD_SHA" > "$RUNNER_TEMP/impact.json"
           python3 -c 'import json,os; d=json.load(open(os.environ["RUNNER_TEMP"]+"/impact.json")); print(json.dumps(d,indent=2)); f=open(os.environ["GITHUB_OUTPUT"],"a"); [f.write(k+"="+(str(v).lower() if isinstance(v,bool) else v)+"\n") for k,v in d.items() if k!="changed_paths"]; f.close(); open(os.environ["GITHUB_STEP_SUMMARY"],"a").write("## Exact change-impact selection\n```json\n"+json.dumps(d,indent=2)+"\n```\nRuntime jobs run only on explicit dispatch; skipped runtime is not acceptance evidence.\n")'
+  affected-frontend:
+    needs: impact
+    if: needs.impact.outputs.frontend == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Locked frontend test, production build, typecheck and dependency audit
+        run: python3 -I scripts/run-mvp01-tests.py --build-only --evidence-dir "$RUNNER_TEMP/mvp01"
+  affected-frontend-runtime:
+    needs: impact
+    if: github.event_name == 'workflow_dispatch' && needs.impact.outputs.frontend == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - name: Isolated production HTTP SSR and Chromium keyboard layout acceptance
+        run: python3 -I scripts/run-mvp01-tests.py --evidence-dir "$RUNNER_TEMP/mvp01"
+      - name: Retain isolated shell evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mvp01-${{ github.sha }}
+          path: ${{ runner.temp }}/mvp01
+          retention-days: 7
+          if-no-files-found: error
   affected-mvp-offline:
     needs: impact
     if: needs.impact.outputs.mvp_offline == 'true'
