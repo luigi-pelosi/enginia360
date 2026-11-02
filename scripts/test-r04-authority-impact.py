@@ -117,6 +117,15 @@ class ImpactTests(unittest.TestCase):
         self.assertFalse(selected['full_architecture'])
         validate_workflow((ROOT/'.github/workflows/ci.yml').read_text())
 
+    def test_d95_external_supplier_decision_reuses_only_offline_mapping(self):
+        # Existing mapping regression, not manufactured new-behavior RED.
+        paths = PATHS + ['docs/r04b1-supplier-role.md']
+        selected = impact.selection(paths)
+        self.assertEqual({key for key, value in selected.items() if value is True}, {'r06_offline'})
+        self.assertEqual(selected['api_filter'], '')
+        self.assertFalse(selected['full_architecture'])
+        validate_workflow((ROOT/'.github/workflows/ci.yml').read_text())
+
     def test_unknown_executables_fail_closed_even_in_mixed_offline_scope(self):
         for path in ('scripts/test-r04-authority-unknown.py', 'docs/authority.py',
                      'src/unknown.py', 'docs/new-authority.sh'):

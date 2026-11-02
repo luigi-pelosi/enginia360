@@ -2,6 +2,10 @@
 
 Figlio di R04 #44 (Refs #45). D88 (27 ottobre 2026): fornitore = **ruolo** dell’anagrafica condivisa tenant-wide (D26/D65); ID fornitore Giobby in una **estensione societaria**, mai nell’anagrafica condivisa; richiesta d’acquisto creata a mano da una riga Part (R04.b.2); nessun approvatore separato (una azione con permesso dedicato, R04.b.2). Giobby resta l’unica autorità per stock e documenti d’acquisto (D82). Questo incremento consegna i due prerequisiti dati e il **controllo minimo del ruolo** nella superficie di modifica comune R02.b esistente: nessuna richiesta d’acquisto, nessun connettore d’acquisto Giobby, nessun traffico ERP.
 
+<!-- r02-d95:start -->
+**D95; owner «Confermo»; existing counterparty only; IsSupplier=true only; owner/trusted-operator verified offline path only; single current tenant-wide shared-master authority D26/D65; explicit source/profile/version/company and optimistic shared revision; freeze provenance; no automatic or retroactive authority switch D76; Giobby VendorId/VendorName company extension only, never shared master; existing trusted identity binding/membership; offline verification reference and immutable audit; reference is not verification; correlation token is not authentication; external ordinary local edit remains 409 fail-closed; no common-edit bypass; no user sync grant or tenant-admin mandate extension D77; no provisioning/default-first-user/self-grant/subdelegation; no creation/auto-match/other common fields/catalog/prices ingestion; no role removal/deactivation, bidirectional writers/autosync/backfill; D82 no stock/order/provider writes; D91/D92 unchanged; POLICY_RESOLVED_PENDING_DOCS_MERGE_RUNTIME; docs/guards merge before runtime; #42/#44/#45 OPEN; #128 CLOSED; offline full_architecture=false; D89 operations OPEN/BACKLOG; no runtime delivered here.**
+<!-- r02-d95:end -->
+
 ## Contratto
 
 Migrazione append-only `0027_supplier_role.sql` (0001–0026 byte-identiche, checksum manifest verificati). Tutto in schema `counterparties`.
@@ -20,9 +24,9 @@ Migrazione append-only `0027_supplier_role.sql` (0001–0026 byte-identiche, che
 
 Input proprietario (chiuso): `commandId, tenantId, legalEntityId, counterpartyId, actorMembershipId, verificationReference` (UUID canonici non nulli), `expectedRevision` (intero ≥ 0), `vendorId`, `vendorName`.
 
-## Interpretazioni e punto aperto (gate)
+## Interpretazione corrente e gate tecnico D95
 
-Lettura dell’agente, correggibile dall’owner: D88 non dice se il ruolo/ID siano modificabili localmente o proiettati dall’ERP quando la direzione D76 è `ExternalToEnginia360`. Implementato solo il non ambiguo: il ruolo segue **la stessa regola di autorità R02.b** della modifica comune (locale = modifica ammessa; esterna/mancante = rifiuto esplicito, nessun fallback locale né cambio automatico di autorità); la mappatura è impostata dal percorso proprietario offline indipendentemente dalla direzione (non è autorità sull’anagrafica fornitori). **Nessuna proiezione D76 è implementata**: con profilo esterno il ruolo non può oggi essere impostato localmente, quindi la mappatura (che richiede il ruolo) non è impostabile finché l’owner non decide la proiezione. Ciò non è inventato né aggirato.
+D95 risolve il precedente punto aperto D88: solo owner/operatore fidato verificato offline può proiettare IsSupplier=true su controparte esistente dall’unica autorità esterna corrente, con sorgente/profilo/versione/società/revisione espliciti e prova congelata/audit immutabile. ID/nome Giobby rimangono nell’estensione societaria. **Nessuna proiezione D76 è implementata** oggi: il ruolo via edit ordinario esterno resta 409 e la mappatura richiede il ruolo; implementazione solo dopo merge docs/guardie, non nuova scelta owner. Nessun grant sync, estensione mandato D77 o bypass common-edit.
 
 ## Limiti
 
@@ -54,5 +58,5 @@ D90 (27 ottobre 2026), owner «Confermo A»: cap cumulativo per riga Part sorgen
 1. Azione/permesso dedicato unico (D88c) per creare la richiesta, non autoassegnabile né subdelegabile oltre D77, con CSRF e scope società/magazzino esatti.
 2. Richiesta d’acquisto creata a mano dalla riga Part (D88a), come intento/outbox verso l’ERP, con idempotenza e storia immutabile, mai scrittore locale di acquisto o stock (D82); la quantità richiesta (es. 2 su fabbisogno 3, disponibile 1) è scelta dall’operatore.
 3. Connettore d’acquisto Giobby (ordine fornitore) basato sulla mappatura `VendorId`/`VendorName` di questo incremento, con lookup per nome esatto prima di ogni riuso e hold su ambiguità (R05.a.4/a.5), e riconciliazione del residuo non autorevole (D86).
-4. Decisione owner su proiezione D76 del ruolo/ID quando l’ERP possiede l’anagrafica fornitori.
+4. D95 policy risolta, runtime pendente: proiezione positiva owner-offline del solo ruolo su controparte esistente; mapping ID/nome societario separato; nessuna nuova domanda sulla scelta A.
 5. Evidenza sandbox e idempotenza lato provider prima di qualunque effetto reale.
