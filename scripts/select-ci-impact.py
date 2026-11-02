@@ -259,8 +259,27 @@ D95_SCOPE = D95_FILES | {'scripts/run-r00a-tests.py','scripts/run-ui01b-tests.py
     'docs/productization-plan.md','docs/productization-backlog.json'}
 
 
+# Finite D96 reset exception. Shared wiring alone retains its historical
+# runtime contract; a reset-specific document/guard must anchor the exception.
+MVP_OFFLINE_FILES = {
+    'AGENTS.md', 'PROJECT_CHARTER.md', 'docs/mvp-baseline.md',
+    'docs/mvp-existing-code-assessment.md', 'docs/mvp-delivery-plan.md',
+    'docs/mvp-backlog.json', 'docs/productization-plan.md',
+    'scripts/test-mvp-baseline.py', 'scripts/test-mvp-impact.py',
+    'scripts/select-ci-impact.py', '.github/workflows/ci.yml',
+}
+MVP_ANCHORS = MVP_OFFLINE_FILES - {'AGENTS.md', 'docs/productization-plan.md',
+    'scripts/select-ci-impact.py', '.github/workflows/ci.yml'}
+MVP_GUARDS = {'scripts/test-mvp-baseline.py', 'scripts/test-mvp-impact.py'}
+
+
 def selection(paths):
     paths = sorted(set(paths))
+    mvp_offline = bool(set(paths) & MVP_ANCHORS)
+    if mvp_offline and set(paths) <= MVP_OFFLINE_FILES:
+        result = selection([])
+        result.update(changed_paths=paths, mvp_offline=True)
+        return result
     r06a2 = bool(set(paths) & (R06A2_FILES | R06A2_DEPENDENCIES))
     staging_only = r06a2 and set(paths) <= R06A2_FILES | R06_OFFLINE_FILES | R06_WIRING | {'docs/r06a2-synthetic-import-export.md'}
     r05a8_offline = bool(set(paths) & R05A8_OFFLINE_FILES)
@@ -305,6 +324,8 @@ def selection(paths):
         parsed = PurePosixPath(path)
         if not path or parsed.is_absolute() or '..' in parsed.parts or '\\' in path or str(parsed) != path:
             raise ValueError('invalid changed path')
+        if path in MVP_GUARDS:
+            continue
         if path in R04B2B3_FILES or path in R04B2B3_DIRECT:
             if path.startswith('src/Modules/Integrations/'): r03c = r03c_full = r03a = r05b1 = True
             continue
@@ -427,6 +448,7 @@ def selection(paths):
             result[key] = True
         result['api_filter'] = AUTH_FILTER+'|'+WORKSHOP_FILTER+'|FullyQualifiedName~InventoryArchitectureTests|FullyQualifiedName~PurchaseIntentTests|FullyQualifiedName~SupplierPurchasePriceTests'
     result['r05a8_offline'] = r05a8_offline
+    result['mvp_offline'] = mvp_offline
     return result
 
 
