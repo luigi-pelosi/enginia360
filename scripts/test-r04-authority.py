@@ -422,6 +422,45 @@ def validate_d93(docs):
         raise ValueError('D93: implicit receiving grant, expanded delegation/lifecycle or false delivery')
 
 
+def validate_d95(docs):
+    """Finite offline policy guard; never a projection writer or identity verifier."""
+    text = docs[GLOSSARY]
+    history = text.encode().split('### D1 —'.encode(), 1)[1]
+    history = '### D1 —'.encode()+history
+    if hashlib.sha256(history[:D95_HISTORY_BYTES]).hexdigest() != D95_HISTORY_SHA256:
+        raise ValueError('D95: D1–D94 history changed')
+    if text.count('### D95 —') != 1:
+        raise ValueError('D95: exactly one owner decision required')
+    decision = text.split('### D95 —')[1]
+    require(decision, (D95_QUESTION, '> Confermo\n', '1 novembre 2026',
+                      'Registro D1–D94 verificato', 'A selezionata; B non selezionata',
+                      'distinta dalle conferme storiche')+D95_TOKENS, 'D95 provenance')
+    scopes = [decision]
+    for path in D95_DOC_PATHS:
+        start, end = '<!-- r02-d95:start -->', '<!-- r02-d95:end -->'
+        if docs[path].count(start) != 1 or docs[path].count(end) != 1:
+            raise ValueError('D95: exactly one active projection boundary required: '+path)
+        block = docs[path].split(start)[1].split(end)[0]
+        require(block, D95_TOKENS, 'D95 '+path)
+        scopes.append(block)
+    lines = [line for line in docs['AGENTS.md'].splitlines() if line.startswith('- D95 ')]
+    if len(lines) != 1:
+        raise ValueError('D95: exactly one active AGENTS summary required')
+    require(lines[0], D95_TOKENS, 'D95 AGENTS')
+    scopes += lines
+    cards = [card for card in json.loads(docs[BACKLOG]) if card['id'] in ('R02', 'R04', 'R05')]
+    if sorted(card['id'] for card in cards) != ['R02', 'R04', 'R05']:
+        raise ValueError('D95: exact R02/R04/R05 backlog required')
+    for card in cards:
+        if card['gate'].count('**D95;') != 1:
+            raise ValueError('D95: exactly one backlog boundary required')
+        block = 'D95;'+card['gate'].split('**D95;', 1)[1]
+        require(block, D95_TOKENS, 'D95 backlog '+card['id'])
+        scopes.append(block)
+    if any(claim.casefold() in '\n'.join(scopes).casefold() for claim in D95_FORBIDDEN):
+        raise ValueError('D95: unsafe expanded authority or runtime claim')
+
+
 def validate_d94(docs):
     """Offline receiving-cap policy only; not runtime capacity enforcement."""
     text = docs[GLOSSARY]
@@ -548,8 +587,8 @@ def validate(root):
         raise ValueError('active delivery: stale D80/D81 status')
     # Historical decisions remain untouched; the new decision must be unique and next.
     ids = [int(x) for x in re.findall(r'^### D(\d+) —', docs[GLOSSARY], re.M)]
-    if sorted(ids) != list(range(1, 95)):
-        raise ValueError('decision register: retain unique D1–D93 and append D94')
+    if sorted(ids) != list(range(1, 96)):
+        raise ValueError('decision register: retain unique D1–D94 and append D95')
     prefix = docs[GLOSSARY].encode()
     prefix = prefix[prefix.index(b'### D1 \xe2\x80\x94'):][:D1_D84_BYTES]
     if hashlib.sha256(prefix).hexdigest() != D1_D84_SHA256:
@@ -623,6 +662,7 @@ def validate(root):
     validate_d92(docs)
     validate_d93(docs)
     validate_d94(docs)
+    validate_d95(docs)
 
 
 D92_TOKENS = (
@@ -788,7 +828,125 @@ D94_HANDOFF = (
 )
 
 
+D95_QUESTION = 'A — consigliata: per la controparte già esistente selezionata nel profilo Giobby→Enginia360, il solo proprietario/operatore fidato offline può proiettare il fatto “è fornitore” verificato in Giobby, registrando sorgente/profilo/versione e prova immutabile; ID/nome Giobby restano nell’estensione della sola società, senza cambiare nome/sede/codice fiscale comuni, creare anagrafiche o concedere sync agli utenti. Oppure B: vuoi un diverso writer/trigger o campi autorevoli, da specificare? Confermi A?'
+D95_HISTORY_BYTES = 166237
+D95_HISTORY_SHA256 = '79a5f23dece501b260e0b90041454f447848fb26f94becc4e8579789ec78ed95'
+D95_DOC_PATHS = (GLOSSARY, PLAN, SUPPLIER, RUNBOOK)
+D95_TOKENS = (
+    'D95;', 'owner «Confermo»', 'existing counterparty only; IsSupplier=true only',
+    'owner/trusted-operator verified offline path only',
+    'single current tenant-wide shared-master authority D26/D65',
+    'explicit source/profile/version/company and optimistic shared revision',
+    'freeze provenance; no automatic or retroactive authority switch D76',
+    'Giobby VendorId/VendorName company extension only, never shared master',
+    'existing trusted identity binding/membership; offline verification reference and immutable audit',
+    'reference is not verification; correlation token is not authentication',
+    'external ordinary local edit remains 409 fail-closed; no common-edit bypass',
+    'no user sync grant or tenant-admin mandate extension D77',
+    'no provisioning/default-first-user/self-grant/subdelegation',
+    'no creation/auto-match/other common fields/catalog/prices ingestion',
+    'no role removal/deactivation, bidirectional writers/autosync/backfill',
+    'D82 no stock/order/provider writes; D91/D92 unchanged',
+    'POLICY_RESOLVED_PENDING_DOCS_MERGE_RUNTIME', 'docs/guards merge before runtime',
+    '#42/#44/#45 OPEN; #128 CLOSED',
+    'offline full_architecture=false; D89 operations OPEN/BACKLOG', 'no runtime delivered here',
+)
+D95_FORBIDDEN = (
+    'D95 allows new counterparties.', 'D95 allows supplier role removal.',
+    'D95 grants user synchronization.', 'D95 grants tenant-admin projection.',
+    'D95 allows per-company competing master writers.',
+    'D95 allows automatic authority switching.', 'D95 imports common fiscal fields.',
+    'D95 permits bidirectional autosync.', 'D95 bypasses external local edit refusal.',
+    'D95 runtime delivered.',
+)
+
+
 class AuthorityTests(unittest.TestCase):
+    def test_d95_exact_answer_context_history_and_active_boundaries(self):
+        text = (ROOT/GLOSSARY).read_text()
+        self.assertEqual(text.count('### D95 —'), 1, 'missing next D95 owner decision')
+        history = text.encode().split('### D1 —'.encode(), 1)[1]
+        history = '### D1 —'.encode()+history
+        self.assertEqual(hashlib.sha256(history[:D95_HISTORY_BYTES]).hexdigest(), D95_HISTORY_SHA256)
+        decision = text.split('### D95 —')[1]
+        require(decision, (D95_QUESTION, '> Confermo\n', '1 novembre 2026',
+                          'Registro D1–D94 verificato', 'A selezionata; B non selezionata',
+                          'distinta dalle conferme storiche')+D95_TOKENS, 'D95 provenance')
+        for path in D95_DOC_PATHS:
+            text = (ROOT/path).read_text()
+            self.assertEqual(text.count('<!-- r02-d95:start -->'), 1, path)
+            self.assertEqual(text.count('<!-- r02-d95:end -->'), 1, path)
+            require(text.split('<!-- r02-d95:start -->')[1].split('<!-- r02-d95:end -->')[0], D95_TOKENS, 'D95 '+path)
+        agents = [line for line in (ROOT/'AGENTS.md').read_text().splitlines() if line.startswith('- D95 ')]
+        self.assertEqual(len(agents), 1, 'missing active D95 AGENTS boundary')
+        require(agents[0], D95_TOKENS, 'D95 AGENTS')
+        for card in json.loads((ROOT/BACKLOG).read_text()):
+            if card['id'] in ('R02', 'R04', 'R05'):
+                require(card['gate'], D95_TOKENS, 'D95 backlog '+card['id'])
+
+    def test_d95_all_document_and_backlog_tokens_fail_closed(self):
+        docs = {path: (ROOT/path).read_text() for path in PATHS}
+        for path in (*D95_DOC_PATHS, 'AGENTS.md', BACKLOG):
+            ids = ('R02', 'R04', 'R05') if path == BACKLOG else (None,)
+            for card_id in ids:
+                for token in D95_TOKENS:
+                    with self.subTest(path=path, card=card_id, token=token):
+                        changed = dict(docs)
+                        if card_id:
+                            cards = json.loads(docs[BACKLOG])
+                            card = next(card for card in cards if card['id'] == card_id)
+                            prefix, boundary = card['gate'].split('**D95;', 1)
+                            self.assertIn(token, 'D95;'+boundary)
+                            card['gate'] = prefix+'**'+('D95;'+boundary).replace(token, 'REMOVED', 1)
+                            changed[path] = json.dumps(cards)
+                        else:
+                            text = docs[path]
+                            scope = (next(line for line in text.splitlines() if line.startswith('- D95 '))
+                                     if path == 'AGENTS.md' else text.split('<!-- r02-d95:start -->')[1].split('<!-- r02-d95:end -->')[0])
+                            self.assertIn(token, scope)
+                            changed[path] = text.replace(scope, scope.replace(token, 'REMOVED', 1), 1)
+                        with self.assertRaisesRegex(ValueError, 'D95'):
+                            validate_d95(changed)
+
+    def test_d95_cli_boundary_removal_and_unsafe_expansion(self):
+        cases = [(path, 'existing counterparty only; IsSupplier=true only', None)
+                 for path in (*D95_DOC_PATHS, 'AGENTS.md')]
+        cases += [(BACKLOG, card_id, None) for card_id in ('R02', 'R04', 'R05')]
+        cases += [(PLAN, None, claim) for claim in D95_FORBIDDEN]
+        with tempfile.TemporaryDirectory(prefix='d95-policy-') as temp:
+            root = Path(temp)
+            for path, token, claim in cases:
+                with self.subTest(path=path, token=token, claim=claim):
+                    for source in PATHS:
+                        target = root/source
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copyfile(ROOT/source, target)
+                    target = root/path
+                    text = target.read_text()
+                    if path == BACKLOG:
+                        cards = json.loads(text)
+                        card = next(card for card in cards if card['id'] == token)
+                        boundary = 'existing counterparty only; IsSupplier=true only'
+                        self.assertIn(boundary, card['gate'], 'valid backlog mutation precondition')
+                        card['gate'] = card['gate'].replace(boundary, 'REMOVED', 1)
+                        target.write_text(json.dumps(cards))
+                    else:
+                        if path == 'AGENTS.md':
+                            scope = next(line for line in text.splitlines() if line.startswith('- D95 '))
+                        else:
+                            self.assertIn('<!-- r02-d95:start -->', text, 'valid mutation fixture required')
+                            scope = text.split('<!-- r02-d95:start -->')[1].split('<!-- r02-d95:end -->')[0]
+                        if token:
+                            self.assertIn(token, scope, 'valid mutation precondition')
+                            changed = scope.replace(token, 'REMOVED')
+                        else:
+                            changed = scope+'\n'+claim+'\n'
+                        target.write_text(text.replace(scope, changed, 1))
+                    result = self.invoke(root)
+                    self.assertEqual(result.returncode, 2, result.stdout+result.stderr)
+                    self.assertIn('D95', result.stderr)
+                    self.assertNotIn('Traceback', result.stderr)
+
     def test_candidate_case_map_matches_unicode_regex_ascii_letter_closure(self):
         ascii_letter = re.compile('[a-z]', re.I)
         extras = {char for code in range(128, sys.maxunicode + 1)
