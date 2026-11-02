@@ -168,5 +168,10 @@
     "id": "0034_receipt_sources",
     "path": "migrations/0034_receipt_sources.sql",
     "sha256": "2dbc7189fa7cbb1b1e763fe41fd3373017830cf9171dc34bdb73763527e14b3c"
+  },
+  {
+    "id": "0035_external_supplier_projection",
+    "path": "migrations/0035_external_supplier_projection.sql",
+    "sha256": "40313dd89cf7c7790ad0af1916fe573c9a36d453c85b4cfdafbb5726b20814c9"
   }
 ]

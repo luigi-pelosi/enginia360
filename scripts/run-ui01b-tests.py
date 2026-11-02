@@ -62,6 +62,48 @@ def fixtures(state, secret):
     (state/'browser.json').chmod(0o444)
     return '\n'.join(statements)
 
+def d95_acceptance(command, query, state, fixture):
+    """Append to (never replace) the original editor assertions, in its separate existing tenant."""
+    ctx, data = fixture['contexts'][1], fixture['workshop'][1]
+    member = run(query+['-c', f'''SELECT "Id" FROM organization_access.memberships WHERE "TenantId"='{ctx['tenantId']}';''']).strip()
+    assert str(uuid.UUID(member)) == member  # Exactly one already-trusted synthetic membership.
+    run(query, input=f'''INSERT INTO organization_access.common_edit_permissions VALUES ('{member}','{ctx['tenantId']}');''')
+    setup = dict(commandId=str(uuid.uuid4()), tenantId=ctx['tenantId'], actorMembershipId=member,
+                 verificationReference=str(uuid.uuid4()), expectedVersion=0, domain='counterparties',
+                 direction='ExternalToEnginia360', sourceId=str(uuid.uuid4()), profileId=str(uuid.uuid4()),
+                 companyIds=[ctx['legalEntityId']])
+    def owner(tool, value, filename):
+        path = state/'public'/filename
+        path.write_text(json.dumps(value)); path.chmod(0o444)
+        run(command+['run','--rm','--no-deps','-T','--entrypoint','python3','migrator','scripts/'+tool,'/run/tls/'+filename], timeout=40)
+    owner('owner-master-authority.py', setup, 'd95-authority.json')
+    browser_entry = 'mkdir -p "$HOME/.pki/nssdb" && certutil -N -d sql:$HOME/.pki/nssdb --empty-password && certutil -A -d sql:$HOME/.pki/nssdb -n runtime-ephemeral-ca -t C,, -i /run/tls/ca.crt && exec node d95-projection.cjs'
+    def browser(phase):
+        print(run(command+['run','--rm','--no-deps','-T','-e','D95_PHASE='+phase,'--entrypoint','sh','browser','-c',browser_entry], timeout=60), flush=True)
+    browser('before')
+    projection = dict(commandId=str(uuid.uuid4()), tenantId=ctx['tenantId'], legalEntityId=ctx['legalEntityId'],
+                      counterpartyId=data['payerId'], actorMembershipId=member,
+                      verificationReference=str(uuid.uuid4()), sourceFactReference=str(uuid.uuid4()),
+                      sourceSystem='Giobby', sourceId=setup['sourceId'], profileId=setup['profileId'],
+                      authorityVersion=1, expectedRevision=0, isSupplier=True)
+    owner('owner-external-supplier-role.py', projection, 'd95-projection.json')
+    # Reuse exact file without replacing its immutable request, through the real TLS owner CLI.
+    run(command+['run','--rm','--no-deps','-T','--entrypoint','python3','migrator','scripts/owner-external-supplier-role.py','/run/tls/d95-projection.json'], timeout=40)
+    vendor = dict(commandId=str(uuid.uuid4()), tenantId=ctx['tenantId'], legalEntityId=ctx['legalEntityId'],
+                  counterpartyId=data['payerId'], actorMembershipId=member, verificationReference=str(uuid.uuid4()),
+                  expectedRevision=0, vendorId='D95-PRIVATE-B', vendorName='Company B vendor hint')
+    owner('owner-supplier-vendor-identity.py', vendor, 'd95-vendor.json')
+    browser('after')
+    stored = json.loads(run(query+['-c',f'''SELECT "Request"::text FROM counterparties.external_supplier_projection_history WHERE "CommandId"='{projection['commandId']}';''']).strip())
+    assert stored == projection
+    assert run(query+['-c','SELECT count(*) FROM counterparties.external_supplier_projection_history']).strip() == '1'
+    assert run(query+['-c',f'''SELECT "Revision"::text||'|'||("Before"->>'isSupplier')||'|'||("After"->>'isSupplier') FROM counterparties.common_edit_history WHERE "CommandId"='{projection['commandId']}';''']).strip() == '1|false|true'
+    assert run(query+['-c',f'''SELECT "LegalName"||'|'||"FiscalIdentifier"||'|'||"RegisteredOffice" FROM counterparties.counterparties WHERE "Id"='{data['payerId']}';''']).strip() == 'Synthetic payerId|SYNTHETIC|Synthetic office'
+    assert run(query+['-c','SELECT count(*) FROM counterparties.common_edit_history']).strip() == '4'
+    assert run(query+['-c','SELECT count(*) FROM counterparties.giobby_vendor_identity_history']).strip() == '2'
+    print('PASS D95 real owner TLS write/replay/exact provenance readback; independent company vendor binding; original editor assertions preserved', flush=True)
+
+
 def main():
     if not os.environ.get('TMPDIR'): raise ValueError('private TMPDIR required')
     if os.environ.get('UI01B_POOL_SIZE','4') not in ('1','4'): raise ValueError('pool acceptance is explicitly 1 or 4')
@@ -163,6 +205,7 @@ def main():
             net=sum(expected); tax=(net*Decimal('.22')).quantize(Decimal('.000001'),rounding=ROUND_HALF_UP)
             assert Decimal(summary['netAmount'])==net and Decimal(summary['taxAmount'])==tax and Decimal(summary['total'])==net+tax
             assert run(query+['-c',f'''SELECT "PayerId"::text||'|'||"VehicleHolderId"::text FROM workshop.orders WHERE "Id"='{order['id']}';''']).strip()==order['payerId']+'|'+order['vehicleHolderId']
+            d95_acceptance(command, query, state, fixture)
             for screenshot in (state/'control').glob('*.png'): shutil.copyfile(screenshot,evidence/screenshot.name)
             (evidence/'result.json').write_text(json.dumps(result,indent=2))
             print('PASS UI01B SQL exact orders=1 lines=2; q6 D67 snapshots/tax/payer-holder readback',flush=True)

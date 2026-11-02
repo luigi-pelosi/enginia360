@@ -24,6 +24,8 @@ Risultato calcolato sul baseline R05.b.1: **26 migrazioni, 66 definizioni CREATE
 
 **Aggiornamento R04.b.2b.3 PR2:** migrazione append-only 0032 (solo `CREATE OR REPLACE FUNCTION inventory.purchase_intent_state`, nessuna tabella): **32 migrazioni, 74 definizioni CREATE, 9 schemi**; le 74 voci restano identiche, nessuna approvazione di migrazione o readiness.
 
+**Aggiornamento candidato D95:** migrazione append-only 0035, **35 migrazioni, 80 definizioni CREATE, 9 schemi**. La nuova `counterparties.external_supplier_projection_history` è `audit_history`, UNDECIDED / NO_LEGACY_IMPORT_APPROVED; tutte le 79 voci precedenti restano identiche. La funzione owner-offline non è importazione legacy né approvazione di readiness.
+
 Ogni voce registra:
 
 - `table`, `owner`: nome qualificato e modulo/schema proprietario osservato, non una nuova ownership di business;

@@ -6,6 +6,10 @@ Figlio di R04 #44 (Refs #45). D88 (27 ottobre 2026): fornitore = **ruolo** dell�
 **D95; owner «Confermo»; existing counterparty only; IsSupplier=true only; owner/trusted-operator verified offline path only; single current tenant-wide shared-master authority D26/D65; explicit source/profile/version/company and optimistic shared revision; freeze provenance; no automatic or retroactive authority switch D76; Giobby VendorId/VendorName company extension only, never shared master; existing trusted identity binding/membership; offline verification reference and immutable audit; reference is not verification; correlation token is not authentication; external ordinary local edit remains 409 fail-closed; no common-edit bypass; no user sync grant or tenant-admin mandate extension D77; no provisioning/default-first-user/self-grant/subdelegation; no creation/auto-match/other common fields/catalog/prices ingestion; no role removal/deactivation, bidirectional writers/autosync/backfill; D82 no stock/order/provider writes; D91/D92 unchanged; POLICY_RESOLVED_PENDING_DOCS_MERGE_RUNTIME; docs/guards merge before runtime; #42/#44/#45 OPEN; #128 CLOSED; offline full_architecture=false; D89 operations OPEN/BACKLOG; no runtime delivered here.**
 <!-- r02-d95:end -->
 
+## D95 — incremento candidato corrente
+
+La proiezione positiva owner-offline su controparte esistente è implementata nel candidato descritto in [R02/D95](r02-d95-external-supplier-projection.md), con prove PostgreSQL/TLS/UI isolate; pubblicazione e CI exact-head da verificare nella PR. Non è acquisizione anagrafica generale D76 né completamento R02/R04/R05. Il selettore acquisti `counterparties.purchase_suppliers` e `organization_access.purchasing_authority` mantengono ancora il gate `master_external`: il ruolo proiettato è leggibile nelle API/UI anagrafiche approvate e abilita il mapping owner separato, non rimuove automaticamente i gate di prezzo/acquisto. D89 OPE OPEN/BACKLOG e campagne FINAL solo dopo completamento funzionale.
+
 ## Contratto
 
 Migrazione append-only `0027_supplier_role.sql` (0001–0026 byte-identiche, checksum manifest verificati). Tutto in schema `counterparties`.
@@ -26,7 +30,7 @@ Input proprietario (chiuso): `commandId, tenantId, legalEntityId, counterpartyId
 
 ## Interpretazione corrente e gate tecnico D95
 
-D95 risolve il precedente punto aperto D88: solo owner/operatore fidato verificato offline può proiettare IsSupplier=true su controparte esistente dall’unica autorità esterna corrente, con sorgente/profilo/versione/società/revisione espliciti e prova congelata/audit immutabile. ID/nome Giobby rimangono nell’estensione societaria. **Nessuna proiezione D76 è implementata** oggi: il ruolo via edit ordinario esterno resta 409 e la mappatura richiede il ruolo; implementazione solo dopo merge docs/guardie, non nuova scelta owner. Nessun grant sync, estensione mandato D77 o bypass common-edit.
+D95 risolve il precedente punto aperto D88: solo owner/operatore fidato verificato offline può proiettare IsSupplier=true su controparte esistente dall’unica autorità esterna corrente, con sorgente/profilo/versione/società/revisione espliciti e prova congelata/audit immutabile. ID/nome Giobby rimangono nell’estensione societaria. **Stato storico al merge documentale PR #137:** nessuna proiezione D76 era implementata; il candidato runtime D95 corrente è descritto sopra e nel dossier dedicato. Il ruolo via edit ordinario esterno resta 409 e la mappatura richiede il ruolo; nessuna acquisizione generale D76 è implicita. Nessun grant sync, estensione mandato D77 o bypass common-edit.
 
 ## Limiti
 
