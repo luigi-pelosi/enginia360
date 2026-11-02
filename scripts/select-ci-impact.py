@@ -245,6 +245,20 @@ R04B2B3_SCOPE = R04B2B3_FILES | R04B2B3_DIRECT | R04B2B3_READOUT | {'scripts/tes
     'docs/r06-migration-inventory.json','docs/r06-migration-inventory.md','web/src/ui01/runtime/MaterialOperations.tsx','web/src/ui01/runtime/MaterialOperations.test.tsx'}
 
 
+D95_FILES = {'scripts/owner-external-supplier-role.py', 'scripts/test-d95-projection.py',
+             'scripts/test-d95-impact.py', 'database/runtime/migrations/0035_external_supplier_projection.sql',
+             'tests/browser/d95-projection.cjs'}
+AUTH_FILES |= D95_FILES
+UI01B_FILES |= D95_FILES
+R04B2A_DIRECT |= D95_FILES
+D95_SCOPE = D95_FILES | {'scripts/run-r00a-tests.py','scripts/run-ui01b-tests.py',
+    'migrator.runtime.Dockerfile','scripts/select-ci-impact.py','.github/workflows/ci.yml',
+    'database/runtime/manifest.json','docs/r06-migration-inventory.json','docs/r06-migration-inventory.md',
+    'docs/r02-d95-external-supplier-projection.md','docs/r04b1-supplier-role.md',
+    'scripts/test-r04b3-migration-selection.py',
+    'docs/productization-plan.md','docs/productization-backlog.json'}
+
+
 def selection(paths):
     paths = sorted(set(paths))
     r06a2 = bool(set(paths) & (R06A2_FILES | R06A2_DEPENDENCIES))
@@ -405,6 +419,13 @@ def selection(paths):
         for consumer in ('GiobbyReceiptTests','GiobbyPurchaseOrderTests','GiobbySalesOrderTests','AdministrationBoundaryTests'):
             if consumer not in result['api_filter']:
                 result['api_filter'] += '|FullyQualifiedName~'+consumer
+    if set(paths) & D95_FILES and set(paths) <= D95_SCOPE:
+        # Only the bounded offline projector and its existing read/role consumers, not D76 ingestion.
+        for key in ('r03a','r03a2','r03b','r03c','r04a','r04c1','r04c2','r06b1','r06a2','r05b0','r05b1','r04b2b1','r04b2b2','r04b2b3'):
+            result[key] = False
+        for key in ('browser','migrations','ui01b','r04b2a','ui_build','ui_tests','r06_offline'):
+            result[key] = True
+        result['api_filter'] = AUTH_FILTER+'|'+WORKSHOP_FILTER+'|FullyQualifiedName~InventoryArchitectureTests|FullyQualifiedName~PurchaseIntentTests|FullyQualifiedName~SupplierPurchasePriceTests'
     result['r05a8_offline'] = r05a8_offline
     return result
 

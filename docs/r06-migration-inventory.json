@@ -2691,5 +2691,33 @@
         "ReceiptId"
       ]
     }
+  },
+  {
+    "table": "counterparties.external_supplier_projection_history",
+    "owner": "counterparties",
+    "category": "audit_history",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "CommandId"
+    ],
+    "definition": {
+      "migration": "0035_external_supplier_projection",
+      "path": "database/runtime/migrations/0035_external_supplier_projection.sql",
+      "file_sha256": "40313dd89cf7c7790ad0af1916fe573c9a36d453c85b4cfdafbb5726b20814c9",
+      "create_sql": "CREATE TABLE counterparties.external_supplier_projection_history (\n \"CommandId\" uuid PRIMARY KEY CHECK (\"CommandId\"<>'00000000-0000-0000-0000-000000000000'),\n \"TenantId\" uuid NOT NULL REFERENCES organization_access.tenants(\"Id\"),\n \"Request\" jsonb NOT NULL,\n \"Snapshot\" jsonb NOT NULL,\n \"OccurredAt\" timestamptz NOT NULL DEFAULT clock_timestamp()\n);",
+      "columns": [
+        "CommandId",
+        "TenantId",
+        "Request",
+        "Snapshot",
+        "OccurredAt"
+      ],
+      "primary_key": [
+        "CommandId"
+      ]
+    }
   }
 ]

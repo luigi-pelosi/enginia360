@@ -15,9 +15,10 @@ class MigrationSelection(unittest.TestCase):
         foundation = set(runner.selected_suites('foundation'))
         purchasing = set(runner.selected_suites('purchasing'))
         self.assertFalse(foundation & purchasing)
-        self.assertEqual(foundation | purchasing, ORIGINAL)
+        self.assertEqual(foundation | purchasing, ORIGINAL | {'scripts/test-d95-projection.py'})
+        self.assertIn('scripts/test-d95-projection.py', foundation)
         self.assertEqual(set(runner.selected_suites('receipts')), {'scripts/test-r04b3-receipts.py'})
-        self.assertEqual(set(runner.selected_suites('all')), ORIGINAL)
+        self.assertEqual(set(runner.selected_suites('all')), ORIGINAL | {'scripts/test-d95-projection.py'})
         with self.assertRaises(ValueError): runner.selected_suites('unknown')
     def test_ci_executes_all_partitions_with_existing_finite_budget(self):
         import re
@@ -31,7 +32,7 @@ class MigrationSelection(unittest.TestCase):
         tree = ast.parse(text)
         loops = [n for n in ast.walk(tree) if isinstance(n, ast.For) and isinstance(n.target, ast.Name) and n.target.id == 'suite']
         self.assertEqual(len(loops), 1)
-        self.assertEqual(set(ast.literal_eval(loops[0].iter)), ORIGINAL | {'scripts/test-r04b3-receipts.py'})
+        self.assertEqual(set(ast.literal_eval(loops[0].iter)), ORIGINAL | {'scripts/test-r04b3-receipts.py', 'scripts/test-d95-projection.py'})
         self.assertIn('if suite not in selected:', text)
         self.assertIn('selected = selected_suites(', text)
 if __name__ == '__main__': unittest.main()
