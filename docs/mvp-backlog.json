@@ -6,12 +6,12 @@
     {
       "id": "MVP-00", "title": "Riallineamento MVP, istruzioni e progetto GitHub",
       "domainIds": ["identity", "organization", "counterparties", "catalog", "inventory", "document-types", "documents"],
-      "dependsOn": [], "status": "in_progress", "issueNumber": 139,
+      "dependsOn": [], "status": "done", "issueNumber": 139,
       "acceptance": ["Carta, AGENTS e piano dichiarano D96 e i sette domini senza prerequisito Giobby", "Backlog aciclico e guardie positive/negative eseguite", "Project e issue riletti dopo le scritture; vecchia roadmap distinta come storica", "PR e check offline exact-head verificati prima del merge"]
     },
     {
       "id": "MVP-01", "title": "Shell Next.js SSR e shadcn/ui verificabile in isolamento",
-      "domainIds": ["identity"], "dependsOn": ["MVP-00"], "status": "backlog", "issueNumber": 140,
+      "domainIds": ["identity"], "dependsOn": ["MVP-00"], "status": "in_progress", "issueNumber": 140,
       "acceptance": ["Versioni e lock verificati contro fonti ufficiali, nessuna dipendenza commerciale implicita", "Shell italiana eseguita con SSR e interattivita' accessibile", "Build, test e audit pertinenti eseguiti; nessun dato riservato in cache condivisa", "Percorso di prova effimero senza modifica ai servizi protetti"]
     },
     {

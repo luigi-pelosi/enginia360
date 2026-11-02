@@ -273,8 +273,34 @@ MVP_ANCHORS = MVP_OFFLINE_FILES - {'AGENTS.md', 'docs/productization-plan.md',
 MVP_GUARDS = {'scripts/test-mvp-baseline.py', 'scripts/test-mvp-impact.py'}
 
 
+# MVP-01 owns only these explicit paths. New routes/scripts require a tested mapping.
+FRONTEND_FILES = {
+    'frontend/' + path for path in (
+        '.gitignore', 'package.json', 'package-lock.json', 'tsconfig.json', 'next-env.d.ts',
+        'next.config.ts', 'postcss.config.mjs', 'components.json', 'shadcn-LICENSE.txt',
+        'app/layout.tsx', 'app/page.tsx', 'app/globals.css', 'app/not-found.tsx',
+        'app/domains/[domain]/page.tsx', 'components/shell.tsx',
+        'components/ui/button.tsx', 'components/ui/card.tsx', 'components/ui/badge.tsx',
+        'lib/domains.ts', 'lib/utils.ts', 'tests/shell.test.tsx',
+        'tests/acceptance.spec.ts', 'playwright.config.ts', 'Dockerfile', '.dockerignore',
+    )
+} | {'scripts/run-mvp01-tests.py', 'scripts/test-mvp01-impact.py', 'docs/mvp01-frontend.md'}
+FRONTEND_WIRING = {'scripts/select-ci-impact.py', '.github/workflows/ci.yml'}
+FRONTEND_CHECKPOINTS = {'docs/mvp-backlog.json', 'docs/mvp-delivery-plan.md'}
+
+
 def selection(paths):
     paths = sorted(set(paths))
+    frontend = bool(set(paths) & FRONTEND_FILES)
+    if frontend:
+        remaining = set(paths) - FRONTEND_FILES
+        # Only this bounded shell + wiring + status checkpoint may avoid the
+        # historical runtime wiring consumers. Mixed real producers never do.
+        if remaining <= FRONTEND_WIRING | FRONTEND_CHECKPOINTS:
+            remaining -= FRONTEND_WIRING
+        result = selection(sorted(remaining))
+        result.update(changed_paths=paths, frontend=True)
+        return result
     mvp_offline = bool(set(paths) & MVP_ANCHORS)
     if mvp_offline and set(paths) <= MVP_OFFLINE_FILES:
         result = selection([])
