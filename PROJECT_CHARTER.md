@@ -1,7 +1,7 @@
 # Enginia360 - Carta di progetto per agenti di sviluppo
 
-Stato: baseline iniziale
-Data: 14 ottobre 2026
+Stato: revisione MVP attiva; baseline originaria conservata dove esplicitamente storica
+Data: 14 ottobre 2026; revisione MVP 2 novembre 2026 (D96)
 Proprietario del prodotto: Luigi Pelosi
 
 ## 1. Scopo del documento
@@ -88,6 +88,49 @@ Quando cita una regola osservata nel legacy, l'agente deve indicare repository e
 
 ## 4. Perimetro del primo prodotto
 
+### 4.1 Perimetro corrente del primo MVP — revisione del 2 novembre 2026
+
+Sintesi dei requisiti confermati, scenari di accettazione proposti e dettagli rinviati ai singoli incrementi: [baseline funzionale MVP](docs/mvp-baseline.md). Non costituisce un'autorizzazione all'implementazione.
+
+Il proprietario ha ridefinito il primo MVP nei seguenti sette domini, tutti necessari al suo completamento:
+
+1. Identity federation, RBAC e autorizzazioni.
+2. Gestione dei tenant, organizzazioni e unita' aziendali (societa', sedi e magazzini).
+3. Anagrafiche controparti e relativi ruoli.
+4. Cataloghi articoli e servizi.
+5. Inventari: gestione continuativa delle quantita' nei magazzini, non il solo conteggio fisico periodico.
+6. Tipologie di documento.
+7. Documenti (testate e righe).
+
+Le integrazioni verso sistemi esterni non sono una priorita' o un criterio di completamento di questo MVP. I primi quattro domini da soli non costituiscono l'MVP completo. Per Inventari il proprietario ha confermato la gestione continuativa delle quantita' nei magazzini, secondo il modello documentale seguente:
+
+- Ogni variazione di quantita' e' tracciata e deriva dalla conferma di un documento; non sono previste movimentazioni autonome prive di documento nell'MVP.
+- La tipologia del documento stabilisce l'effetto di magazzino: carico (aumento della giacenza), scarico (diminuzione), trasferimento (scarico del magazzino di origine e carico di quello di destinazione) oppure nessun effetto sulle quantita'. Questi sono comportamenti confermati, non nomi o codici definitivi delle tipologie.
+- La sola compilazione o il salvataggio di un documento non confermato non produce tali variazioni.
+- Ogni societa' ha le proprie tipologie di documento configurabili, nel contesto del tenant autorizzato. Non si tratta di un insieme fisso imposto a tutte le societa' ne' di una configurazione unica tenant-wide. La configurazione seleziona comportamenti supportati dall'applicazione, senza introdurre codice o formule personalizzate.
+- Nell'MVP e' incluso lo sviluppo di un documento a partire da un altro, riportando righe o quantita' selezionate e mantenendo origine e residuo. Non e' una semplice copia priva di collegamento: la provenienza deve identificare le righe e le quantita' sorgenti utilizzate.
+- Nell'MVP e' incluso anche il raggruppamento di righe o quantita' selezionate da piu' documenti sorgenti in un unico documento di destinazione, mantenendo tutte le provenienze e il residuo di ciascuna riga sorgente per il passaggio documentale interessato. L'inclusione del raggruppamento non autorizza combinazioni arbitrarie di documenti: restano da delimitare i criteri di compatibilita' applicabili, nel rispetto dei confini organizzativi e delle autorizzazioni.
+
+Le tipologie concrete, le regole ulteriori del ciclo di vita e le specifiche causali richiedono ancora delimitazione. Il modello confermato non approva implicitamente effetti fiscali o contabili, workflow specifici o un motore documentale generico. Conteggio fisico periodico e relative rettifiche non sono requisiti confermati da questa precisazione.
+
+Il modello amministrativo confermato e' descritto al paragrafo 8.1. L'autorizzazione autonoma corrente e' D96 al paragrafo 4.2; il [piano di consegna MVP](docs/mvp-delivery-plan.md) e il [backlog MVP](docs/mvp-backlog.json) sostituiscono la sequenza operativa precedente. Nessuna vecchia dipendenza ERP costituisce un criterio aggiuntivo di completamento del nuovo MVP.
+
+### 4.2 D96 — Autorizzazione autonoma e riallineamento al nuovo MVP
+
+Il 2 novembre 2026 il proprietario conferma: «Procedi in totale autonomia; rimodula il progetto github secondo l'MVP, fai pulizia di tutto il non necessario, procedi con il riallineamento delle istruzioni degli agenti e pubblica l'MVP quando pronto per l'utilizzo.»
+
+L'autorizzazione riguarda la sequenza dei sette domini del paragrafo 4.1: gestione del progetto GitHub, sviluppo, pulizia motivata delle parti non necessarie, test, commit convenzionali, PR, CI exact-head per impatto, merge verificati e pubblicazione del software quando realmente pronto. Non occorrono riconferme ordinarie a ogni incremento. Le decisioni di dominio veramente mancanti restano da risolvere prima del comportamento dipendente, senza bloccare il lavoro indipendente.
+
+La gestione autonoma dei tenant e le deleghe del paragrafo 8.1 sostituiscono i limiti precedenti di D77 soltanto per il nuovo MVP. Il nuovo inventario documentale opera senza dipendere da Giobby: D82 e i vincoli ERP restano riferiti ai profili storici e non vietano il nuovo percorso locale, senza cambio automatico dell'autorita' degli ambienti o dei dati esistenti.
+
+Pulizia non significa cancellazione indiscriminata: preservare storia Git, evidenze, migrazioni pubblicate, segreti, volumi, backup, configurazioni e servizi protetti. Rimuovere codice obsoleto soltanto con analisi degli utilizzi, sostituzione ove necessaria e verifiche dei consumer interessati. Il piano officina/ERP viene conservato come archivio storico, non come roadmap corrente.
+
+«Pubblica ... quando pronto per l'utilizzo» autorizza la consegna verificata del software, non una dichiarazione anticipata di readiness. Lettura conservativa dell'agente: non implica acquisti, accesso pubblico, dati reali, nuovo ambiente persistente o sostituzione di servizi protetti. Restano invariati Tailscale 443 → localhost:9119, gli ambienti conservati e i gate operativi non provati; destinazione e accesso di un futuro rilascio operativo richiedono un contratto esplicito prima dell'azione dipendente. Sviluppo e acceptance isolati proseguono autonomamente.
+
+### 4.3 Baseline originaria del primo rilascio — riferimento storico, non perimetro corrente dell'MVP
+
+Il testo seguente conserva l'obiettivo originario del 14 ottobre 2026; non impone il completamento del ciclo post-vendita o della contabilita' per il primo MVP ridefinito al paragrafo 4.1.
+
 Il primo rilascio deve coprire un ciclo post-vendita completo:
 
 1. pianificazione dell'appuntamento;
@@ -143,7 +186,8 @@ La baseline proposta per il nuovo prodotto e':
 - C# e .NET 10 LTS;
 - ASP.NET Core per API e processi applicativi;
 - PostgreSQL per la persistenza relazionale;
-- React e TypeScript per la GUI web;
+- Next.js con React e TypeScript per la GUI web, con rendering lato server (SSR);
+- shadcn/ui come base dei componenti dell'interfaccia;
 - REST con OpenAPI per le API sincrone;
 - eventi asincroni solo quando esiste un caso d'uso reale;
 - OpenTelemetry per log, metriche e tracce;
@@ -152,6 +196,8 @@ La baseline proposta per il nuovo prodotto e':
 .NET, ASP.NET Core e il compilatore C# non richiedono royalty per l'uso commerciale. Il prodotto non deve dipendere da Windows Server, SQL Server, Visual Studio a pagamento o Azure.
 
 Questa baseline puo' essere contestata soltanto con una decisione architetturale documentata che mostri un impedimento reale o un'alternativa nettamente migliore rispetto ai vincoli del progetto.
+
+**Scelta frontend del proprietario — 2 novembre 2026:** il nuovo MVP adotta Next.js con SSR e shadcn/ui. Questa scelta sostituisce Vite/Ant Design come destinazione frontend del nuovo MVP, senza dichiarare gia' migrato il codice esistente. ASP.NET Core rimane il backend applicativo: il rendering server del frontend non trasferisce implicitamente a Next.js le regole di dominio o l'accesso diretto ai dati. L'interattivita' lato client resta ammessa dove necessaria. Rendering e cache devono preservare sessione, autorizzazioni e isolamento tenant/societa', senza condividere contenuti riservati fra utenti o contesti. Versioni, dipendenze e modalita' di esecuzione saranno fissate e verificate nell'incremento tecnico dedicato; questa registrazione non installa pacchetti e non autorizza deployment o riscrittura indiscriminata.
 
 ### 6.1 Regole C# iniziali
 
@@ -295,6 +341,19 @@ Requisiti obbligatori:
 
 La federazione OIDC/SAML e l'MFA sono requisiti del prodotto. La scelta tra Keycloak self-hosted, servizio gestito o altro provider va presa dopo una prova tecnica e un confronto dei costi.
 
+### 8.1 Amministrazione della piattaforma e deleghe nel tenant — revisione MVP
+
+Decisione confermata dal proprietario il 2 novembre 2026 durante la revisione della carta.
+
+- Il proprietario del software, Luigi Pelosi, opera come SUPER ADMIN: puo' creare e amministrare i tenant di tutti i clienti e gestire le rispettive strutture organizzative (societa', sedi e magazzini).
+- Il SUPER ADMIN puo' delegare la gestione della struttura organizzativa di uno specifico tenant a un soggetto gia' anagrafato in quel tenant.
+- Il SUPER ADMIN puo' delegare anche l'invito o l'abilitazione degli utenti nel tenant e l'assegnazione dei relativi ruoli e permessi. Questa facolta' e' distinta dalla gestione della struttura organizzativa e non deriva automaticamente da essa.
+- La delega vale soltanto per il tenant indicato, non per gli altri clienti. L'anagrafazione e' un prerequisito e non attribuisce da sola poteri amministrativi.
+- L'autorita' globale del SUPER ADMIN e la delega organizzativa tenant-scoped sono distinte. Anche le operazioni globali devono individuare e verificare il tenant destinatario e restare sottoposte ad autorizzazione e audit; non implicano un bypass dell'isolamento.
+- Queste decisioni superano i precedenti limiti di D77 dove impedivano le deleghe confermate per struttura organizzativa, invito o abilitazione degli utenti e assegnazione di ruoli e permessi nel tenant. Non approvano implicitamente subdelega, attribuzione del ruolo SUPER ADMIN o accesso ad altri tenant. Il perimetro dei ruoli e permessi assegnabili, inclusa l'eventuale abilitazione di ulteriori amministratori, resta da definire; non si presume una facolta' illimitata.
+
+Questa sezione registra il requisito confermato, non un comportamento runtime gia' implementato. D96 autorizza l'implementazione autonoma nei limiti dichiarati; il contratto del singolo incremento deve esplicitare assegnabilita' e verifiche senza attribuire poteri non confermati.
+
 ## 9. Regole di affidabilita' e sicurezza
 
 - Ogni operazione critica deve essere idempotente dove puo' essere ripetuta.
@@ -346,6 +405,8 @@ Appuntamenti, commesse, documenti, movimentazioni e registrazioni devono avere t
 
 ## 11. Prima vertical slice
 
+**Baseline storica:** il percorso sotto descrive la prima slice originaria, non l'accettazione del nuovo MVP. Per il perimetro corrente e gli scenari proposti fare riferimento al paragrafo 4.1 e alla [baseline MVP](docs/mvp-baseline.md).
+
 Il primo risultato implementativo deve dimostrare un percorso minimo dal post-vendita alla destinazione amministrativa configurata:
 
 1. creare o selezionare tenant, societa' e sede;
@@ -379,6 +440,8 @@ Questa slice non comprende ancora trasmissione SdI, conservazione fiscale, calen
 I risultati fiscali e contabili devono essere considerati tecnicamente implementati ma non validati finche' non sono approvati dal commercialista.
 
 ## 12. Primo incarico consigliato per l'agente
+
+**Incarico iniziale storico:** la revisione MVP non richiede di ripetere integralmente il dossier di fondazione descritto sotto. Il prossimo passo proposto e' la valutazione mirata dell'esistente rispetto ai sette domini, come descritto nella [baseline MVP](docs/mvp-baseline.md).
 
 Prima di scrivere l'intero prodotto, l'agente deve produrre un dossier di fondazione contenente:
 

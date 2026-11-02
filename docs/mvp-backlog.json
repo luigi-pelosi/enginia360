@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "authorization": "D96",
+  "domainIds": ["identity", "organization", "counterparties", "catalog", "inventory", "document-types", "documents"],
+  "items": [
+    {
+      "id": "MVP-00", "title": "Riallineamento MVP, istruzioni e progetto GitHub",
+      "domainIds": ["identity", "organization", "counterparties", "catalog", "inventory", "document-types", "documents"],
+      "dependsOn": [], "status": "in_progress", "issueNumber": 139,
+      "acceptance": ["Carta, AGENTS e piano dichiarano D96 e i sette domini senza prerequisito Giobby", "Backlog aciclico e guardie positive/negative eseguite", "Project e issue riletti dopo le scritture; vecchia roadmap distinta come storica", "PR e check offline exact-head verificati prima del merge"]
+    },
+    {
+      "id": "MVP-01", "title": "Shell Next.js SSR e shadcn/ui verificabile in isolamento",
+      "domainIds": ["identity"], "dependsOn": ["MVP-00"], "status": "backlog", "issueNumber": 140,
+      "acceptance": ["Versioni e lock verificati contro fonti ufficiali, nessuna dipendenza commerciale implicita", "Shell italiana eseguita con SSR e interattivita' accessibile", "Build, test e audit pertinenti eseguiti; nessun dato riservato in cache condivisa", "Percorso di prova effimero senza modifica ai servizi protetti"]
+    },
+    {
+      "id": "MVP-02", "title": "Accesso federato, SUPER ADMIN e gestione tenant e organizzazione",
+      "domainIds": ["identity", "organization"], "dependsOn": ["MVP-01"], "status": "backlog", "issueNumber": 141,
+      "acceptance": ["Autorita' globale inizializzata esplicitamente, mai dal primo login o da token di correlazione", "SUPER ADMIN crea tenant e amministra societa', sedi e magazzini via UI/API persistite", "Contesto destinatario verificato senza bypass RLS", "Anonimo e attore non autorizzato negati; revoca e audit provati"]
+    },
+    {
+      "id": "MVP-03", "title": "Deleghe tenant-scoped e amministrazione utenti, ruoli e permessi",
+      "domainIds": ["identity", "organization"], "dependsOn": ["MVP-02"], "status": "backlog", "issueNumber": 142,
+      "acceptance": ["SUPER ADMIN delega un soggetto gia' anagrafato nel tenant", "Gestione struttura e gestione utenti sono facolta' distinte", "Invito o abilitazione utenti e assegnazione ruoli entro perimetro esplicito", "Nessuna auto-promozione SUPER ADMIN, subdelega implicita o potere su altri tenant", "Revoca, azione/scope e tentativi concorrenti verificati"]
+    },
+    {
+      "id": "MVP-04", "title": "Gestione autonoma controparti e ruoli",
+      "domainIds": ["counterparties"], "dependsOn": ["MVP-03"], "status": "backlog", "issueNumber": 143,
+      "acceptance": ["Contratto minimo campi/ruoli/operazioni esplicito prima del codice", "Creazione, gestione e rilettura autorizzate senza commessa o ERP", "Identita' condivise tenant-wide ed estensioni societarie separate", "Conflitti, retry e dinieghi cross-tenant verificati"]
+    },
+    {
+      "id": "MVP-05", "title": "Gestione autonoma cataloghi articoli e servizi",
+      "domainIds": ["catalog"], "dependsOn": ["MVP-04"], "status": "backlog", "issueNumber": 144,
+      "acceptance": ["Gestione e rilettura articolo e servizio senza Workshop", "Identita' tenant-wide separate da dati societari e stock", "Autorizzazione e revisioni esplicite; input e conflitti verificati", "Nessun listino, costo o fiscalita' aggiunti per implicazione"]
+    },
+    {
+      "id": "MVP-06", "title": "Tipologie documentali configurabili per societa'",
+      "domainIds": ["document-types"], "dependsOn": ["MVP-05"], "status": "backlog", "issueNumber": 145,
+      "acceptance": ["Ogni societa' gestisce le proprie tipologie autorizzate", "Effetto configurabile tra carico, scarico, trasferimento e nessun effetto", "Nessun codice o formula personalizzata; vincoli non aggirabili", "Versioni applicate e audit tracciabili senza riscrittura dei fatti confermati"]
+    },
+    {
+      "id": "MVP-07", "title": "Documenti testata/righe e inventari derivati dalla conferma",
+      "domainIds": ["documents", "inventory"], "dependsOn": ["MVP-06"], "status": "backlog", "issueNumber": 146,
+      "acceptance": ["Documento persistito con testata e righe coerenti con la tipologia", "Salvataggio non confermato non modifica giacenze", "Conferma produce effetti tracciati per documento/riga secondo il tipo", "Carico, scarico, trasferimento e nessun effetto eseguiti su dati sintetici", "Retry senza duplicazioni e concorrenza verificati; nessuna movimentazione autonoma"]
+    },
+    {
+      "id": "MVP-08", "title": "Sviluppi parziali e raggruppamento documentale multi-sorgente",
+      "domainIds": ["documents", "document-types", "inventory"], "dependsOn": ["MVP-07"], "status": "backlog", "issueNumber": 147,
+      "acceptance": ["Righe o quantita' selezionate sviluppate mantenendo origine e residuo", "Una destinazione raggruppa piu' sorgenti compatibili preservando tutte le provenienze", "Residui per passaggio documentale, non unico contatore globale", "Compatibilita', momento di impegno e correzioni esplicitati prima del codice", "Concorrenza multi-sorgente e retry non sovrasviluppano o duplicano effetti"]
+    },
+    {
+      "id": "MVP-09", "title": "Pulizia motivata e acceptance finale integrata MVP",
+      "domainIds": ["identity", "organization", "counterparties", "catalog", "inventory", "document-types", "documents"],
+      "dependsOn": ["MVP-08"], "status": "backlog", "issueNumber": 148,
+      "acceptance": ["Percorso integrato dei sette domini realmente eseguito", "Rimozioni limitate a percorsi obsoleti dopo analisi consumer e sostituzioni", "Migrazioni pubblicate, storia Git, evidenze e ambienti protetti preservati", "Campagna finale eccezionale dell'architettura MVP eseguita solo dopo completamento funzionale", "Limiti operativi e readiness residua dichiarati senza falsi pass"]
+    },
+    {
+      "id": "MVP-10", "title": "Release verificata e gate di utilizzabilita' operativa",
+      "domainIds": ["identity", "organization", "counterparties", "catalog", "inventory", "document-types", "documents"],
+      "dependsOn": ["MVP-09"], "status": "backlog", "issueNumber": 149,
+      "acceptance": ["Release identifica commit e artefatti provati con istruzioni ripetibili", "Nessun ready-for-use prima delle prove pertinenti sul target autorizzato", "Identita'/revoca, recupero, privacy e manutenzione non dichiarati provati da soli test sintetici", "Nessun accesso pubblico, dato reale, acquisto o nuovo ambiente persistente implicito", "Target operativo e accesso espliciti prima di azioni di deployment; servizi protetti invariati"]
+    }
+  ]
+}

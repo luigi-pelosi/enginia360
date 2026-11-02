@@ -1,5 +1,13 @@
 # Productizzazione finita — P00 / UI01 / R00–R06
 
+<!-- mvp-current:start -->
+## Archivio della precedente roadmap — sostituita da D96
+
+Dal 2 novembre 2026 il piano corrente e' [MVP D96](mvp-delivery-plan.md), con [sette domini](mvp-baseline.md) e [backlog autonomo](mvp-backlog.json). Lo sviluppo e la pulizia motivata sono autorizzati attraverso PR e verifiche per impatto; Giobby, completamento officina e i residui R02–R06 non sono prerequisiti del nuovo MVP. I dati, i profili ERP e le evidenze storiche non cambiano autorita' per questa riclassificazione.
+
+Tutto il testo sotto conserva la cronologia della precedente roadmap, inclusi i titoli «stato corrente» riferiti alla data di registrazione. Non e' una seconda roadmap attiva. Per utilizzabilita'/pubblicazione restano gate operativi espliciti: nessun ready-for-use, deployment, accesso pubblico o dato reale e' provato dalla sola revisione. Tailscale443→9119 e storage/configurazioni conservati restano protetti.
+<!-- mvp-current:end -->
+
 **Stato corrente R06.b.2, riconciliato D89:** R06.a.1/PR #77, R06.a.2/PR #107 e R06.b.1/PR #81 consegnate nei limiti sintetici; [registro OPE OPEN](r06-readiness-registry.json) e [runbook/decisioni residue](r06-recovery-runbook.md). R06.a completa solo per tooling staging-only, migrazione legacy fuori perimetro D87. #46 resta aperta: target operativo/off-host/identity e validazioni reali non provati, Esercizio in backlog dopo completamento funzionale e acceptance finale esplicita. Nessuna readiness o go-live; nessuna nuova approvazione.
 
 <!-- receipt-delivery:start -->
