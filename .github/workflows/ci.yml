@@ -24,6 +24,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
+      tenant_roles: ${{ steps.selection.outputs.tenant_roles }}
       authenticated_organization: ${{ steps.selection.outputs.authenticated_organization }}
       organization_administration: ${{ steps.selection.outputs.organization_administration }}
       platform_foundation_only: ${{ steps.selection.outputs.platform_foundation_only }}
@@ -113,6 +114,8 @@ jobs:
         run: python3 -I scripts/test-mvp02b-impact.py
       - name: Verify finite authenticated organization UI impact
         run: python3 -I scripts/test-mvp02c-impact.py
+      - name: Verify finite delegated tenant role impact
+        run: python3 -I scripts/test-mvp03b1-impact.py
       - name: Select exact changed-file impact
         id: selection
         env:
@@ -125,6 +128,33 @@ jobs:
           fi
           python3 scripts/select-ci-impact.py --base "$BASE_SHA" --head "$HEAD_SHA" > "$RUNNER_TEMP/impact.json"
           python3 -c 'import json,os; d=json.load(open(os.environ["RUNNER_TEMP"]+"/impact.json")); print(json.dumps(d,indent=2)); f=open(os.environ["GITHUB_OUTPUT"],"a"); [f.write(k+"="+(str(v).lower() if isinstance(v,bool) else v)+"\n") for k,v in d.items() if k!="changed_paths"]; f.close(); open(os.environ["GITHUB_STEP_SUMMARY"],"a").write("## Exact change-impact selection\n```json\n"+json.dumps(d,indent=2)+"\n```\nRuntime jobs run only on explicit dispatch; skipped runtime is not acceptance evidence.\n")'
+  affected-tenant-roles:
+    needs: impact
+    if: github.event_name == 'workflow_dispatch' && needs.impact.outputs.tenant_roles == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - name: Initialize private tenant role evidence
+        run: |
+          printf 'TMPDIR=%s\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/mvp03b1"
+      - name: Real SQL bearer OIDC Next SSR and authorization pool4
+        shell: bash
+        run: timeout 540 python3 -I scripts/run-mvp03b1-tests.py --evidence-dir "$RUNNER_TEMP/mvp03b1/pool4" 2>&1 | tee "$RUNNER_TEMP/mvp03b1/pool4.log"
+      - name: Real SQL bearer OIDC Next SSR and authorization pool1
+        shell: bash
+        run: MVP03B1_POOL_SIZE=1 timeout 540 python3 -I scripts/run-mvp03b1-tests.py --evidence-dir "$RUNNER_TEMP/mvp03b1/pool1" 2>&1 | tee "$RUNNER_TEMP/mvp03b1/pool1.log"
+      - name: Retain tenant role execution evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mvp03b1-${{ github.sha }}
+          path: ${{ runner.temp }}/mvp03b1
+          retention-days: 7
+          if-no-files-found: error
   affected-platform-offline:
     needs: impact
     if: needs.impact.outputs.platform_authority == 'true'

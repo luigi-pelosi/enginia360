@@ -86,7 +86,7 @@ export function Shell({ children }: { children: ReactNode }) {
                 {children}
             </main>
             <footer>
-                {pathname === "/organization" ? (
+                {pathname === "/organization" || pathname === "/users" ? (
                     "Sessione gestita dal backend · Autorità verificata a ogni operazione; nessun permesso dal menu."
                 ) : (
                     <>

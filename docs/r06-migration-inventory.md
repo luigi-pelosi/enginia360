@@ -32,6 +32,8 @@ Risultato calcolato sul baseline R05.b.1: **26 migrazioni, 66 definizioni CREATE
 
 **Aggiornamento MVP-03.a:** migrazione append-only 0038, **38 migrazioni, 85 definizioni CREATE, 9 schemi**. `organization_access.organization_delegations` (`authority_evidence`) e `organization_access.organization_delegation_commands` (`security_evidence`) restano UNDECIDED / NO_LEGACY_IMPORT_APPROVED. Le 83 definizioni precedenti sono conservate identiche. Nessun import, provisioning o diritto operativo; gate OPE invariati.
 
+**Aggiornamento candidato MVP03.b.1:** migrazione append-only0039, **39 migrazioni,87 definizioni CREATE,9 schemi**, calcolati dal verificatore offline. `organization_access.tenant_role_objects` (`authority_evidence`) e `organization_access.tenant_role_audit` (`security_evidence`) restano UNDECIDED / NO_LEGACY_IMPORT_APPROVED; le85voci precedenti sono identiche. La configurazione non importa identità o grant storici e non cambia l'autorità dei profili ERP. Readiness operativa e inviti/abilitazione restano separati.
+
 Ogni voce registra:
 
 - `table`, `owner`: nome qualificato e modulo/schema proprietario osservato, non una nuova ownership di business;
