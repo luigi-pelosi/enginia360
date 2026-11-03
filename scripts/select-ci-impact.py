@@ -312,8 +312,53 @@ ORGANIZATION_FILES = {
 ORGANIZATION_WIRING = PLATFORM_FILES | PLATFORM_WIRING | {'docs/mvp02b-organization-administration.md', 'src/Enginia360.Api/Program.cs'}
 
 
-def selection(paths):
+# Authenticated UI owns an explicit finite surface; its backend consumers remain selected.
+AUTHENTICATED_ORGANIZATION_FILES = {
+    'frontend/app/organization/page.tsx', 'frontend/components/organization-workspace.tsx',
+    'frontend/lib/organization.ts', 'frontend/lib/private-backend.ts',
+    'frontend/tests/organization.test.tsx', 'frontend/tests/private-backend.test.ts',
+    'scripts/run-mvp02c-tests.py', 'scripts/test-mvp02c-impact.py',
+    'tests/browser/mvp02c-organization.cjs', 'compose.mvp02c-test.yaml',
+    'tests/fixtures/nginx.mvp02c.conf', 'docs/mvp02c-authenticated-organization.md',
+}
+
+AUTHENTICATED_ORGANIZATION_DIRECT = {
+    'frontend/' + path for path in (
+        'app/layout.tsx', 'app/globals.css', 'app/domains/[domain]/page.tsx',
+        'components/shell.tsx', 'components/ui/button.tsx', 'components/ui/card.tsx',
+        'lib/utils.ts', 'package.json', 'package-lock.json', 'Dockerfile',
+        'next.config.ts', 'tsconfig.json', 'postcss.config.mjs',
+    )
+} | {
+    'src/Enginia360.Api/BrowserAuthentication/' + name + '.cs' for name in (
+        'BrowserSessionModule', 'BoundedTicketStore', 'ExternalIdentityResolver',
+        'HttpsOidcConfigurationManager',
+    )
+} | {
+    'src/Enginia360.Api/PlatformAdministration/PlatformAuthority.cs',
+    'src/Enginia360.Api/PlatformAdministration/OrganizationAdministration.cs',
+    'src/Enginia360.Api/OrganizationAccess/OrganizationAccessModule.cs',
+    'src/Enginia360.Api/Program.cs', 'src/Enginia360.Api/Enginia360.Api.csproj',
+    'src/Enginia360.Api/packages.lock.json', 'src/Enginia360.Api/Dockerfile',
+    'database/runtime/migrations/0036_platform_authority.sql',
+    'database/runtime/migrations/0037_organization_administration.sql',
+    'database/runtime/manifest.json', 'scripts/apply-runtime-migrations.py',
+    'scripts/owner-platform-authority.py', 'scripts/run-r00b-tests.py',
+    'browser.runtime.Dockerfile', 'postgres.runtime.Dockerfile',
+    'migrator.runtime.Dockerfile', 'keycloak.runtime.Dockerfile',
+}
+
+def _selection(paths):
     paths = sorted(set(paths))
+    if set(paths) & AUTHENTICATED_ORGANIZATION_FILES:
+        remaining = set(paths) - AUTHENTICATED_ORGANIZATION_FILES
+        if remaining <= FRONTEND_FILES | FRONTEND_WIRING | FRONTEND_CHECKPOINTS:
+            remaining -= FRONTEND_WIRING
+        result = selection(sorted(remaining | {'scripts/test-mvp02b-impact.py', 'scripts/test-mvp01-impact.py'}))
+        result.update(changed_paths=paths, authenticated_organization=True)
+        if set(paths) <= AUTHENTICATED_ORGANIZATION_FILES | FRONTEND_FILES | FRONTEND_WIRING | FRONTEND_CHECKPOINTS:
+            result['platform_foundation_only'] = True
+        return result
     if set(paths) & ORGANIZATION_FILES:
         remaining = set(paths) - ORGANIZATION_FILES
         finite = remaining <= ORGANIZATION_WIRING
@@ -524,6 +569,14 @@ def selection(paths):
     result['mvp_offline'] = mvp_offline
     return result
 
+
+
+def selection(paths):
+    # Add the new direct consumer without suppressing any existing producer flags.
+    result = _selection(paths)
+    if set(paths) & AUTHENTICATED_ORGANIZATION_DIRECT:
+        result['authenticated_organization'] = True
+    return result
 
 
 def changed_paths(base, head):

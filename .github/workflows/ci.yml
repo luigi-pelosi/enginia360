@@ -24,6 +24,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
+      authenticated_organization: ${{ steps.selection.outputs.authenticated_organization }}
       organization_administration: ${{ steps.selection.outputs.organization_administration }}
       platform_foundation_only: ${{ steps.selection.outputs.platform_foundation_only }}
       platform_authority: ${{ steps.selection.outputs.platform_authority }}
@@ -110,6 +111,8 @@ jobs:
         run: python3 -I scripts/test-mvp02a-impact.py && python3 -I scripts/test-mvp02a-authority.py OwnerInputTests
       - name: Verify finite organization administration impact
         run: python3 -I scripts/test-mvp02b-impact.py
+      - name: Verify finite authenticated organization UI impact
+        run: python3 -I scripts/test-mvp02c-impact.py
       - name: Select exact changed-file impact
         id: selection
         env:
@@ -192,6 +195,33 @@ jobs:
         with:
           name: mvp02b-${{ github.sha }}
           path: ${{ runner.temp }}/mvp02b
+          retention-days: 7
+          if-no-files-found: error
+  affected-authenticated-organization:
+    needs: impact
+    if: github.event_name == 'workflow_dispatch' && needs.impact.outputs.authenticated_organization == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - name: Initialize private authenticated organization evidence
+        run: |
+          printf 'TMPDIR=%s\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/mvp02c"
+      - name: Real trusted TLS Next SSR noJS OIDC UI SQL keyboard recovery pool4
+        shell: bash
+        run: timeout 600 python3 -I scripts/run-mvp02c-tests.py --evidence-dir "$RUNNER_TEMP/mvp02c/pool4" 2>&1 | tee "$RUNNER_TEMP/mvp02c/pool4.log"
+      - name: Same authenticated organization browser contract pool1
+        shell: bash
+        run: MVP02C_POOL_SIZE=1 timeout 600 python3 -I scripts/run-mvp02c-tests.py --evidence-dir "$RUNNER_TEMP/mvp02c/pool1" 2>&1 | tee "$RUNNER_TEMP/mvp02c/pool1.log"
+      - name: Retain exact-head authenticated browser SSR SQL layout evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mvp02c-${{ github.sha }}
+          path: ${{ runner.temp }}/mvp02c
           retention-days: 7
           if-no-files-found: error
   affected-frontend:
