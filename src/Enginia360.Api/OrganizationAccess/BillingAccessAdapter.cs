@@ -3,12 +3,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Enginia360.Api.OrganizationAccess;
 
-internal sealed class BillingAccessAdapter(OrganizationAccessDbContext db) : IBillingAccess
+internal sealed class BillingAccessAdapter(OrganizationAccessDbContext db, IHttpContextAccessor accessor, IConfiguration configuration) : IBillingAccess
 {
     public async Task<BillingGrant?> ResolveMembership(string subject, CancellationToken ct)
     {
         await using var tx = await db.Database.BeginTransactionAsync(ct);
-        await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.identity_subject', {subject}, true)", ct);
+        await CompanyAccessIdentity.Set(db, subject, accessor, configuration, ct);
         var member = await db.Memberships.AsNoTracking().SingleOrDefaultAsync(x => x.IdentitySubject == subject, ct);
         await tx.CommitAsync(ct);
         return member is null ? null : new(member.TenantId, member.Id);
@@ -18,7 +18,7 @@ internal sealed class BillingAccessAdapter(OrganizationAccessDbContext db) : IBi
         bool requireCapability, CancellationToken ct)
     {
         await using var tx = await db.Database.BeginTransactionAsync(ct);
-        await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.identity_subject', {subject}, true)", ct);
+        await CompanyAccessIdentity.Set(db, subject, accessor, configuration, ct);
         var member = await db.Memberships.AsNoTracking().SingleOrDefaultAsync(x => x.IdentitySubject == subject, ct);
         if (member is null) return null;
         await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.tenant_id', {member.TenantId.ToString()}, true)", ct);

@@ -20,6 +20,7 @@ public static class IntegrationsModule
         services.AddSingleton(new ReceiptDestinationBinding(ReceiptDestination.Descriptor(options.Binding, section.GetSection("Giobby"))));
         services.AddSingleton(options.Binding);
         services.AddSingleton(options.Binding.Kind == "Unavailable" ? AdministrativeRuntime.Unavailable : new AdministrativeRuntime(options.Binding.Kind, 1));
+        services.AddHttpContextAccessor();
         services.AddDbContext<IntegrationsDbContext>(o => o.UseNpgsql(connection));
         services.AddScoped<IAdministrativeDeliveries, AdministrativeDeliveries>();
         services.AddScoped<IAdministrativeRecovery, AdministrativeRecovery>();

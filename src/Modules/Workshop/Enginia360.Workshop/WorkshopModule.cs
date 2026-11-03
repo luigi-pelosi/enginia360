@@ -31,8 +31,7 @@ public static class WorkshopModule
         {
             var grant = await access.Authorize(Subject(user), legalEntityId, siteId, "workshop.orders.create", true, ct);
             if (grant is null) return Results.StatusCode(403);
-            await using var tx = await db.Database.BeginTransactionAsync(ct);
-            await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.tenant_id', {grant.TenantId.ToString()}, true)", ct);
+            await using var tx = await db.BeginUserOperation(grant.TenantId, ct);
             var types = await db.Configurations.AsNoTracking().Where(x => x.TenantId == grant.TenantId && x.LegalEntityId == legalEntityId)
                 .Where(x => !db.Configurations.Any(newer => newer.TenantId == x.TenantId && newer.LegalEntityId == x.LegalEntityId && newer.Id == x.Id && newer.Version > x.Version))
                 .OrderBy(x => x.Id).Select(x => new DocumentTypeContract(x.Id, x.Name, x.Version, x.DirectCreationEnabled)).ToListAsync(ct);
@@ -82,8 +81,7 @@ public static class WorkshopModule
         var vehicle = await vehicles.Find(grant.TenantId, request.VehicleId, ct);
         if (vehicle is null || !await counterparties.CanUsePayer(subject, grant.TenantId, request.LegalEntityId, request.PayerId, ct))
             return Results.NotFound();
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
-        await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.tenant_id', {grant.TenantId.ToString()}, true)", ct);
+        await using var tx = await db.BeginUserOperation(grant.TenantId, ct);
         var configuration = await db.Configurations.AsNoTracking().SingleOrDefaultAsync(x =>
             x.TenantId == grant.TenantId && x.LegalEntityId == request.LegalEntityId &&
             x.Id == request.DocumentTypeId && x.Version == request.ConfigurationVersion
@@ -129,9 +127,8 @@ public static class WorkshopModule
         var member = await access.ResolveMembership(subject, ct);
         if (member is null) return Results.NotFound();
         WorkOrder? row;
-        await using (var tx = await db.Database.BeginTransactionAsync(ct))
+        await using (var tx = await db.BeginUserOperation(member.TenantId, ct))
         {
-            await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.tenant_id', {member.TenantId.ToString()}, true)", ct);
             row = await db.Orders.AsNoTracking().SingleOrDefaultAsync(x => x.TenantId == member.TenantId && x.Id == id, ct);
             await tx.CommitAsync(ct);
         }

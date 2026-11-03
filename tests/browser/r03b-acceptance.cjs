@@ -187,8 +187,16 @@ async function createOrder(page, documentTypeId = data.documentTypeId, configura
   const token=await csrf(page);
   async function serialized(orderId,first,second){
     if(fixture.poolSize>=4)await control('hold-order:'+orderId);
-    const one=first();if(fixture.poolSize>=4)await control('wait-order:1');else await one;
-    const two=second();if(fixture.poolSize>=4){await control('wait-order:2');await control('release-order');}
+    let firstDone=false, secondDone=false;
+    const one=first().finally(()=>{firstDone=true;});
+    if(fixture.poolSize>=4){await control('wait-order:1');assert.equal(firstDone,false);}else await one;
+    const two=second().finally(()=>{secondDone=true;});
+    if(fixture.poolSize>=4){
+      await control('wait-order:2');
+      assert.equal(firstDone,false,'first HTTP request remains blocked on the exact resource backend');
+      assert.equal(secondDone,false,'second HTTP request remains transitively blocked behind first');
+      await control('release-order');
+    }
     return Promise.all([one,two]);
   }
   const correctionRace={commandId:uid(),expectedOwnRevision:5,expectedEntryVersion:3,workDate:'2023-12-31',durationSeconds:6000,note:'Corretto',correctionNote:'Concorrenza'};

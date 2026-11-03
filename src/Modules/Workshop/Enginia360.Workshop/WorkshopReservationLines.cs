@@ -7,8 +7,7 @@ internal sealed class WorkshopReservationLines(WorkshopDbContext db) : IWorkshop
 {
     public async Task<ReservationLine?> Find(Guid verifiedTenantId, Guid orderId, Guid lineId, CancellationToken ct)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
-        await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.tenant_id', {verifiedTenantId.ToString()}, true)", ct);
+        await using var tx = await db.BeginUserOperation(verifiedTenantId, ct);
         var row = await (from order in db.Orders.AsNoTracking()
                          join line in db.Lines.AsNoTracking() on order.Id equals line.OrderId
                          where order.TenantId == verifiedTenantId && line.TenantId == verifiedTenantId

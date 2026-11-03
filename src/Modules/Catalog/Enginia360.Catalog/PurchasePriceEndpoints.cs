@@ -16,13 +16,17 @@ internal static class PurchasePriceEndpoints
 {
     internal static void Map(WebApplication app)
     {
-        var routes = app.MapGroup("/api/v1/catalog/suppliers/{supplierId:guid}/items/{itemId:guid}/purchase-price").RequireAuthorization();
+        var routes = app.MapGroup("/api/v1/catalog/suppliers/{supplierId:guid}/items/{itemId:guid}/purchase-price").RequireAuthorization().AddEndpointFilter(async (context, next) =>
+        {
+            try { return await next(context); }
+            catch (UnauthorizedAccessException) { return Results.StatusCode(403); }
+        });
         routes.MapGet("", Read);
         routes.MapPut("", Save);
     }
     private static async Task<IResult> Read(Guid supplierId, Guid itemId, Guid legalEntityId, ClaimsPrincipal user, CatalogDbContext db, CancellationToken ct)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await using var tx = await db.BeginUserOperation(null, ct);
         await Context(db, user, ct);
         var json = await db.Database.SqlQuery<string>($"SELECT catalog.supplier_purchase_price_state({legalEntityId},{supplierId},{itemId})::text AS \"Value\"").SingleAsync(ct);
         await tx.CommitAsync(ct);
@@ -33,7 +37,7 @@ internal static class PurchasePriceEndpoints
         if (request.LegalEntityId == Guid.Empty || request.CommandId == Guid.Empty || supplierId == Guid.Empty || itemId == Guid.Empty
             || request.ExpectedRevision is not >= 0 || request.SupplierRevision is not >= 0 || request.CatalogVersion is not > 0 || request.AuthorityVersion is not > 0
             || request.UnitPurchasePrice is not { Length: > 0 and <= 13 }) return Results.BadRequest();
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await using var tx = await db.BeginUserOperation(null, ct);
         await Context(db, user, ct);
         var json = await db.Database.SqlQuery<string>($"SELECT catalog.set_supplier_purchase_price({request.LegalEntityId},{supplierId},{itemId},{request.CommandId},{request.ExpectedRevision.Value},{request.SupplierRevision.Value},{request.CatalogVersion.Value},{request.AuthorityVersion.Value},{request.UnitPurchasePrice})::text AS \"Value\"").SingleAsync(ct);
         await tx.CommitAsync(ct);

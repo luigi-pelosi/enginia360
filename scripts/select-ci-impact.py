@@ -386,8 +386,36 @@ TENANT_ROLE_SCOPE = TENANT_ROLE_FILES | ORGANIZATION_FILES | ORGANIZATION_WIRING
     'tests/Enginia360.Api.Tests/LimitedGrantAdministrationTests.cs',
 }
 
+# Newly edited owning contexts/ports were not standalone producers in the old
+# selector. Map these exact files to existing auth/workshop consumers as well as
+# the membership runner; do not create a whole-directory exception.
+MEMBERSHIP_OWNING_FILES = {
+    'src/Modules/Billing/Enginia360.Billing/BillingDbContext.cs',
+    'src/Modules/Billing/Enginia360.Billing/BillingModule.cs',
+    'src/Modules/Billing/Enginia360.Billing/ConfirmedInvoices.cs',
+    'src/Modules/Accounting/Enginia360.Accounting/AccountingDbContext.cs',
+    'src/Modules/Accounting/Enginia360.Accounting/AccountingModule.cs',
+    'src/Modules/Counterparties/Enginia360.Counterparties/Infrastructure/CounterpartiesDbContext.cs',
+    'src/Modules/Counterparties/Enginia360.Counterparties/TechnicalAuditFilter.cs',
+    'src/Modules/Counterparties/Enginia360.Counterparties/WorkshopCounterparties.cs',
+    'src/Modules/Counterparties/Enginia360.Counterparties/DestinationEndpoints.cs',
+}
+UI01B_FILES |= MEMBERSHIP_OWNING_FILES
+AUTH_FILES |= MEMBERSHIP_OWNING_FILES
+
+# MVP03.b.2a: finite new ingress, never a prefix exemption. Existing mixed
+# producers retain their own consumer jobs in the recursive selection below.
+MEMBERSHIP_ACCESS_FILES = {'scripts/test-mvp03b2a-membership.py', 'src/Enginia360.Api/OrganizationAccess/CompanyAccessIdentity.cs', 'tests/Enginia360.Api.Tests/CounterpartyMembershipFenceTests.cs', 'src/Modules/Accounting/Enginia360.Accounting/MembershipOperation.cs', 'src/Modules/Inventory/Enginia360.Inventory/MembershipOperation.cs', 'src/Modules/Vehicles/Enginia360.Vehicles/MembershipOperation.cs', 'tests/Enginia360.Api.Tests/WorkshopMembershipFenceTests.cs', 'src/Modules/Integrations/Enginia360.Integrations/MembershipOperation.cs', 'tests/Enginia360.Api.Tests/MembershipAccessTests.cs', 'src/Modules/Billing/Enginia360.Billing/MembershipOperation.cs', 'scripts/test-mvp03b2a-impact.py', 'src/Modules/Catalog/Enginia360.Catalog/MembershipOperation.cs', 'tests/browser/mvp03b2a-membership.cjs', 'tests/Enginia360.Api.Tests/BusinessMembershipFenceTests.cs', 'scripts/run-mvp03b2a-tests.py', 'database/runtime/migrations/0040_membership_access.sql'}
+MEMBERSHIP_ACCESS_DIRECT = {'src/Modules/Accounting/Enginia360.Accounting/MembershipOperation.cs', 'src/Modules/Integrations/Enginia360.Integrations/AdministrativeRecovery.cs', 'src/Enginia360.Api/OrganizationAccess/CounterpartyAccessAdapter.cs', 'src/Enginia360.Api/PlatformAdministration/TenantRoleAdministration.cs', 'src/Enginia360.Api/BrowserAuthentication/ExternalIdentityResolver.cs', 'src/Modules/Billing/Enginia360.Billing/BillingDbContext.cs', 'src/Modules/Integrations/Enginia360.Integrations/MembershipOperation.cs', 'src/Modules/Counterparties/Enginia360.Counterparties/TechnicalAuditFilter.cs', 'frontend/components/tenant-role-workspace.tsx', 'src/Modules/Counterparties/Enginia360.Counterparties/DestinationEndpoints.cs', 'src/Modules/Inventory/Enginia360.Inventory/InventoryModule.cs', 'src/Modules/Integrations/Enginia360.Integrations/IntegrationsModule.cs', 'src/Modules/Counterparties/Enginia360.Counterparties/CounterpartiesModule.cs', 'src/Modules/Workshop/Enginia360.Workshop/ActualTimeEndpoints.cs', 'src/Modules/Workshop/Enginia360.Workshop/AdministrativeEndpoints.cs', 'src/Modules/Inventory/Enginia360.Inventory/InstallationStockEffects.cs', 'database/runtime/manifest.json', 'src/Modules/Accounting/Enginia360.Accounting/AccountingModule.cs', 'src/Modules/Inventory/Enginia360.Inventory/NewPartReturnEndpoints.cs', 'src/Modules/Workshop/Enginia360.Workshop/WorkshopModule.cs', 'tests/Enginia360.Api.Tests/WorkshopMembershipFenceTests.cs', 'src/Modules/Catalog/Enginia360.Catalog/CatalogModule.cs', 'src/Modules/Billing/Enginia360.Billing/MembershipOperation.cs', 'frontend/lib/tenant-roles.ts', 'src/Modules/Inventory/Enginia360.Inventory/PickingEndpoints.cs', 'scripts/test-mvp03b2a-impact.py', 'src/Modules/Catalog/Enginia360.Catalog/MembershipOperation.cs', 'src/Modules/Inventory/Enginia360.Inventory/PurchaseIntentEndpoints.cs', 'src/Enginia360.Api/OrganizationAccess/OrganizationAccessModule.cs', 'tests/Enginia360.Api.Tests/RuntimeMigrationPoolTests.cs', 'tests/Enginia360.Api.Tests/BusinessMembershipFenceTests.cs', 'src/Enginia360.Api/OrganizationAccess/BillingAccessAdapter.cs', 'src/Modules/Accounting/Enginia360.Accounting/AccountingDbContext.cs', 'database/runtime/migrations/0040_membership_access.sql', 'src/Modules/Counterparties/Enginia360.Counterparties/Infrastructure/CounterpartiesDbContext.cs', 'src/Modules/Workshop/Enginia360.Workshop/WorkshopDbContext.cs', 'src/Modules/Integrations/Enginia360.Integrations/IntegrationsDbContext.cs', 'frontend/lib/private-backend.ts', 'src/Modules/Workshop/Enginia360.Workshop/EditorEndpoints.cs', 'src/Modules/Catalog/Enginia360.Catalog/PurchasePriceEndpoints.cs', 'tests/Enginia360.Api.Tests/MembershipAccessTests.cs', 'src/Enginia360.Api/OrganizationAccess/WorkshopAccessAdapter.cs', 'src/Modules/Workshop/Enginia360.Workshop/CommercialEndpoints.cs', 'src/Enginia360.Api/OrganizationAccess/InventoryAccessAdapter.cs', 'src/Modules/Workshop/Enginia360.Workshop/WorkshopReservationLines.cs', 'src/Modules/Counterparties/Enginia360.Counterparties/WorkshopCounterparties.cs', 'tests/browser/mvp03b2a-membership.cjs', 'src/Modules/Inventory/Enginia360.Inventory/ReleaseEndpoints.cs', 'src/Modules/Vehicles/Enginia360.Vehicles/VehiclesModule.cs', 'src/Modules/Workshop/Enginia360.Workshop/TechnicalAuditFilter.cs', 'src/Modules/Inventory/Enginia360.Inventory/CarcassReturnEndpoints.cs', 'scripts/test-mvp03b2a-membership.py', 'src/Enginia360.Api/OrganizationAccess/CompanyAccessIdentity.cs', 'src/Modules/Workshop/Enginia360.Workshop/InstallationEndpoints.cs', 'tests/Enginia360.Api.Tests/CounterpartyMembershipFenceTests.cs', 'src/Modules/Billing/Enginia360.Billing/ConfirmedInvoices.cs', 'src/Enginia360.Api/OrganizationAccess/AccountingAccessAdapter.cs', 'src/Modules/Billing/Enginia360.Billing/BillingModule.cs', 'src/Modules/Inventory/Enginia360.Inventory/MembershipOperation.cs', 'src/Modules/Vehicles/Enginia360.Vehicles/MembershipOperation.cs', 'src/Enginia360.Api/BrowserAuthentication/BrowserSessionModule.cs', 'src/Modules/Inventory/Enginia360.Inventory/TechnicalAuditFilter.cs', 'frontend/app/users/page.tsx', 'src/Modules/Workshop/Enginia360.Workshop/WorkshopBillingSources.cs', 'scripts/run-mvp03b2a-tests.py', 'src/Modules/Inventory/Enginia360.Inventory/ReceiptIntentEndpoints.cs'}
+
+MEMBERSHIP_ACCESS_DIRECT |= {'frontend/tests/tenant-roles.test.tsx', 'scripts/test-r04b2b1-prices.py'}
+
 def _selection(paths):
     paths = sorted(set(paths))
+    if set(paths) & MEMBERSHIP_ACCESS_FILES:
+        result = selection(sorted(set(paths) - MEMBERSHIP_ACCESS_FILES))
+        result.update(changed_paths=paths, membership_access=True, browser=True, migrations=True, frontend=True)
+        return result
     if set(paths) & D98_FILES:
         remaining = set(paths) - D98_FILES
         if set(paths) <= D98_SCOPE:
@@ -639,6 +667,26 @@ def selection(paths):
         result['authenticated_organization'] = True
     if set(paths) & TENANT_ROLE_DIRECT:
         result['tenant_roles'] = True
+    if set(paths) & MEMBERSHIP_ACCESS_DIRECT:
+        result['membership_access'] = True
+        consumers = ['MembershipAccessTests','CounterpartyMembershipFenceTests','WorkshopMembershipFenceTests','BusinessMembershipFenceTests','RuntimeMigrationPoolTests']
+        # Keep each historical producer's own filter above. Only the new shared
+        # fence and newly mapped owning contexts need this cross-domain expansion;
+        # a Vehicles/Catalog/browser-only edit must not select unrelated accounting.
+        shared_owning = MEMBERSHIP_ACCESS_FILES | {
+            'src/Modules/Billing/Enginia360.Billing/BillingDbContext.cs',
+            'src/Modules/Billing/Enginia360.Billing/ConfirmedInvoices.cs',
+            'src/Modules/Accounting/Enginia360.Accounting/AccountingDbContext.cs',
+            'src/Modules/Accounting/Enginia360.Accounting/AccountingModule.cs',
+            'src/Modules/Counterparties/Enginia360.Counterparties/Infrastructure/CounterpartiesDbContext.cs',
+        }
+        if set(paths) & shared_owning:
+            consumers += ['AuthorizedContextContractTests','LimitedGrantAdministrationTests','WorkshopBoundaryTests','AdministrationBoundaryTests','BillingBoundaryTests','AccountingBoundaryTests','PurchaseIntentTests','SupplierPurchasePriceTests']
+        for consumer in consumers:
+            token='FullyQualifiedName~'+consumer
+            if token not in result['api_filter'].split('|'):
+                result['api_filter'] += ('|' if result['api_filter'] else '')+token
+    result.setdefault('membership_access',False)
     return result
 
 

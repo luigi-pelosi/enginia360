@@ -11,9 +11,7 @@ internal static class DestinationEndpoints
 {
     internal static async Task<IDbContextTransaction> Begin(CounterpartiesDbContext db, CounterpartyAccess grant, Guid company, CancellationToken ct)
     {
-        var tx = await db.Database.BeginTransactionAsync(ct);
-        await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.tenant_id', {grant.TenantId.ToString()}, true), set_config('app.legal_entity_id', {company.ToString()}, true)", ct);
-        return tx;
+        return await db.BeginUserOperation(grant.TenantId, company, ct);
     }
     internal static async Task<IResult> Create(Guid id, DestinationRequest request, ClaimsPrincipal user, ICounterpartyAccess access, CounterpartiesDbContext db, CancellationToken ct)
     {

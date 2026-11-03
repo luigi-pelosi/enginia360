@@ -8,7 +8,7 @@ internal sealed class AdministrativeRecovery(IntegrationsDbContext db) : IAdmini
 {
     public async Task<AdministrativeReconciliation?> Reconcile(Guid verifiedTenantId, Guid requestId, Guid commandId, Guid operatorId, CancellationToken ct)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await using var tx = await db.BeginUserOperation(verifiedTenantId, ct);
         await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.tenant_id', {verifiedTenantId.ToString()}, true)", ct);
         await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({commandId.ToString()}, 0))", ct);
         var prior = await db.Reconciliations.AsNoTracking().SingleOrDefaultAsync(x => x.Id == commandId, ct);

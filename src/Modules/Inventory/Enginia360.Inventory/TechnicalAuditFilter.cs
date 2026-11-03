@@ -29,6 +29,11 @@ internal sealed class TechnicalAuditFilter(ILogger<TechnicalAuditFilter> logger)
                 && id.ValueKind == System.Text.Json.JsonValueKind.String && id.TryGetGuid(out var receiptId)) resource = receiptId;
             return result;
         }
+        catch (UnauthorizedAccessException)
+        {
+            status = 403;
+            return Results.StatusCode(403);
+        }
         finally
         {
             logger.LogInformation(new EventId(606), "Inventory audit {Action} {Outcome} {ResourceId} {IdentityId}", action, status, resource, identity);

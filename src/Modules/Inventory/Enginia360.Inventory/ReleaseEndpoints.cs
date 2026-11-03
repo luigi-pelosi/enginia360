@@ -28,7 +28,7 @@ internal static class ReleaseEndpoints
         decimal released;
         bool picked, open;
         string profile;
-        await using (var tx=await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.RepeatableRead,ct))
+        await using (var tx=await db.BeginUserOperation(member.TenantId, ct, System.Data.IsolationLevel.RepeatableRead))
         {
             await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.tenant_id',{member.TenantId.ToString()},true)",ct);
             reservation=await db.Reservations.AsNoTracking().SingleOrDefaultAsync(x=>x.TenantId==member.TenantId && x.Id==reservationId && x.OrderId==orderId && x.LineId==lineId,ct);
@@ -61,7 +61,7 @@ internal static class ReleaseEndpoints
         var member = await workshop.ResolveMembership(subject, ct);
         if (member is null) return Results.NotFound();
         Reservation? reservation;
-        await using (var read = await db.Database.BeginTransactionAsync(ct))
+        await using (var read = await db.BeginUserOperation(member.TenantId, ct))
         {
             await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.tenant_id',{member.TenantId.ToString()},true)",ct);
             reservation = await db.Reservations.AsNoTracking().SingleOrDefaultAsync(x => x.Id == reservationId && x.TenantId == member.TenantId && x.OrderId == orderId && x.LineId == lineId,ct);
@@ -74,7 +74,7 @@ internal static class ReleaseEndpoints
             return Results.StatusCode(403);
         var enabled = await workshop.Authorize(subject,reservation.LegalEntityId,reservation.SiteId,"workshop.orders.read",true,ct) is not null
             && await access.Authorize(subject,reservation.LegalEntityId,reservation.SiteId,reservation.WarehouseId,"inventory.reservations.release",true,ct);
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await using var tx = await db.BeginUserOperation(member.TenantId, ct);
         await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.tenant_id',{member.TenantId.ToString()},true)",ct);
         await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.identity_subject',{subject},true)",ct);
         async Task<bool> Authorized(bool write) => await db.Database.SqlQuery<bool>($"SELECT organization_access.inventory_release_authorized({member.TenantId},{member.MembershipId},{subject},{reservation.LegalEntityId},{reservation.SiteId},{reservation.WarehouseId},{write}) AS \"Value\"").SingleAsync(ct);

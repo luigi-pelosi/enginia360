@@ -10,8 +10,7 @@ internal sealed class WorkshopCounterparties(ICounterpartyAccess access, Counter
     {
         var grant = await access.Authorize(subject, companyId, "counterparties.read", ct);
         if (grant is null || grant.TenantId != verifiedTenantId) return false;
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
-        await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.tenant_id', {grant.TenantId.ToString()}, true)", ct);
+        await using var tx = await db.BeginUserOperation(grant.TenantId, companyId, ct);
         var exists = await db.Counterparties.AnyAsync(x => x.Id == counterpartyId && x.TenantId == grant.TenantId, ct);
         await tx.CommitAsync(ct);
         return exists;
@@ -19,8 +18,9 @@ internal sealed class WorkshopCounterparties(ICounterpartyAccess access, Counter
 
     public async Task<InvoiceCounterparty?> Find(Guid verifiedTenantId, Guid counterpartyId, CancellationToken ct)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
-        await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.tenant_id', {verifiedTenantId.ToString()}, true)", ct);
+        // Billing.Confirm creates new user-derived work; this is not an outbox
+        // consumer and a tenant UUID alone must never serve as authentication.
+        await using var tx = await db.BeginUserOperation(verifiedTenantId, null, ct);
         var row = await db.Counterparties.AsNoTracking().SingleOrDefaultAsync(x => x.Id == counterpartyId && x.TenantId == verifiedTenantId, ct);
         await tx.CommitAsync(ct);
         return row is null ? null : new(row.Id, row.LegalName, row.FiscalIdentifier, row.RegisteredOffice);

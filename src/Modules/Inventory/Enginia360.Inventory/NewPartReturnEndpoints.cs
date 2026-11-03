@@ -28,7 +28,7 @@ internal static class NewPartReturnEndpoints
         decimal returned, installedQuantity;
         bool open, installed;
         string profile;
-        await using (var tx = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.RepeatableRead, ct))
+        await using (var tx = await db.BeginUserOperation(member.TenantId, ct, System.Data.IsolationLevel.RepeatableRead))
         {
             await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.tenant_id',{member.TenantId.ToString()},true)", ct);
             pick = await db.Picks.AsNoTracking().SingleOrDefaultAsync(x => x.TenantId == member.TenantId && x.Id == pickId && x.ReservationId == reservationId && x.OrderId == orderId && x.LineId == lineId, ct);
@@ -64,7 +64,7 @@ internal static class NewPartReturnEndpoints
         var member = await workshop.ResolveMembership(subject, ct);
         if (member is null) return Results.NotFound();
         PickedPart? pick;
-        await using (var read = await db.Database.BeginTransactionAsync(ct))
+        await using (var read = await db.BeginUserOperation(member.TenantId, ct))
         {
             await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.tenant_id',{member.TenantId.ToString()},true)", ct);
             pick = await db.Picks.AsNoTracking().SingleOrDefaultAsync(x => x.Id == pickId && x.ReservationId == reservationId && x.TenantId == member.TenantId && x.OrderId == orderId && x.LineId == lineId, ct);
@@ -77,7 +77,7 @@ internal static class NewPartReturnEndpoints
             return Results.StatusCode(403);
         var enabled = await workshop.Authorize(subject, pick.LegalEntityId, pick.SiteId, "workshop.orders.read", true, ct) is not null
             && await access.Authorize(subject, pick.LegalEntityId, pick.SiteId, pick.WarehouseId, "inventory.new-part-returns.create", true, ct);
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await using var tx = await db.BeginUserOperation(member.TenantId, ct);
         await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.tenant_id',{member.TenantId.ToString()},true)", ct);
         await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.identity_subject',{subject},true)", ct);
         async Task<bool> Authorized(bool write) => await db.Database.SqlQuery<bool>($"SELECT organization_access.inventory_new_return_authorized({member.TenantId},{member.MembershipId},{subject},{pick.LegalEntityId},{pick.SiteId},{pick.WarehouseId},{write}) AS \"Value\"").SingleAsync(ct);

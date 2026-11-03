@@ -30,6 +30,14 @@
         "summary": "D97: creare e modificare ruoli e permessi con audit immutabile e tracciabile obbligatorio, solo nel proprio tenant; gestione utenti distinta dalla delega organizzativa; nessun SUPER ADMIN, nessun potere cross-tenant o control-plane, nessuna subdelega o nomina implicita; non solo ruoli definiti dal proprietario; nessun runtime consegnato qui."
       },
       "runtimeDelivered": false,
+      "existingMembershipAccess": {
+        "issueNumber": 164,
+        "contract": "docs/mvp03b2a-membership-access-contract.md",
+        "implementationStatus": "source_complete",
+        "validationStatus": "final_corrective_validation_in_progress",
+        "runtimeDelivered": false,
+        "onboardingIncluded": false
+      },
       "deliveredSubincrements": {
         "MVP03.b.1": {"pr": 162, "runtimeDelivered": true, "catalog": ["organization-context.read", "organization-context.write"]}
       },

@@ -104,7 +104,13 @@ class WorkspaceSqlTests(unittest.TestCase):
         for table in NEW_TABLES:
             self.assertEqual(self.sql(f"SELECT relrowsecurity AND relforcerowsecurity FROM pg_class WHERE oid='{table}'::regclass"), 't', table)
             self.assertEqual(self.sql(f"SELECT has_table_privilege('{app}','{table}','DELETE') OR has_table_privilege('{app}','{table}','TRUNCATE')"), 'f', table)
-            self.assertEqual(self.sql(f"SELECT count(*) FROM pg_policies WHERE schemaname||'.'||tablename='{table}' AND qual IS NOT NULL AND with_check IS NOT NULL"), '1', table)
+            policies = json.loads(self.sql(f"SELECT jsonb_agg(jsonb_build_object('name',policyname,'mode',permissive,'roles',roles,'command',cmd,'using',qual,'check',with_check) ORDER BY policyname) FROM pg_policies WHERE schemaname||'.'||tablename='{table}'"))
+            tenant_predicate = '(("TenantId")::text = current_setting(\'app.tenant_id\'::text, true))'
+            access_predicate = 'organization_access.current_membership_access("TenantId")'
+            self.assertEqual(policies, [
+                dict(name='membership_access_current',mode='RESTRICTIVE',roles=[app],command='ALL',using=access_predicate,check=access_predicate),
+                dict(name='tenant_identity',mode='PERMISSIVE',roles=['public'],command='ALL',using=tenant_predicate,check=tenant_predicate),
+            ], table)
         for table in ('workshop.commercial_lines', 'workshop.orders'):
             self.assertEqual(self.sql(f"SELECT has_table_privilege('{app}','{table}','DELETE')"), 'f', table)
         for table in ('workshop.workspace_history', 'workshop.editor_commands'):

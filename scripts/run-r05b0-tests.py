@@ -147,6 +147,7 @@ def main():
                             data = json.loads((state/'control/historical.json').read_text())
                             request_id = str(uuid.UUID(data['requestId']))
                             attempt = subprocess.run(query+['-c', f'''BEGIN; SET LOCAL ROLE runtime_app; SELECT set_config('app.tenant_id','{ctx0['tenantId']}',true);
+                                {r00.verified_fixture_settings(query,fixture['adminMembershipId'])}
                                 INSERT INTO workshop.administrative_bindings SELECT "Id","TenantId","OrderId","LegalEntityId","SiteId","DestinationVersion","ContractVersion","RequestedAt","OperatorId",'SimulatorV1',1,repeat('a',64)
                                 FROM workshop.administrative_requests WHERE "Id"='{request_id}'; ROLLBACK;'''], cwd=ROOT, capture_output=True, text=True, timeout=20)
                             assert attempt.returncode != 0, 'historical requests MUST refuse retroactive binding assignment'
@@ -199,13 +200,9 @@ def main():
                             output = marker(holder, b'LOCKED').splitlines()
                             holder_pid = int([x for x in output if x.isdigit()][-1])
                         elif action.startswith('wait-order:'):
-                            required = int(action.split(':')[1]); stop = time.monotonic()+10
-                            while True:
-                                count = int(run(query+['-c', f"SELECT count(DISTINCT w.pid) FROM pg_locks w JOIN pg_locks h ON (w.database,w.classid,w.objid,w.objsubid)=(h.database,h.classid,h.objid,h.objsubid) WHERE w.locktype='advisory' AND NOT w.granted AND h.granted AND h.pid={holder_pid}"]).strip())
-                                if count >= required: break
-                                if time.monotonic() > stop: raise TimeoutError('expected PostgreSQL advisory waiters absent')
-                                time.sleep(0.02)
-                            print(f'BARRIER observed {count} separate-connection advisory waiters', flush=True)
+                            required = int(action.split(':')[1])
+                            first_waiter_pid = r03b.physical_order_waiters(query, holder_pid, required,
+                                first_waiter_pid if required == 2 else None)
                         elif action == 'release-order':
                             holder.stdin.write('\\q\n'); holder.stdin.flush(); holder.stdin.close(); holder.wait(timeout=5)
                         elif action.startswith('counts:'):
@@ -257,7 +254,7 @@ def main():
                             fx = json.loads((state/'purchase-fixture.json').read_text())
                             ctx = f"set_config('app.tenant_id','{ctx0['tenantId']}',true),set_config('app.identity_subject','{subject}',true),set_config('app.legal_entity_id','{ctx0['legalEntityId']}',true)"
                             if action.startswith('hold-line:'): lock = f"BEGIN; SELECT pg_advisory_xact_lock(hashtextextended('inventory:line:{ctx0['tenantId']}:{str(uuid.UUID(action.split(':')[1]))}',0));"
-                            elif action.startswith('purchase-hold-role'): lock = f"BEGIN; SET LOCAL ROLE runtime_app; SELECT {ctx}; SELECT counterparties.set_supplier_role('{ctx0['legalEntityId']}','{fx['supplier']}','{uuid.uuid4()}',1,0,false)->>'state';"
+                            elif action.startswith('purchase-hold-role'): lock = f"BEGIN; SET LOCAL ROLE runtime_app; SELECT {ctx}; {r00.verified_fixture_settings(query,fixture['adminMembershipId'])} SELECT counterparties.set_supplier_role('{ctx0['legalEntityId']}','{fx['supplier']}','{uuid.uuid4()}',1,0,false)->>'state';"
                             elif action.startswith('purchase-hold-mapping'): lock = f"BEGIN; SET LOCAL ROLE runtime_owner; SELECT {ctx}; SELECT counterparties.establish_giobby_vendor_identity('{uuid.uuid4()}','{ctx0['tenantId']}','{ctx0['legalEntityId']}','{fx['supplier']}','{fixture['adminMembershipId']}','{uuid.uuid4()}',1,'GBV-4712','Synthetic Supplier Renamed');"
                             else: lock = f"""BEGIN; DELETE FROM organization_access.company_permissions WHERE "MembershipId"='{fixture["adminMembershipId"]}' AND "Permission"='inventory.purchase-intents.create';"""
                             holder.stdin.write(lock+"\nSELECT pg_backend_pid();\n\\echo LOCKED\n"); holder.stdin.flush()

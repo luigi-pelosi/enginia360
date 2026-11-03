@@ -208,7 +208,7 @@ def main():
                             pick=str(uuid.UUID(action.split(":")[1]))
                             actor=run(query+["-c",f'''SELECT "IdentitySubject" FROM organization_access.memberships WHERE "Id"='{fixture['adminMembershipId']}';''']).strip()
                             invalid=f'''SET ROLE runtime_app; BEGIN; SELECT set_config('app.tenant_id','{ctx['tenantId']}',true); SELECT set_config('app.identity_subject','{actor}',true);
-INSERT INTO inventory.new_part_returns SELECT '{uuid.uuid4()}',p."TenantId",p."ReservationId",p."Id",'{fixture['adminMembershipId']}',p."OrderId",p."LineId",p."WorkingGroupId",p."LegalEntityId",p."SiteId",'{second}',p."CatalogItemId",p."CatalogVersion",0.000001,clock_timestamp(),current_setting('app.identity_subject')::uuid FROM inventory.picks p WHERE p."Id"='{pick}'; COMMIT;'''
+{r00.verified_fixture_settings(query,fixture['adminMembershipId'])}INSERT INTO inventory.new_part_returns SELECT '{uuid.uuid4()}',p."TenantId",p."ReservationId",p."Id",'{fixture['adminMembershipId']}',p."OrderId",p."LineId",p."WorkingGroupId",p."LegalEntityId",p."SiteId",'{second}',p."CatalogItemId",p."CatalogVersion",0.000001,clock_timestamp(),current_setting('app.identity_subject')::uuid FROM inventory.picks p WHERE p."Id"='{pick}'; COMMIT;'''
                             if action.startswith(("verify-return-pending:","verify-return-closed:")):
                                 invalid=invalid.replace(f"'{second}',p.","p.\"WarehouseId\",p.")
                                 result=subprocess.run(query,input=invalid,text=True,capture_output=True,timeout=30)
@@ -237,7 +237,7 @@ INSERT INTO inventory.new_part_returns SELECT '{uuid.uuid4()}',p."TenantId",p."R
                             pick=str(uuid.UUID(action.split(":")[1]))
                             actor=run(query+["-c",f'''SELECT "IdentitySubject" FROM organization_access.memberships WHERE "Id"='{fixture['adminMembershipId']}';''']).strip()
                             raw=f'''SET ROLE runtime_app; BEGIN; SELECT set_config('app.tenant_id','{ctx['tenantId']}',true);
-INSERT INTO workshop.installations SELECT '{uuid.uuid4()}',p."TenantId",p."Id",p."ReservationId",p."OrderId",p."WorkingGroupId",p."LineId",p."LegalEntityId",p."SiteId",p."WarehouseId",p."CatalogItemId",p."CatalogVersion",2,p."ConfigurationVersion",o."DocumentTypeId",o."ConfigurationVersion",clock_timestamp(),'{actor}',1,true FROM inventory.picks p JOIN workshop.orders o ON o."Id"=p."OrderId" WHERE p."Id"='{pick}'; COMMIT;'''
+{r00.verified_fixture_settings(query,fixture['adminMembershipId'])}INSERT INTO workshop.installations SELECT '{uuid.uuid4()}',p."TenantId",p."Id",p."ReservationId",p."OrderId",p."WorkingGroupId",p."LineId",p."LegalEntityId",p."SiteId",p."WarehouseId",p."CatalogItemId",p."CatalogVersion",2,p."ConfigurationVersion",o."DocumentTypeId",o."ConfigurationVersion",clock_timestamp(),'{actor}',1,true FROM inventory.picks p JOIN workshop.orders o ON o."Id"=p."OrderId" WHERE p."Id"='{pick}'; COMMIT;'''
                             result=subprocess.run(query,input=raw,text=True,capture_output=True,timeout=30)
                             assert result.returncode!=0 and "installation_exceeds_unreturned" in result.stderr,"SQL Pending insertion must not bypass returned-quota allowance: "+result.stdout+result.stderr
                             print("PASS R04C2 SQL installation allowance excludes returned quota before consumption",flush=True)

@@ -119,3 +119,13 @@ Non eseguiti in questa consegna: import/export applicativo, restore, rehearsal c
 ## Rehearsal di restore (R06.b.1)
 
 Il runner effimero e il compose dedicato (`scripts/run-r06b1-tests.py`, `compose.r06b1-test.yaml`) scoprono le tabelle dal catalogo (nessun conteggio fisso) e le confrontano con questo inventario più il ledger; **non** approvano l'eleggibilità di alcuna tabella. Vedi [r06-restore-rehearsal.md](r06-restore-rehearsal.md).
+
+## Candidato #164 — aggiornamento sorgente non validato
+
+Le tre definizioni CREATE di0040 (stato accesso membership, testimone tecnico MVCC,
+audit accesso) sono aggiunte all'inventario sorgente, **UNVERIFIED**. Le voci già
+pubblicate sono conservate. Lo stato che determina l'accesso è security_binding /
+RESTORE_ONBOARDING_ONLY; audit e testimone non approvano import legacy.
+Eleggibilità resta UNDECIDED; nessun import, backfill di grant o migrazione
+eseguita qui. Il verificatore offline verrà eseguito solo nella fase finale
+post-implementazione dell'intero#164, secondo la cadenza corrente.

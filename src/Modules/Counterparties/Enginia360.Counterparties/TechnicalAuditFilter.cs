@@ -20,6 +20,11 @@ internal sealed class TechnicalAuditFilter(ILogger<TechnicalAuditFilter> logger)
             logger.LogInformation(new EventId(303), "Counterparty audit {Action} {Outcome} {ResourceId} {IdentityId}", action, status, resource, identity);
             return result;
         }
+        catch (UnauthorizedAccessException)
+        {
+            logger.LogInformation(new EventId(303), "Counterparty audit {Action} {Outcome} {ResourceId} {IdentityId}", action, 403, resource, identity);
+            return Results.StatusCode(StatusCodes.Status403Forbidden);
+        }
         catch
         {
             logger.LogInformation(new EventId(303), "Counterparty audit {Action} {Outcome} {ResourceId} {IdentityId}", action, 500, resource, identity);

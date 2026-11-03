@@ -3,12 +3,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Enginia360.Api.OrganizationAccess;
 
-internal sealed class AccountingAccessAdapter(OrganizationAccessDbContext db) : IAccountingAccess
+internal sealed class AccountingAccessAdapter(OrganizationAccessDbContext db, IHttpContextAccessor accessor, IConfiguration configuration) : IAccountingAccess
 {
     public async Task<AccountingGrant?> ResolveMembership(string subject, CancellationToken ct)
     {
         await using var tx = await db.Database.BeginTransactionAsync(ct);
-        await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.identity_subject', {subject}, true)", ct);
+        await CompanyAccessIdentity.Set(db, subject, accessor, configuration, ct);
         var member = await db.Memberships.AsNoTracking().SingleOrDefaultAsync(x => x.IdentitySubject == subject, ct);
         await tx.CommitAsync(ct);
         return member is null ? null : new(member.TenantId, member.Id);
@@ -18,7 +18,7 @@ internal sealed class AccountingAccessAdapter(OrganizationAccessDbContext db) : 
         bool requireCapability, CancellationToken ct)
     {
         await using var tx = await db.Database.BeginTransactionAsync(ct);
-        await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.identity_subject', {subject}, true)", ct);
+        await CompanyAccessIdentity.Set(db, subject, accessor, configuration, ct);
         var member = await db.Memberships.AsNoTracking().SingleOrDefaultAsync(x => x.IdentitySubject == subject, ct);
         if (member is null) return null;
         await db.Database.ExecuteSqlInterpolatedAsync(

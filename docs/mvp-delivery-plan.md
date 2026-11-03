@@ -67,7 +67,9 @@ MVP03.b.1 ha definito e consegnato il matching sul catalogo iniziale; nel prossi
 
 ## Verifiche e consegna
 
-Per ogni incremento: contratto finito → test eseguibile RED → GREEN → regressioni d'impatto → commit → PR → CI exact-head → dispatch runtime mirato quando applicabile → merge controllato → equivalenza del tree o nuova prova mirata se il tree cambia → rilettura issue e Project.
+Disposizione corrente del proprietario: unit test, test CI, pipeline, ogni validazione/testing e distribuzione avvengono a fine implementazione dei punti di sviluppo. La precedente sequenza test-first/RED → GREEN è superata ove incompatibile; le prove già raccolte restano evidenza storica.
+
+Per ogni punto di sviluppo concordato: contratto finito → implementazione completa del punto → validazione finale locale d'impatto (unit/integration/security/runtime, build e audit pertinenti) → correzioni e ripetizione delle verifiche interessate se necessarie → commit/PR di consegna → CI exact-head → dispatch runtime mirato quando applicabile → merge controllato → equivalenza del tree o nuova prova mirata se il tree cambia → rilettura issue e Project → eventuale distribuzione soltanto se autorizzata. Non usare sotto-passi artificiali per anticipare campagne di validazione. Non aprire PR o eseguire pipeline durante l'implementazione; non disabilitare i controlli esistenti. Implementazione terminata non equivale a consegna verificata.
 
 CI automatica solo pull_request; niente automatismi push main. Gli incrementi di routine usano full_architecture=false. Full architecture non è il default: una campagna finale esplicita dopo il completamento funzionale. Skip non è pass. Incrementi documentali usano guardie offline, non runtime storico indiscriminato. Test tenant/RLS/CSRF, autorizzazione, concorrenza, retry, audit, API/UI/build/dependency audit e health/smoke rimangono necessari secondo l'impatto.
 
@@ -92,3 +94,14 @@ Project privato esistente n. 3 rinominato **Enginia360 · MVP**, senza creare un
 Il checkpoint MVP-01 introduce soltanto la [shell tecnica verificabile](mvp01-frontend.md) in `frontend/`; non anticipa identity federation o capability operative. MVP-01 e' consegnato; MVP-02.a/#152 e' consegnato via PR #153, main `185682700d621edcb547d0291167aec248c50bfe` (tree equivalente al candidato `a38a4274df901454b59892bc133f91c6a12d2df4`); PR CI `41553422654` e dispatch `41553418829` verificati dal coordinatore. [Autorita globale esplicita](mvp02a-platform-authority.md), bootstrap/revoca owner-offline e readout minimo non sono organizzazione CRUD o frontend autenticato. MVP-02.b/#154 e' consegnato via PR #155, main `1913c7393362d30193e79ebd7cc1f1a5f521f218` (tree `f4fbe62f00c59b427c57b6b00b88b371c6c37129` identico al candidato `a7c018e5eadfbef7653ea66ba0840c653605bbbc`); PR CI `41564892938` e dispatch `41564891812` verificati dal coordinatore. Il sottoincremento attivo MVP-02.c/#156 definisce il [percorso Next autenticato](mvp02c-authenticated-organization.md) sulle API di [amministrazione organizzativa persistita](mvp02b-organization-administration.md); parent #141 resta aperto e In corso fino alla verifica completa della UI autenticata. Issue/Project e merge restano gestiti dal coordinatore. Il nuovo percorso CI per frontend e' esplicito, isolato dal runtime ERP storico e usa `full_architecture=false`.
 
 Correzione tecnica di esecuzione: il vecchio gh CLI non accettava il valore numerico zero per Ordine; e' stato usato ordinamento 1–11, mantenendo invariati gli ID MVP-00–MVP-10. La creazione issue e' stata ripresa tramite marker, senza duplicazioni. Nessuna di queste operazioni dimostra una capability applicativa completata.
+
+### #164 — validazione finale in corso, non consegnato
+
+MVP03.b.2a abilita/disabilita membership **esistenti**: implementazione sorgente
+completata nel worktree dedicato, secondo la cadenza corrente. La validazione
+finale e le correzioni sono in corso: [ledger delle asserzioni effettivamente
+eseguite](mvp03b2a-final-validation.md). CI exact-head, artefatti e revisione del
+coordinatore restano gate distinti; nessuna consegna è implicita.
+[Checkpoint storico](mvp03b2a-backend-progress.md).
+#164/#142 restano aperti, runtimeDelivered dell’interoMVP03.b restafalse.
+Onboarding D98/prima associazione resta un punto futuro separato.

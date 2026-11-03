@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Enginia360.Accounting;
 
-internal sealed class AccountingDbContext(DbContextOptions<AccountingDbContext> options) : DbContext(options)
+internal sealed partial class AccountingDbContext(DbContextOptions<AccountingDbContext> options, Microsoft.AspNetCore.Http.IHttpContextAccessor accessor, Microsoft.Extensions.Configuration.IConfiguration configuration) : DbContext(options)
 {
     internal DbSet<ChartAccount> ChartAccounts => Set<ChartAccount>();
     internal DbSet<JournalEntry> Entries => Set<JournalEntry>();

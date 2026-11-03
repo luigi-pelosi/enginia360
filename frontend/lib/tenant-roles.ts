@@ -3,6 +3,11 @@ export type TrustedMember = {
   membershipId: string;
   internalIdentityId: string;
   bindingHash: string;
+  accessEnabled: boolean;
+  accessRevision: number;
+  organizationDelegationActive: boolean;
+  isCurrentIdentity: boolean;
+  canEnableAccess: boolean;
   active: boolean;
   resourceId: string | null;
   revision: number;

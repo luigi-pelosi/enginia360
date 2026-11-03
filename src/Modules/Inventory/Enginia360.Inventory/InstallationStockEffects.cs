@@ -13,7 +13,7 @@ internal sealed class WorkshopPickedParts(InventoryDbContext db, IWorkshopAccess
         var member = await workshop.ResolveMembership(subject, ct);
         if (member is null) return null;
         PickedPart? row;
-        await using (var tx = await db.Database.BeginTransactionAsync(ct))
+        await using (var tx = await db.BeginUserOperation(member.TenantId, ct))
         {
             await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.tenant_id', {member.TenantId.ToString()}, true)", ct);
             row = await db.Picks.AsNoTracking().SingleOrDefaultAsync(x => x.TenantId == member.TenantId && x.Id == pickId
@@ -37,7 +37,7 @@ internal sealed class InstallationStockEffects(InventoryDbContext db, IWorkshopI
         var installation = await installations.Find(subject, id, write, ct);
         if (installation is null || !await access.Authorize(subject, installation.LegalEntityId, installation.SiteId, installation.WarehouseId,
             write ? "inventory.consumptions.create" : "inventory.consumptions.read", write, ct)) return null;
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await using var tx = await db.BeginUserOperation(installation.TenantId, ct);
         await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.tenant_id', {installation.TenantId.ToString()}, true)", ct);
         if (write) await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({id.ToString()}, 0))", ct);
         var existing = await db.Consumptions.AsNoTracking().SingleOrDefaultAsync(x => x.InstallationId == id, ct);

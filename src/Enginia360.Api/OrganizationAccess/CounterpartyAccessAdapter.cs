@@ -2,12 +2,12 @@ using Enginia360.Counterparties.Contracts;
 using Microsoft.EntityFrameworkCore;
 namespace Enginia360.Api.OrganizationAccess;
 
-internal sealed class CounterpartyAccessAdapter(OrganizationAccessDbContext db) : ICounterpartyAccess
+internal sealed class CounterpartyAccessAdapter(OrganizationAccessDbContext db, IHttpContextAccessor accessor, IConfiguration configuration) : ICounterpartyAccess
 {
     public async Task<IReadOnlyList<CounterpartyCompany>> ListCompanies(string subject, CancellationToken cancellationToken)
     {
         await using var tx = await db.Database.BeginTransactionAsync(cancellationToken);
-        await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.identity_subject', {subject}, true)", cancellationToken);
+        await CompanyAccessIdentity.Set(db, subject, accessor, configuration, cancellationToken);
         var member = await db.Memberships.AsNoTracking().SingleOrDefaultAsync(x => x.IdentitySubject == subject, cancellationToken);
         if (member is null) return [];
         await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.tenant_id', {member.TenantId.ToString()}, true)", cancellationToken);
@@ -18,7 +18,7 @@ internal sealed class CounterpartyAccessAdapter(OrganizationAccessDbContext db) 
     public async Task<CounterpartyAccess?> Authorize(string subject, Guid legalEntityId, string permission, CancellationToken cancellationToken)
     {
         await using var tx = await db.Database.BeginTransactionAsync(cancellationToken);
-        await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.identity_subject', {subject}, true)", cancellationToken);
+        await CompanyAccessIdentity.Set(db, subject, accessor, configuration, cancellationToken);
         var membership = await db.Memberships.AsNoTracking().SingleOrDefaultAsync(x => x.IdentitySubject == subject, cancellationToken);
         if (membership is null) return null;
         await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.tenant_id', {membership.TenantId.ToString()}, true)", cancellationToken);

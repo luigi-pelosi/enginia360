@@ -231,12 +231,15 @@ def populate_cluster(rig):
         assert [(row[0], row[1]) for row in ledger] == [(e['id'], e['sha256']) for e in manifest], 'ledger must be the exact current manifest'
         empty = snapshot_tables(rig)
         assert set(empty) == expected_tables(), 'discovered tables differ from the manifest inventory + ledger'
-        assert all(v['rows'] == 0 for name, v in empty.items() if name != 'runtime_migrations.applied')
+        witness = 'organization_access.membership_access_snapshot_fence'
+        assert empty[witness]['rows'] == 1
+        assert sql(rig, 'SELECT row_to_json(f) FROM organization_access.membership_access_snapshot_fence f') == '{"Singleton":true,"Token":false}'
+        assert all(v['rows'] == 0 for name, v in empty.items() if name not in ('runtime_migrations.applied', witness))
         assert apply_migrator(rig).returncode == 0
         assert ledger_rows(rig) == ledger, 'second apply must be a no-op including applied_at'
         rig.evidence['manifest_units'] = len(manifest)
         rig.evidence['tables'] = len(empty)
-        rig.check('real migrator applied exactly %d manifest units; %d tables discovered dynamically, all empty; second apply no-op' % (len(manifest), len(empty)))
+        rig.check('real migrator applied exactly %d manifest units; %d tables discovered dynamically, business tables empty and exact technical witness; second apply no-op' % (len(manifest), len(empty)))
     with rig.phase('A_fixtures_services'):
         run(rig.query, input=rig.values['fixture_sql'])
         run(command + ['up', '-d', 'api', 'web'], timeout=120)

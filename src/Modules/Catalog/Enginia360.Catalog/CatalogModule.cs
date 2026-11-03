@@ -9,12 +9,13 @@ public static class CatalogModule
     public static void MapSupplierPurchasePrices(Microsoft.AspNetCore.Builder.WebApplication app) => PurchasePriceEndpoints.Map(app);
     public static IServiceCollection AddWorkshopCatalog(this IServiceCollection services, string connection)
     {
+        services.AddHttpContextAccessor();
         services.AddDbContext<CatalogDbContext>(o => o.UseNpgsql(connection));
         services.AddScoped<IWorkshopCatalog, WorkshopCatalog>();
         return services;
     }
 }
-internal sealed class CatalogDbContext(DbContextOptions<CatalogDbContext> options) : DbContext(options)
+internal sealed partial class CatalogDbContext(DbContextOptions<CatalogDbContext> options, Microsoft.AspNetCore.Http.IHttpContextAccessor accessor, Microsoft.Extensions.Configuration.IConfiguration configuration) : DbContext(options)
 {
     internal DbSet<CatalogItem> Items => Set<CatalogItem>();
     protected override void OnModelCreating(ModelBuilder b) => b.Entity<CatalogItem>().ToTable("items", "catalog").HasKey(x => x.Id);
@@ -32,7 +33,7 @@ internal sealed class WorkshopCatalog(CatalogDbContext db) : IWorkshopCatalog
 {
     public async Task<IReadOnlyList<CatalogChoice>> List(Guid verifiedTenantId, CancellationToken ct, int? limit = null, string? search = null, Guid? after = null)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await using var tx = await db.BeginUserOperation(verifiedTenantId, ct);
         await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.tenant_id', {verifiedTenantId.ToString()}, true)", ct);
         var rows = await db.Items.AsNoTracking().Where(x => x.TenantId == verifiedTenantId)
             .Where(x => search == null || x.Label.Contains(search))

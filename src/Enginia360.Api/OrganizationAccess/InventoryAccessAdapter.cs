@@ -4,13 +4,13 @@ using Microsoft.EntityFrameworkCore;
 namespace Enginia360.Api.OrganizationAccess;
 
 // The finite reservation proof grants each exact action/company/site/warehouse separately.
-internal sealed class InventoryAccessAdapter(OrganizationAccessDbContext db) : IInventoryAccess
+internal sealed class InventoryAccessAdapter(OrganizationAccessDbContext db, IHttpContextAccessor accessor, IConfiguration configuration) : IInventoryAccess
 {
     public async Task<bool> Authorize(string subject, Guid companyId, Guid siteId, Guid warehouseId,
         string permission, bool requireCapability, CancellationToken ct)
     {
         await using var tx = await db.Database.BeginTransactionAsync(ct);
-        await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.identity_subject', {subject}, true)", ct);
+        await CompanyAccessIdentity.Set(db, subject, accessor, configuration, ct);
         var member = await db.Memberships.AsNoTracking().SingleOrDefaultAsync(x => x.IdentitySubject == subject, ct);
         if (member is null) return false;
         await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.tenant_id', {member.TenantId.ToString()}, true)", ct);
@@ -31,7 +31,7 @@ internal sealed class InventoryAccessAdapter(OrganizationAccessDbContext db) : I
     public async Task<IReadOnlyList<WarehouseChoice>> Warehouses(string subject, Guid companyId, Guid siteId, CancellationToken ct)
     {
         await using var tx = await db.Database.BeginTransactionAsync(ct);
-        await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.identity_subject', {subject}, true)", ct);
+        await CompanyAccessIdentity.Set(db, subject, accessor, configuration, ct);
         var member = await db.Memberships.AsNoTracking().SingleOrDefaultAsync(x => x.IdentitySubject == subject, ct);
         if (member is null) return [];
         await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.tenant_id', {member.TenantId.ToString()}, true)", ct);

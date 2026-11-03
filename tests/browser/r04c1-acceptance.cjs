@@ -245,13 +245,22 @@ async function control(action) {
         await releasePanel.getByText("Residuo mai prelevato rilasciabile: 1").waitFor();
         {
             const panelsOpen=async()=>page.locator(".ui01-panels > details[open]").count();
+            const layoutRequests=new Set();
+            const layoutStarted=request=>layoutRequests.add(request), layoutFinished=request=>layoutRequests.delete(request);
+            page.on('request',layoutStarted);page.on('requestfinished',layoutFinished);page.on('requestfailed',layoutFinished);
             for(const name of ["Tempo effettivo mio","Chiusura e attesa amministrativa"]) await page.locator("summary",{hasText:name}).click();
             assert.equal(await panelsOpen(),3,"all three material panels expanded");
+            console.log('R04C1_LAYOUT_PREREQUISITE',JSON.stringify({pendingLazyRequests:layoutRequests.size}));
+            // Opening details mounts asynchronous panels. Finish their real reads
+            // before measuring scroll positions that those results can move.
+            await page.waitForLoadState('networkidle');
+            page.off('request',layoutStarted);page.off('requestfinished',layoutFinished);page.off('requestfailed',layoutFinished);
             const focused=(locator)=>locator.evaluate(e=>e===document.activeElement);
             const select=releasePanel.getByLabel("Prenotazione da rilasciare"), input=releasePanel.getByLabel("Quantità da rilasciare");
             const submit=releasePanel.getByRole("button",{name:"Rilascia quantità esplicita",exact:true}), reread=releasePanel.getByRole("button",{name:"Rileggi rilasci",exact:true});
             for(const [width,height] of [[1920,1080],[1366,768]]){
                 await page.setViewportSize({width,height});
+                await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
                 assert.equal(await panelsOpen(),3);
                 assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),"no horizontal page overflow at "+width);
                 const footerBox=await page.locator("footer").boundingBox();

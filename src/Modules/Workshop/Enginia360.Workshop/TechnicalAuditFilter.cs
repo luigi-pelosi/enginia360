@@ -28,6 +28,11 @@ internal sealed class TechnicalAuditFilter(ILogger<TechnicalAuditFilter> logger)
             if (result is IValueHttpResult { Value: AdministrativeClosureContract administrative }) resource = administrative.Id;
             return result;
         }
+        catch (UnauthorizedAccessException)
+        {
+            status = 403;
+            return Results.StatusCode(403);
+        }
         finally
         {
             logger.LogInformation(new EventId(404), "Workshop audit {Action} {Outcome} {ResourceId} {IdentityId}", action, status, resource, identity);

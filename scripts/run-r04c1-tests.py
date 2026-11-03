@@ -470,7 +470,7 @@ COMMIT;
                 assert scalar(f'SELECT count(*)||\'|\'||coalesce(sum("Quantity"),0) FROM inventory.reservation_releases WHERE "ReservationId"=\'{authority_reservation}\'') == "1|0.250000", "missing/external authority must leave exactly the seeded receipt"
             print("PASS R04C1 SQL missing/external authority wrote no release ledger row", flush=True)
             forged = subprocess.run(query, input=f'''SET ROLE runtime_app; BEGIN; SELECT set_config('app.tenant_id','{ctx['tenantId']}',true);
-INSERT INTO inventory.reservation_releases SELECT '{uuid.uuid4()}',r."TenantId",r."Id",r."OrderId",r."LineId",r."WorkingGroupId",r."LegalEntityId",r."SiteId",r."WarehouseId",r."CatalogItemId",r."CatalogVersion",999,clock_timestamp(),'{uuid.uuid4()}' FROM inventory.reservations r WHERE r."Id"='{result['reservationId']}'; COMMIT;''', text=True, capture_output=True, timeout=30)
+{r00.verified_fixture_settings(query,fixture['adminMembershipId'])}INSERT INTO inventory.reservation_releases SELECT '{uuid.uuid4()}',r."TenantId",r."Id",r."OrderId",r."LineId",r."WorkingGroupId",r."LegalEntityId",r."SiteId",r."WarehouseId",r."CatalogItemId",r."CatalogVersion",999,clock_timestamp(),'{uuid.uuid4()}' FROM inventory.reservations r WHERE r."Id"='{result['reservationId']}'; COMMIT;''', text=True, capture_output=True, timeout=30)
             assert forged.returncode != 0, 'SQL must reject release exceeding original quantity / picked source; not application-only validation'
             print("PASS R04C1 SQL raw over-release/picked-source refusal", flush=True)
             print("PASS R04C1 real SQL original reservation, compensation/provenance and unchanged physical", flush=True)

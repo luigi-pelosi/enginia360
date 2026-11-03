@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Enginia360.Billing;
 
-internal sealed class BillingDbContext(DbContextOptions<BillingDbContext> options) : DbContext(options)
+internal sealed partial class BillingDbContext(DbContextOptions<BillingDbContext> options, Microsoft.AspNetCore.Http.IHttpContextAccessor accessor, Microsoft.Extensions.Configuration.IConfiguration configuration) : DbContext(options)
 {
     internal DbSet<BillingDocumentType> DocumentTypes => Set<BillingDocumentType>();
     internal DbSet<IssuerProfile> IssuerProfiles => Set<IssuerProfile>();

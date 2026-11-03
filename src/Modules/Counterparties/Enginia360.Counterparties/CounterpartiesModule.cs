@@ -27,8 +27,7 @@ public static class CounterpartiesModule
         {
             var grant = await access.Authorize(user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "", legalEntityId, "counterparties.read", ct);
             if (grant is null) return Results.StatusCode(403);
-            await using var tx = await db.Database.BeginTransactionAsync(ct);
-            await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.tenant_id', {grant.TenantId.ToString()}, true)", ct);
+            await using var tx = await db.BeginUserOperation(grant.TenantId, legalEntityId, ct);
             if (search is { Length: > 200 } || limit is < 1 or > 50) return Results.BadRequest();
             var rows = await db.Counterparties.AsNoTracking().Where(x => x.TenantId == grant.TenantId)
                 .Where(x => search == null || x.LegalName.Contains(search))
@@ -41,8 +40,7 @@ public static class CounterpartiesModule
         {
             var grant = await access.Authorize(user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "", legalEntityId, "counterparties.read", ct);
             if (grant is null) return Results.NotFound();
-            await using var tx = await db.Database.BeginTransactionAsync(ct);
-            await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.tenant_id', {grant.TenantId.ToString()}, true)", ct);
+            await using var tx = await db.BeginUserOperation(grant.TenantId, legalEntityId, ct);
             var row = await db.Counterparties.AsNoTracking().Where(x => x.Id == id).Select(x => new CounterpartyContract(x.Id, x.TenantId, x.LegalName, x.FiscalIdentifier, x.RegisteredOffice)).SingleOrDefaultAsync(ct);
             await tx.CommitAsync(ct);
             return row is null ? Results.NotFound() : Results.Ok(row);

@@ -8,12 +8,13 @@ public static class VehiclesModule
 {
     public static IServiceCollection AddWorkshopVehicles(this IServiceCollection services, string connection)
     {
+        services.AddHttpContextAccessor();
         services.AddDbContext<VehiclesDbContext>(o => o.UseNpgsql(connection));
         services.AddScoped<IWorkshopVehicles, WorkshopVehicles>();
         return services;
     }
 }
-internal sealed class VehiclesDbContext(DbContextOptions<VehiclesDbContext> options) : DbContext(options)
+internal sealed partial class VehiclesDbContext(DbContextOptions<VehiclesDbContext> options, Microsoft.AspNetCore.Http.IHttpContextAccessor accessor, Microsoft.Extensions.Configuration.IConfiguration configuration) : DbContext(options)
 {
     internal DbSet<Vehicle> Vehicles => Set<Vehicle>();
     protected override void OnModelCreating(ModelBuilder b) => b.Entity<Vehicle>().ToTable("vehicles", "vehicles").HasKey(x => x.Id);
@@ -30,7 +31,7 @@ internal sealed class WorkshopVehicles(VehiclesDbContext db) : IWorkshopVehicles
 {
     public async Task<IReadOnlyList<VehicleChoice>> List(Guid verifiedTenantId, CancellationToken ct, int? limit = null, string? search = null, Guid? after = null)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await using var tx = await db.BeginUserOperation(verifiedTenantId, ct);
         await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.tenant_id', {verifiedTenantId.ToString()}, true)", ct);
         var rows = await db.Vehicles.AsNoTracking().Where(x => x.TenantId == verifiedTenantId)
             .Where(x => search == null || x.Label.Contains(search))
@@ -41,7 +42,7 @@ internal sealed class WorkshopVehicles(VehiclesDbContext db) : IWorkshopVehicles
     }
     public async Task<SelectedVehicle?> Find(Guid verifiedTenantId, Guid vehicleId, CancellationToken ct)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await using var tx = await db.BeginUserOperation(verifiedTenantId, ct);
         await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.tenant_id', {verifiedTenantId.ToString()}, true)", ct);
         var row = await db.Vehicles.AsNoTracking().Where(x => x.TenantId == verifiedTenantId && x.Id == vehicleId)
             .Select(x => new SelectedVehicle(x.Id, x.HolderId)).SingleOrDefaultAsync(ct);
