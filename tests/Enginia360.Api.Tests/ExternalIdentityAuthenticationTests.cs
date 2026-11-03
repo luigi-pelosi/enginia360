@@ -23,6 +23,75 @@ public sealed class ExternalIdentityAuthenticationTests
     [RuntimePostgreSqlTheory]
     [InlineData(1)]
     [InlineData(4)]
+    public async Task Organization_commands_use_real_signed_bearer_current_authority_and_no_membership(int poolSize)
+    {
+        var identity = Guid.NewGuid(); var subject = "org-" + Guid.NewGuid().ToString("D");
+        await using var admin = NpgsqlDataSource.Create(Environment.GetEnvironmentVariable("R00_POOL_ADMIN_CONNECTION")!);
+        await using (var seed = admin.CreateCommand("""
+            INSERT INTO organization_access.external_identity_bindings VALUES (@id,@issuer,@subject);
+            INSERT INTO organization_access.platform_authority VALUES(true,@id,@issuer,@subject,true,1);
+            """))
+        {
+            seed.Parameters.AddWithValue("id", identity); seed.Parameters.AddWithValue("issuer", BindingApiFactory.Issuer);
+            seed.Parameters.AddWithValue("subject", subject); await seed.ExecuteNonQueryAsync();
+        }
+        try
+        {
+            using var factory = new BindingApiFactory(poolSize);
+            using var client = factory.CreateClient(new() { AllowAutoRedirect = false });
+            const string route = "/api/v1/platform/tenants";
+            client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(subject, Guid.NewGuid()));
+            var command = new { commandId = Guid.NewGuid().ToString("D"), operation = "create", kind = "tenant",
+                tenantId = (string?)null, resourceId = (string?)null, parentId = (string?)null,
+                name = "Signed bearer synthetic organization", expectedRevision = 0 };
+            var replies = await Task.WhenAll(Enumerable.Range(0, 4).Select(_ => client.PostAsJsonAsync(route, command)));
+            var values = new List<System.Text.Json.JsonElement>();
+            foreach (var reply in replies)
+            {
+                Assert.Equal(HttpStatusCode.OK, reply.StatusCode); Assert.True(reply.Headers.CacheControl?.NoStore);
+                values.Add(await reply.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>());
+            }
+            Assert.Single(values, v => v.GetProperty("state").GetString() == "applied");
+            Assert.Equal(3, values.Count(v => v.GetProperty("state").GetString() == "replayed"));
+            var snapshot = values[0].GetProperty("snapshot"); var id = snapshot.GetProperty("resourceId").GetGuid();
+            Assert.All(values, v => Assert.Equal(snapshot.ToString(), v.GetProperty("snapshot").ToString()));
+            var read = await client.GetAsync(route + "/" + id);
+            Assert.Equal(HttpStatusCode.OK, read.StatusCode); Assert.True(read.Headers.CacheControl?.NoStore);
+            Assert.Empty((await client.GetFromJsonAsync<OrganizationContextContract[]>("/api/v1/organization/contexts"))!);
+            await using (var verify = admin.CreateCommand("SELECT count(*) FROM organization_access.organization_commands WHERE \"CommandId\"=@id"))
+            {
+                verify.Parameters.AddWithValue("id", Guid.Parse(command.commandId)); Assert.Equal(1L, await verify.ExecuteScalarAsync());
+            }
+            await using (var revoke = admin.CreateCommand("UPDATE organization_access.platform_authority SET \"Active\"=false WHERE \"InternalIdentityId\"=@id"))
+            {
+                revoke.Parameters.AddWithValue("id", identity); await revoke.ExecuteNonQueryAsync();
+            }
+            Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsJsonAsync(route, command)).StatusCode);
+            Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync(route + "/" + id)).StatusCode);
+            client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(identity.ToString("D"), Guid.NewGuid()));
+            Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync(route)).StatusCode);
+        }
+        finally
+        {
+            // Append-only command/audit and synthetic organization remain in the ephemeral fixture only.
+            await using var cleanup = admin.CreateCommand("DELETE FROM organization_access.platform_authority WHERE \"InternalIdentityId\"=@id; DELETE FROM organization_access.external_identity_bindings WHERE \"InternalIdentityId\"=@id;");
+            cleanup.Parameters.AddWithValue("id", identity); await cleanup.ExecuteNonQueryAsync();
+        }
+    }
+
+    [Fact]
+    public async Task Anonymous_platform_metadata_is_no_store_even_without_browser_profile()
+    {
+        using var factory = new BindingApiFactory(1, unavailable: true);
+        using var client = factory.CreateClient(new() { AllowAutoRedirect = false });
+        var response = await client.GetAsync("/api/v1/platform/tenants");
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        Assert.True(response.Headers.CacheControl?.NoStore, "platform authentication refusal must be no-store");
+    }
+
+    [RuntimePostgreSqlTheory]
+    [InlineData(1)]
+    [InlineData(4)]
     public async Task Platform_authority_is_current_exact_and_membership_free_for_real_signed_bearer(int poolSize)
     {
         var identity = Guid.NewGuid();

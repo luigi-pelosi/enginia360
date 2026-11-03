@@ -113,6 +113,13 @@ app.Use(
     }
 );
 
+// Platform metadata is private even when authentication denies before endpoint execution.
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/api/v1/platform"))
+        context.Response.Headers.CacheControl = "no-store";
+    await next(context);
+});
 app.UseBrowserSessionTransport();
 app.UseAuthentication();
 app.UseBrowserSessionCsrf();

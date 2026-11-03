@@ -28,6 +28,8 @@ Risultato calcolato sul baseline R05.b.1: **26 migrazioni, 66 definizioni CREATE
 
 **Aggiornamento MVP-02.a:** migrazione append-only 0036, **36 migrazioni, 82 definizioni CREATE, 9 schemi**. `organization_access.platform_authority` (`authority_evidence`) e `organization_access.platform_authority_audit` (`security_evidence`) sono UNDECIDED / NO_LEGACY_IMPORT_APPROVED; le 80 definizioni precedenti restano identiche. Autorità owner-offline esplicita, non import, membership o onboarding operativo.
 
+**Aggiornamento MVP-02.b:** migrazione append-only 0037, **37 migrazioni, 83 definizioni CREATE, 9 schemi**. `organization_access.organization_commands` (`security_evidence`) conserva comando e risultato immutabile con audit minimizzato, UNDECIDED / NO_LEGACY_IMPORT_APPROVED. Le 82 definizioni precedenti restano identiche; le revisioni organizzative sono ALTER, non nuove definizioni CREATE. Nessun import, membership o permesso business implicito.
+
 Ogni voce registra:
 
 - `table`, `owner`: nome qualificato e modulo/schema proprietario osservato, non una nuova ownership di business;

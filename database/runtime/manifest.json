@@ -178,5 +178,10 @@
     "id": "0036_platform_authority",
     "path": "migrations/0036_platform_authority.sql",
     "sha256": "9ae1014ad1cc4680703958f65009fb73732536a055b6ac0e0c8daa3fd0d49be6"
+  },
+  {
+    "id": "0037_organization_administration",
+    "path": "migrations/0037_organization_administration.sql",
+    "sha256": "dc0066f2501768206fda4df00d91e8e697da8ca058d87279530d320e732d451c"
   }
 ]

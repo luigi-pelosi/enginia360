@@ -303,8 +303,26 @@ PLATFORM_WIRING = {'src/Enginia360.Api/OrganizationAccess/OrganizationAccessModu
     'docs/mvp01-frontend.md', 'docs/productization-plan.md', 'docs/r06-migration-inventory.json', 'docs/r06-migration-inventory.md'}
 
 
+ORGANIZATION_FILES = {
+    'src/Enginia360.Api/PlatformAdministration/OrganizationAdministration.cs',
+    'scripts/test-mvp02b-impact.py', 'scripts/test-mvp02b-organization.py',
+    'scripts/run-mvp02b-tests.py', 'tests/browser/mvp02b-organization.cjs',
+    'database/runtime/migrations/0037_organization_administration.sql',
+}
+ORGANIZATION_WIRING = PLATFORM_FILES | PLATFORM_WIRING | {'docs/mvp02b-organization-administration.md', 'src/Enginia360.Api/Program.cs'}
+
+
 def selection(paths):
     paths = sorted(set(paths))
+    if set(paths) & ORGANIZATION_FILES:
+        remaining = set(paths) - ORGANIZATION_FILES
+        finite = remaining <= ORGANIZATION_WIRING
+        if finite:
+            remaining -= ORGANIZATION_WIRING
+        result = selection(sorted(remaining | {'scripts/test-mvp02a-impact.py'}))
+        result.update(changed_paths=paths, organization_administration=True,
+                      platform_foundation_only=finite)
+        return result
     platform = bool(set(paths) & PLATFORM_FILES)
     if platform:
         remaining = set(paths) - PLATFORM_FILES
