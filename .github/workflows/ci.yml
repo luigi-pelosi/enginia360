@@ -265,6 +265,8 @@ jobs:
         run: printf 'TMPDIR=%s\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
       - name: Offline D96 authorization, backlog and impact guards (not runtime acceptance)
         run: python3 -I scripts/test-mvp-baseline.py && python3 -I scripts/test-mvp-impact.py
+      - name: Offline D97 delegated role and permission policy and mutation guards (not runtime acceptance)
+        run: python3 -I scripts/test-d97-policy.py && python3 -I scripts/test-d97-impact.py
   affected-r05a8-offline:
     needs: impact
     if: needs.impact.outputs.r05a8_offline == 'true'

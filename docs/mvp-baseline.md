@@ -24,9 +24,13 @@ Restano i confini già confermati delle identità anagrafiche condivise nel tena
 
 - Luigi Pelosi è SUPER ADMIN: crea e amministra tutti i tenant e le loro strutture organizzative.
 - Può delegare la gestione organizzativa di un singolo tenant a un soggetto già anagrafato in quel tenant.
-- Può delegare anche invito o abilitazione degli utenti e assegnazione di ruoli e permessi. Questa facoltà è distinta dalla delega organizzativa.
+- Può delegare anche invito o abilitazione degli utenti, assegnazione e creazione/modifica di ruoli e permessi (D97). Questa facoltà è distinta dalla delega organizzativa.
 - L'anagrafazione da sola non concede privilegi. La delega non concede accesso agli altri tenant, ruolo SUPER ADMIN o subdelega implicita.
-- Il perimetro dei ruoli assegnabili e l'eventuale abilitazione di ulteriori amministratori restano da precisare prima dell'implementazione interessata.
+- Creazione e modifica sono approvate in generale, non soltanto assegnazione di ruoli predefiniti dal proprietario; nessuna nomina amministrativa o promozione globale automatica. Il matching tecnico di grant azione/scope si definisce nel prossimo incremento, senza riaprire la decisione.
+
+<!-- d97-current:start -->
+D97: creare e modificare ruoli e permessi con audit immutabile e tracciabile obbligatorio, solo nel proprio tenant; gestione utenti distinta dalla delega organizzativa; nessun SUPER ADMIN, nessun potere cross-tenant o control-plane, nessuna subdelega o nomina implicita; non solo ruoli definiti dal proprietario; nessun runtime consegnato qui. [Decisione e contratto finito MVP03.b](mvp03b-user-administration.md), con interpretazione tecnica minima correggibile sulle azioni/scope eseguibili supportati, non un nuovo tetto ai ruoli.
+<!-- d97-current:end -->
 
 ## 3. Documenti e quantità: modello confermato
 
