@@ -344,7 +344,14 @@ async function lostResponse(page, urlPattern, label) {
     // Diagnostics only: visible text of every open synthetic page, never credentials.
     let n = 0;
     for (const context of browser.contexts()) for (const page of context.pages()) {
-      try { fs.writeFileSync('/run/control/failure-' + (++n) + '.txt', (await page.locator('body').innerText({ timeout: 3000 })).slice(0, 6000)); await page.screenshot({ path: '/run/control/failure-' + n + '.png' }); } catch { }
+      try {
+        const text = (await page.locator('body').innerText({ timeout: 3000 })).slice(0, 6000);
+        fs.writeFileSync('/run/control/failure-' + (++n) + '.txt', text);
+        console.error('R03C_SYNTHETIC_FAILURE_PAGE ' + JSON.stringify({ url: page.url(), text }));
+        if (orders.main && await panelOf(page).count())
+          console.error('R03C_SYNTHETIC_FAILURE_STATE ' + JSON.stringify({ state: await state(page, orders.main), actions: await actions(page, orders.main) }));
+        await page.screenshot({ path: '/run/control/failure-' + n + '.png' });
+      } catch { }
     }
     throw error;
   } finally { await browser.close(); }

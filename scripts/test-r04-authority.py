@@ -162,13 +162,15 @@ def claim_starts(text):
     # One-character replacements preserve offsets, unlike a general Unicode casefold.
     # The exhaustive case-closure regression checks these mappings against re.I.
     candidates = text.translate(_CLAIM_CASE)
-    starts = []
-    position = 0
-    while (candidate := _CLAIM_START.search(candidates, position)) is not None:
-        starts.append(candidate.start())
-        # Different prefixes may overlap (e.g. resID). Never skip another start.
-        position = candidate.start() + 1
-    return tuple(starts)
+    starts = set()
+    # Each finite literal uses the C literal finder; a large regex union still
+    # scans every character against every alternative on each CLI mutation.
+    for prefix in _CLAIM_START.pattern.split('|'):
+        position = 0
+        while (position := candidates.find(prefix, position)) != -1:
+            starts.add(position)
+            position += 1  # Preserve overlapping starts, including resID.
+    return tuple(sorted(starts))
 
 
 # Finite initial-letter buckets avoid trying every claim regex at unrelated
@@ -202,25 +204,58 @@ DOCUMENT_LITERAL_STARTS = {
     r'(?:richiesta tecnica locale)\s+(?:autorevole|alimenta carichi locali)': ('richiesta tecnica locale',),
     r'(?:tutti i clienti|all customers)\s+(?:devono usare|must use)\s+(?:l[’\x27])?ERP': ('tutti i clienti', 'all customers'),
     r'(?:setup coherence|coerenza setup)\s+(?:already enforced|già implementata)': ('setup coherence', 'coerenza setup'),
+    r'cap\s+per\s+comando\s+(?:consentito|approvato)': ('cap',),
+    r'(?:nuovo UUID|cambio fornitore|cambio magazzino)\s+azzera\s+il\s+cap': ('nuovo', 'cambio'),
+    r'same UUID\s+adds\s+(?:more|extra)\s+quantity': ('same',),
+    r'(?:ERP availability|reserved quantity)\s+automatically\s+reduces\s+the\s+cap': ('erp', 'reserved'),
+    r'(?:cancellation|receipt)\s+automatically\s+(?:replenishes|reopens)\s+capacity': ('cancellation', 'receipt'),
+    r'new purchase roles and provisioning\s+approved': ('new',),
+    r'vendor mapping policy\s+decided by D90': ('vendor',),
+    r'D90 cap runtime enforcement\s+delivered': ('d90',),
+    r'host-cost-only\s+policy\s+approved': ('host-cost-only',),
+    r'sales\s+UnitPrice\s+fallback\s+to\s+purchase\s+cost\s+allowed': ('sales',),
+    r'missing-price\s+provisional\s+zero\s+auto-dispatch\s+allowed': ('missing-price',),
+    r'admin\s+label\s+grants\s+implicit\s+pricing\s+rights': ('admin',),
+    r'frozen\s+purchase\s+intents\s+retroactively\s+repriced': ('frozen',),
+    r'prezzo\s+di\s+vendita\s+come\s+costo\s+consentito': ('prezzo',),
+    r'zero\s+provvisorio\s+inviato\s+automaticamente': ('zero',),
+    r'admin\s+concede\s+diritti\s+prezzi\s+impliciti': ('admin',),
+    r'purchasing\s+grants\s+full\s+price-list\s+browsing': ('purchasing',),
+    r'purchasing\s+grants\s+price\s+history\s+and\s+maintenance': ('purchasing',),
+    r'purchasing\s+automatically\s+grants\s+catalog[.]purchase-prices[.]read/manage': ('purchasing',),
+    r'arbitrary\s+tenant-wide\s+quote\s+lookup\s+allowed': ('arbitrary',),
+    r'bulk\s+quote\s+browsing\s+allowed': ('bulk',),
+    r'source\s+access\s+bypass\s+allowed': ('source',),
+    r'tenant\s+from\s+browser\s+trusted\s+for\s+quote': ('tenant',),
+    r'quote\s+runtime\s+delivered\s+by\s+D92': ('quote',),
+    r'runtime\s+starts\s+before\s+docs\s+merge': ('runtime',),
+    r'quote\s+requires\s+catalog[.]purchase-prices[.]read\s+in\s+addition\s+to\s+purchase\s+permission': ('quote',),
 }
-_DOCUMENT_START = re.compile('|'.join(re.escape(prefix) for prefixes in DOCUMENT_LITERAL_STARTS.values() for prefix in prefixes))
 
 
-@lru_cache(maxsize=4)
-def document_literal_starts(text):
-    normalized = text.translate(_CLAIM_CASE)
-    starts = {prefix: [] for prefixes in DOCUMENT_LITERAL_STARTS.values() for prefix in prefixes}
-    position = 0
-    while (candidate := _DOCUMENT_START.search(normalized, position)) is not None:
-        starts[candidate.group()].append(candidate.start())
-        position = candidate.start() + 1
+@lru_cache(maxsize=8)
+def normalized_candidates(text):
+    return text.translate(_CLAIM_CASE)
+
+
+@lru_cache(maxsize=64)
+def document_literal_starts(text, prefixes=None):
+    normalized = normalized_candidates(text)
+    if prefixes is None:
+        prefixes = tuple(dict.fromkeys(prefix for group in DOCUMENT_LITERAL_STARTS.values() for prefix in group))
+    starts = {prefix: [] for prefix in prefixes}
+    for prefix in starts:
+        position = 0
+        while (position := normalized.find(prefix, position)) != -1:
+            starts[prefix].append(position)
+            position += 1
     return starts
 
 
 def has_forbidden_claim(pattern, text):
     if pattern in DOCUMENT_LITERAL_STARTS:
         compiled = re.compile(pattern, re.I)
-        starts = document_literal_starts(text)
+        starts = document_literal_starts(text, DOCUMENT_LITERAL_STARTS[pattern])
         return any(compiled.match(text, position) is not None
                    for prefix in DOCUMENT_LITERAL_STARTS[pattern] for position in starts[prefix])
     if pattern in CLAIM_PATTERNS:
@@ -320,7 +355,7 @@ def validate_d90(docs):
         r'D90 cap runtime enforcement\s+delivered',
     )
     for pattern in forbidden:
-        if re.search(pattern, '\n'.join(scopes), re.I):
+        if has_forbidden_claim(pattern, '\n'.join(scopes)):
             raise ValueError('D90: contradictory cap, inferred lifecycle or expanded authority')
 
 
@@ -394,7 +429,7 @@ def validate_d91(docs):
         r'zero\s+provvisorio\s+inviato\s+automaticamente',
         r'admin\s+concede\s+diritti\s+prezzi\s+impliciti',
     )
-    if any(re.search(pattern, '\n'.join(scopes), re.I) for pattern in forbidden):
+    if any(has_forbidden_claim(pattern, '\n'.join(scopes)) for pattern in forbidden):
         raise ValueError('D91: contradictory pricing, missing-cost dispatch or implicit rights')
 
 
@@ -437,7 +472,7 @@ def validate_d92(docs):
         r'runtime\s+starts\s+before\s+docs\s+merge',
         r'quote\s+requires\s+catalog[.]purchase-prices[.]read\s+in\s+addition\s+to\s+purchase\s+permission',
     )
-    if any(re.search(pattern, '\n'.join(scopes), re.I) for pattern in forbidden):
+    if any(has_forbidden_claim(pattern, '\n'.join(scopes)) for pattern in forbidden):
         raise ValueError('D92: expanded quote authority, B prerequisite or false runtime claim')
 
 
@@ -1005,6 +1040,55 @@ class AuthorityTests(unittest.TestCase):
         buckets = claim_starts_by_initial(text)
         self.assertEqual(sorted(position for positions in buckets.values() for position in positions), list(claim_starts(text)))
         self.assertEqual(set(CLAIM_INITIALS), CLAIM_PATTERNS)
+
+    def test_default_partitions_execute_the_complete_inventory_once(self):
+        names, partitions = authority_test_partitions()
+        flattened = [name for group in partitions for name in group]
+        expected = sorted(name for name, value in AuthorityTests.__dict__.items()
+                          if name.startswith('test_') and callable(value))
+        self.assertEqual(len(partitions), 4)
+        self.assertEqual(sorted(flattened), expected)
+        self.assertEqual(names, expected)
+        self.assertEqual(len(flattened), len(set(flattened)))
+        self.assertTrue(all(partitions))
+
+    def test_scope_literal_candidates_preserve_every_original_regex_and_context(self):
+        import ast
+        import inspect
+        import textwrap
+        patterns = []
+        for function in (validate_d90, validate_d91, validate_d92):
+            tree = ast.parse(textwrap.dedent(inspect.getsource(function)))
+            patterns.extend(next(ast.literal_eval(node.value) for node in ast.walk(tree)
+                                 if isinstance(node, ast.Assign)
+                                 and any(isinstance(t, ast.Name) and t.id == 'forbidden' for t in node.targets)))
+        witnesses = (
+            'cap per comando approvato', 'cambio magazzino azzera il cap',
+            'same UUID adds extra quantity', 'reserved quantity automatically reduces the cap',
+            'receipt automatically reopens capacity', 'new purchase roles and provisioning approved',
+            'vendor mapping policy decided by D90', 'D90 cap runtime enforcement delivered',
+            'host-cost-only policy approved', 'sales UnitPrice fallback to purchase cost allowed',
+            'missing-price provisional zero auto-dispatch allowed', 'admin label grants implicit pricing rights',
+            'frozen purchase intents retroactively repriced', 'prezzo di vendita come costo consentito',
+            'zero provvisorio inviato automaticamente', 'admin concede diritti prezzi impliciti',
+            'purchasing grants full price-list browsing', 'purchasing grants price history and maintenance',
+            'purchasing automatically grants catalog.purchase-prices.read/manage',
+            'arbitrary tenant-wide quote lookup allowed', 'bulk quote browsing allowed',
+            'source access bypass allowed', 'tenant from browser trusted for quote',
+            'quote runtime delivered by D92', 'runtime starts before docs merge',
+            'quote requires catalog.purchase-prices.read in addition to purchase permission',
+        )
+        self.assertEqual(len(patterns), 26)
+        self.assertEqual(len(patterns), len(witnesses))
+        for pattern, witness in zip(patterns, witnesses, strict=True):
+            self.assertIn(pattern, DOCUMENT_LITERAL_STARTS)
+            self.assertIsNotNone(re.search(pattern, witness, re.I), pattern)
+            for value in (witness, witness.upper(), 'x\n'+witness+' tail',
+                          witness.replace('i', 'İ').replace('s', 'ſ').replace('k', 'K'),
+                          witness.replace(' ', '\n'), witness.replace(' ', '_'), '',
+                          'policy boundary retained, no promotion'):
+                with self.subTest(pattern=pattern, value=value):
+                    self.assertEqual(has_forbidden_claim(pattern, value), re.search(pattern, value, re.I) is not None)
 
     def test_document_promotion_guards_share_literal_candidates_without_full_scans(self):
         from unittest.mock import patch
@@ -1788,6 +1872,35 @@ class AuthorityTests(unittest.TestCase):
                     self.assertNotIn('Traceback', result.stderr)
 
 
+def authority_test_partitions():
+    names = unittest.defaultTestLoader.getTestCaseNames(AuthorityTests)
+    partitions = tuple(tuple(names[index::4]) for index in range(4))
+    flattened = [name for group in partitions for name in group]
+    assert len(flattened) == len(set(flattened)) == len(names)
+    assert sorted(flattened) == names
+    return names, partitions
+
+
+def run_authority_partitions():
+    # Pure documentary mutations own distinct TemporaryDirectory instances.
+    # Separate interpreters isolate unittest.mock patches; every original CLI
+    # invocation/test body runs unchanged, within the same outer CI deadline.
+    names, partitions = authority_test_partitions()
+    processes = [subprocess.Popen([sys.executable, '-I', str(Path(__file__).resolve()),
+                                  *('AuthorityTests.' + name for name in group)],
+                                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+                 for group in partitions]
+    success = True
+    for index, (group, process) in enumerate(zip(partitions, processes, strict=True)):
+        output = process.communicate()[0]
+        print('AUTHORITY_PARTITION ' + json.dumps({'index': index, 'tests': list(group), 'exit': process.returncode}), flush=True)
+        print(output, end='', flush=True)
+        counts = re.findall(r'Ran (\d+) tests? in ', output)
+        success = success and process.returncode == 0 and counts == [str(len(group))] and 'skipped=' not in output
+    print(('PASS' if success else 'FAIL') + ' authority exhaustive disjoint partitions: ' + str(len(names)) + ' tests; original deadline unchanged.', flush=True)
+    return 0 if success else 1
+
+
 if __name__ == '__main__':
     if '--check' in sys.argv:
         parser = argparse.ArgumentParser(description=__doc__)
@@ -1800,5 +1913,7 @@ if __name__ == '__main__':
             print('documentary authority refused: '+str(error), file=sys.stderr)
             sys.exit(2)
         print('Documentary authority coherent; not product setup enforcement; no ERP contract/delivery proved.')
+    elif len(sys.argv) == 1:
+        sys.exit(run_authority_partitions())
     else:
         unittest.main()

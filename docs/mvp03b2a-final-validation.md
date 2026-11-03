@@ -111,8 +111,26 @@ RED. Final remote runners execute the current SQL inventory including that case.
   original regex/flags/full context and all44 original test bodies are preserved;
   added differential Unicode/positive/negative/unknown-pattern and scan/bucket
   regressions pass. No deadline is increased. Local180-second full-suite attempts
-  remain nonpasses; the complete final47-test suite must execute in the unchanged
-  remote budget before acceptance.
+  remain nonpasses. A later exact-head PR passed47 tests in145.871s, but its
+  corresponding dispatch again exceeded the3-minute job budget: that canceled
+  job is not accepted. Further actual-validator profiling identified remaining
+  D90–D92 scope-wide searches and regex-union candidate scans. Finite literal
+  finders now feed the unchanged regexes/flags against untouched full contexts;
+  new positive/negative/Unicode scope comparisons cover all26 such patterns.
+  All47 prior test bodies and every original forbidden-regex tuple remain
+  unchanged. The default full49-test command executes four finite disjoint,
+  exhaustive process-isolated documentary partitions (including an inventory
+  regression), retaining every real CLI mutation and original180-second outer
+  deadline. That complete local command passed; final remote acceptance still
+  requires every partition/count and all selected job steps within the unchanged
+ 3-minute job budget. No check or deadline is waived.
+- A final-head dispatch closure pool4 browser snapshot-visibility wait timed out
+  while the same production/fixture passed the complete bounded local browser
+  consumer. This intermittent remote failure is retained, not assigned an
+  invented root cause. A targeted instrumented complete pool4 run also passed;
+  failed synthetic DOM/state diagnostics now reach the durable job log as well
+  as screenshots. No closure assertion, refresh behavior or deadline changed;
+  complete pool4/pool1 and lifecycle must pass on the final exact head.
 - A local binding run reached its unchanged330-second browser deadline after
   historical hold and both A/B recovery paths passed; it remains a nonpass,
   not a new behavioral failure claim. The final dispatched binding job must
