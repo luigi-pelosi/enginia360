@@ -43,6 +43,10 @@ Next pool1 expanded proof retains delegated noJS HTML, mobile screenshot and six
 - A local SDK test probe log31 exited during restore without a diagnostic beyond workload verification. It is not test/build/audit acceptance. API production image builds succeeded in actual runtime runners; remote affected API tests/audits still required.
 - Generic web extraction backend could not fetch pages; primary-source search and GitHub advisory APIs used instead. No dependency upgrade or blanket vulnerability clearance inferred.
 
-## Remaining delivery
+## Remote milestone and final regression follow-up
 
-Commit/push and PR, exact-head automatic affected jobs, exact-head targeted dispatch `full_architecture=false`, download and inspect every selected artifact and executed step, fresh head/tree and clean-worktree readback. No operational readiness claim, deployment, real identity/data, secrets committed, provider/ERP writes, persistent environment or protected service/storage changes. #142 remains open for distinct user administration/assignability policy.
+Candidate `26536f03161ddc737d5172b896d5bd3c993019cd` / tree `fcbdc1bcfd11d9bd6cbdbe99f93104fe43379bca` was pushed as PR #159. PR run `41605747472` completed all5 selected jobs /52 executed successful steps; targeted dispatch `41605747162` completed all10 selected jobs /92 successful steps. All4 exact-head artifact ZIPs were downloaded, their digests matched against GitHub, and actual SQL/pool/browser/noJS/layout/hardening contents inspected. Fast API:61 passed,5 opt-in skipped; actual foundation runtime:20 passed,0 skipped, including the real signed-bearer consumers. No skip was counted as runtime acceptance.
+
+Final review added only two passing-first SQL regressions against unchanged production: an exact valid owner self-membership and an existing foreign tenant are refused; both audit-insert and deferred-commit failures on revoke preserve the active grant, revision and single prior history row. `32-supplemental-sql-regressions.log` executes the complete37-test SQL suite successfully. These are supplementary regressions, not retroactive RED. This small test/checkpoint follow-up requires fresh exact-head PR and targeted acceptance, not reuse of the earlier head's green status.
+
+Parent alone performs guarded merge and issue/Project changes. No operational readiness claim, deployment, real identity/data, secrets committed, provider/ERP writes, persistent environment or protected service/storage changes. #142 remains open for distinct user administration/assignability policy.

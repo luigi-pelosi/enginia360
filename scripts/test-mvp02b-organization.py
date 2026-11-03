@@ -402,6 +402,30 @@ class OrganizationTests(base.AuthorityTests):
   self.delegation_command(dict(p,commandId=str(uuid.uuid4()),operation='revoke',expectedRevision=1))
   self.actor=self.delegate
   self.assertEqual(self.app_result('SELECT organization_access.read_organization_workspace()'),dict(state='forbidden'))
+ def test_delegation_denies_real_self_membership_and_existing_cross_target(self):
+  self.prepare_delegate();p=self.delegation_payload();foreign=self.create_tenant()
+  self.assertEqual(self.delegation_command(p,foreign),dict(state='forbidden'),'existing foreign tenant cannot receive another tenant membership')
+  own_member=str(uuid.uuid4());owner_id=self.actor['internalIdentityId']
+  self.sql(f'''INSERT INTO organization_access.memberships VALUES('{own_member}','{self.tenant}','{owner_id}')''')
+  row=next(m for m in self.delegation_read(self.tenant)['memberships'] if m['membershipId']==own_member)
+  own=dict(p,membershipId=own_member,internalIdentityId=owner_id,bindingHash=row['bindingHash'])
+  self.assertEqual(self.delegation_command(own),dict(state='forbidden'),'exact trusted owner membership cannot self-grant')
+  self.assertEqual(self.sql('SELECT count(*) FROM organization_access.organization_delegation_commands'),'0')
+ def test_revoke_audit_insert_and_deferred_failure_keep_active_grant_and_revision(self):
+  self.prepare_delegate();p=self.delegation_payload();self.delegation_command(p)
+  self.sql("CREATE FUNCTION organization_access.fixture_revoke_fail() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'synthetic revoke audit refusal'; END $$;")
+  for timing in ('BEFORE','DEFERRED'):
+   statement='CREATE TRIGGER fixture_revoke_fail BEFORE INSERT' if timing=='BEFORE' else 'CREATE CONSTRAINT TRIGGER fixture_revoke_fail AFTER INSERT'
+   statement+=' ON organization_access.organization_delegation_commands '+('DEFERRABLE INITIALLY DEFERRED ' if timing=='DEFERRED' else '')+'FOR EACH ROW EXECUTE FUNCTION organization_access.fixture_revoke_fail();'
+   self.sql(statement)
+   revoke=dict(p,commandId=str(uuid.uuid4()),operation='revoke',expectedRevision=1)
+   env=dict(os.environ,PGDATABASE=self.database,PGUSER=os.environ['R00_APP_USER'],PGPASSWORD=os.environ['R00_APP_PASSWORD'])
+   result=subprocess.run(['psql','-X','-qAt','-v','ON_ERROR_STOP=1'],input='BEGIN;'+self.delegation_statement(revoke)+'COMMIT;',env=env,text=True,capture_output=True,timeout=20)
+   self.assertNotEqual(result.returncode,0);self.assertIn('synthetic revoke audit refusal',result.stderr)
+   row=self.delegation_read(self.tenant)['memberships'][0];self.assertTrue(row['active']);self.assertEqual(row['revision'],1)
+   self.assertEqual(self.sql('SELECT count(*) FROM organization_access.organization_delegation_commands'),'1')
+   self.sql('DROP TRIGGER fixture_revoke_fail ON organization_access.organization_delegation_commands')
+  self.assertEqual(self.delegation_command(dict(p,commandId=str(uuid.uuid4()),operation='revoke',expectedRevision=1))['state'],'applied')
 class FixtureTests(unittest.TestCase):
  def test_nonroot_fixture_extension_and_repeated_owner_input_remain_readonly(self):
   import tempfile
