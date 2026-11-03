@@ -94,6 +94,21 @@ RED. Final remote runners execute the current SQL inventory including that case.
   cardinalities, single-backend context reset and ledger/escalation refusals.
   No production access rule or timeout changed. The final head requires fresh
   PR and full selected dispatch success; old-head success is not substituted.
+- The second PR run exceeded the existing3-minute R06 offline job budget:
+  its44 authority tests reported OK after178.747s, but that canceled job is not
+  a pass. Profiling the real validator found remaining full-document promotion
+  regex scans and matching unrelated ID candidate starts against every claim.
+  The finite candidate index now includes those exact promotion patterns and
+  buckets the unchanged claim candidates by their proven initial letters. Every
+  original regex/flags/full context and all44 original test bodies are preserved;
+  added differential Unicode/positive/negative/unknown-pattern and scan/bucket
+  regressions pass. No deadline is increased. Local180-second full-suite attempts
+  remain nonpasses; the complete final47-test suite must execute in the unchanged
+  remote budget before acceptance.
+- A local binding run reached its unchanged330-second browser deadline after
+  historical hold and both A/B recovery paths passed; it remains a nonpass,
+  not a new behavioral failure claim. The final dispatched binding job must
+  actually execute complete pool4/pool1, proof-gap and lifecycle steps.
 - Owner Docker restart3 November2026 16:11UTC is the accepted protected baseline,
   not investigated as an incident. Protected IDs/start/mount/ports and Tailscale
  443→localhost:9119 remain separately verified. Unrelated resources are not cleaned.

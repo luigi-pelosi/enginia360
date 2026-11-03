@@ -171,10 +171,63 @@ def claim_starts(text):
     return tuple(starts)
 
 
+# Finite initial-letter buckets avoid trying every claim regex at unrelated
+# candidate prefixes (especially the frequent ID start). All original candidates
+# remain indexed, and every original regex still matches the untouched text.
+CLAIM_INITIALS = {
+    **dict(zip(D85_FORBIDDEN, ('ceis', 'fi', 'el', 'r', 'r', 'a', 'r', 'p', 'o'), strict=True)),
+    **dict(zip(D87_FORBIDDEN, ('rac', 'r', 'c', 'oi', 'd', 'm', 'vp', 'm', 'm', 'ldm', 'e', 'r'), strict=True)),
+    **dict(zip(D88_FORBIDDEN, ('rp', 'c', 'ws', 'el', 'i', 'vs', 'a', 's', 'p'), strict=True)),
+}
+assert set(CLAIM_INITIALS) == CLAIM_PATTERNS
+
+
+@lru_cache(maxsize=8)
+def claim_starts_by_initial(text):
+    buckets = {}
+    for position in claim_starts(text):
+        buckets.setdefault(text[position].translate(_CLAIM_CASE), []).append(position)
+    return buckets
+
+
+# The remaining document-wide promotion guards also need literal candidates.
+# Keep original regexes/flags/context; this is not a new policy or an allowlist.
+DOCUMENT_LITERAL_STARTS = {
+    r'operational_ready\s*=\s*true': ('operational_ready',),
+    r'full_architecture\s*=\s*true\s+for each increment': ('full_architecture',),
+    r'OPE01[–-]OPE05\s+(?:WAIVED|PASSED|SATISFIED|CLOSED)': ('ope01',),
+    r'R04[.]b(?:[.]1)?\s+(?:DELIVERED|COMPLETE|CONSEGNAT[AO]|IMPLEMENTAT[AO])': ('r04',),
+    r'(?:stock locale|local stock)\s*\+\s*(?:acquisti ERP|ERP purchasing)\s+(?:valido|allowed)': ('stock locale', 'local stock'),
+    r'(?:fallback locale|local fallback)\s+(?:consentito|allowed|automatico)': ('fallback locale', 'local fallback'),
+    r'(?:richiesta tecnica locale)\s+(?:autorevole|alimenta carichi locali)': ('richiesta tecnica locale',),
+    r'(?:tutti i clienti|all customers)\s+(?:devono usare|must use)\s+(?:l[’\x27])?ERP': ('tutti i clienti', 'all customers'),
+    r'(?:setup coherence|coerenza setup)\s+(?:already enforced|già implementata)': ('setup coherence', 'coerenza setup'),
+}
+_DOCUMENT_START = re.compile('|'.join(re.escape(prefix) for prefixes in DOCUMENT_LITERAL_STARTS.values() for prefix in prefixes))
+
+
+@lru_cache(maxsize=4)
+def document_literal_starts(text):
+    normalized = text.translate(_CLAIM_CASE)
+    starts = {prefix: [] for prefixes in DOCUMENT_LITERAL_STARTS.values() for prefix in prefixes}
+    position = 0
+    while (candidate := _DOCUMENT_START.search(normalized, position)) is not None:
+        starts[candidate.group()].append(candidate.start())
+        position = candidate.start() + 1
+    return starts
+
+
 def has_forbidden_claim(pattern, text):
+    if pattern in DOCUMENT_LITERAL_STARTS:
+        compiled = re.compile(pattern, re.I)
+        starts = document_literal_starts(text)
+        return any(compiled.match(text, position) is not None
+                   for prefix in DOCUMENT_LITERAL_STARTS[pattern] for position in starts[prefix])
     if pattern in CLAIM_PATTERNS:
         compiled = re.compile(pattern, re.I)
-        return any(compiled.match(text, position) is not None for position in claim_starts(text))
+        buckets = claim_starts_by_initial(text)
+        return any(compiled.match(text, position) is not None
+                   for initial in CLAIM_INITIALS[pattern] for position in buckets.get(initial, ()))
     # Unknown patterns retain the original search path; mapping is never an allowlist.
     # Leading lookbehind prevents the regex engine's literal-prefix acceleration.
     # Retain each original regex and its full context; only enumerate possible starts.
@@ -501,7 +554,7 @@ def validate(root):
     for pattern in (r'operational_ready\s*=\s*true',
                     r'full_architecture\s*=\s*true\s+for each increment',
                     r'OPE01[–-]OPE05\s+(?:WAIVED|PASSED|SATISFIED|CLOSED)'):
-        if re.search(pattern, priority_scope, re.I):
+        if has_forbidden_claim(pattern, priority_scope):
             raise ValueError('delivery priority: deferral is not readiness/waiver or routine full architecture')
     sequence = 'functional-completion -> final-explicit-full-architecture -> operational-exercise-later'
     for path in ('AGENTS.md', GLOSSARY, PLAN, RUNBOOK, BACKLOG):
@@ -946,6 +999,35 @@ class AuthorityTests(unittest.TestCase):
                     self.assertEqual(result.returncode, 2, result.stdout+result.stderr)
                     self.assertIn('D95', result.stderr)
                     self.assertNotIn('Traceback', result.stderr)
+
+    def test_initial_buckets_retain_all_original_candidate_positions(self):
+        text = 'Enginia360 resID R06 İD ſupplier LOCAL Stock Fattura creazione invoice'
+        buckets = claim_starts_by_initial(text)
+        self.assertEqual(sorted(position for positions in buckets.values() for position in positions), list(claim_starts(text)))
+        self.assertEqual(set(CLAIM_INITIALS), CLAIM_PATTERNS)
+
+    def test_document_promotion_guards_share_literal_candidates_without_full_scans(self):
+        from unittest.mock import patch
+        with patch.object(re, 'search', wraps=re.search) as search:
+            validate(ROOT)
+        self.assertEqual([call for call in search.call_args_list
+                          if call.args[0] in DOCUMENT_LITERAL_STARTS and len(call.args[1]) > 50000], [])
+
+    def test_document_literal_candidates_preserve_original_regex_semantics(self):
+        witnesses = ('operational_ready = true', 'full_architecture=true for each increment',
+                     'OPE01–OPE05 PASSED', 'R04.b.1 DELIVERED', 'stock locale + acquisti ERP valido',
+                     'local stock + ERP purchasing allowed', 'fallback locale consentito',
+                     'local fallback automatico', 'richiesta tecnica locale autorevole',
+                     'tutti i clienti devono usare l’ERP', 'all customers must use ERP',
+                     'setup coherence already enforced', 'coerenza setup già implementata')
+        for pattern in DOCUMENT_LITERAL_STARTS:
+            for witness in witnesses:
+                for value in (witness, witness.upper(), 'prefix '+witness+' suffix',
+                              witness.replace('i', 'İ').replace('s', 'ſ'), witness+'!', '',
+                              witness.replace(' ', '\n'), 'not a document promotion'):
+                    with self.subTest(pattern=pattern, value=value):
+                        self.assertEqual(has_forbidden_claim(pattern, value), re.search(pattern, value, re.I) is not None)
+        self.assertEqual(has_forbidden_claim(r'unknown\s+pattern', 'Unknown pattern'), True)
 
     def test_candidate_case_map_matches_unicode_regex_ascii_letter_closure(self):
         ascii_letter = re.compile('[a-z]', re.I)
