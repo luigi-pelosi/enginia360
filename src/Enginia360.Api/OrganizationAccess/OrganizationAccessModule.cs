@@ -330,13 +330,17 @@ public sealed partial class OrganizationContextService(OrganizationAccessDbConte
         )
             .AsNoTracking()
             .Distinct()
-            .OrderBy(context => context.TenantName)
-            .ThenBy(context => context.LegalEntityName)
-            .ThenBy(context => context.SiteName)
-            .ThenBy(context => context.WarehouseName)
             .ToListAsync(c);
         await tx.CommitAsync(c);
-        return result;
+        // The positional record projection has no translatable member binding
+        // for EF ordering. Authorization and duplicate removal remain SQL-side;
+        // order only the already-authorized materialized contracts.
+        return result
+            .OrderBy(context => context.TenantName, StringComparer.Ordinal)
+            .ThenBy(context => context.LegalEntityName, StringComparer.Ordinal)
+            .ThenBy(context => context.SiteName, StringComparer.Ordinal)
+            .ThenBy(context => context.WarehouseName, StringComparer.Ordinal)
+            .ToArray();
     }
 
     public async Task<CreateContextNoteResult> CreateNote(
