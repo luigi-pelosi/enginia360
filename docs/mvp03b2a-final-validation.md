@@ -84,7 +84,17 @@ RED. Final remote runners execute the current SQL inventory including that case.
   context required by FORCE RLS; after supplying actor+tenant, the positive grant,
   disable/refusal-before-replay and owner re-enable/historical replay all pass.
   The setup failure and original own-time failure remain preserved nonpasses.
-- Docker owner's3 November2026 restart16:11UTC is the accepted protected baseline,
+- First remote dispatch retained two setup/fixture failures, not runtime passes:
+  the new membership job's shallow checkout lacked the exact published baseline
+  object for the byte comparison (after18 SQL/76 API tests had passed); that
+  job now fetches history, with a dedicated guard. Restore's real post-restore
+  RLS probe supplied tenant/own-actor but omitted the new mandatory exact
+  verified tuple. It now derives each exact existing synthetic binding, adds
+  a separate tenant-without-identity denial, and retains original tenant/own-time
+  cardinalities, single-backend context reset and ledger/escalation refusals.
+  No production access rule or timeout changed. The final head requires fresh
+  PR and full selected dispatch success; old-head success is not substituted.
+- Owner Docker restart3 November2026 16:11UTC is the accepted protected baseline,
   not investigated as an incident. Protected IDs/start/mount/ports and Tailscale
  443→localhost:9119 remain separately verified. Unrelated resources are not cleaned.
 

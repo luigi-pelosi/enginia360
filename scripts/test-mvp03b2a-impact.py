@@ -7,6 +7,12 @@ ROOT=Path(__file__).resolve().parents[1]
 spec=importlib.util.spec_from_file_location('impact',ROOT/'scripts/select-ci-impact.py')
 m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
 class MembershipImpactTests(unittest.TestCase):
+ def test_published_byte_proof_checkout_has_the_exact_baseline_history(self):
+  workflow=(ROOT/'.github/workflows/ci.yml').read_text()
+  job=workflow.split('  affected-membership-access:',1)[1].split('  affected-tenant-roles:',1)[0]
+  self.assertIn('ref: ${{ github.sha }}',job)
+  self.assertIn('fetch-depth: 0',job,'published-byte comparison needs the exact historical base, not a shallow head-only checkout')
+  self.assertIn("2bad821b46b29d5ebb0556461f0eb3b3a61df280:database/runtime/manifest.json",(ROOT/'scripts/run-mvp03b2a-tests.py').read_text())
  def test_finite_membership_files_select_actual_owning_acceptance(self):
   for path in (
    'database/runtime/migrations/0040_membership_access.sql',

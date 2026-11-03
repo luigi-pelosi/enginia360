@@ -454,25 +454,30 @@ def rls_checks(rig):
         'own_admin': sql(rig, f'SELECT count(*) FROM workshop.own_actual_time_entries WHERE "TenantId"=\'{a}\' AND "MembershipId"=\'{admin}\''),
         'own_other': sql(rig, f'SELECT count(*) FROM workshop.own_actual_time_entries WHERE "TenantId"=\'{a}\' AND "MembershipId"=\'{other}\'')}
     assert int(expected['orders_a']) > 0 and int(expected['orders_f']) > 0 and expected['own_admin'] == '1' and expected['own_other'] == '1'
-    def tx(tenant=None, actor=None, query='SELECT 1'):
+    foreign_members = json.loads(sql(rig, f"SELECT json_agg(\"Id\") FROM organization_access.memberships WHERE \"TenantId\"='{f}'"))
+    assert len(foreign_members) == 1, 'exact synthetic foreign membership required'
+    def tx(tenant=None, actor=None, query='SELECT 1', verified=True):
         body = 'BEGIN;'
         if tenant:
             body += f"SELECT set_config('app.tenant_id','{tenant}',true);"
+            if verified:
+                member = actor or (admin if tenant == a else foreign_members[0])
+                body += r00.verified_fixture_settings(rig.query, member)
         if actor:
             body += f"SELECT set_config('app.workshop_actor_membership_id','{actor}',true);"
         return body + f'SELECT {query};COMMIT;\n'
     orders, own = 'count(*) FROM workshop.orders', 'count(*) FROM workshop.own_actual_time_entries'
     # One physical backend, as with a pool of size 1: context must reset at every commit.
-    steps = [('role', None, None, None), ('noctx_orders', None, None, orders), ('a_orders', a, None, orders), ('after_commit_orders', None, None, orders),
+    steps = [('role', None, None, None), ('noctx_orders', None, None, orders), ('a_noidentity_orders', a, None, orders), ('a_orders', a, None, orders), ('after_commit_orders', None, None, orders),
              ('f_orders', f, None, orders), ('a_own_admin', a, admin, own), ('a_own_other', a, other, own), ('a_own_noactor', a, None, own),
              ('f_own_admin', f, admin, own), ('after_own', None, None, own)]
     script = "SELECT 'role='||current_user||'|super='||rolsuper||'|bypass='||rolbypassrls FROM pg_roles WHERE rolname=current_user;\n"
     for label, tenant, actor, query in steps[1:]:
-        script += tx(tenant, actor, f"'{label}='||(SELECT {query})") if tenant else f"SELECT '{label}='||(SELECT {query});\n"
+        script += tx(tenant, actor, f"'{label}='||(SELECT {query})", verified=label != 'a_noidentity_orders') if tenant else f"SELECT '{label}='||(SELECT {query});\n"
     result = run(rig.command + ['exec', '-T', 'postgres', 'psql', '-X', '-qAt', '-U', 'runtime_app', '-d', 'runtime', '-v', 'ON_ERROR_STOP=1'], input=script)
     values = dict(line.split('=', 1) for line in result.splitlines() if '=' in line and not line.startswith('role='))
     assert result.splitlines()[0] == 'role=runtime_app|super=false|bypass=false', result.splitlines()[0]
-    assert values['noctx_orders'] == '0' and values['after_commit_orders'] == '0' and values['after_own'] == '0', values
+    assert values['noctx_orders'] == '0' and values['a_noidentity_orders'] == '0' and values['after_commit_orders'] == '0' and values['after_own'] == '0', values
     assert values['a_orders'] == expected['orders_a'] and values['f_orders'] == expected['orders_f'], values
     assert values['a_own_admin'] == '1' and values['a_own_other'] == '1' and values['a_own_noactor'] == '0' and values['f_own_admin'] == '0', values
     for forbidden in ('INSERT INTO runtime_migrations.applied VALUES (\'x\',repeat(\'a\',64))', 'UPDATE runtime_migrations.applied SET checksum=checksum',
