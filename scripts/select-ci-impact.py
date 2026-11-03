@@ -312,8 +312,11 @@ def selection(paths):
             remaining -= PLATFORM_WIRING
         result = selection(sorted(remaining))
         result.update(changed_paths=paths, platform_authority=True, browser=True, migrations=True,
-                      r06_offline=True, mvp_offline=True,
+                      mvp_offline=True,
                       platform_foundation_only=set(paths) <= PLATFORM_FILES | PLATFORM_WIRING)
+        if result['platform_foundation_only']:
+            # Dedicated inventory/readiness checks replace no unrelated ERP policy suite.
+            result['r06_offline'] = False
         if not result['api_filter']:
             result['api_filter'] = AUTH_FILTER
         return result

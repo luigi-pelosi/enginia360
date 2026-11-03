@@ -119,6 +119,17 @@ jobs:
           fi
           python3 scripts/select-ci-impact.py --base "$BASE_SHA" --head "$HEAD_SHA" > "$RUNNER_TEMP/impact.json"
           python3 -c 'import json,os; d=json.load(open(os.environ["RUNNER_TEMP"]+"/impact.json")); print(json.dumps(d,indent=2)); f=open(os.environ["GITHUB_OUTPUT"],"a"); [f.write(k+"="+(str(v).lower() if isinstance(v,bool) else v)+"\n") for k,v in d.items() if k!="changed_paths"]; f.close(); open(os.environ["GITHUB_STEP_SUMMARY"],"a").write("## Exact change-impact selection\n```json\n"+json.dumps(d,indent=2)+"\n```\nRuntime jobs run only on explicit dispatch; skipped runtime is not acceptance evidence.\n")'
+  affected-platform-offline:
+    needs: impact
+    if: needs.impact.outputs.platform_authority == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Initialize private platform inventory scratch
+        run: printf 'TMPDIR=%s\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+      - name: Direct inventory and conserved OPEN readiness contracts
+        run: python3 -I scripts/test-c00-consistency.py && python3 -I scripts/test-productization-consistency.py && python3 -I scripts/test-r06-inventory.py && python3 -I scripts/r06_inventory.py && python3 -I scripts/test-r06-readiness.py && python3 -I scripts/r06_readiness.py
   affected-platform-authority:
     needs: impact
     if: github.event_name == 'workflow_dispatch' && needs.impact.outputs.platform_authority == 'true'
@@ -132,6 +143,8 @@ jobs:
         run: |
           printf 'TMPDIR=%s\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
           mkdir -p "$RUNNER_TEMP/mvp02a"
+      - name: Nonroot authority fixture extension restores readonly mounts
+        run: docker run --rm --user 1001:1001 --read-only --cap-drop=ALL --security-opt=no-new-privileges:true --network none --memory=128m --pids-limit=32 --tmpfs /scratch:rw,noexec,nosuid,size=16m,uid=1001,gid=1001 -e TMPDIR=/scratch -v "$PWD:/source:ro" -w /source python:3.14.3-alpine3.23@sha256:faee120f7885a06fcc9677922331391fa690d911c020abb9e8025ff3d908e510 python3 -I scripts/test-mvp02a-authority.py FixtureTests -v
       - name: Existing fixture-free foundation SQL RLS and physical pool regressions
         shell: bash
         run: R00_MIGRATION_SUITE=foundation timeout 600 sh scripts/run-r00a-tests.sh 2>&1 | tee "$RUNNER_TEMP/mvp02a/foundation.log"

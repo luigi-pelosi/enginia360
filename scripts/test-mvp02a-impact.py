@@ -39,6 +39,16 @@ class ImpactTests(unittest.TestCase):
         self.assertIn('R00_MIGRATION_SUITE=foundation', job)
         self.assertIn('scripts/test-mvp02a-impact.py', workflow)
 
+    def test_finite_offline_scope_runs_inventory_without_unrelated_erp_guards(self):
+        result = m.selection(sorted(FILES | {'docs/r06-migration-inventory.json'}))
+        self.assertFalse(result['r06_offline'])
+        workflow = (ROOT / '.github/workflows/ci.yml').read_text()
+        self.assertIn('  affected-platform-offline:', workflow)
+        job = workflow.split('  affected-platform-offline:', 1)[1].split('\n  affected-', 1)[0]
+        self.assertIn('scripts/test-r06-inventory.py', job)
+        self.assertIn('scripts/test-r06-readiness.py', job)
+        self.assertNotIn('scripts/test-r04-authority.py', job)
+
     def test_unknown_authority_producer_denied(self):
         with self.assertRaises(ValueError):
             m.selection(['src/Enginia360.Api/PlatformAdministration/Unknown.cs'])

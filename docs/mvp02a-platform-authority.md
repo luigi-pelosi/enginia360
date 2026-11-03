@@ -69,3 +69,9 @@ Original logs are retained in `/root/.hermes/cache/scratch/mvp02a-evidence/`. Th
 | `14-json-green.log` | `88704c029b7c1252c172107bbef1cdd1cebe99e8cd0aa1cddcf0e5ba8e60eac6` |
 | `15-final-pool4.log` | `a010ff18fb411b2b4b2eb737d30fa65991c08ea5b4ae36ce329119221cb65640` |
 | `16-readiness-header-red.log` | `2171045015516597f3f6ae3a253f7b2326adbeb34142b9d9614bc4d617c14ec9` |
+
+### First remote attempt and bounded recovery
+
+At candidate `4abd505bbcf7c34b4c753746e5abc58d32d1aa74`, PR run `41551567528` was cancelled (not a pass); its legacy R04 documentation suite reported44 passing tests in185.485s inside the3-minute R06 job. Dispatch `41551566944` failed before new SQL/HTTP acceptance because the reused base realm/browser fixture is deliberately0444: root-local execution had masked a nonroot `PermissionError` while extending it. The completed foundation and old-browser steps do not turn that failed run into acceptance. Failure artifact `13193505616` retains the actual partial logs.
+
+A real nonroot-container reproducer then failed on the same0444 extension before the fix. The owned fixture writer now temporarily restores owner-write and always returns0444, including reused owner-command input; the nonroot regression verifies realm/browser and repeated grant/revoke input writes. No app privilege or runtime hardening was relaxed. The finite authority selection now has a dedicated offline inventory/readiness job, not the unrelated44-test historical ERP documentation mutation suite. Mixed real producers still retain the original full consumers; all old test assertions and existing CI budgets remain unchanged. New scope guard RED precedes this mapping change. Fresh exact-head PR/dispatch acceptance is required; the old failures remain disclosed.

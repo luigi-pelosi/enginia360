@@ -175,6 +175,26 @@ class AuthorityTests(unittest.TestCase):
         self.assertEqual(self.command(dict(p, commandId=str(uuid.uuid4()), expectedRevision=2147483646))['state'], 'conflict')
         self.assertEqual(self.sql('SELECT count(*) FROM organization_access.platform_authority_audit'), '1')
 
+class FixtureTests(unittest.TestCase):
+    def test_fixture_extension_restores_readonly_mount_for_nonroot(self):
+        import tempfile
+        spec = importlib.util.spec_from_file_location('authority_runner', ROOT / 'scripts/run-mvp02a-tests.py')
+        assert spec and spec.loader
+        runner = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(runner)
+        with tempfile.TemporaryDirectory(dir=os.environ['TMPDIR']) as directory:
+            state = Path(directory)
+            sql, identities = runner.fixtures(state, 'synthetic-fixture-only')
+            self.assertTrue(sql)
+            for name in ('realm.json', 'browser.json'):
+                self.assertEqual((state / name).stat().st_mode & 0o777, 0o444)
+            self.assertEqual(json.loads((state / 'browser.json').read_text())['authorityIdentity'], identities[4])
+            source = state / 'authority.json'
+            for operation in ('grant', 'revoke', 'grant'):
+                runner.write_readonly_json(source, {'operation': operation})
+                self.assertEqual(json.loads(source.read_text()), {'operation': operation})
+                self.assertEqual(source.stat().st_mode & 0o777, 0o444)
+
 class OwnerInputTests(unittest.TestCase):
 
     def test_json_reader_refuses_duplicates_and_oversize_before_psql(self):

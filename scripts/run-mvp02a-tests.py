@@ -18,6 +18,27 @@ r00 = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(r00)
 run = r00.run
 
+def write_readonly_json(path, value):
+    # The reused base fixture is deliberately readonly for nonroot mounts.
+    if path.exists():
+        path.chmod(0o600)
+    try:
+        path.write_text(json.dumps(value))
+    finally:
+        if path.exists():
+            path.chmod(0o444)
+
+
+def fixtures(state, secret):
+    sql, identities = r00.fixtures(state, secret)
+    realm = json.loads((state / 'realm.json').read_text())
+    realm['clients'][0]['protocolMappers'] = [{'name': 'untrusted-role', 'protocol': 'openid-connect', 'protocolMapper': 'oidc-hardcoded-claim-mapper', 'config': {'claim.name': 'role', 'claim.value': 'SUPER ADMIN', 'jsonType.label': 'String', 'id.token.claim': 'true', 'access.token.claim': 'true'}}]
+    write_readonly_json(state / 'realm.json', realm)
+    fixture = json.loads((state / 'browser.json').read_text())
+    fixture['authorityIdentity'] = identities[4]
+    write_readonly_json(state / 'browser.json', fixture)
+    return sql, identities
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--sql-only', action='store_true')
@@ -40,15 +61,7 @@ def main():
         for service, host, uid in [('postgres', 'postgres', 70), ('api', 'api.r00.test', 1654), ('web', 'app.r00.test', 101), ('identity', 'idp.r00.test', 1000)]:
             r00.certificate(state, service, host, uid)
         (state / 'postgres/pg_hba.conf').write_text('local all all trust\nhostnossl all all all reject\nhostssl all all all scram-sha-256\n')
-        sql, identities = r00.fixtures(state, values['R00_CLIENT_SECRET'])
-        realm = json.loads((state / 'realm.json').read_text())
-        realm['clients'][0]['protocolMappers'] = [{'name': 'untrusted-role', 'protocol': 'openid-connect', 'protocolMapper': 'oidc-hardcoded-claim-mapper', 'config': {'claim.name': 'role', 'claim.value': 'SUPER ADMIN', 'jsonType.label': 'String', 'id.token.claim': 'true', 'access.token.claim': 'true'}}]
-        (state / 'realm.json').write_text(json.dumps(realm))
-        (state / 'realm.json').chmod(292)
-        fixture = json.loads((state / 'browser.json').read_text())
-        fixture['authorityIdentity'] = identities[4]
-        (state / 'browser.json').write_text(json.dumps(fixture))
-        (state / 'browser.json').chmod(292)
+        sql, identities = fixtures(state, values['R00_CLIENT_SECRET'])
         control = state / 'control'
         control.mkdir()
         control.chmod(511)
@@ -64,7 +77,7 @@ def main():
             mounts = ['-v', str(ROOT / 'scripts') + ':/runtime/scripts:ro', '-v', str(ROOT / 'database/runtime') + ':/runtime/database/runtime:ro']
             testenv = dict(os.environ, PGPASSWORD=values['R00_INFRA_PASSWORD'], R00_OWNER_PASSWORD=values['R00_OWNER_PASSWORD'], R00_APP_PASSWORD=values['R00_APP_PASSWORD'])
             print('MVP02A SQL behavioral acceptance', flush=True)
-            completed = subprocess.run(command + ['run', '--rm', '--no-deps', '-T', *mounts, '-e', 'R00_MIGRATION_TESTS=1', '-e', 'PGUSER=postgres', '-e', 'PGPASSWORD', '-e', 'R00_OWNER_USER=runtime_owner', '-e', 'R00_OWNER_PASSWORD', '-e', 'R00_APP_PASSWORD', '--entrypoint', 'python3', 'migrator', 'scripts/test-mvp02a-authority.py', *([args.sql_test] if args.sql_test else []), '-v'], env=testenv, cwd=ROOT, text=True, capture_output=True, timeout=240)
+            completed = subprocess.run(command + ['run', '--rm', '--no-deps', '-T', *mounts, '-e', 'R00_MIGRATION_TESTS=1', '-e', 'PGUSER=postgres', '-e', 'PGPASSWORD', '-e', 'R00_OWNER_USER=runtime_owner', '-e', 'R00_OWNER_PASSWORD', '-e', 'R00_APP_PASSWORD', '--entrypoint', 'python3', 'migrator', 'scripts/test-mvp02a-authority.py', *([args.sql_test] if args.sql_test else ['AuthorityTests', 'OwnerInputTests']), '-v'], env=testenv, cwd=ROOT, text=True, capture_output=True, timeout=240)
             print(completed.stdout + completed.stderr, flush=True)
             if completed.returncode:
                 raise RuntimeError('SQL assertions failed')
@@ -80,8 +93,7 @@ def main():
                 nonlocal revision
                 payload = dict(commandId=str(uuid.uuid4()), operation=operation, internalIdentityId=binding['InternalIdentityId'], issuer=binding['Issuer'], subject=binding['Subject'], verificationReference=str(uuid.uuid4()), expectedRevision=revision)
                 path = state / 'public/authority.json'
-                path.write_text(json.dumps(payload))
-                path.chmod(292)
+                write_readonly_json(path, payload)
                 for _ in range(2):
                     result = run(command + ['run', '--rm', '--no-deps', '-T', *mounts, '--entrypoint', 'python3', 'migrator', 'scripts/owner-platform-authority.py', '/run/tls/authority.json'], timeout=45)
                     assert 'exact immutable audit read back' in result
