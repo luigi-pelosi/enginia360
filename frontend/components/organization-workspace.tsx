@@ -11,6 +11,7 @@ import {
   type Kind,
   type OrganizationNode,
   type Hierarchy,
+  type OrganizationMembership,
 } from "../lib/organization";
 export function OrganizationWorkspace({
   initial,
@@ -20,6 +21,9 @@ export function OrganizationWorkspace({
   const [status, setStatus] = useState(initial.status),
     [tenants, setTenants] = useState(initial.tenants),
     [hierarchy, setHierarchy] = useState(initial.hierarchy);
+  const owner = initial.mode !== "delegate";
+  const [memberships, setMemberships] = useState<OrganizationMembership[]>(initial.memberships || []);
+  const [memberId, setMemberId] = useState("");
   const [selected, setSelected] = useState(initial.hierarchy?.tenant.id || ""),
     [busy, setBusy] = useState(false),
     [message, setMessage] = useState("");
@@ -88,13 +92,16 @@ export function OrganizationWorkspace({
   async function selectTarget(id: string) {
     const current = ++generation.current;
     setSelected(id);
+    setMemberships([]);
+    setMemberId("");
     setHierarchy(null);
     setEdit(null);
     setMessage("");
     if (!id) return;
     try {
       const value = await readJson(directoryPath + "/" + id);
-      if (current === generation.current) setHierarchy(value);
+      const grants = owner ? await readJson(directoryPath + "/" + id + "/delegations") : null;
+      if (current === generation.current) { setHierarchy(value); setMemberships(grants?.memberships || []); }
     } catch (error) {
       if (current === generation.current) failure(error);
     }
@@ -118,8 +125,10 @@ export function OrganizationWorkspace({
     setMessage("");
   }
   async function reread(target: string) {
-    const directory = await readJson(directoryPath);
+    const directory = await readJson(owner ? directoryPath : directoryPath + "/workspace");
     const current = await readJson(directoryPath + "/" + target);
+    const grants = owner ? await readJson(directoryPath + "/" + target + "/delegations") : null;
+    setMemberships(grants?.memberships || []);
     setTenants(directory.tenants);
     setSelected(target);
     setHierarchy(current);
@@ -193,6 +202,16 @@ export function OrganizationWorkspace({
     };
     await sendPending();
   }
+  async function delegate(operation: "grant" | "revoke") {
+    if (!owner || pending.current || sending.current || !selected) return;
+    const member = memberships.find(m => m.membershipId === memberId);
+    if (!member) return;
+    pending.current = {
+      route: directoryPath + "/" + selected + "/delegations",
+      body: JSON.stringify({ commandId: crypto.randomUUID(), operation, membershipId: member.membershipId, internalIdentityId: member.internalIdentityId, bindingHash: member.bindingHash, expectedRevision: member.revision }),
+    };
+    await sendPending();
+  }
   const labels: Record<Kind, string> = {
     tenant: "tenant",
     company: "società",
@@ -228,13 +247,13 @@ export function OrganizationWorkspace({
           {labels[kind]} · Revisione {node.revision}
         </p>
         <div className="organization-actions">
-          <Button
+          {(owner || kind !== "tenant") && <Button
             disabled={frozen}
             variant="outline"
             onClick={() => begin(kind, "rename", node, node.parentId || null)}
           >
             Rinomina {labels[kind]}
-          </Button>
+          </Button>}
           {next && (
             <Button
               disabled={frozen}
@@ -284,7 +303,7 @@ export function OrganizationWorkspace({
           </Button>
           {status === 200 ? (
             <>
-              <p>Autorità globale verificata</p>
+              <p>{owner ? "Autorità globale verificata" : "Delega organizzativa verificata"}</p>
               {tenants.length === 0 && (
                 <p>
                   Nessun tenant disponibile. Crea il primo tenant con il comando
@@ -307,12 +326,12 @@ export function OrganizationWorkspace({
                     ))}
                   </select>
                 </label>
-                <Button
+                {owner && <Button
                   disabled={frozen}
                   onClick={() => begin("tenant", "create", null, null)}
                 >
                   Nuovo tenant
-                </Button>
+                </Button>}
                 <Button
                   disabled={frozen}
                   variant="outline"
@@ -334,6 +353,21 @@ export function OrganizationWorkspace({
                   </CardHeader>
                   <CardContent>
                     {branch(hierarchy.tenant, "tenant")}
+                    {owner && <section aria-label="Delega struttura organizzativa">
+                      <h3>Delega struttura organizzativa</h3>
+                      <p>Solo struttura di questo tenant. Nessuna gestione utenti o accesso operativo.</p>
+                      <label>Membership esistente
+                        <select value={memberId} disabled={frozen} onChange={e => setMemberId(e.target.value)}>
+                          <option value="">Seleziona una membership verificata</option>
+                          {memberships.map(m => <option key={m.membershipId} value={m.membershipId}>
+                            {m.internalIdentityId} · {m.active ? "Attiva" : "Non attiva"} · Revisione {m.revision}
+                          </option>)}
+                        </select>
+                      </label>
+                      {memberships.length === 0 && <p>Nessuna membership verificata disponibile.</p>}
+                      <Button disabled={frozen || !memberId} onClick={() => delegate("grant")}>Concedi delega struttura</Button>
+                      <Button disabled={frozen || !memberId} variant="outline" onClick={() => delegate("revoke")}>Revoca delega struttura</Button>
+                    </section>}
                   </CardContent>
                 </Card>
               ) : (

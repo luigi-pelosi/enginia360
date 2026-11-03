@@ -11,8 +11,11 @@ export type Hierarchy = {
   sites: OrganizationNode[];
   warehouses: OrganizationNode[];
 };
+export type OrganizationMembership = { membershipId: string; internalIdentityId: string; bindingHash: string; active: boolean; revision: number; };
 export type InitialOrganization = {
   status: number;
+  mode?: "owner" | "delegate";
+  memberships?: OrganizationMembership[];
   tenants: OrganizationNode[];
   hierarchy: Hierarchy | null;
 };

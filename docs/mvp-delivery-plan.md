@@ -70,7 +70,11 @@ Non presumere approvati dati reali, accesso pubblico, acquisti, nuovi ambienti p
 
 Riutilizzare il Project esistente, rinominandolo per il MVP e preservando gli item storici. Creare issue idempotenti con marker `enginia360-mvp:MVP-xx`; assegnare i nuovi item al backlog corrente. Gli item della vecchia roadmap ancora aperti vanno distinti come sostituiti, mai dichiarati completati. Il dettaglio storico rimane nei corpi/commenti e nella Git history. Numero issue e stato del Project sono sempre verificati con readback, non dedotti dal successo di una scrittura.
 
-### Riorganizzazione riletta il 2 novembre 2026
+### Checkpoint corrente — 3 novembre 2026
+
+MVP-02/#141 completato dopo PR #157, main `095abca4656bffa626e259f7f4aa8237d6afdf26`, tree equivalente al candidato `53704fe326545be0ccd514f63bcd43671e8960b8`; PR CI `41585054855` e dispatch `41585054020` con artefatti verificati dal coordinatore. MVP-03/#142 e' In corso: [MVP03.a/#158](mvp03a-organization-delegation.md) aggiunge soltanto la delega organizzativa, non amministrazione utenti/ruoli. Il [checkpoint di esecuzione](mvp03a-progress.md) distingue prove locali, PR e acceptance remota. Il parent #142 rimane aperto per MVP03.b; nessuna assegnabilita' utenti o readiness operativa implicita.
+
+### Riorganizzazione storica riletta il 2 novembre 2026
 
 Project privato esistente n. 3 rinominato **Enginia360 · MVP**, senza creare un Project duplicato. Create e rilette 11 issue #139–#149 per MVP-00–MVP-10; ogni item ha Backlog ID, ordine e stato verificati. MVP-00/#139 e' completato dopo PR #150 e CI `41536452707` (impact e guardie MVP offline, 32 step effettivi; tree `f583cb382ed78505cc727317129a98a0a3856e66`, evidenze verificate dal coordinatore). Checkpoint successivo: MVP-01/#140 completato (PR #151, head `e3102e41a34dddff63faf033b7c0c56935297635`; PR CI `41541966173`, dispatch `41541963004`, tree `1009876b5368aa30fa6ace3d20c1e226e57abbf2`, verificati dal coordinatore). MVP-02/#141 e' In corso; MVP-03–MVP-10 restano Backlog. I 66 item precedenti sono archiviati reversibilmente nel Project, non cancellati; le issue conservano storia e discussioni. Le sei vecchie capability #5/#42/#43/#44/#45/#46 sono state chiuse come sostituite (`not_planned`), non completate, dopo il merge verificato del riallineamento. #37 resta aperta e differita: nessuna archiviazione fisica di storage e' stata eseguita.
 

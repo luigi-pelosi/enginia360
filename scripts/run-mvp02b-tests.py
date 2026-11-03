@@ -33,6 +33,7 @@ def fixtures(state, secret):
     sql, identities = r00.fixtures(state, secret)
     realm = json.loads((state / 'realm.json').read_text())
     realm['clients'][0]['protocolMappers'] = [{'name': 'untrusted-role', 'protocol': 'openid-connect', 'protocolMapper': 'oidc-hardcoded-claim-mapper', 'config': {'claim.name': 'role', 'claim.value': 'SUPER ADMIN', 'jsonType.label': 'String', 'id.token.claim': 'true', 'access.token.claim': 'true'}}]
+    realm['clients'].append(dict(clientId='runtime-bearer-proof', secret=secret, publicClient=False, standardFlowEnabled=False, directAccessGrantsEnabled=True, implicitFlowEnabled=False, serviceAccountsEnabled=False, fullScopeAllowed=False, defaultClientScopes=['basic'], protocolMappers=[dict(name='api-audience', protocol='openid-connect', protocolMapper='oidc-audience-mapper', config={'included.custom.audience':'enginia360-api','access.token.claim':'true'})]))
     write_readonly_json(state / 'realm.json', realm)
     fixture = json.loads((state / 'browser.json').read_text())
     fixture['authorityIdentity'] = identities[4]
@@ -65,7 +66,11 @@ def main():
         control = state / 'control'
         control.mkdir()
         control.chmod(511)
-        command = ['docker', 'compose', '--env-file', str(envfile), '-p', project, '-f', str(r00.CONFIG)]
+        bearer_config = state / 'bearer-proof.yaml'
+        bearer_config.write_text(r00.CONFIG.read_text().replace('      Authentication__ValidIssuer:', '      Logging__LogLevel__Microsoft.AspNetCore.Authentication: Information\n      Authentication__Authority: https://idp.r00.test:8443/realms/runtime\n      Authentication__ValidIssuer:'))
+        bearer_config.chmod(0o444)
+        r00.CONFIG = bearer_config
+        command = ['docker', 'compose', '--project-directory', str(ROOT), '--env-file', str(envfile), '-p', project, '-f', str(r00.CONFIG)]
 
         def interrupted(signum, frame):
             raise KeyboardInterrupt
@@ -123,10 +128,13 @@ def main():
                         elif action == 'store-restore':
                             run(query, input='GRANT EXECUTE ON FUNCTION organization_access.read_organization(uuid),organization_access.command_organization(uuid,jsonb) TO runtime_app;')
                         elif action == 'audit-readback':
-                            assert run(query + ['-c', 'SELECT count(*) FROM organization_access.organization_commands']).strip() == '10'
+                            assert run(query + ['-c', 'SELECT count(*) FROM organization_access.organization_commands']).strip() == '12'
+                            assert run(query + ['-c', f"""SELECT count(*) FROM organization_access.organization_commands WHERE \"ActorId\"='{identities[4]}'"""]).strip() == '10'
+                            assert run(query + ['-c', f"""SELECT count(*) FROM organization_access.organization_commands WHERE \"ActorId\"='{identities[5]}'"""]).strip() == '2'
+                            assert run(query + ['-c', 'SELECT count(*) FROM organization_access.organization_delegation_commands']).strip() == '2'
                             assert run(query + ['-c', '''SELECT count(*) FROM organization_access.organization_commands WHERE "Snapshot"->>'resourceId' IS NULL OR "Request" ?| ARRAY['issuer','subject','token']''']).strip() == '0'
                             assert run(query + ['-c', f'''SELECT count(*) FROM organization_access.memberships WHERE "IdentitySubject"='{identities[4]}' ''']).strip() == '0'
-                            print('PASS MVP02B HTTP SQL readback:10 immutable command/audit rows; generated resource IDs; no external identity/token or membership', flush=True)
+                            print('PASS MVP02B HTTP SQL readback:10 owner +2 delegate immutable command/audit rows,2 delegation rows; generated resource IDs; no external identity/token or membership', flush=True)
                         elif action == 'readback':
                             assert run(query + ['-c', 'SELECT count(*) FROM organization_access.platform_authority_audit']).strip() == str(revision)
                             assert run(query + ['-c', f"""SELECT count(*) FROM organization_access.memberships WHERE "IdentitySubject"='{identities[4]}' """]).strip() == '0'
@@ -134,6 +142,14 @@ def main():
                             raise ValueError('unknown authority control')
                         (control / 'ack').write_text(action)
                     time.sleep(0.05)
+                if process.returncode:
+                    for line in run(command + ['logs', '--no-log-prefix', 'api']).splitlines():
+                        try:
+                            entry = json.loads(line)
+                            if entry.get('Category','').startswith('Microsoft.AspNetCore.Authentication.JwtBearer'):
+                                print('BEARER_DIAGNOSTIC ' + entry.get('Message',''), flush=True)
+                        except json.JSONDecodeError:
+                            pass
                 assert process.returncode == 0, 'authority Chromium failed'
                 print('PASS MVP02B real TLS OIDC HTTP pool' + values['R00_POOL_SIZE'], flush=True)
         finally:

@@ -257,6 +257,151 @@ class OrganizationTests(base.AuthorityTests):
     result=subprocess.run(['psql','-X','-qAt','-v','ON_ERROR_STOP=1'],input='BEGIN;'+self.actor_settings()+f"SELECT set_config('app.tenant_id','{tenant}',true);"+operation+';COMMIT;',text=True,env=env,capture_output=True,timeout=20)
     self.assertNotEqual(result.returncode,0);self.assertIn('permission denied',result.stderr)
   self.assertEqual(self.read_org(tenant)['tenant']['name'],'Synthetic organization')
+ def prepare_delegate(self):
+  self.prepare_org();self.owner_actor=self.actor;self.tenant=self.create_tenant()
+  self.delegate=dict(internalIdentityId='dddddddd-0000-0000-0000-000000000001',issuer='https://delegate.test',subject='Delegate')
+  self.member='dddddddd-0000-0000-0000-000000000002'
+  self.sql(f'''INSERT INTO organization_access.external_identity_bindings VALUES('{self.delegate['internalIdentityId']}','{self.delegate['issuer']}','{self.delegate['subject']}'); INSERT INTO organization_access.memberships VALUES('{self.member}','{self.tenant}','{self.delegate['internalIdentityId']}');''')
+ def delegation_read(self,target):
+  return self.app_result(f"SELECT organization_access.read_organization_delegations('{target}')")
+ def test_owner_minimal_existing_trusted_membership_selector(self):
+  self.prepare_delegate()
+  self.assertEqual(self.sql("SELECT to_regprocedure('organization_access.read_organization_delegations(uuid)') IS NOT NULL"),'t','minimal owner-authorized membership selector missing')
+  self.assertEqual(self.delegation_read(self.tenant),dict(state='ok',memberships=[dict(membershipId=self.member,internalIdentityId=self.delegate['internalIdentityId'],bindingHash=self.sql(f'''SELECT encode(sha256(convert_to(jsonb_build_array("Issuer","Subject")::text,'UTF8')),'hex') FROM organization_access.external_identity_bindings WHERE "InternalIdentityId"='{self.delegate['internalIdentityId']}' '''),active=False,revision=0)]))
+  self.actor=self.delegate
+  self.assertEqual(self.delegation_read(self.tenant),dict(state='forbidden'))
+  self.actor=self.owner_actor
+  self.assertEqual(self.delegation_read(str(uuid.uuid4())),dict(state='not_found'))
+  self.assertEqual(self.sql('SELECT count(*) FROM organization_access.memberships'),'1')
+ def delegation_payload(self,**changes):
+  row=self.delegation_read(self.tenant)['memberships'][0]
+  return dict(dict(commandId=str(uuid.uuid4()),operation='grant',membershipId=self.member,internalIdentityId=self.delegate['internalIdentityId'],bindingHash=row['bindingHash'],expectedRevision=row['revision']),**changes)
+ def delegation_command(self,p,target=None):
+  return self.app_result("SELECT organization_access.command_organization_delegation('"+(target or self.tenant)+"','"+json.dumps(p).replace("'","''")+"')")
+ def test_owner_grant_revoke_exact_replay_revision_and_minimized_atomic_audit(self):
+  self.prepare_delegate()
+  self.assertEqual(self.sql("SELECT to_regprocedure('organization_access.command_organization_delegation(uuid,jsonb)') IS NOT NULL"),'t','finite delegation command missing')
+  p=self.delegation_payload();result=self.delegation_command(p)
+  self.assertEqual(result['state'],'applied')
+  expected=dict(tenantId=self.tenant,membershipId=self.member,internalIdentityId=self.delegate['internalIdentityId'],bindingHash=p['bindingHash'],active=True,revision=1)
+  self.assertEqual(result['snapshot'],expected)
+  self.assertEqual(self.delegation_command(p),dict(state='replayed',snapshot=expected))
+  self.assertEqual(self.delegation_command(dict(p,operation='revoke'))['state'],'conflict')
+  self.assertEqual(self.delegation_command(dict(p,commandId=str(uuid.uuid4())))['state'],'conflict')
+  self.assertEqual(self.delegation_read(self.tenant)['memberships'][0]['active'],True)
+  revoke=dict(p,commandId=str(uuid.uuid4()),operation='revoke',expectedRevision=1)
+  self.assertEqual(self.delegation_command(revoke)['snapshot'],dict(expected,active=False,revision=2))
+  self.assertEqual(self.delegation_command(p),dict(state='replayed',snapshot=expected))
+  self.assertFalse(self.delegation_read(self.tenant)['memberships'][0]['active'])
+  self.assertEqual(self.sql('SELECT count(*) FROM organization_access.organization_delegation_commands'),'2')
+  self.assertEqual(self.sql('SELECT count(*) FROM organization_access.memberships'),'1')
+  self.assertEqual(self.sql('SELECT count(*) FROM organization_access.membership_scopes'),'0')
+  self.assertEqual(self.sql('''SELECT count(*) FROM organization_access.organization_delegation_commands WHERE "Request" ?| ARRAY['issuer','subject','email','token','name']'''),'0')
+ def test_delegate_structure_only_own_tenant_and_current_grant_every_replay(self):
+  self.prepare_delegate();grant=self.delegation_payload();self.delegation_command(grant)
+  foreign=self.create_tenant();self.actor=self.delegate
+  self.assertEqual(self.read_org(self.tenant)['state'],'ok','active delegate cannot read own structure')
+  self.assertEqual(self.read_org(),dict(state='forbidden'))
+  self.assertEqual(self.read_org(foreign),dict(state='forbidden'))
+  self.assertEqual(self.org_command(self.org_payload()),dict(state='forbidden'))
+  rename=self.org_payload(operation='rename',kind='tenant',tenantId=self.tenant,resourceId=self.tenant,expectedRevision=1)
+  self.assertEqual(self.org_command(rename,self.tenant),dict(state='forbidden'))
+  p=self.org_payload(kind='company',tenantId=self.tenant,parentId=self.tenant,name='Delegated company')
+  created=self.org_command(p,self.tenant);self.assertEqual(created['state'],'applied')
+  self.assertEqual(self.org_command(p,self.tenant),dict(state='replayed',snapshot=created['snapshot']))
+  company=created['snapshot']['resourceId'];site=self.create_site(self.tenant,company)
+  warehouse=self.org_command(self.org_payload(kind='warehouse',tenantId=self.tenant,parentId=site),self.tenant)
+  self.assertEqual(warehouse['state'],'applied')
+  self.assertEqual(self.org_command(dict(p,commandId=str(uuid.uuid4()),tenantId=foreign,parentId=foreign),foreign),dict(state='forbidden'))
+  self.assertEqual(self.delegation_command(grant),dict(state='forbidden'))
+  self.actor=self.owner_actor
+  self.delegation_command(dict(grant,commandId=str(uuid.uuid4()),operation='revoke',expectedRevision=1))
+  self.actor=self.delegate
+  self.assertEqual(self.read_org(self.tenant),dict(state='forbidden'))
+  self.assertEqual(self.org_command(p,self.tenant),dict(state='forbidden'))
+  self.assertEqual(self.sql('SELECT count(*) FROM organization_access.membership_scopes'),'0')
+ def test_delegation_uuid_cannot_be_reused_for_structure_command(self):
+  self.prepare_delegate();p=self.delegation_payload();self.delegation_command(p)
+  structure=self.org_payload(commandId=p['commandId'],kind='company',tenantId=self.tenant,parentId=self.tenant)
+  self.assertEqual(self.org_command(structure,self.tenant),dict(state='conflict'),'delegation UUID collision must refuse structure mutation')
+  self.assertEqual(self.sql('SELECT count(*) FROM organization_access.legal_entities'),'0')
+ def delegation_statement(self,p):
+  return self.actor_settings()+"SELECT organization_access.command_organization_delegation('"+self.tenant+"','"+json.dumps(p)+"');"
+ def test_delegation_physical_concurrent_replay_conflict_and_both_revoke_orderings(self):
+  self.prepare_delegate();p=self.delegation_payload()
+  results,_=self.barrier_race('SELECT pg_advisory_xact_lock(777036);',[(self.delegation_statement(p),'app')]*2)
+  self.assertEqual(sorted(r['state'] for r in results),['applied','replayed'])
+  self.assertEqual(results[0]['snapshot'],results[1]['snapshot'])
+  revoke=dict(p,commandId=str(uuid.uuid4()),operation='revoke',expectedRevision=1)
+  other=dict(revoke,commandId=str(uuid.uuid4()),operation='grant')
+  results,_=self.barrier_race('SELECT pg_advisory_xact_lock(777036);',[(self.delegation_statement(revoke),'app'),(self.delegation_statement(other),'app')])
+  self.assertEqual(sorted(r['state'] for r in results),['applied','conflict'])
+  self.delegation_command(dict(p,commandId=str(uuid.uuid4()),expectedRevision=2))
+  revoke=dict(revoke,commandId=str(uuid.uuid4()),expectedRevision=3)
+  holder=self.delegation_statement(revoke)
+  command=self.org_payload(kind='company',tenantId=self.tenant,parentId=self.tenant)
+  self.actor=self.delegate;worker=self.org_statement(command,self.tenant)
+  results,_=self.barrier_race(holder,[(worker,'app')],holder_role='app')
+  self.assertEqual(results,[dict(state='forbidden')])
+  self.actor=self.owner_actor
+  self.delegation_command(dict(p,commandId=str(uuid.uuid4()),expectedRevision=4))
+  revoke=dict(revoke,commandId=str(uuid.uuid4()),expectedRevision=5);worker=self.delegation_statement(revoke)
+  self.actor=self.delegate
+  results,held=self.barrier_race(self.org_statement(command,self.tenant),[(worker,'app')],holder_role='app')
+  self.assertEqual(held[-1]['state'],'applied');self.assertEqual(results[0]['state'],'applied')
+  self.assertEqual(self.org_command(command,self.tenant),dict(state='forbidden'))
+  self.assertEqual(self.sql('SELECT count(*) FROM organization_access.organization_delegation_commands'),'6')
+ def test_delegation_current_target_binding_membership_owner_and_actor_loss(self):
+  self.prepare_delegate();p=self.delegation_payload();self.delegation_command(p)
+  self.actor=self.delegate;command=self.org_payload(kind='company',tenantId=self.tenant,parentId=self.tenant)
+  snapshot=self.org_command(command,self.tenant)['snapshot']
+  saved=self.actor
+  for key,value in [('issuer','https://other.test'),('subject','other'),('internalIdentityId',str(uuid.uuid4()))]:
+   self.actor=dict(saved,**{key:value});self.assertEqual(self.read_org(self.tenant),dict(state='forbidden'));self.assertEqual(self.org_command(command,self.tenant),dict(state='forbidden'))
+  self.actor=self.owner_actor
+  self.sql(f'''UPDATE organization_access.external_identity_bindings SET "Subject"='Rebound' WHERE "InternalIdentityId"='{self.delegate['internalIdentityId']}';''')
+  self.assertEqual(self.delegation_command(p),dict(state='forbidden'),'historical target binding cannot replay')
+  self.actor=dict(saved,subject='Rebound');self.assertEqual(self.read_org(self.tenant),dict(state='forbidden'),'old grant does not survive rebinding')
+  self.actor=self.owner_actor
+  self.sql(f'''UPDATE organization_access.external_identity_bindings SET "Subject"='Delegate' WHERE "InternalIdentityId"='{self.delegate['internalIdentityId']}';''')
+  self.sql(f'''DELETE FROM organization_access.memberships WHERE "Id"='{self.member}';''')
+  self.assertEqual(self.delegation_command(p),dict(state='forbidden'))
+  self.actor=self.delegate;self.assertEqual(self.org_command(command,self.tenant),dict(state='forbidden'))
+  self.actor=self.owner_actor;self.sql(f'''DELETE FROM organization_access.external_identity_bindings WHERE "InternalIdentityId"='{self.actor['internalIdentityId']}';''')
+  self.assertEqual(self.delegation_read(self.tenant),dict(state='forbidden'))
+ def test_delegation_closed_input_boundaries_privileges_immutable_and_rollback(self):
+  self.prepare_delegate();p=self.delegation_payload()
+  for bad in [None,[],dict(p,extra=True),dict(p,expectedRevision=True),dict(p,expectedRevision=-1),dict(p,expectedRevision=2147483647),dict(p,bindingHash='bad'),dict(p,operation='invite'),dict(p,membershipId=str(uuid.uuid4())),dict(p,internalIdentityId=self.owner_actor['internalIdentityId'])]:
+   self.assertIn(self.delegation_command(bad)['state'],['invalid','forbidden'])
+  self.assertEqual(self.sql('SELECT count(*) FROM organization_access.organization_delegation_commands'),'0')
+  app=os.environ['R00_APP_USER']
+  for table in ('organization_delegations','organization_delegation_commands'):
+   self.assertEqual(self.sql(f"SELECT has_table_privilege('{app}','organization_access.{table}','SELECT,INSERT,UPDATE,DELETE,TRUNCATE')"),'f')
+   self.assertEqual(self.sql(f"SELECT relrowsecurity AND relforcerowsecurity FROM pg_class WHERE oid='organization_access.{table}'::regclass"),'t')
+  self.sql("CREATE FUNCTION organization_access.fixture_delegation_fail() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'synthetic delegation audit refusal'; END $$;")
+  for timing in ('BEFORE','DEFERRED'):
+   sql='CREATE TRIGGER fixture_delegation_fail BEFORE INSERT' if timing=='BEFORE' else 'CREATE CONSTRAINT TRIGGER fixture_delegation_fail AFTER INSERT'
+   sql+=' ON organization_access.organization_delegation_commands '+('DEFERRABLE INITIALLY DEFERRED ' if timing=='DEFERRED' else '')+'FOR EACH ROW EXECUTE FUNCTION organization_access.fixture_delegation_fail();'
+   self.sql(sql)
+   env=dict(os.environ,PGDATABASE=self.database,PGUSER=app,PGPASSWORD=os.environ['R00_APP_PASSWORD'])
+   result=subprocess.run(['psql','-X','-qAt','-v','ON_ERROR_STOP=1'],input='BEGIN;'+self.delegation_statement(p)+'COMMIT;',text=True,capture_output=True,env=env,timeout=20)
+   self.assertNotEqual(result.returncode,0);self.assertIn('synthetic delegation audit refusal',result.stderr)
+   self.assertEqual(self.sql('SELECT count(*) FROM organization_access.organization_delegations'),'0');self.assertEqual(self.sql('SELECT count(*) FROM organization_access.organization_delegation_commands'),'0')
+   self.sql('DROP TRIGGER fixture_delegation_fail ON organization_access.organization_delegation_commands;')
+  self.delegation_command(p)
+  for mutation in ('UPDATE organization_access.organization_delegation_commands SET "Request"=\'{}\'','DELETE FROM organization_access.organization_delegation_commands','TRUNCATE organization_access.organization_delegation_commands'):
+   self.assertNotEqual(self.owner_sql(mutation,ok=False).returncode,0)
+  self.sql('UPDATE organization_access.organization_delegations SET "Revision"=2147483647')
+  self.assertEqual(self.delegation_command(dict(p,commandId=str(uuid.uuid4()),expectedRevision=2147483646))['state'],'conflict')
+ def test_delegated_workspace_discovers_only_current_granted_tenant(self):
+  self.prepare_delegate();p=self.delegation_payload();self.delegation_command(p)
+  self.assertEqual(self.sql("SELECT to_regprocedure('organization_access.read_organization_workspace()') IS NOT NULL"),'t','scoped administrative workspace discovery missing')
+  self.actor=self.delegate
+  self.assertEqual(self.app_result('SELECT organization_access.read_organization_workspace()'),dict(state='ok',mode='delegate',tenants=[self.read_org(self.tenant)['tenant']]))
+  self.actor=self.owner_actor
+  self.delegation_command(dict(p,commandId=str(uuid.uuid4()),operation='revoke',expectedRevision=1))
+  self.actor=self.delegate
+  self.assertEqual(self.app_result('SELECT organization_access.read_organization_workspace()'),dict(state='forbidden'))
 class FixtureTests(unittest.TestCase):
  def test_nonroot_fixture_extension_and_repeated_owner_input_remain_readonly(self):
   import tempfile

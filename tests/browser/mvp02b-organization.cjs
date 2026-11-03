@@ -48,8 +48,15 @@ async function login(browser,index){
   assert.equal(directory.status,200);assert.equal(directory.cache,'no-store');
   assert.equal(directory.value.state,'ok');
   assert.ok(directory.value.tenants.length>=3);
+  assert.equal((await request(owner.page,path+'/workspace')).status,200,'administrative workspace discovery HTTP route missing');
+  assert.equal((await request(owner.page,path+'/'+fixture.contexts[0].tenantId+'/delegations')).status,200,'owner minimal membership selector HTTP route missing');
   assert.deepEqual((await request(owner.page,'/api/v1/organization/contexts')).value,[]);
   const csrf=(await request(owner.page,'/auth/csrf')).value.requestToken;
+  const delegationRoute=path+'/'+fixture.contexts[0].tenantId+'/delegations';
+  const candidates=(await request(owner.page,delegationRoute)).value.memberships;
+  const candidate=candidates.find(m=>m.membershipId===fixture.grantTargetMembershipId);
+  const delegation={commandId:require('node:crypto').randomUUID(),operation:'grant',membershipId:candidate.membershipId,internalIdentityId:candidate.internalIdentityId,bindingHash:candidate.bindingHash,expectedRevision:candidate.revision};
+  assert.equal((await request(owner.page,delegationRoute,{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrf},body:JSON.stringify(delegation)})).status,200,'owner grant HTTP route missing');
   const payload=(kind='tenant',tenantId=null,parentId=null)=>({commandId:require('node:crypto').randomUUID(),operation:'create',kind,tenantId,resourceId:null,parentId,name:'Synthetic '+kind,expectedRevision:0});
   const post=(url,p,token=csrf)=>request(owner.page,url,{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':token},body:JSON.stringify(p)});
   const create=payload();
@@ -98,6 +105,44 @@ async function login(browser,index){
   for(const body of ['{','null',JSON.stringify(create).replace('{','{"operation":"rename",'),' '.repeat(16385)+'{}']){
    assert.equal((await request(owner.page,path,{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrf},body})).status,400);
   }
+  const delegated=await login(browser,5), delegatedTenant=fixture.contexts[0].tenantId;
+  const delegateCsrf=(await request(delegated.page,'/auth/csrf')).value.requestToken;
+  const delegatePost=p=>request(delegated.page,path+'/'+delegatedTenant+'/commands',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':delegateCsrf},body:JSON.stringify(p)});
+  assert.equal((await request(delegated.page,path)).status,403);
+  const workspace=await request(delegated.page,path+'/workspace');
+  assert.equal(workspace.status,200);assert.equal(workspace.value.mode,'delegate');assert.deepEqual(workspace.value.tenants.map(t=>t.id),[delegatedTenant]);
+  assert.equal((await request(delegated.page,path+'/'+tenant)).status,403);
+  assert.equal((await request(delegated.page,delegationRoute)).status,403);
+  assert.deepEqual((await request(delegated.page,'/api/v1/organization/contexts')).value,[],'organization delegation grants no business context');
+  const delegatedCommand=payload('company',delegatedTenant,delegatedTenant);
+  const applied=await Promise.all(Array.from({length:4},()=>delegatePost(delegatedCommand)));
+  assert.deepEqual(applied.map(r=>r.value.state).sort(),['applied','replayed','replayed','replayed']);
+  const renamed={...delegatedCommand,commandId:require('node:crypto').randomUUID(),operation:'rename',resourceId:applied[0].value.snapshot.resourceId,expectedRevision:1,name:'Delegate HTTP renamed'};
+  assert.equal((await delegatePost(renamed)).status,200);
+  assert.deepEqual((await delegatePost(delegatedCommand)).value.snapshot,applied[0].value.snapshot,'delegate historical create replay after rename');
+  const bearerClient=await browser.newContext();
+  const tokenResponse=await bearerClient.request.post('https://idp.r00.test:8443/realms/runtime/protocol/openid-connect/token',{form:{grant_type:'password',client_id:'runtime-bearer-proof',client_secret:fixture.clientSecret,username:fixture.users[5].username,password:fixture.users[5].password}});
+  assert.equal(tokenResponse.status(),200);
+  const accessToken=(await tokenResponse.json()).access_token;
+  const claims=JSON.parse(Buffer.from(accessToken.split('.')[1],'base64url'));
+  assert.equal(typeof claims.sub,'string','synthetic bearer fixture must include the external subject');
+  assert.equal(claims.iss,'https://idp.r00.test:8443/realms/runtime');
+  const bearerRead=await bearerClient.request.get(origin+path+'/'+delegatedTenant,{headers:{Authorization:'Bearer '+accessToken}});
+  if(bearerRead.status()!==200) console.log('Synthetic bearer challenge',bearerRead.headers()['www-authenticate'],JSON.parse(Buffer.from(accessToken.split('.')[1],'base64url')).aud);
+  assert.equal(bearerRead.status(),200,'actual signed bearer reads delegated SQL structure');
+  assert.equal((await bearerClient.request.get(origin+path+'/'+tenant,{headers:{Authorization:'Bearer '+accessToken}})).status(),403);
+  assert.equal((await bearerClient.request.get(origin+path+'/'+delegatedTenant,{headers:{Authorization:'Bearer '+accessToken+'invalid'}})).status(),401);
+  const revokeDelegation={...delegation,commandId:require('node:crypto').randomUUID(),operation:'revoke',expectedRevision:1};
+  assert.equal((await post(delegationRoute,revokeDelegation)).status,200);
+  assert.equal((await delegatePost(delegatedCommand)).status,403);
+  assert.equal((await bearerClient.request.get(origin+path+'/'+delegatedTenant,{headers:{Authorization:'Bearer '+accessToken}})).status(),403,'current revocation defeats still-valid signed bearer');
+  assert.equal((await request(delegated.page,'/auth/session')).value.authenticated,true);
+  await bearerClient.close();await delegated.context.close();
+  for(let i=0;i<8;i++){
+   const replies=await Promise.all([request(owner.page,path+'/'+delegatedTenant),request(ordinary.page,path+'/'+delegatedTenant)]);
+   assert.equal(replies[0].status,200);assert.equal(replies[1].status,403);
+  }
+  console.log('PASS MVP03A SQL-backed OIDC and signed bearer delegation; concurrent replay, historical snapshot, revoke, no business/context-pool leak');
   await control('store-deny');
   assert.equal((await request(owner.page)).status,503);assert.equal((await post(path,create)).status,503);
   await control('store-restore');assert.equal((await request(owner.page)).status,200);

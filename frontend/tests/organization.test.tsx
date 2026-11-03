@@ -35,6 +35,22 @@ test("SSR ordinary actor has no organization controls", async () => {
   assert.doesNotMatch(html, /Nuovo tenant|Tenant destinatario/);
 });
 
+test("owner SSR selected tenant exposes existing membership delegation selector", async () => {
+  const View = (await import(url.href)).OrganizationWorkspace;
+  const tenant = { id: "aaaaaaaa-0000-0000-0000-000000000001", name: "Synthetic", revision: 1 };
+  const html = renderToStaticMarkup(<View initial={{ status: 200, tenants: [tenant], hierarchy: { tenant, companies: [], sites: [], warehouses: [] } }} />);
+  assert.match(html, /Delega struttura organizzativa/);
+  assert.match(html, /Membership esistente/);
+});
+test("delegate SSR hides global tenant commands and all delegation controls", async () => {
+  const View = (await import(url.href)).OrganizationWorkspace;
+  const tenant = { id: "aaaaaaaa-0000-0000-0000-000000000001", name: "Synthetic", revision: 1 };
+  const html = renderToStaticMarkup(<View initial={{ status: 200, mode: "delegate", tenants: [tenant], hierarchy: { tenant, companies: [], sites: [], warehouses: [] } }} />);
+  assert.match(html, /Delega organizzativa verificata/);
+  assert.match(html, /Nuova società/);
+  assert.doesNotMatch(html, /Nuovo tenant|Rinomina tenant|Delega struttura organizzativa/);
+});
+
 test("organization domain exposes real authenticated entry without implying a business grant", async () => {
   const Page = (await import("../app/domains/[domain]/page")).default;
   const html = renderToStaticMarkup(

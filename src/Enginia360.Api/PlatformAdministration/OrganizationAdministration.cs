@@ -12,16 +12,22 @@ public static class OrganizationAdministration
         var group = app.MapGroup("/api/v1/platform/tenants").RequireAuthorization();
         group.MapGet("", (HttpContext context, OrganizationAccessDbContext db, CancellationToken ct)
             => Execute(context, db, null, ct));
+        group.MapGet("/workspace", (HttpContext context, OrganizationAccessDbContext db, CancellationToken ct)
+            => Execute(context, db, null, ct, workspace: true));
         group.MapGet("/{tenantId:guid}", (Guid tenantId, HttpContext context,
             OrganizationAccessDbContext db, CancellationToken ct) => Execute(context, db, tenantId, ct));
         group.MapPost("", (HttpContext context, OrganizationAccessDbContext db, CancellationToken ct)
             => Command(context, db, null, ct));
+        group.MapGet("/{tenantId:guid}/delegations", (Guid tenantId, HttpContext context,
+            OrganizationAccessDbContext db, CancellationToken ct) => Execute(context, db, tenantId, ct, delegations: true));
+        group.MapPost("/{tenantId:guid}/delegations", (Guid tenantId, HttpContext context,
+            OrganizationAccessDbContext db, CancellationToken ct) => Command(context, db, tenantId, ct, true));
         group.MapPost("/{tenantId:guid}/commands", (Guid tenantId, HttpContext context,
             OrganizationAccessDbContext db, CancellationToken ct) => Command(context, db, tenantId, ct));
     }
 
     private static async Task<IResult> Command(HttpContext context, OrganizationAccessDbContext db,
-        Guid? target, CancellationToken ct)
+        Guid? target, CancellationToken ct, bool delegations = false)
     {
         context.Response.Headers.CacheControl = "no-store";
         // Bounded streaming parse also protects requests without Content-Length.
@@ -55,11 +61,11 @@ public static class OrganizationAdministration
             // InvalidOperationException here means an unpaired escaped UTF-16 surrogate.
             return Results.BadRequest(new { state = "invalid" });
         }
-        return await Execute(context, db, target, ct, request);
+        return await Execute(context, db, target, ct, request, delegations);
     }
 
     private static async Task<IResult> Execute(HttpContext context, OrganizationAccessDbContext db,
-        Guid? target, CancellationToken ct, string? request = null)
+        Guid? target, CancellationToken ct, string? request = null, bool delegations = false, bool workspace = false)
     {
         context.Response.Headers.CacheControl = "no-store";
         var actor = VerifiedActorContext.FromPrincipal(context.User);
@@ -72,7 +78,19 @@ public static class OrganizationAdministration
                     set_config('app.identity_issuer', {actor.Issuer}, true),
                     set_config('app.external_subject', {actor.Subject}, true)
                 """, ct);
-            var json = request is null
+            var json = workspace
+                ? await db.Database.SqlQuery<string>($"""
+                    SELECT organization_access.read_organization_workspace()::text AS "Value"
+                    """).SingleAsync(ct)
+                : delegations && request is not null
+                ? await db.Database.SqlQuery<string>($"""
+                    SELECT organization_access.command_organization_delegation({target}::uuid,{request}::jsonb)::text AS "Value"
+                    """).SingleAsync(ct)
+                : delegations
+                ? await db.Database.SqlQuery<string>($"""
+                    SELECT organization_access.read_organization_delegations({target}::uuid)::text AS "Value"
+                    """).SingleAsync(ct)
+                : request is null
                 ? await db.Database.SqlQuery<string>($"""
                     SELECT organization_access.read_organization({target}::uuid)::text AS "Value"
                     """).SingleAsync(ct)

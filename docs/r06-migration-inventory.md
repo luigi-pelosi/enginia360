@@ -30,6 +30,8 @@ Risultato calcolato sul baseline R05.b.1: **26 migrazioni, 66 definizioni CREATE
 
 **Aggiornamento MVP-02.b:** migrazione append-only 0037, **37 migrazioni, 83 definizioni CREATE, 9 schemi**. `organization_access.organization_commands` (`security_evidence`) conserva comando e risultato immutabile con audit minimizzato, UNDECIDED / NO_LEGACY_IMPORT_APPROVED. Le 82 definizioni precedenti restano identiche; le revisioni organizzative sono ALTER, non nuove definizioni CREATE. Nessun import, membership o permesso business implicito.
 
+**Aggiornamento MVP-03.a:** migrazione append-only 0038, **38 migrazioni, 85 definizioni CREATE, 9 schemi**. `organization_access.organization_delegations` (`authority_evidence`) e `organization_access.organization_delegation_commands` (`security_evidence`) restano UNDECIDED / NO_LEGACY_IMPORT_APPROVED. Le 83 definizioni precedenti sono conservate identiche. Nessun import, provisioning o diritto operativo; gate OPE invariati.
+
 Ogni voce registra:
 
 - `table`, `owner`: nome qualificato e modulo/schema proprietario osservato, non una nuova ownership di business;
