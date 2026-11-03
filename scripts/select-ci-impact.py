@@ -358,8 +358,32 @@ AUTHENTICATED_ORGANIZATION_DIRECT = {
     'migrator.runtime.Dockerfile', 'keycloak.runtime.Dockerfile',
 }
 
+TENANT_ROLE_FILES = {
+    'database/runtime/migrations/0039_tenant_roles.sql',
+    'src/Enginia360.Api/PlatformAdministration/TenantRoleAdministration.cs',
+    'scripts/test-mvp03b1-roles.py', 'scripts/run-mvp03b1-tests.py', 'scripts/test-mvp03b1-impact.py',
+    'frontend/app/users/page.tsx', 'frontend/components/tenant-role-workspace.tsx',
+    'frontend/lib/tenant-roles.ts', 'frontend/tests/tenant-roles.test.tsx',
+    'tests/browser/mvp03b1-roles.cjs',
+}
+TENANT_ROLE_DIRECT = AUTHENTICATED_ORGANIZATION_DIRECT | AUTHENTICATED_ORGANIZATION_FILES | {
+    'src/Enginia360.Api/OrganizationAccess/LimitedGrantAdministration.cs',
+}
+TENANT_ROLE_SCOPE = TENANT_ROLE_FILES | ORGANIZATION_FILES | ORGANIZATION_WIRING | AUTHENTICATED_ORGANIZATION_FILES | FRONTEND_FILES | {
+    'docs/mvp03b1-tenant-role-contract.md', 'docs/mvp03b1-progress.md',
+}
+
 def _selection(paths):
     paths = sorted(set(paths))
+    if set(paths) & TENANT_ROLE_FILES:
+        remaining = set(paths) - TENANT_ROLE_FILES
+        finite = set(paths) <= TENANT_ROLE_SCOPE
+        if finite:
+            remaining -= TENANT_ROLE_SCOPE
+        result = selection(sorted(remaining | {'scripts/test-mvp02b-impact.py', 'scripts/test-mvp01-impact.py'}))
+        result.update(changed_paths=paths, tenant_roles=True, authenticated_organization=True,
+                      platform_foundation_only=finite)
+        return result
     if set(paths) & D97_FILES:
         remaining = set(paths) - D97_FILES
         if set(paths) <= D97_SCOPE:
@@ -593,6 +617,8 @@ def selection(paths):
     result = _selection(paths)
     if set(paths) & AUTHENTICATED_ORGANIZATION_DIRECT:
         result['authenticated_organization'] = True
+    if set(paths) & TENANT_ROLE_DIRECT:
+        result['tenant_roles'] = True
     return result
 
 

@@ -1,0 +1,40 @@
+# MVP03.b.1 progressive checkpoint
+
+Refs #161; Refs #142. Sole writer `feat/mvp-tenant-role-administration`, base c97853a496bce6fd0b2db68f527d92fc7ddc38b6. NOT merge-ready or delivered. Parent alone merges/changes issues/Project. D97 policy blocks and runtimeDelivered=false remain untouched.
+
+## Stage1 — contract/CI and first SQL tracer bullets
+
+Read complete AGENTS/charter/plan/baseline/backlog/D97/MVP03.a contract/progress and live issues161/142. Inspected exact binding/session revalidation, all effective scope consumers and separate company_permissions adapters. Finite initial executable catalog is context.read/write at exact warehouse tuple; see mvp03b1-tenant-role-contract.md. No company permission, business profile, legacy grant or authority migration.
+
+CI mapping test-first: raw01-impact-red.log (missing new consumer/mapping/job),02-impact-green.log (5tests). New dedicated dispatched job planned for both pools; not executed and its runner not implemented yet. Existing mixed consumers retained. Full selector regression pass still pending.
+
+Append-only0039 candidate currently implements only authorized reads, distinct owner-controlled user delegation and tenant permission definition create/edit, atomic immutable applied/refusal audit. Manifest appended;0001–0038 untouched. Original SQL evidence under `/root/.hermes/cache/scratch/mvp03b1-evidence/`:03-selector-red.log→04-selector-green.log;05-delegation-red.log→06-delegation-green.log;07-permission-red.log→08-permission-green.log. Latest SQL run executes all3current tests with actual hardened private PostgreSQL and clean owned teardown. These are tracer bullets, not evidence for unimplemented role/assignment/runtime/browser criteria.
+
+Local SQL probe uses scratch sql-probe-runner.py, compiling the existing isolated run-mvp02b-tests.py with only the selected test script/default class substituted; --sql-only avoids API/browser. Raw logs retain statuses. Initial impact unknown-path refusals are intended missing mapping; no setup failure claimed as product RED. No new dependencies/lock/image versions changed.
+
+## Remaining — continue same branch, no false delivery
+
+- Test-first role composition create/edit and existing-member assignment/revoke, current effective scopes consumption and context API transaction serialization/deduplication.
+- Complete finite SQL validation, exact current trusted target/actor/replay, no cross-scope/subdelegation/global escape, atomic audit rollback at insert and deferred commit for each mutation, direct app DML denial/immutable history, both race orderings and replay/exhaustion/collision/foreign payload minimization. Current3tests do not prove these all.
+- ASP.NET bounded recursive JSON parser, verified actor GUC context and user-role routes; actual OIDC + signed bearer API context negative/positive consumption, active-session edits/revocation.
+- Usable authenticated Next SSR/noJS workspace, supported-action/member/scope selectors and frozen retry/CSRF/cache/layout/browser SQL readback.
+- Durable full runner/CI both pools, inventory regeneration, focused build/typecheck/dependency audits and official advisories review; full impacted offline guards. No parent/full03b delivery flag.
+- Conventional final commit/push/PR Refs161/142; exact-head PR/targeted dispatch false all selected jobs/steps/artifacts download/hash/inspect. No PR exists yet and no remote acceptance claimed.
+
+No policy blocker: D97 is settled. No invitation/enabling/new identity, deployment, retained environment, secrets/provider/ERP or protected-service/storage change. Live-page retry recovery remains explicitly nondurable after forced reload/new login.
+
+## Stage2 — implemented vertical journey; verification still active
+
+The Stage1 remaining-code list above is historical, not current. Current candidate includes configurable role composition/edit, existing exact binding/membership assignment/revoke, effective scopes consumed by all3actual context APIs (ListContexts/CreateNote/GetNote), current-request tuple and shared revocation lock in the context transaction, overlapping-origin deduplication, bounded ASP.NET routes/parser, and authenticated Italian Next SSR/controls. Separate legacy grants and company/profile authority remain unchanged.
+
+Original evidence continues:09-role-red→10-role-green;11-assignment-red→12-assignment-green;13-effective-red→14-effective-green;15-http-read-red→16-http-read-green;17-http-command-red→18-http-command-green;19-api-consumption-red→20-api-consumption-green;21-duplicate-red→22-duplicate-green;23-missing-target-red→24-missing-target-green. Later security/rollback/concurrency additions labelled regression passed against unchanged corresponding production. They are not retroactive independent RED for each assertion.
+
+Frontend original26-ui-red and27-ui-controls-red precede implementation;28-ui-green executes locked tests/audit/build/typecheck.29-next-red is actual missing SSR route;30-transport-red is the finite backend whitelist;31-entry-red is the missing domain link.32-next-footer-red passed the actual new SSR route then failed the false unavailable footer.33-full-pool4 reached the real complete UI but failed390px horizontal overflow;34-full-pool4 then passed12SQL tests, actual OIDC/signed bearer and all3context consumers,19exact applied mutation/audit pairs,2notes, owner UI delegation grant/revoke, delegate UI permission/role creation/assignment/revoke, noJS/cache,1440/1024/390screenshots and3byte-identical POST attempts across lost acceptance, intervening CSRF refusal and replay/readback failure. Screenshots/noJS/SQL/hardening read back under local-pool4-fixed/.
+
+37-numeric-red independently reproduced realHTTP503 instead of400 for a valid JSON huge exponent before PostgreSQLjsonb conversion; the parser now bounds numbers before conversion. The extended real organization-only denial passed before that assertion.38-full-pool1 is currently executing the numeric fix, conventional frontend formatting and expanded14SQL regressions, including8mutation create/edit/revoke audit failures at insert and deferred commit and physical read/edit/revoke barriers. Do not claim it passed until its actual terminal result is read.
+
+Inventory coverage RED35 then actual verifier GREEN after appending only2records:39migrations/87CREATE definitions/9schemas; all85prior inventory records,38manifest entries and published migration bytes verified unchanged.36-offline-guards executes the workflow's actual impact guard command list successfully. D97 guards remain intact. No dependency/lock/image pin changed; official security review is in the contract.
+
+Disclosed incidents:33-full-pool4 hit the420second outer tool deadline during cleanup after the genuine mobile assertion. The runner's container removal was interrupted (exit143); the affected project was `enginia360-r00b-48c9eac2167b`. Readback found no remaining project containers or volumes and only its empty internal network; that exact verified owned network was removed and absence reread.34completed its full normal guarded teardown with protected service/volume inventories unchanged. Later runs use tracked background processes so the tool deadline cannot truncate cleanup. Temporary Python kernel state/formatter log parsing failed before writes and was retried correctly; not product RED or acceptance.
+
+Current remaining delivery: finish/recheck local pool1 and final pool4 as needed; any final discriminating regression gaps; self-review and source formatting; conventional commit/push/PR Refs161/142; fresh exact-head selected PR/dispatch CI, downloaded artifact/hash/content inspection. Parent alone merges and updates issue/Project. Whole03.b runtimeDelivered remainsfalse; invitations/enabling remain dependent parent work.

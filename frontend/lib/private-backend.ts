@@ -50,8 +50,14 @@ export async function privateRead(
       "/api/v1/platform/administration-eligibility",
       "/api/v1/platform/tenants",
       "/api/v1/platform/tenants/workspace",
+      "/api/v1/platform/tenant-roles/workspace",
     ].includes(path) &&
-    !/^\/api\/v1\/platform\/tenants\/[a-f0-9-]{36}(?:\/delegations)?$/.test(path)
+    !/^\/api\/v1\/platform\/tenants\/[a-f0-9-]{36}(?:\/delegations)?$/.test(
+      path,
+    ) &&
+    !/^\/api\/v1\/platform\/tenant-roles\/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(
+      path,
+    )
   )
     throw new Error("Nonfinite backend read");
   try {

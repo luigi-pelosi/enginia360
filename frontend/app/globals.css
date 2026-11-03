@@ -423,6 +423,45 @@ footer {
     min-height: 40px;
   }
 }
+.tenant-role-workspace {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.tenant-role-workspace h1 {
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  line-height: 1.2;
+  font-weight: 700;
+}
+.tenant-role-workspace .role-panel {
+  padding: 24px;
+  min-width: 0;
+}
+.tenant-role-workspace fieldset,
+.tenant-role-workspace form fieldset > div {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+.tenant-role-workspace label:has(input[type="checkbox"]) {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.tenant-role-workspace input[type="checkbox"] {
+  width: 20px;
+  min-height: 20px;
+  flex: 0 0 20px;
+}
+.tenant-role-workspace ul {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+}
+@media (max-width: 599px) {
+  .tenant-role-workspace .role-panel {
+    padding: 16px;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

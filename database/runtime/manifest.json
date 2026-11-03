@@ -188,5 +188,10 @@
     "id": "0038_organization_delegation",
     "path": "migrations/0038_organization_delegation.sql",
     "sha256": "0e83e6c313707e1035c3dea70f6cf6e6debbf329aa09e98390deb7960010fd0c"
+  },
+  {
+    "id": "0039_tenant_roles",
+    "path": "migrations/0039_tenant_roles.sql",
+    "sha256": "9e3eca683190105cb9b6ba1e092ed85236c98784230f251191346d6e24ed3541"
   }
 ]

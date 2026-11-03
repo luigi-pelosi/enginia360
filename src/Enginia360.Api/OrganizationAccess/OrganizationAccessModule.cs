@@ -32,6 +32,7 @@ public static class OrganizationAccessModule
             ?? throw new InvalidOperationException("Authentication:Audience is required.");
         services.AddDbContext<OrganizationAccessDbContext>(o => o.UseNpgsql(connection));
         services.AddScoped<OrganizationContextService>();
+        services.AddHttpContextAccessor();
         services.AddScoped<ExternalIdentityResolver>();
         var syntheticLegacy = configuration["Authentication:Profile"] == "SyntheticLegacy"
             && !configuration.GetValue<bool>("BrowserSessions:Enabled");
@@ -114,6 +115,7 @@ public static class OrganizationAccessModule
     public static WebApplication MapOrganizationAccess(this WebApplication app)
     {
         Enginia360.Api.PlatformAdministration.PlatformAuthority.MapPlatformAuthority(app);
+        Enginia360.Api.PlatformAdministration.TenantRoleAdministration.MapTenantRoleAdministration(app);
         if (app.Configuration["Authentication:Profile"] == "SyntheticLegacy"
             && !app.Configuration.GetValue<bool>("BrowserSessions:Enabled")
             && app.Configuration.GetValue<bool>("DevelopmentTestLogin:Enabled"))
@@ -240,7 +242,7 @@ public static class OrganizationAccessModule
     }
 }
 
-public sealed partial class OrganizationContextService(OrganizationAccessDbContext db, IConfiguration configuration)
+public sealed partial class OrganizationContextService(OrganizationAccessDbContext db, IConfiguration configuration, IHttpContextAccessor httpContextAccessor)
 {
     // Only the already-existing synthetic legacy fixture profile reads its original
     // schema. Runtime never catches a missing view or falls back to root permissions.
@@ -255,6 +257,20 @@ public sealed partial class OrganizationContextService(OrganizationAccessDbConte
 
     private async Task SetIdentity(string subject, CancellationToken c)
     {
+        if (!(configuration["Authentication:Profile"] == "SyntheticLegacy"
+            && !configuration.GetValue<bool>("BrowserSessions:Enabled")))
+        {
+            var actor = Enginia360.Api.PlatformAdministration.VerifiedActorContext.FromPrincipal(
+                httpContextAccessor.HttpContext?.User ?? new ClaimsPrincipal());
+            if (actor is null || actor.InternalIdentityId.ToString("D") != subject)
+                throw new InvalidOperationException("Verified current identity required.");
+            // Same boundary as role/permission/assignment edits and platform revocation.
+            await db.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock(777036)", c);
+            await db.Database.ExecuteSqlInterpolatedAsync($"""
+                SELECT set_config('app.identity_issuer', {actor.Issuer}, true),
+                    set_config('app.external_subject', {actor.Subject}, true)
+                """, c);
+        }
         await db.Database.ExecuteSqlInterpolatedAsync(
             $"SELECT set_config('app.identity_subject', {subject}, true)",
             c
@@ -314,6 +330,7 @@ public sealed partial class OrganizationContextService(OrganizationAccessDbConte
             )
         )
             .AsNoTracking()
+            .Distinct()
             .ToListAsync(c);
         await tx.CommitAsync(c);
         return result;
@@ -344,7 +361,7 @@ public sealed partial class OrganizationContextService(OrganizationAccessDbConte
                 && s.Permission == OrganizationAccessModule.WritePermission
                 && a.Capability == OrganizationAccessModule.ContextCapability
             select new { a.Enabled }
-        ).SingleOrDefaultAsync(c);
+        ).Distinct().SingleOrDefaultAsync(c);
         if (auth is null)
             return new CreateContextNoteResult.Forbidden();
         if (!auth.Enabled)

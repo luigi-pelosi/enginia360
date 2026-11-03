@@ -46,6 +46,17 @@ export default async function DomainPage({
                     </CardContent>
                 </Card>
             )}
+            {id === "identity" && (
+                <Card>
+                    <CardHeader><h2>Gestione utenti nel tenant</h2></CardHeader>
+                    <CardContent>
+                        <p>Delega distinta, ruoli e permessi configurabili per azioni supportate e assegnazione a utenti esistenti. Nessun invito o abilitazione implicita.</p>
+                        <Link href="/users" prefetch={false} className="text-link">
+                            Apri gestione utenti e ruoli
+                        </Link>
+                    </CardContent>
+                </Card>
+            )}
             <Card className="empty-state">
                 <CardHeader>
                     <CardTitle>
