@@ -25,6 +25,27 @@ export default async function DomainPage({
                 <h1>{domain.label}</h1>
                 <p className="lead">{domain.description}</p>
             </div>
+            {id === "organization" && (
+                <Card>
+                    <CardHeader>
+                        <h2>Amministrazione piattaforma</h2>
+                    </CardHeader>
+                    <CardContent>
+                        <p>
+                            Accesso federato e gestione della struttura per il
+                            titolare dell’autorità globale verificata. Nessuna
+                            delega o autorizzazione operativa implicita.
+                        </p>
+                        <Link
+                            href="/organization"
+                            prefetch={false}
+                            className="text-link"
+                        >
+                            Apri amministrazione organizzativa
+                        </Link>
+                    </CardContent>
+                </Card>
+            )}
             <Card className="empty-state">
                 <CardHeader>
                     <CardTitle>
@@ -32,11 +53,20 @@ export default async function DomainPage({
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <p>
-                        Le funzioni operative di quest’area saranno consegnate
-                        in {domain.milestone}. Non è possibile leggere o
-                        modificare dati da questa shell.
-                    </p>
+                    {id === "organization" ? (
+                        <p>
+                            Deleghe nel tenant e gestione utenti: area non
+                            ancora implementata. Il percorso piattaforma
+                            disponibile sopra non concede accesso ai dati
+                            operativi.
+                        </p>
+                    ) : (
+                        <p>
+                            Le funzioni operative di quest’area saranno
+                            consegnate in {domain.milestone}. Non è possibile
+                            leggere o modificare dati da questa shell.
+                        </p>
+                    )}
                     <p>
                         L’accesso federato e il contesto aziendale verificato
                         sono prerequisiti del futuro percorso operativo. La

@@ -86,8 +86,14 @@ export function Shell({ children }: { children: ReactNode }) {
                 {children}
             </main>
             <footer>
-                Accesso non disponibile · Federazione e autorizzazioni non
-                ancora collegate.
+                {pathname === "/organization" ? (
+                    "Sessione gestita dal backend · Autorità verificata a ogni operazione; nessun permesso dal menu."
+                ) : (
+                    <>
+                        Accesso non disponibile · Federazione e autorizzazioni
+                        non ancora collegate.
+                    </>
+                )}
             </footer>
             <noscript>
                 <style>
