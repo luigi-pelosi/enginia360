@@ -192,6 +192,6 @@
   {
     "id": "0039_tenant_roles",
     "path": "migrations/0039_tenant_roles.sql",
-    "sha256": "9e3eca683190105cb9b6ba1e092ed85236c98784230f251191346d6e24ed3541"
+    "sha256": "2ed59c2437f92e8d4c5579f43a0db8b0cc087441574b3bd6670a913a70b37609"
   }
 ]

@@ -257,4 +257,11 @@ class RoleTests(unittest.TestCase):
   self.actor=self.delegate
   self.sql(f'''UPDATE organization_access.tenant_role_objects SET "Revision"=2147483647 WHERE "Id"='{self.role['resourceId']}' ''')
   self.assertEqual(self.role_command(dict(self.role_creation,commandId=str(uuid.uuid4()),resourceId=self.role['resourceId'],expectedRevision=2147483646))['state'],'conflict')
+ def test_effective_scope_rows_have_distinct_entity_ids_for_multiple_role_permissions(self):
+  self.prepare_role()
+  write=self.role_command(dict(self.permission_command,commandId=str(uuid.uuid4()),action='organization-context.write'))['snapshot']
+  self.role_command(dict(self.role_creation,commandId=str(uuid.uuid4()),resourceId=self.role['resourceId'],expectedRevision=1,permissionIds=[self.permission['resourceId'],write['resourceId']]))
+  self.role_command(self.assignment);self.actor=self.target
+  result=self.app_result(f"SELECT set_config('app.tenant_id','{self.tenant}',true);SELECT jsonb_build_object('rows',count(*),'ids',count(DISTINCT \"Id\")) FROM organization_access.effective_membership_scopes WHERE \"MembershipId\"='{self.target_member}'")
+  self.assertEqual(result,dict(rows=2,ids=2),'effective MembershipScope primary identity must distinguish read/write rows')
 if __name__=='__main__':unittest.main()

@@ -307,7 +307,6 @@ public sealed partial class OrganizationContextService(OrganizationAccessDbConte
             where
                 m.IdentitySubject == subject
                 && s.Permission == OrganizationAccessModule.ReadPermission
-            orderby t.Name, le.Name, site.Name, w.Name
             select new OrganizationContextContract(
                 t.Id,
                 t.Name,
@@ -331,6 +330,10 @@ public sealed partial class OrganizationContextService(OrganizationAccessDbConte
         )
             .AsNoTracking()
             .Distinct()
+            .OrderBy(context => context.TenantName)
+            .ThenBy(context => context.LegalEntityName)
+            .ThenBy(context => context.SiteName)
+            .ThenBy(context => context.WarehouseName)
             .ToListAsync(c);
         await tx.CommitAsync(c);
         return result;

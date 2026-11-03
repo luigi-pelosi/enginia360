@@ -2875,7 +2875,7 @@
     "definition": {
       "migration": "0039_tenant_roles",
       "path": "database/runtime/migrations/0039_tenant_roles.sql",
-      "file_sha256": "9e3eca683190105cb9b6ba1e092ed85236c98784230f251191346d6e24ed3541",
+      "file_sha256": "2ed59c2437f92e8d4c5579f43a0db8b0cc087441574b3bd6670a913a70b37609",
       "create_sql": "CREATE TABLE organization_access.tenant_role_objects (\n \"Id\" uuid PRIMARY KEY,\n \"TenantId\" uuid NOT NULL REFERENCES organization_access.tenants(\"Id\"),\n \"Kind\" text NOT NULL CHECK (\"Kind\" IN ('delegation','permission','role','assignment')),\n \"Data\" jsonb NOT NULL CHECK (jsonb_typeof(\"Data\")='object'),\n \"Revision\" integer NOT NULL CHECK (\"Revision\">0)\n);",
       "columns": [
         "Id",
@@ -2903,7 +2903,7 @@
     "definition": {
       "migration": "0039_tenant_roles",
       "path": "database/runtime/migrations/0039_tenant_roles.sql",
-      "file_sha256": "9e3eca683190105cb9b6ba1e092ed85236c98784230f251191346d6e24ed3541",
+      "file_sha256": "2ed59c2437f92e8d4c5579f43a0db8b0cc087441574b3bd6670a913a70b37609",
       "create_sql": "CREATE TABLE organization_access.tenant_role_audit (\n \"Id\" uuid PRIMARY KEY DEFAULT gen_random_uuid(),\n \"CommandId\" uuid,\n \"ActorId\" uuid NOT NULL,\n \"BindingHash\" bytea NOT NULL,\n \"Authority\" jsonb NOT NULL,\n \"TenantId\" uuid,\n \"ResourceId\" uuid,\n \"Request\" jsonb NOT NULL,\n \"Before\" jsonb NOT NULL,\n \"After\" jsonb NOT NULL,\n \"Outcome\" text NOT NULL CHECK (\"Outcome\" IN ('applied','forbidden','invalid','conflict')),\n \"OccurredAt\" timestamptz NOT NULL DEFAULT clock_timestamp()\n);",
       "columns": [
         "Id",

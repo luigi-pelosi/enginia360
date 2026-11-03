@@ -9,7 +9,7 @@ import {
   type TenantRoleData,
 } from "../lib/tenant-roles";
 
-type Frozen = { path: string; body: string };
+type Frozen = { readonly path: string; readonly body: string; uncertain: boolean };
 export function TenantRoleWorkspace({
   initial,
 }: {
@@ -70,6 +70,7 @@ export function TenantRoleWorkspace({
         },
         body: command.body,
       });
+      command.uncertain = true;
       const current = await readJson(command.path);
       setData(current);
       setStatus(200);
@@ -79,6 +80,27 @@ export function TenantRoleWorkspace({
         "Modifica verificata: stato corrente riletto e audit persistito.",
       );
     } catch (error) {
+      if (
+        error instanceof HttpFailure &&
+        (error.status === 400 || error.status === 409) &&
+        !command.uncertain
+      ) {
+        // A definite first refusal cannot have committed this command. Once an
+        // acceptance or network loss is possible, never discard the frozen bytes.
+        setPending(null);
+        fence.current = null;
+        try {
+          setData(await readJson(command.path));
+        } catch (readError) {
+          setData(null);
+          setStatus(readError instanceof HttpFailure ? readError.status : 503);
+        }
+        setMessage(
+          "Comando rifiutato: correggi i dati o aggiorna la pagina per rileggere lo stato corrente.",
+        );
+        return;
+      }
+      command.uncertain = true;
       if (
         error instanceof HttpFailure &&
         (error.status === 401 || error.status === 403)
@@ -164,6 +186,7 @@ export function TenantRoleWorkspace({
     const frozen = {
       path: tenantRolePath + "/" + data.tenantId,
       body: JSON.stringify(payload),
+      uncertain: false,
     };
     fence.current = frozen;
     setPending(frozen);

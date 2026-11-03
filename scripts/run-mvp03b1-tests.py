@@ -99,7 +99,7 @@ def main():
                     result = run(command + ['run', '--rm', '--no-deps', '-T', *mounts, '--entrypoint', 'python3', 'migrator', 'scripts/owner-platform-authority.py', '/run/tls/authority.json'], timeout=45)
                     assert 'exact immutable audit read back' in result
                 revision += 1
-                print('MVP02C_OWNER ' + operation + ' exact replay/readback', flush=True)
+                print('MVP03B1_OWNER ' + operation + ' exact replay/readback', flush=True)
             run(command + ['up', '-d', 'api', 'next', 'web'], timeout=120)
             ids = run(command + ['ps', '-q']).splitlines()
             inspected = json.loads(run(['docker', 'inspect', *ids]))
@@ -118,6 +118,19 @@ def main():
                     raise TimeoutError('authority browser deadline')
                 request = control / 'request'
                 if request.exists():
+                    # The browser is a one-shot container; inspect it while its first
+                    # control request proves it is alive, not only the five services.
+                    browser_ids = run(['docker', 'ps', '-q', '--filter', 'label=com.docker.compose.project=' + project, '--filter', 'label=com.docker.compose.service=browser']).splitlines()
+                    assert len(browser_ids) == 1, 'one owned browser must be alive'
+                    browser_container = json.loads(run(['docker', 'inspect', browser_ids[0]]))[0]
+                    host = browser_container['HostConfig']
+                    assert browser_container['Config']['User'] == '1001:1001'
+                    assert host['ReadonlyRootfs'] and host['CapDrop'] == ['ALL'] and 'no-new-privileges:true' in host['SecurityOpt']
+                    assert not host['PortBindings'] and host['Memory'] > 0 and host['NanoCpus'] > 0 and host['PidsLimit'] > 0
+                    assert not any(m['Type'] == 'volume' for m in browser_container['Mounts'])
+                    if not any(row['service'] == 'browser' for row in metadata):
+                        metadata.append(dict(service='browser', user=browser_container['Config']['User'], readonly=host['ReadonlyRootfs'], capDrop=host['CapDrop'], securityOpt=host['SecurityOpt'], portBindings=host['PortBindings'], memory=host['Memory'], cpus=host['NanoCpus'], pids=host['PidsLimit'], mountTypes=[m['Type'] for m in browser_container['Mounts']]))
+                        (evidence / 'runtime-hardening.json').write_text(json.dumps(dict(containers=metadata, internalNetwork=True, pool=values['R00_POOL_SIZE']), indent=2))
                     action = request.read_text()
                     request.unlink()
                     if action in ('grant', 'revoke'):

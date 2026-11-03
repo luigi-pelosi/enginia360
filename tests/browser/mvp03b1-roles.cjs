@@ -88,6 +88,12 @@ async function login(browser,index){
   assert.equal((await post(delegated.page,{...roleEdit,commandId:require('node:crypto').randomUUID(),expectedRevision:2,permissionIds:[]})).status,200);
   assert.equal((await note(delegated.page)).status,403,'role edit removes write immediately');
   assert.equal((await post(delegated.page,{...roleEdit,commandId:require('node:crypto').randomUUID(),expectedRevision:3})).status,200);
+  assert.deepEqual((await post(delegated.page,role)).value,{state:'replayed',snapshot:composed.value.snapshot},'real HTTP replay is historical after role edits');
+  assert.equal((await post(delegated.page,{...role,label:'Changed payload with identical key'})).status,409);
+  const concurrentRole=envelope('role',{label:'Concurrent technical composition',permissionIds:[]});
+  const concurrent=await Promise.all(Array.from({length:4},()=>post(delegated.page,concurrentRole)));
+  assert.deepEqual(concurrent.map(r=>r.value.state).sort(),['applied','replayed','replayed','replayed']);
+  for(const response of concurrent)assert.deepEqual(response.value.snapshot,concurrent[0].value.snapshot);
   assert.equal((await post(delegated.page,{...assignment,commandId:require('node:crypto').randomUUID(),resourceId:assigned.value.snapshot.resourceId,expectedRevision:1,active:false})).status,200);
   assert.equal((await note(delegated.page)).status,403,'assignment revocation defeats open session');
   assert.equal((await request(delegated.page,'/auth/session')).value.authenticated,true);
@@ -141,6 +147,13 @@ async function login(browser,index){
   await delegated.page.getByLabel('Ruolo assegnazione').selectOption(uiRole.resourceId);
   await uiSave(delegated.page,'Assegna ruolo');
   assert.equal((await request(delegated.page,'/api/v1/organization/contexts')).value.length,1,'actual UI role assignment is consumed');
+  await delegated.page.getByLabel('Ruolo da modificare').selectOption(uiRole.resourceId);
+  await delegated.page.getByLabel('Nome ruolo',{exact:true}).fill('UI configured role edited');
+  await delegated.page.getByRole('checkbox',{name:'UI read · organization-context.read',exact:true}).uncheck();
+  await uiSave(delegated.page,'Salva ruolo');
+  assert.deepEqual((await request(delegated.page,'/api/v1/organization/contexts')).value,[],'actual UI role edit removes current access');
+  await delegated.page.getByRole('checkbox',{name:'UI read · organization-context.read',exact:true}).check();
+  await uiSave(delegated.page,'Salva ruolo');
   assert.equal((await tokenContext.request.get(origin+'/api/v1/organization/contexts',{headers:bearerHeaders})).status(),200);
   assert.equal((await (await tokenContext.request.get(origin+'/api/v1/organization/contexts',{headers:bearerHeaders})).json()).length,1,'current signed bearer operative positive');
   const nojs=await browser.newContext({javaScriptEnabled:false});await nojs.addCookies(await delegated.context.cookies());const nojsPage=await nojs.newPage();
@@ -148,6 +161,13 @@ async function login(browser,index){
   assert.match(nojsHtml,/UI configured role/);assert.match(nojsHtml,/UI read/);assert.match(nojsResponse.headers()['cache-control'],/private|no-store/);
   fs.writeFileSync('/evidence/roles-nojs.html',nojsHtml);fs.writeFileSync('/evidence/roles-nojs-headers.json',JSON.stringify({'cache-control':nojsResponse.headers()['cache-control'],'content-type':nojsResponse.headers()['content-type']}));
   const deniedSSR=await ordinary.page.context().request.get(origin+'/users');assert.doesNotMatch(await deniedSSR.text(),/UI configured role/);
+  await delegated.page.getByLabel('Permesso da modificare').selectOption(uiPermission.resourceId);
+  await delegated.page.getByLabel('Nome permesso',{exact:true}).fill('x'.repeat(101));
+  const refused=delegated.page.waitForResponse(r=>r.url()===origin+route&&r.request().method()==='POST');
+  await delegated.page.getByRole('button',{name:'Salva permesso',exact:true}).click();assert.equal((await refused).status(),400);
+  await delegated.page.getByRole('status').filter({hasText:/Esito da verificare|Comando rifiutato/}).waitFor();
+  assert.equal(await delegated.page.getByLabel('Nome permesso',{exact:true}).isDisabled(),false,'definite first-attempt validation refusal must allow correction without discarding an uncertain accepted command');
+  await delegated.page.getByLabel('Nome permesso',{exact:true}).fill('😀'.repeat(100));await uiSave(delegated.page,'Salva permesso');
   for(const viewport of [{width:1440,height:1000},{width:1024,height:768},{width:390,height:844}]){
    await delegated.page.setViewportSize(viewport);await delegated.page.screenshot({path:'/evidence/roles-'+viewport.width+'.png',fullPage:true});
    assert.equal(await delegated.page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'no horizontal overflow at '+viewport.width);

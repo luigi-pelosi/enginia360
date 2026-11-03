@@ -219,7 +219,7 @@ BEGIN
   AND b."Issuer"=current_setting('app.identity_issuer',true) COLLATE "C" AND b."Subject"=current_setting('app.external_subject',true) COLLATE "C" FOR SHARE OF m,b;
  IF NOT FOUND THEN RETURN; END IF;
  RETURN QUERY SELECT DISTINCT ON (p."Data"->>'legalEntityId',p."Data"->>'siteId',p."Data"->>'warehouseId',p."Data"->>'action')
-  a."Id",m."Id",m."TenantId",(p."Data"->>'legalEntityId')::uuid,(p."Data"->>'siteId')::uuid,(p."Data"->>'warehouseId')::uuid,(p."Data"->>'action')::varchar(100)
+  p."Id",m."Id",m."TenantId",(p."Data"->>'legalEntityId')::uuid,(p."Data"->>'siteId')::uuid,(p."Data"->>'warehouseId')::uuid,(p."Data"->>'action')::varchar(100)
  FROM organization_access.memberships m JOIN organization_access.external_identity_bindings b ON b."InternalIdentityId"::text=m."IdentitySubject"
  JOIN organization_access.tenant_role_objects a ON a."TenantId"=m."TenantId" AND a."Kind"='assignment'
   AND a."Data"->>'membershipId'=m."Id"::text AND a."Data"->>'internalIdentityId'=b."InternalIdentityId"::text
@@ -228,7 +228,7 @@ BEGIN
  CROSS JOIN LATERAL jsonb_array_elements_text(r."Data"->'permissionIds') x
  JOIN organization_access.tenant_role_objects p ON p."TenantId"=r."TenantId" AND p."Kind"='permission' AND p."Id"::text=x
  WHERE m."IdentitySubject"=current_setting('app.identity_subject',true) AND m."TenantId"::text=current_setting('app.tenant_id',true)
- ORDER BY p."Data"->>'legalEntityId',p."Data"->>'siteId',p."Data"->>'warehouseId',p."Data"->>'action',a."Id";
+ ORDER BY p."Data"->>'legalEntityId',p."Data"->>'siteId',p."Data"->>'warehouseId',p."Data"->>'action',p."Id";
 END $$;
 REVOKE ALL ON FUNCTION organization_access.current_tenant_role_scopes() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION organization_access.current_tenant_role_scopes() TO :"app_user";
