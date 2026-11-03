@@ -21,33 +21,33 @@ export default async function OrganizationPage({
         }}
       />
     );
-  const eligibility = await privateRead(
-    "/api/v1/platform/administration-eligibility",
-    cookie,
-  );
-  if (eligibility.status !== 200 || !eligibility.value?.canAdministerPlatform)
+  const directory = await privateRead("/api/v1/platform/tenants/workspace", cookie);
+  if (directory.status !== 200)
     return (
       <OrganizationWorkspace
         initial={{
-          status: eligibility.status === 200 ? 403 : eligibility.status,
+          status: directory.status,
           tenants: [],
           hierarchy: null,
         }}
       />
     );
-  const directory = await privateRead("/api/v1/platform/tenants", cookie);
   const { tenant } = await searchParams;
   const target =
     directory.status === 200 &&
     directory.value.tenants.some((t: { id: string }) => t.id === tenant)
       ? tenant
-      : undefined;
+      : directory.value.mode === "delegate" && !tenant ? directory.value.tenants[0]?.id : undefined;
   const hierarchy = target
     ? await privateRead("/api/v1/platform/tenants/" + target, cookie)
     : null;
+  const grants = target && directory.value.mode === "owner"
+    ? await privateRead("/api/v1/platform/tenants/" + target + "/delegations", cookie) : null;
   return (
     <OrganizationWorkspace
       initial={{
+        mode: directory.value.mode,
+        memberships: grants?.value?.memberships || [],
         status:
           hierarchy && hierarchy.status !== 200
             ? hierarchy.status

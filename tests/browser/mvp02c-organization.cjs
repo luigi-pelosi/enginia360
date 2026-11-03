@@ -476,6 +476,73 @@ async function login(browser, index) {
         console.log(
             "PASS MVP02C authenticated noJS SSR private/no-store; ordinary denial; CSRF; latest target response wins",
         );
+        // MVP03.a actual owner grants to an existing trusted membership; no UUID entry by an operator.
+        await owner.page.getByLabel("Tenant destinatario").selectOption(fixture.contexts[0].tenantId);
+        await owner.page.getByLabel("Membership esistente").selectOption(fixture.grantTargetMembershipId);
+        const delegationRoute = "**/api/v1/platform/tenants/" + fixture.contexts[0].tenantId + "/delegations";
+        const delegationBodies = [];
+        let loseGrant = true, refuseGrantCsrf = false, loseGrantRead = false;
+        await owner.page.route(delegationRoute, async route => {
+            if (route.request().method() !== "POST") {
+                if (loseGrantRead) { loseGrantRead = false; return route.abort("connectionfailed"); }
+                return route.continue();
+            }
+            delegationBodies.push(route.request().postData());
+            if (loseGrant) { loseGrant = false; const response = await route.fetch(); assert.equal(response.status(), 200); return route.abort("connectionfailed"); }
+            if (refuseGrantCsrf) { refuseGrantCsrf = false; return route.continue({headers: {...route.request().headers(), "x-csrf-token": "invalid"}}); }
+            return route.continue();
+        });
+        await owner.page.getByRole("button", {name: "Concedi delega struttura", exact: true}).click();
+        await owner.page.getByText("Esito incerto. Contesto e comando congelati.", {exact: true}).waitFor();
+        assert.equal(await owner.page.getByLabel("Membership esistente").isDisabled(), true);
+        refuseGrantCsrf = true;
+        await owner.page.getByRole("button", {name: "Riprova lo stesso comando", exact: true}).click();
+        await owner.page.getByRole("status").filter({hasText: "CSRF non valida"}).waitFor();
+        loseGrantRead = true;
+        await owner.page.getByRole("button", {name: "Riprova lo stesso comando", exact: true}).click();
+        await owner.page.getByRole("status").filter({hasText: "Servizio non disponibile"}).waitFor();
+        await owner.page.getByRole("button", {name: "Riprova lo stesso comando", exact: true}).click();
+        await owner.page.getByRole("status").filter({hasText: "Salvato e riletto dal server"}).waitFor();
+        assert.equal(delegationBodies.length, 4);
+        for (const body of delegationBodies) assert.equal(body, delegationBodies[0], "grant uncertain retry bytes must remain frozen");
+        await owner.page.unroute(delegationRoute);
+        const delegate = await login(browser, 5);
+        await delegate.page.getByText("Delega organizzativa verificata", {exact: true}).waitFor({timeout: 5000});
+        assert.equal(await delegate.page.getByRole("button", {name: "Nuovo tenant", exact:true}).count(), 0);
+        assert.equal(await delegate.page.getByRole("button", {name: "Rinomina tenant", exact:true}).count(), 0);
+        assert.equal(await delegate.page.getByLabel("Membership esistente").count(), 0);
+        for (const [kind,label,createLabel] of [["company","società","Nuova società"],["site","sede","Nuova sede"],["warehouse","magazzino","Nuovo magazzino"]]) {
+            const parent = kind === "company" ? delegate.page : delegate.page.locator("article").filter({has:delegate.page.getByRole("heading",{name:kind === "site" ? "Delegated company renamed" : "Delegated site renamed",exact:true})}).last();
+            await parent.getByRole("button",{name:createLabel,exact:true}).click();
+            await delegate.page.getByLabel("Nome",{exact:true}).fill("Delegated "+kind);
+            await delegate.page.getByRole("button",{name:"Salva",exact:true}).click();
+            await delegate.page.getByRole("heading",{name:"Delegated "+kind,exact:true}).waitFor();
+            const branch = delegate.page.locator("article").filter({has:delegate.page.getByRole("heading",{name:"Delegated "+kind,exact:true})}).last();
+            await branch.getByRole("button",{name:"Rinomina "+label,exact:true}).click();
+            await delegate.page.getByLabel("Nome",{exact:true}).fill("Delegated "+kind+" renamed");
+            await delegate.page.getByRole("button",{name:"Salva",exact:true}).click();
+            await delegate.page.getByRole("heading",{name:"Delegated "+kind+" renamed",exact:true}).waitFor();
+        }
+        const delegateNojs=await browser.newContext({javaScriptEnabled:false});
+        await delegateNojs.addCookies(await delegate.context.cookies());
+        const delegateSsr=await delegateNojs.newPage();
+        const delegateHtml=await delegateSsr.goto(origin+"/organization");
+        assert.match(delegateHtml.headers()["cache-control"],/no-store/);
+        await delegateSsr.getByRole("heading",{name:"Delegated warehouse renamed",exact:true}).waitFor();
+        assert.equal(await delegateSsr.getByRole("button",{name:"Nuovo tenant",exact:true}).count(),0);
+        fs.writeFileSync("/evidence/delegated-nojs.html",await delegateSsr.content());
+        await delegateNojs.close();
+        await delegate.page.setViewportSize({width:390,height:844});
+        assert.ok(await delegate.page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+        await delegate.page.screenshot({path:"/evidence/delegated-390.png",fullPage:true});
+        await control("delegation-readback");
+        await owner.page.getByRole("button", {name:"Revoca delega struttura",exact:true}).click();
+        await owner.page.getByRole("status").filter({hasText:"Salvato e riletto dal server"}).waitFor();
+        await delegate.page.getByRole("button", {name:"Rileggi dal server",exact:true}).click();
+        await delegate.page.getByText("Autorità amministrativa assente o revocata", {exact:true}).waitFor();
+        await delegate.context.close();
+        await owner.page.getByLabel("Tenant destinatario").selectOption(target);
+        console.log("PASS MVP03A real owner grant/revoke frozen lost-response retry and delegated organization UI");
         const layouts = [];
         for (const viewport of [
             { width: 1440, height: 900 },

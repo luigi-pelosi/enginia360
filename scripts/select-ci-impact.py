@@ -308,8 +308,9 @@ ORGANIZATION_FILES = {
     'scripts/test-mvp02b-impact.py', 'scripts/test-mvp02b-organization.py',
     'scripts/run-mvp02b-tests.py', 'tests/browser/mvp02b-organization.cjs',
     'database/runtime/migrations/0037_organization_administration.sql',
+    'database/runtime/migrations/0038_organization_delegation.sql',
 }
-ORGANIZATION_WIRING = PLATFORM_FILES | PLATFORM_WIRING | {'docs/mvp02b-organization-administration.md', 'src/Enginia360.Api/Program.cs'}
+ORGANIZATION_WIRING = PLATFORM_FILES | PLATFORM_WIRING | {'docs/mvp02b-organization-administration.md', 'src/Enginia360.Api/Program.cs', 'docs/mvp03a-organization-delegation.md', 'docs/mvp03a-progress.md'}
 
 
 # Authenticated UI owns an explicit finite surface; its backend consumers remain selected.
@@ -342,6 +343,7 @@ AUTHENTICATED_ORGANIZATION_DIRECT = {
     'src/Enginia360.Api/packages.lock.json', 'src/Enginia360.Api/Dockerfile',
     'database/runtime/migrations/0036_platform_authority.sql',
     'database/runtime/migrations/0037_organization_administration.sql',
+    'database/runtime/migrations/0038_organization_delegation.sql',
     'database/runtime/manifest.json', 'scripts/apply-runtime-migrations.py',
     'scripts/owner-platform-authority.py', 'scripts/run-r00b-tests.py',
     'browser.runtime.Dockerfile', 'postgres.runtime.Dockerfile',
@@ -361,7 +363,7 @@ def _selection(paths):
         return result
     if set(paths) & ORGANIZATION_FILES:
         remaining = set(paths) - ORGANIZATION_FILES
-        finite = remaining <= ORGANIZATION_WIRING
+        finite = remaining <= ORGANIZATION_WIRING | FRONTEND_FILES
         if finite:
             remaining -= ORGANIZATION_WIRING
         result = selection(sorted(remaining | {'scripts/test-mvp02a-impact.py'}))

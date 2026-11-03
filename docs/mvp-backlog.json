@@ -16,12 +16,12 @@
     },
     {
       "id": "MVP-02", "title": "Accesso federato, SUPER ADMIN e gestione tenant e organizzazione",
-      "domainIds": ["identity", "organization"], "dependsOn": ["MVP-01"], "status": "in_progress", "issueNumber": 141,
+      "domainIds": ["identity", "organization"], "dependsOn": ["MVP-01"], "status": "done", "issueNumber": 141,
       "acceptance": ["Autorita' globale inizializzata esplicitamente, mai dal primo login o da token di correlazione", "SUPER ADMIN crea tenant e amministra societa', sedi e magazzini via UI/API persistite", "Contesto destinatario verificato senza bypass RLS", "Anonimo e attore non autorizzato negati; revoca e audit provati"]
     },
     {
       "id": "MVP-03", "title": "Deleghe tenant-scoped e amministrazione utenti, ruoli e permessi",
-      "domainIds": ["identity", "organization"], "dependsOn": ["MVP-02"], "status": "backlog", "issueNumber": 142,
+      "domainIds": ["identity", "organization"], "dependsOn": ["MVP-02"], "status": "in_progress", "issueNumber": 142,
       "acceptance": ["SUPER ADMIN delega un soggetto gia' anagrafato nel tenant", "Gestione struttura e gestione utenti sono facolta' distinte", "Invito o abilitazione utenti e assegnazione ruoli entro perimetro esplicito", "Nessuna auto-promozione SUPER ADMIN, subdelega implicita o potere su altri tenant", "Revoca, azione/scope e tentativi concorrenti verificati"]
     },
     {

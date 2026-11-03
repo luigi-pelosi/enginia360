@@ -2802,5 +2802,63 @@
         "CommandId"
       ]
     }
+  },
+  {
+    "table": "organization_access.organization_delegations",
+    "owner": "organization_access",
+    "category": "authority_evidence",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "MembershipId"
+    ],
+    "definition": {
+      "migration": "0038_organization_delegation",
+      "path": "database/runtime/migrations/0038_organization_delegation.sql",
+      "file_sha256": "0e83e6c313707e1035c3dea70f6cf6e6debbf329aa09e98390deb7960010fd0c",
+      "create_sql": "CREATE TABLE organization_access.organization_delegations (\n \"MembershipId\" uuid PRIMARY KEY,\n \"TenantId\" uuid NOT NULL,\n \"InternalIdentityId\" uuid NOT NULL,\n \"BindingHash\" bytea NOT NULL,\n \"Active\" boolean NOT NULL,\n \"Revision\" integer NOT NULL CHECK (\"Revision\">0)\n);",
+      "columns": [
+        "MembershipId",
+        "TenantId",
+        "InternalIdentityId",
+        "BindingHash",
+        "Active",
+        "Revision"
+      ],
+      "primary_key": [
+        "MembershipId"
+      ]
+    }
+  },
+  {
+    "table": "organization_access.organization_delegation_commands",
+    "owner": "organization_access",
+    "category": "security_evidence",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "CommandId"
+    ],
+    "definition": {
+      "migration": "0038_organization_delegation",
+      "path": "database/runtime/migrations/0038_organization_delegation.sql",
+      "file_sha256": "0e83e6c313707e1035c3dea70f6cf6e6debbf329aa09e98390deb7960010fd0c",
+      "create_sql": "CREATE TABLE organization_access.organization_delegation_commands (\n \"CommandId\" uuid PRIMARY KEY,\n \"ActorId\" uuid NOT NULL,\n \"BindingHash\" bytea NOT NULL,\n \"TargetId\" uuid NOT NULL,\n \"Request\" jsonb NOT NULL,\n \"Snapshot\" jsonb NOT NULL,\n \"OccurredAt\" timestamptz NOT NULL DEFAULT clock_timestamp()\n);",
+      "columns": [
+        "CommandId",
+        "ActorId",
+        "BindingHash",
+        "TargetId",
+        "Request",
+        "Snapshot",
+        "OccurredAt"
+      ],
+      "primary_key": [
+        "CommandId"
+      ]
+    }
   }
 ]

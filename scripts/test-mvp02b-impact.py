@@ -44,4 +44,15 @@ class ImpactTests(unittest.TestCase):
   self.assertIn('MVP02B_POOL_SIZE=1',job)
   self.assertIn('actions/upload-artifact@v4',job)
   self.assertIn('scripts/test-mvp02b-impact.py',workflow)
+ def test_delegation_append_only_migration_selects_both_consumers(self):
+  result=m.selection(['database/runtime/migrations/0038_organization_delegation.sql'])
+  self.assertTrue(result.get('organization_administration',False))
+  self.assertTrue(result.get('authenticated_organization',False))
+  self.assertFalse(result['full_architecture'])
+ def test_full_delegation_slice_retains_security_not_unrelated_erp(self):
+  paths=FILES|WIRING|{'database/runtime/migrations/0038_organization_delegation.sql','docs/mvp03a-organization-delegation.md','docs/mvp03a-progress.md','docs/mvp-backlog.json','frontend/app/organization/page.tsx','frontend/components/organization-workspace.tsx','frontend/lib/organization.ts','frontend/lib/private-backend.ts','frontend/tests/organization.test.tsx','scripts/run-mvp02c-tests.py','tests/browser/mvp02c-organization.cjs'}
+  result=m.selection(sorted(paths))
+  self.assertTrue(result['organization_administration']);self.assertTrue(result['authenticated_organization']);self.assertTrue(result['frontend']);self.assertTrue(result['platform_authority'])
+  self.assertTrue(result['platform_foundation_only'])
+  for key in ('ui01b','r03a','r04a','r05b0','r06b1','r06_offline','full_architecture'):self.assertFalse(result[key],key)
 if __name__=='__main__': unittest.main()

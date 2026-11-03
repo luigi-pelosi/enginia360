@@ -122,6 +122,13 @@ def main():
                         run(query, input='REVOKE EXECUTE ON FUNCTION organization_access.read_organization(uuid),organization_access.command_organization(uuid,jsonb) FROM runtime_app;')
                     elif action == 'store-restore':
                         run(query, input='GRANT EXECUTE ON FUNCTION organization_access.read_organization(uuid),organization_access.command_organization(uuid,jsonb) TO runtime_app;')
+                    elif action == 'delegation-readback':
+                        assert run(query + ['-c', f'''SELECT count(*) FROM organization_access.organization_commands WHERE "ActorId"='{identities[5]}' ''']).strip() == '6'
+                        assert run(query + ['-c', 'SELECT count(*) FROM organization_access.organization_delegation_commands']).strip() == '1'
+                        assert run(query + ['-c', f'''SELECT count(*) FROM organization_access.membership_scopes s JOIN organization_access.memberships m ON m."Id"=s."MembershipId" WHERE m."IdentitySubject"='{identities[5]}' ''']).strip() == '0'
+                        readback = run(query + ['-c', f'''SELECT json_build_object('delegationCommands',(SELECT count(*) FROM organization_access.organization_delegation_commands),'delegateCommands',(SELECT json_agg("Snapshot") FROM organization_access.organization_commands WHERE "ActorId"='{identities[5]}'),'delegateBusinessScopes',(SELECT count(*) FROM organization_access.membership_scopes s JOIN organization_access.memberships m ON m."Id"=s."MembershipId" WHERE m."IdentitySubject"='{identities[5]}'))'''])
+                        (evidence / 'delegation-sql-readback.json').write_text(readback)
+                        print('PASS MVP03A SQL six delegate structure commands,one grant despite four attempts,no business scopes', flush=True)
                     elif action == 'audit-readback':
                         count = run(query + ['-c', 'SELECT count(*) FROM organization_access.organization_commands WHERE "Snapshot"->>\'name\' LIKE \'UI %\'']).strip()
                         assert count == '8', 'expected one audit per each UI create/rename: ' + count
