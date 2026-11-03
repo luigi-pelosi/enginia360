@@ -1,8 +1,11 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Security.Claims;
 using System.Text.Json;
+using Enginia360.Api.BrowserAuthentication;
 using Enginia360.Api.OrganizationAccess;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -61,8 +64,32 @@ public sealed class LimitedGrantAdministrationTests
             var service = scope.ServiceProvider.GetRequiredService<OrganizationContextService>();
             Assert.Single(await service.ListContexts(ids[5].ToString(), CancellationToken.None));
             configuration["Authentication:Profile"] = null;
-            var absentRuntime = await Assert.ThrowsAsync<PostgresException>(() => service.ListContexts(ids[5].ToString(), CancellationToken.None));
-            Assert.Equal(PostgresErrorCodes.UndefinedTable, absentRuntime.SqlState);
+            var noIdentity = await Assert.ThrowsAsync<InvalidOperationException>(() => service.ListContexts(ids[5].ToString(), CancellationToken.None));
+            Assert.Equal("Verified current identity required.", noIdentity.Message);
+            // Service-level synthetic fixture only: modern calls now require the
+            // handler-resolved tuple before reaching the missing-runtime fence.
+            // Real signed-bearer/OIDC authentication is exercised separately.
+            var accessor = provider.GetRequiredService<IHttpContextAccessor>();
+            accessor.HttpContext = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(new ClaimsIdentity(new[]
+                {
+                    new Claim(ClaimTypes.NameIdentifier, ids[5].ToString("D")),
+                    new Claim(ExternalIdentityResolver.IssuerClaim, BindingApiFactory.Issuer),
+                    new Claim(ExternalIdentityResolver.SubjectClaim, ids[5].ToString("D")),
+                }, "SyntheticServiceFixture")),
+            };
+            try
+            {
+                var absentRuntime = await Assert.ThrowsAsync<PostgresException>(() => service.ListContexts(ids[5].ToString(), CancellationToken.None));
+                Assert.Equal(PostgresErrorCodes.UndefinedTable, absentRuntime.SqlState);
+            }
+            finally
+            {
+                accessor.HttpContext = null;
+            }
+            configuration["Authentication:Profile"] = "SyntheticLegacy";
+            Assert.Single(await service.ListContexts(ids[5].ToString(), CancellationToken.None));
         }
         finally
         {

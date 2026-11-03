@@ -371,6 +371,9 @@ TENANT_ROLE_DIRECT = AUTHENTICATED_ORGANIZATION_DIRECT | AUTHENTICATED_ORGANIZAT
 }
 TENANT_ROLE_SCOPE = TENANT_ROLE_FILES | ORGANIZATION_FILES | ORGANIZATION_WIRING | AUTHENTICATED_ORGANIZATION_FILES | FRONTEND_FILES | {
     'docs/mvp03b1-tenant-role-contract.md', 'docs/mvp03b1-progress.md',
+    # Exact service fixture consumes the changed verified-identity fence. Its
+    # foundation SQL/pool and AUTH_FILTER consumers remain selected below.
+    'tests/Enginia360.Api.Tests/LimitedGrantAdministrationTests.cs',
 }
 
 def _selection(paths):

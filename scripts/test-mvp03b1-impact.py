@@ -35,6 +35,18 @@ class ImpactTests(unittest.TestCase):
  def test_unknown_executable_is_not_hidden(self):
   for path in ('frontend/app/users/unknown.ts','scripts/run-mvp03b1-unknown.py','docs/mvp03b1-unknown.py'):
    with self.assertRaises(ValueError):m.selection(['frontend/app/users/page.tsx',path])
+ def test_exact_legacy_service_fixture_keeps_focused_runtime_and_mixed_consumers(self):
+  paths=FILES|{'tests/Enginia360.Api.Tests/LimitedGrantAdministrationTests.cs','src/Enginia360.Api/OrganizationAccess/OrganizationAccessModule.cs'}
+  result=m.selection(sorted(paths))
+  self.assertTrue(result['platform_foundation_only'])
+  for key in ('tenant_roles','platform_authority','browser','migrations','organization_administration','authenticated_organization'):
+   self.assertTrue(result[key],key)
+  self.assertIn('LimitedGrantAdministrationTests',result['api_filter'])
+  for key in ('r03a','r03a2','r03c','r04a','r04b2a','r04b2b1','r04b2b2','r05b0','r05b1','r06b1','ui01b'):
+   self.assertFalse(result.get(key,False),key)
+  mixed=m.selection(sorted(paths|{'src/Modules/Inventory/Enginia360.Inventory/InventoryModule.cs'}))
+  self.assertTrue(mixed['r04a']);self.assertTrue(mixed['tenant_roles'])
+  self.assertFalse(mixed['platform_foundation_only'])
  def test_runtime_job_executes_both_pools_with_artifacts(self):
   workflow=(ROOT/'.github/workflows/ci.yml').read_text()
   self.assertIn('      tenant_roles:',workflow)
