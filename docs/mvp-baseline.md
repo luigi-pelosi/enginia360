@@ -26,11 +26,18 @@ Restano i confini già confermati delle identità anagrafiche condivise nel tena
 - Può delegare la gestione organizzativa di un singolo tenant a un soggetto già anagrafato in quel tenant.
 - Può delegare anche invito o abilitazione degli utenti, assegnazione e creazione/modifica di ruoli e permessi (D97). Questa facoltà è distinta dalla delega organizzativa.
 - L'anagrafazione da sola non concede privilegi. La delega non concede accesso agli altri tenant, ruolo SUPER ADMIN o subdelega implicita.
-- Creazione e modifica sono approvate in generale, non soltanto assegnazione di ruoli predefiniti dal proprietario; nessuna nomina amministrativa o promozione globale automatica. Il matching tecnico di grant azione/scope si definisce nel prossimo incremento, senza riaprire la decisione.
+- Creazione e modifica sono approvate in generale, non soltanto assegnazione di ruoli predefiniti dal proprietario; nessuna nomina amministrativa o promozione globale automatica. Il matching tecnico iniziale è consegnato con MVP03.b.1 per organization-context.read/write; i domini futuri aggiungeranno consumer eseguibili provati senza riaprire la decisione.
 
 <!-- d97-current:start -->
 D97: creare e modificare ruoli e permessi con audit immutabile e tracciabile obbligatorio, solo nel proprio tenant; gestione utenti distinta dalla delega organizzativa; nessun SUPER ADMIN, nessun potere cross-tenant o control-plane, nessuna subdelega o nomina implicita; non solo ruoli definiti dal proprietario; nessun runtime consegnato qui. [Decisione e contratto finito MVP03.b](mvp03b-user-administration.md), con interpretazione tecnica minima correggibile sulle azioni/scope eseguibili supportati, non un nuovo tetto ai ruoli.
 <!-- d97-current:end -->
+
+<!-- d98-current:start -->
+D98: prima associazione binding + membership di un soggetto federato autenticato approvabile dal delegato alla gestione utenti solo nel proprio tenant; autenticazione e audit obbligatori; nessun ruolo o potere amministrativo automatico; nessun tetto owner-only; runtime D98 non consegnato. [Contratto finito MVP03.b.2](mvp03b2-user-onboarding.md).
+<!-- d98-current:end -->
+
+MVP03.b.1 consegnato via PR #162: delega utenti distinta, ruoli/permessi configurabili, audit atomico immutabile ed enforcement effettivo sul catalogo iniziale `organization-context.read/write`. I domini futuri devono integrare i propri consumer reali. MVP03.b non completato: invito/abilitazione e primo ingresso federato restano da eseguire. «nessun runtime consegnato qui» si riferisce al gate di policy D97, non nega la successiva consegna MVP03.b.1; il runtimeDelivered=false di quel gate e dell’intero MVP03.b resta distinto dal sottoincremento consegnato.
+
 
 ## 3. Documenti e quantità: modello confermato
 

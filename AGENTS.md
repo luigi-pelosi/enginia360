@@ -18,6 +18,13 @@ Read all of PROJECT_CHARTER.md and docs/mvp-delivery-plan.md before editing. The
 D97: creare e modificare ruoli e permessi con audit immutabile e tracciabile obbligatorio, solo nel proprio tenant; gestione utenti distinta dalla delega organizzativa; nessun SUPER ADMIN, nessun potere cross-tenant o control-plane, nessuna subdelega o nomina implicita; non solo ruoli definiti dal proprietario; nessun runtime consegnato qui. See [finite MVP03.b contract](docs/mvp03b-user-administration.md): supported executable action/scope configuration is a correctable minimal technical interpretation, not a new role ceiling.
 <!-- d97-current:end -->
 
+<!-- d98-current:start -->
+D98: prima associazione binding + membership di un soggetto federato autenticato approvabile dal delegato alla gestione utenti solo nel proprio tenant; autenticazione e audit obbligatori; nessun ruolo o potere amministrativo automatico; nessun tetto owner-only; runtime D98 non consegnato. [Contratto finito MVP03.b.2](docs/mvp03b2-user-onboarding.md).
+<!-- d98-current:end -->
+
+MVP03.b.1 consegnato via PR #162: delega utenti distinta, ruoli/permessi configurabili, audit atomico immutabile ed enforcement effettivo sul catalogo iniziale `organization-context.read/write`. I domini futuri devono integrare i propri consumer reali. MVP03.b non completato: invito/abilitazione e primo ingresso federato restano da eseguire. «nessun runtime consegnato qui» si riferisce al gate di policy D97, non nega la successiva consegna MVP03.b.1; il runtimeDelivered=false di quel gate e dell’intero MVP03.b resta distinto dal sottoincremento consegnato.
+
+
 Earlier pilot instructions below are historical where inconsistent with this block. General security, isolation and evidence requirements remain mandatory. The active plan, not the old P00/UI01/R00–R06 sequence, determines the next item.
 <!-- mvp-current:end -->
 

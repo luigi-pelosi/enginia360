@@ -1,5 +1,13 @@
 # MVP03.b.1 — finite executable tenant role contract
 
+Stato corrente — 3 novembre 2026. Refs #142. MVP03.b.1 consegnato via PR #162: delega utenti distinta, ruoli/permessi configurabili, audit atomico immutabile ed enforcement effettivo sul catalogo iniziale `organization-context.read/write`. I domini futuri devono integrare i propri consumer reali. MVP03.b non completato: invito/abilitazione e primo ingresso federato restano da eseguire. «nessun runtime consegnato qui» si riferisce al gate di policy D97, non nega la successiva consegna MVP03.b.1; il runtimeDelivered=false di quel gate e dell’intero MVP03.b resta distinto dal sottoincremento consegnato. [Decisione D98 e prossimo contratto finito](mvp03b2-user-onboarding.md). D96 autorizza il seguito autonomo.
+
+<!-- d97-history:start -->
+## Archivio cronologico MVP03.b.1 — contratto e checkpoint precedenti alla consegna
+
+I riferimenti a candidate, NOT delivered, remaining e remote acceptance nei checkpoint sottostanti sono storici. La consegna corrente è quella di PR #162 sopra; i log falliti e i limiti di ogni checkpoint restano evidenza intatta.
+
+
 Refs #161; Refs #142. Candidate contract, not delivery evidence. D97 policy gate remains byte-identical; `userAdministrationPolicy.runtimeDelivered` remains false until all MVP03.b (including the separate invitation/enabling increment) is verified. No new policy decision or business role is introduced.
 
 ## Inspected authority and consumers
@@ -46,3 +54,5 @@ Official primary sources reread: `https://nextjs.org/blog/upcoming-nextjs-securi
 Reuse fixed private HTTPS backend transport and incoming cookie only. Dynamic authenticated Italian SSR, private/no-store and no shared identity cache. Server-returned tenant/member/hierarchy/permission/role IDs drive labelled selectors; no routine manual UUID entry. Browser mutations fetch CSRF immediately before sending. Freeze target/route/UUID/serialized bytes through lost response, CSRF refusal and accepted replay whose authoritative reread fails; block SPA navigation and form changes while uncertain. Recovery is live-page only; forced reload/browser closure/new login do not restore pending commands and are not claimed durable recovery.
 
 Required actual evidence: PostgreSQL pools1/4 and physical blocking barriers in both orderings; atomic audit insert/deferred rollback for every mutation kind; immutable audit and exact counts; signed bearer and real TLS OIDC sessions with negative/positive actual context API consumption; role and permission edits, assignment revocation and open-session immediate changes; malformed inputs, revision/idempotency conflicts, foreign scopes and ordinary/organization-only denial; authenticated Next/noJS/cache/CSRF/layout/frozen retry with SQL readback. Passing-first unchanged-code additions are regressions, not original RED. CI finite selection precedes new runtime paths, retains mixed producer consumers and fails closed on unknown executable paths. Exact-head PR checks and dispatched full_architecture=false acceptance, downloaded artifact inspection, parent-only merge/issue/Project readback. No protected service, persistent environment, deployment, real identity/data or ERP/provider change.
+
+<!-- d97-history:end -->

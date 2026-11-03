@@ -356,7 +356,14 @@ Decisione confermata dal proprietario il 2 novembre 2026 durante la revisione de
 D97: creare e modificare ruoli e permessi con audit immutabile e tracciabile obbligatorio, solo nel proprio tenant; gestione utenti distinta dalla delega organizzativa; nessun SUPER ADMIN, nessun potere cross-tenant o control-plane, nessuna subdelega o nomina implicita; non solo ruoli definiti dal proprietario; nessun runtime consegnato qui. [Decisione e contratto finito MVP03.b](docs/mvp03b-user-administration.md), inclusa l'interpretazione tecnica minima correggibile sulle azioni/scope eseguibili supportati, non un nuovo tetto ai ruoli.
 <!-- d97-current:end -->
 
-Questa sezione registra il requisito confermato, non un comportamento runtime gia' implementato. D96 autorizza l'implementazione autonoma nei limiti dichiarati; il contratto del singolo incremento deve esplicitare assegnabilita' e verifiche senza attribuire poteri non confermati.
+<!-- d98-current:start -->
+D98: prima associazione binding + membership di un soggetto federato autenticato approvabile dal delegato alla gestione utenti solo nel proprio tenant; autenticazione e audit obbligatori; nessun ruolo o potere amministrativo automatico; nessun tetto owner-only; runtime D98 non consegnato. [Contratto finito MVP03.b.2](docs/mvp03b2-user-onboarding.md).
+<!-- d98-current:end -->
+
+MVP03.b.1 consegnato via PR #162: delega utenti distinta, ruoli/permessi configurabili, audit atomico immutabile ed enforcement effettivo sul catalogo iniziale `organization-context.read/write`. I domini futuri devono integrare i propri consumer reali. MVP03.b non completato: invito/abilitazione e primo ingresso federato restano da eseguire. «nessun runtime consegnato qui» si riferisce al gate di policy D97, non nega la successiva consegna MVP03.b.1; il runtimeDelivered=false di quel gate e dell’intero MVP03.b resta distinto dal sottoincremento consegnato.
+
+
+Questa sezione distingue requisiti e consegne: MVP03.b.1 è consegnato nei limiti sopra, mentre D98 registra il requisito per il percorso dipendente ancora da implementare. D96 autorizza l'implementazione autonoma; il contratto tecnico deve esplicitare assegnabilita' e verifiche senza attribuire poteri non confermati. La prima associazione approvata dal delegato utenti riguarda il nuovo destinatario, non rimuove il prerequisito di membership già registrata del delegato.
 
 ## 9. Regole di affidabilita' e sicurezza
 
