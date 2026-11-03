@@ -1,5 +1,12 @@
 # MVP03.b — Gestione utenti, ruoli e permessi: gate di policy D97
 
+Stato corrente — 3 novembre 2026. Refs #142. MVP03.b.1 consegnato via PR #162: delega utenti distinta, ruoli/permessi configurabili, audit atomico immutabile ed enforcement effettivo sul catalogo iniziale `organization-context.read/write`. I domini futuri devono integrare i propri consumer reali. MVP03.b non completato: invito/abilitazione e primo ingresso federato restano da eseguire. «nessun runtime consegnato qui» si riferisce al gate di policy D97, non nega la successiva consegna MVP03.b.1; il runtimeDelivered=false di quel gate e dell’intero MVP03.b resta distinto dal sottoincremento consegnato. [Decisione D98 e prossimo contratto finito](mvp03b2-user-onboarding.md). D96 autorizza il seguito autonomo.
+
+<!-- d97-history:start -->
+## Archivio del gate D97 e del suo contratto precedente
+
+Il testo seguente è la registrazione documentale originaria: «questa PR», «prima del runtime» e «prossimo incremento» si riferiscono al gate D97/PR #160, non allo stato successivo a PR #162. Decisione/alternative/quote e assertion originali restano intatte.
+
 Data: 3 novembre 2026. Refs #142. Stato: decisione confermata; questa PR contiene soltanto documentazione, test offline e selezione CI. Merge di questo gate **prima del runtime** dipendente; nessuna amministrazione utenti o enforcement audit dichiarati consegnati. D96 autorizza il proseguimento autonomo, non occorre una nuova conferma ordinaria.
 
 ## Decisione e alternative
@@ -49,3 +56,5 @@ Guardie eseguibili: `python3 -I scripts/test-d97-policy.py` e `python3 -I script
 Eccezione CI finita soltanto per questo documento, le due nuove guardie e i cinque riepiloghi correnti, con selector/workflow condivisi solo in combinazione documentale ancorata. Il job offline MVP esegue anche le vecchie guardie senza indebolirle; budget e trigger invariati. Cambi misti a runtime conservano tutti i consumer precedenti; eseguibili sconosciuti falliscono chiusi. PR-only automatico e dispatch offline exact-head quando applicabile, `full_architecture=false`; nessuno stack ERP o acceptance runtime di questa policy. Dopo il merge verificato, proseguire il contratto tecnico/runtime sopra; #142 rimane aperta fino al percorso completo.
 
 Nessun deployment, nuova dipendenza, invito reale, chiamata provider, dato reale, acquisto, ambiente persistente o modifica a segreti/storage/servizi protetti. Nessuna scrittura a issue/Project o merge da questo esecutore documentale. Storia, migrazioni, vecchie assertion e confini D96 rimangono preservati.
+
+<!-- d97-history:end -->

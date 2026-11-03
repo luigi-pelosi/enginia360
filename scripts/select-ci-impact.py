@@ -281,6 +281,16 @@ D97_SCOPE = D97_FILES | {'AGENTS.md', 'PROJECT_CHARTER.md', 'docs/mvp-baseline.m
     'scripts/select-ci-impact.py', '.github/workflows/ci.yml'}
 
 
+# D98 is an exact-path documentary gate, not an invitation/runtime exemption.
+D98_FILES = {'docs/mvp03b2-user-onboarding.md', 'scripts/test-d98-policy.py',
+             'scripts/test-d98-impact.py'}
+D98_SCOPE = D98_FILES | {'AGENTS.md', 'PROJECT_CHARTER.md', 'docs/mvp-baseline.md',
+    'docs/mvp-backlog.json', 'docs/mvp-delivery-plan.md',
+    'scripts/select-ci-impact.py', '.github/workflows/ci.yml',
+    'docs/mvp03b-user-administration.md',
+    'docs/mvp03b1-tenant-role-contract.md', 'docs/mvp03b1-progress.md'}
+
+
 # MVP-01 owns only these explicit paths. New routes/scripts require a tested mapping.
 FRONTEND_FILES = {
     'frontend/' + path for path in (
@@ -378,6 +388,13 @@ TENANT_ROLE_SCOPE = TENANT_ROLE_FILES | ORGANIZATION_FILES | ORGANIZATION_WIRING
 
 def _selection(paths):
     paths = sorted(set(paths))
+    if set(paths) & D98_FILES:
+        remaining = set(paths) - D98_FILES
+        if set(paths) <= D98_SCOPE:
+            remaining -= D98_SCOPE
+        result = selection(sorted(remaining))
+        result.update(changed_paths=paths, mvp_offline=True)
+        return result
     if set(paths) & TENANT_ROLE_FILES:
         remaining = set(paths) - TENANT_ROLE_FILES
         finite = set(paths) <= TENANT_ROLE_SCOPE

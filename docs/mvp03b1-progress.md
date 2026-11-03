@@ -1,5 +1,13 @@
 # MVP03.b.1 progressive checkpoint
 
+Stato corrente — 3 novembre 2026. Refs #142. MVP03.b.1 consegnato via PR #162: delega utenti distinta, ruoli/permessi configurabili, audit atomico immutabile ed enforcement effettivo sul catalogo iniziale `organization-context.read/write`. I domini futuri devono integrare i propri consumer reali. MVP03.b non completato: invito/abilitazione e primo ingresso federato restano da eseguire. «nessun runtime consegnato qui» si riferisce al gate di policy D97, non nega la successiva consegna MVP03.b.1; il runtimeDelivered=false di quel gate e dell’intero MVP03.b resta distinto dal sottoincremento consegnato. [Decisione D98 e prossimo contratto finito](mvp03b2-user-onboarding.md). D96 autorizza il seguito autonomo.
+
+<!-- d97-history:start -->
+## Archivio cronologico MVP03.b.1 — contratto e checkpoint precedenti alla consegna
+
+I riferimenti a candidate, NOT delivered, remaining e remote acceptance nei checkpoint sottostanti sono storici. La consegna corrente è quella di PR #162 sopra; i log falliti e i limiti di ogni checkpoint restano evidenza intatta.
+
+
 Refs #161; Refs #142. Sole writer `feat/mvp-tenant-role-administration`, base c97853a496bce6fd0b2db68f527d92fc7ddc38b6. Stage1 status: NOT merge-ready or delivered; later stages are chronological checkpoints, not a replacement for exact-head remote acceptance. Parent alone merges/changes issues/Project. D97 policy blocks and runtimeDelivered=false remain untouched.
 
 ## Stage1 — contract/CI and first SQL tracer bullets
@@ -62,3 +70,5 @@ The fixture now explicitly asserts missing identity fails closed, installs a syn
 Actual test-first selector recovery:45-impact-red.log failed the new finite-composition assertion before the selector edit;46-impact-green.log passed all6tests afterwards.48-offline-guards.log passed all25actual workflow impact guard commands.47-foundation-green.log completed the unchanged `R00_MIGRATION_SUITE=foundation timeout 600 sh scripts/run-r00a-tests.sh` with actual exit0 and normal guarded cleanup (13:39:50–13:46:29 CET). The real pool fixture passed20tests/0skips including the corrected legacy test. Exact owned project enginia360-r00a-11e055122735 containers/networks/volumes are absent; protected IDs/start times/mounts unchanged. Older unrelated r00 orphan networks remain preserved, not claimed owned or cleaned. No test deadline, workflow budget, migration/lock/image, legacy receipts/history assertion or product behavior changed.
 
 Durable checkpoint.json and raw evidence are saved before the next long stage. Remaining at this checkpoint: commit/push these fixture/selector corrections, fresh exact-final-head PR and dispatched full_architecture=false acceptance, every selected job/required step including both authority pools, download/head/digest/content/screenshot inspection and PR readback. No merge-ready claim before those complete; no merge, issue closure or Project writes by this worker.
+
+<!-- d97-history:end -->
