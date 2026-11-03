@@ -1,6 +1,6 @@
 # MVP-02.c — authenticated organization workspace (#156; parent #141)
 
-Finite contract, 3 November 2026, D96. MVP02.a/#152 and MVP02.b/#154 are delivered; #156 is active and parent #141 remains in progress until coordinator verification.
+Delivered via PR #157; #156 and parent #141 are complete after coordinator verification of main `095abca4656bffa626e259f7f4aa8237d6afdf26`, equivalent candidate `53704fe326545be0ccd514f63bcd43671e8960b8`, PR CI `41585054855` and dispatch `41585054020`. The 3 November 2026 D96 contract/evidence below preserves the original MVP02.c scope, before [MVP03.a organization delegation](mvp03a-organization-delegation.md).
 
 ## Boundary
 

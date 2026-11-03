@@ -1,7 +1,6 @@
 # MVP-02.b — persistent organization administration (#154; parent #141)
 
-Finite contract, 3 November 2026. D96; backend only. MVP-02.a/#152 is delivered
-via PR #153 (main 1856827); this increment does not complete parent #141.
+Delivered via PR #155; main `1913c7393362d30193e79ebd7cc1f1a5f521f218`. Parent #141 subsequently completed via PR #157. The 3 November 2026 finite backend contract below remains historical scope: this increment alone did not complete that parent.
 
 ## Authority and isolation
 

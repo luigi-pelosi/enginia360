@@ -1,6 +1,6 @@
 # MVP-02.a — explicit platform authority (#152, parent #141)
 
-Finite implementation contract, 3 November 2026. D96; technical foundation only.
+Delivered via PR #153; main `185682700d621edcb547d0291167aec248c50bfe`. Parent #141 subsequently completed via PR #157. The 3 November 2026 finite contract below preserves the original technical-foundation scope; it does not claim delivery of later delegation or user administration.
 
 ## Trust and scope
 
