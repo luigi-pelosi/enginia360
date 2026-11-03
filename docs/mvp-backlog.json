@@ -11,12 +11,12 @@
     },
     {
       "id": "MVP-01", "title": "Shell Next.js SSR e shadcn/ui verificabile in isolamento",
-      "domainIds": ["identity"], "dependsOn": ["MVP-00"], "status": "in_progress", "issueNumber": 140,
+      "domainIds": ["identity"], "dependsOn": ["MVP-00"], "status": "done", "issueNumber": 140,
       "acceptance": ["Versioni e lock verificati contro fonti ufficiali, nessuna dipendenza commerciale implicita", "Shell italiana eseguita con SSR e interattivita' accessibile", "Build, test e audit pertinenti eseguiti; nessun dato riservato in cache condivisa", "Percorso di prova effimero senza modifica ai servizi protetti"]
     },
     {
       "id": "MVP-02", "title": "Accesso federato, SUPER ADMIN e gestione tenant e organizzazione",
-      "domainIds": ["identity", "organization"], "dependsOn": ["MVP-01"], "status": "backlog", "issueNumber": 141,
+      "domainIds": ["identity", "organization"], "dependsOn": ["MVP-01"], "status": "in_progress", "issueNumber": 141,
       "acceptance": ["Autorita' globale inizializzata esplicitamente, mai dal primo login o da token di correlazione", "SUPER ADMIN crea tenant e amministra societa', sedi e magazzini via UI/API persistite", "Contesto destinatario verificato senza bypass RLS", "Anonimo e attore non autorizzato negati; revoca e audit provati"]
     },
     {

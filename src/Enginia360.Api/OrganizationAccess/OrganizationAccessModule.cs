@@ -113,6 +113,7 @@ public static class OrganizationAccessModule
 
     public static WebApplication MapOrganizationAccess(this WebApplication app)
     {
+        Enginia360.Api.PlatformAdministration.PlatformAuthority.MapPlatformAuthority(app);
         if (app.Configuration["Authentication:Profile"] == "SyntheticLegacy"
             && !app.Configuration.GetValue<bool>("BrowserSessions:Enabled")
             && app.Configuration.GetValue<bool>("DevelopmentTestLogin:Enabled"))

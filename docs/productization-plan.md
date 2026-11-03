@@ -1,5 +1,7 @@
 # Productizzazione finita — P00 / UI01 / R00–R06
 
+Riferimenti operativi conservati R06.b.2: [registro OPE OPEN](r06-readiness-registry.json), [runbook e limiti](r06-recovery-runbook.md). Nessuna readiness operativa acquisita.
+
 <!-- mvp-current:start -->
 ## Archivio della precedente roadmap — sostituita da D96
 
