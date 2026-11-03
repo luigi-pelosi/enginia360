@@ -55,6 +55,10 @@ class GrantSqlTests(unittest.TestCase):
         prefix=f"BEGIN; SELECT set_config('app.identity_subject','{actor}',true),set_config('app.tenant_id','{tenant}',true);"
         def call(command=None,mandate_id=mandate,target_id=tm,action='organization-context.read',operation='grant'):
             return f"SELECT organization_access.command_operative_grant('{command or uuid.uuid4()}','{mandate_id}','{target_id}','{tenant}','{company}','{site}','{warehouse}','{action}','{operation}');"
+        # Missing verified tuple is a distinct refusal, not a replacement for
+        # the historical positive, rollback and individual authorization cases.
+        self.assertEqual(self.sql(prefix+call()+'ROLLBACK;',app=True).splitlines()[-1],'forbidden')
+        prefix += "SELECT set_config('app.identity_issuer','https://synthetic.test',true),set_config('app.external_subject','actor',true);"
         app=os.environ['R00_APP_USER']
         self.assertEqual(self.sql(f"SELECT rolsuper OR rolbypassrls OR rolcreaterole OR rolcreatedb FROM pg_roles WHERE rolname='{app}'"),'f')
         for table in ('memberships','external_identity_bindings','membership_scopes','delegation_mandates','delegated_scopes','grant_commands','delegation_audit'):

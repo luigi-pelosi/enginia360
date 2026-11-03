@@ -417,11 +417,20 @@ async function control(action) {
             {
                 const readCase=await fresh({lineQuantity:"2",quantity:"2"});
                 await control("hold-return-read");const inFlight=get(page,readCase.ip);await control("wait-lock:1");
-                assert.equal((await ret(readCase,"1")()).status,201);assert.equal((await install(readCase,"1")()).status,201);
+                // The membership fence now serializes this owning read with user
+                // writes. Prove the real writer is waiting, then release the read;
+                // awaiting the writer first would manufacture a SQL timeout.
+                let returnSettled=false;
+                const returning=ret(readCase,"1")().then(result=>{returnSettled=true;return result;});
+                await control("wait-lock:2");assert.equal(returnSettled,false,"return must wait behind the owning read membership fence");
                 await control("release-lock");const projected=await inFlight;assert.equal(projected.status,200);
+                assert.equal(projected.value.installed,"0");assert.equal(projected.value.remainingToInstall,"2");
+                assert.equal((await returning).status,201);assert.equal((await install(readCase,"1")()).status,201);
                 assert([["0","2"],["1","0"]].some(([installed,remaining])=>projected.value.installed===installed&&projected.value.remainingToInstall===remaining),"installation GET must not mix an old returned quota with later installations: "+JSON.stringify(projected));
+                const afterWrites=await get(page,readCase.ip);assert.equal(afterWrites.status,200);
+                assert.equal(afterWrites.value.installed,"1");assert.equal(afterWrites.value.remainingToInstall,"0");
                 await control("restore-return-read");
-                pass("owning installation GET uses one coherent snapshot while return and installation commit between its source queries");
+                pass("owning installation GET preserves coherent before/after snapshots and physically fences concurrent user return/install writes");
             }
             pass("real separate physical SQL barriers BOTH serializations return/return/sameUUID/install+Pending/release/reserve/shared-pool-other-order/P2/remove/technicalclosure");
         }

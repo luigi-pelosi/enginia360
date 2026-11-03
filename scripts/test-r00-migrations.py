@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import tempfile
 import unittest
+import uuid
 
 ROOT = Path(__file__).resolve().parents[1]
 manifest_count = str(len(json.loads((ROOT/'database/runtime/manifest.json').read_text())))
@@ -332,8 +333,14 @@ class PostgreSqlTests(unittest.TestCase):
  ('22222222-0000-0000-0000-000000000001','22222222-2222-2222-2222-222222222222','Synthetic B','SYNTH-B','Test only');''')
         self.assertEqual(self.sql('SELECT count(*) FROM counterparties.counterparties', app=True), '0')
         for tenant in ('11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222'):
+            # Tenant context alone is no longer sufficient. Preserve that new
+            # refusal and the original cross-tenant/pool-reset positive proof.
+            self.assertEqual(self.sql(f"BEGIN; SET LOCAL app.tenant_id='{tenant}'; SELECT count(*) FROM counterparties.counterparties; ROLLBACK;", app=True), '0')
+            identity, member = str(uuid.uuid4()), str(uuid.uuid4())
+            issuer, subject = 'https://synthetic-migration.invalid', 'fixture-'+identity
+            self.sql(f"INSERT INTO organization_access.tenants VALUES('{tenant}','Synthetic isolation tenant'); INSERT INTO organization_access.external_identity_bindings VALUES('{identity}','{issuer}','{subject}'); INSERT INTO organization_access.memberships VALUES('{member}','{tenant}','{identity}')")
             for end in ('COMMIT', 'ROLLBACK'):
-                output = self.sql(f"BEGIN; SET LOCAL app.tenant_id='{tenant}'; SELECT count(*) FROM counterparties.counterparties; {end}; SELECT count(*) FROM counterparties.counterparties;", app=True)
+                output = self.sql(f"BEGIN; SET LOCAL app.tenant_id='{tenant}'; SET LOCAL app.identity_subject='{identity}'; SET LOCAL app.identity_issuer='{issuer}'; SET LOCAL app.external_subject='{subject}'; SELECT count(*) FROM counterparties.counterparties; {end}; SELECT count(*) FROM counterparties.counterparties;", app=True)
                 self.assertEqual(output.splitlines(), ['1','0'])
 
     def test_dump_restore_to_distinct_ephemeral_database_preserves_manifest(self):
@@ -385,7 +392,13 @@ class PostgreSqlTests(unittest.TestCase):
         self.assertIn('billing.invoices', tables)
         self.assertIn('accounting.chart_accounts', tables)
         for table in tables:
-            self.assertEqual(self.sql(f'SELECT count(*) FROM {table}'), '0', table)
+            if table == 'organization_access.membership_access_snapshot_fence':
+                # Technical MVCC witness only; every business/security-binding
+                # table still has the original zero-row requirement.
+                self.assertEqual(self.sql(f'SELECT row_to_json(f) FROM {table} f'), '{"Singleton":true,"Token":false}')
+                self.assertEqual(self.sql(f'SELECT count(*) FROM {table}'), '1')
+            else:
+                self.assertEqual(self.sql(f'SELECT count(*) FROM {table}'), '0', table)
         self.assertEqual(self.sql("SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname NOT IN ('pg_catalog','information_schema','runtime_migrations') AND c.relkind='r' AND NOT (c.relrowsecurity AND c.relforcerowsecurity)"), '0')
         before = self.sql('SELECT row_to_json(a) FROM runtime_migrations.applied a ORDER BY id')
         self.assertEqual(self.migrate()[0], 0)

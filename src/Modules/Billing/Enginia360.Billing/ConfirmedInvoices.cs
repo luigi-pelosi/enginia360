@@ -10,7 +10,7 @@ internal sealed class ConfirmedInvoices(BillingDbContext db) : IConfirmedInvoice
 
     public async Task<ConfirmedInvoiceSnapshot?> Find(Guid verifiedTenantId, Guid invoiceId, CancellationToken ct)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await using var tx = await db.BeginUserOperation(verifiedTenantId, ct);
         await SetTenant(verifiedTenantId, ct);
         var invoice = await db.Invoices.AsNoTracking()
             .SingleOrDefaultAsync(x => x.TenantId == verifiedTenantId && x.Id == invoiceId, ct);
@@ -28,7 +28,7 @@ internal sealed class ConfirmedInvoices(BillingDbContext db) : IConfirmedInvoice
     public async Task<Guid?> Link(Guid verifiedTenantId, Guid invoiceId, Guid journalEntryId, CancellationToken ct)
     {
         if (journalEntryId == Guid.Empty) return null;
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await using var tx = await db.BeginUserOperation(verifiedTenantId, ct);
         await SetTenant(verifiedTenantId, ct);
         await db.Database.ExecuteSqlInterpolatedAsync(
             $"SELECT pg_advisory_xact_lock(hashtextextended({invoiceId.ToString()}, 0))", ct);

@@ -3,12 +3,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Enginia360.Api.OrganizationAccess;
 
-internal sealed class WorkshopAccessAdapter(OrganizationAccessDbContext db) : IWorkshopAccess
+internal sealed class WorkshopAccessAdapter(OrganizationAccessDbContext db, IHttpContextAccessor accessor, IConfiguration configuration) : IWorkshopAccess
 {
     public async Task<WorkshopGrant?> ResolveMembership(string subject, CancellationToken ct)
     {
         await using var tx = await db.Database.BeginTransactionAsync(ct);
-        await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.identity_subject', {subject}, true)", ct);
+        await CompanyAccessIdentity.Set(db, subject, accessor, configuration, ct);
         var member = await db.Memberships.AsNoTracking().SingleOrDefaultAsync(x => x.IdentitySubject == subject, ct);
         await tx.CommitAsync(ct);
         return member is null ? null : new(member.TenantId, member.Id);
@@ -17,7 +17,7 @@ internal sealed class WorkshopAccessAdapter(OrganizationAccessDbContext db) : IW
     public async Task<IReadOnlyList<WorkshopContext>> ListContexts(string subject, CancellationToken ct)
     {
         await using var tx = await db.Database.BeginTransactionAsync(ct);
-        await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.identity_subject', {subject}, true)", ct);
+        await CompanyAccessIdentity.Set(db, subject, accessor, configuration, ct);
         var member = await db.Memberships.AsNoTracking().SingleOrDefaultAsync(x => x.IdentitySubject == subject, ct);
         if (member is null) return [];
         await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.tenant_id', {member.TenantId.ToString()}, true)", ct);
@@ -41,7 +41,7 @@ internal sealed class WorkshopAccessAdapter(OrganizationAccessDbContext db) : IW
         string permission, bool requireCapability, CancellationToken ct)
     {
         await using var tx = await db.Database.BeginTransactionAsync(ct);
-        await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.identity_subject', {subject}, true)", ct);
+        await CompanyAccessIdentity.Set(db, subject, accessor, configuration, ct);
         var member = await db.Memberships.AsNoTracking().SingleOrDefaultAsync(x => x.IdentitySubject == subject, ct);
         if (member is null) return null;
         await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.tenant_id', {member.TenantId.ToString()}, true)", ct);

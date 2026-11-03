@@ -250,13 +250,13 @@ class PriceSqlTests(unittest.TestCase):
   self.assertEqual(self.sql('SELECT count(*) FROM organization_access.purchase_price_grant_history'),'0')
  def test_tenant_context_is_resolved_only_from_the_authenticated_identity(self):
   ids=self.price_world();c=ids['companies'][0]
-  result=self.sql(f"BEGIN; SELECT set_config('app.identity_subject','{ids['actor']}',true); SELECT catalog.supplier_purchase_price_state('{c}','{ids['record']}','{ids['item']}')->>'state'; COMMIT;",app=True).splitlines()[-1]
+  result=self.sql(f"BEGIN; SELECT set_config('app.identity_subject','{ids['actor']}',true),set_config('app.identity_issuer','https://synthetic.test',true),set_config('app.external_subject','subject-{ids['actor']}',true); SELECT catalog.supplier_purchase_price_state('{c}','{ids['record']}','{ids['item']}')->>'state'; COMMIT;",app=True).splitlines()[-1]
   self.assertEqual(result,'ready')
-  wrong=self.sql(f"BEGIN; SELECT set_config('app.tenant_id','{uuid.uuid4()}',true),set_config('app.identity_subject','{ids['actor']}',true); SELECT catalog.supplier_purchase_price_state('{c}','{ids['record']}','{ids['item']}')->>'state'; COMMIT;",app=True).splitlines()[-1]
+  wrong=self.sql(f"BEGIN; SELECT set_config('app.tenant_id','{uuid.uuid4()}',true),set_config('app.identity_subject','{ids['actor']}',true),set_config('app.identity_issuer','https://synthetic.test',true),set_config('app.external_subject','subject-{ids['actor']}',true); SELECT catalog.supplier_purchase_price_state('{c}','{ids['record']}','{ids['item']}')->>'state'; COMMIT;",app=True).splitlines()[-1]
   self.assertEqual(wrong,'forbidden')
  def test_write_resolves_tenant_after_identity_authorization_on_clean_connection(self):
   ids=self.price_world()
-  got=self.sql(f"BEGIN; SELECT set_config('app.tenant_id','',true),set_config('app.identity_subject','{ids['actor']}',true);"+self.command_sql(ids)+'COMMIT;',app=True).splitlines()[-1]
+  got=self.sql(f"BEGIN; SELECT set_config('app.tenant_id','',true),set_config('app.identity_subject','{ids['actor']}',true),set_config('app.identity_issuer','https://synthetic.test',true),set_config('app.external_subject','subject-{ids['actor']}',true);"+self.command_sql(ids)+'COMMIT;',app=True).splitlines()[-1]
   self.assertEqual(json.loads(got)['state'],'applied')
  def test_supplier_catalog_authority_and_exact_grant_removal_both_physical_orderings(self):
   for axis in ('supplier','catalog','authority','grant'):

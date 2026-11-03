@@ -57,8 +57,7 @@ internal static class EditorEndpoints
     {
         var member = await access.ResolveMembership(subject, ct);
         if (member is null) return null;
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
-        await InstallationEndpoints.SetTenant(db, member.TenantId, ct);
+        await using var tx = await db.BeginUserOperation(member.TenantId, ct);
         var order = await db.Orders.AsNoTracking().SingleOrDefaultAsync(x => x.TenantId == member.TenantId && x.Id == id, ct);
         await tx.CommitAsync(ct);
         return order is null ? null : (member, order);
@@ -76,9 +75,8 @@ internal static class EditorEndpoints
         if (found is null || await access.Authorize(Subject(user), found.Value.Order.LegalEntityId, found.Value.Order.SiteId, "workshop.orders.read", false, ct) is null)
             return Results.NotFound();
         LinePolicy? policy;
-        await using (var tx = await db.Database.BeginTransactionAsync(ct))
+        await using (var tx = await db.BeginUserOperation(found.Value.Member.TenantId, ct))
         {
-            await InstallationEndpoints.SetTenant(db, found.Value.Member.TenantId, ct);
             policy = await LatestPolicy(db, found.Value.Order, ct);
             await tx.CommitAsync(ct);
         }
@@ -91,8 +89,7 @@ internal static class EditorEndpoints
         if (legalEntityId == Guid.Empty || siteId == Guid.Empty || limit is < 1 or > 50) return Results.BadRequest();
         var grant = await access.Authorize(Subject(user), legalEntityId, siteId, "workshop.orders.read", false, ct);
         if (grant is null) return Results.StatusCode(403);
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
-        await InstallationEndpoints.SetTenant(db, grant.TenantId, ct);
+        await using var tx = await db.BeginUserOperation(grant.TenantId, ct);
         var rows = await db.Orders.AsNoTracking().Where(x => x.TenantId == grant.TenantId && x.LegalEntityId == legalEntityId && x.SiteId == siteId
                 && (after == null || x.Id.CompareTo(after.Value) > 0))
             .OrderBy(x => x.Id).Take(limit ?? 20)
@@ -109,9 +106,8 @@ internal static class EditorEndpoints
         if (member is null) return Results.NotFound();
         WorkOrder? order; LinePolicy? policy; List<WorkingGroup> groups; List<CommercialLine> lines; List<OrderNote> notes; bool closed;
         // One RepeatableRead snapshot: header, policy, rows and revision come from the same commit.
-        await using (var tx = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.RepeatableRead, ct))
+        await using (var tx = await db.BeginUserOperation(member.TenantId, ct, System.Data.IsolationLevel.RepeatableRead))
         {
-            await InstallationEndpoints.SetTenant(db, member.TenantId, ct);
             order = await db.Orders.AsNoTracking().SingleOrDefaultAsync(x => x.TenantId == member.TenantId && x.Id == id, ct);
             if (order is null) return Results.NotFound();
             policy = await LatestPolicy(db, order, ct);
@@ -186,9 +182,8 @@ internal static class EditorEndpoints
         {
             // The exact action follows the saved target kind: removing a Note is a Note action, removing a row is a row-removal action.
             string? kind;
-            await using (var lookup = await db.Database.BeginTransactionAsync(ct))
+            await using (var lookup = await db.BeginUserOperation(member.TenantId, ct))
             {
-                await InstallationEndpoints.SetTenant(db, member.TenantId, ct);
                 kind = await db.Notes.AnyAsync(x => x.OrderId == id && x.Id == request.LineId, ct) ? "Note"
                     : await db.Lines.AnyAsync(x => x.OrderId == id && x.Id == request.LineId, ct) ? "Line" : null;
                 await lookup.CommitAsync(ct);
@@ -203,8 +198,7 @@ internal static class EditorEndpoints
         CatalogChoice? item = null;
         if (request.Type == "AddCommercialLine" || request.Type == "EditCommercialLine" && request.CatalogItemId is not null) item = await catalog.Find(member.TenantId, request.CatalogItemId!.Value, ct);
 
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
-        await InstallationEndpoints.SetTenant(db, member.TenantId, ct);
+        await using var tx = await db.BeginUserOperation(member.TenantId, ct);
         // Same order lock as legacy additions, closure, installation and billing allocation.
         await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({id.ToString()}, 0))", ct);
         var replay = await db.EditorCommands.AsNoTracking().SingleOrDefaultAsync(x => x.CommandId == request.CommandId, ct);

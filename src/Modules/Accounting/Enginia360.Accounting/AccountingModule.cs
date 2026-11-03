@@ -19,6 +19,7 @@ public static class AccountingModule
 
     public static IServiceCollection AddTechnicalAccounting(this IServiceCollection services, string connection)
     {
+        services.AddHttpContextAccessor();
         services.AddDbContext<AccountingDbContext>(o => o.UseNpgsql(connection));
         return services;
     }
@@ -58,7 +59,7 @@ public static class AccountingModule
             return Results.StatusCode(403);
         if (invoice.Currency != "EUR") return Results.Conflict(new { code = "journal_currency_unsupported" });
 
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await using var tx = await db.BeginUserOperation(member.TenantId, ct);
         await SetTenant(db, member.TenantId, ct);
         await db.Database.ExecuteSqlInterpolatedAsync(
             $"SELECT pg_advisory_xact_lock(hashtextextended({invoice.Id.ToString()}, 0))", ct);
@@ -138,7 +139,7 @@ public static class AccountingModule
         var member = await access.ResolveMembership(subject, ct);
         if (member is null) return Results.NotFound();
         JournalEntry? entry;
-        await using (var tx = await db.Database.BeginTransactionAsync(ct))
+        await using (var tx = await db.BeginUserOperation(member.TenantId, ct))
         {
             await SetTenant(db, member.TenantId, ct);
             entry = await db.Entries.AsNoTracking()
@@ -168,7 +169,7 @@ public static class AccountingModule
             linked = null;
         }
         List<JournalEntryLine> rows;
-        await using (var tx = await db.Database.BeginTransactionAsync(ct))
+        await using (var tx = await db.BeginUserOperation(tenant, ct))
         {
             await SetTenant(db, tenant, ct);
             rows = await db.Lines.AsNoTracking().Where(x => x.EntryId == entry.Id)
@@ -204,6 +205,10 @@ internal sealed class AccountingTechnicalAuditFilter(ILogger<AccountingTechnical
             logger.LogInformation(new EventId(313), "Accounting audit {Action} {Outcome} {ResourceId} {IdentityId}",
                 action, status, resource, identity);
             return result;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Results.StatusCode(403);
         }
         catch
         {

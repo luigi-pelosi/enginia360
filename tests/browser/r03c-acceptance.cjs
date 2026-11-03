@@ -91,9 +91,17 @@ async function lostResponse(page, urlPattern, label) {
     const token = await csrf(page);
     async function serialized(order, first, second) {
       if (fixture.poolSize >= 4) await control('hold-order:' + order);
-      const one = first(); if (fixture.poolSize >= 4) await control('wait-order:1'); else await one;
-      const two = second(); if (fixture.poolSize >= 4) { await control('wait-order:2'); await control('release-order'); }
-      return Promise.all([one, two]);
+      let firstDone=false, secondDone=false;
+      const one=first().finally(()=>{firstDone=true;});
+      if(fixture.poolSize>=4){await control('wait-order:1');assert.equal(firstDone,false);}else await one;
+      const two=second().finally(()=>{secondDone=true;});
+      if(fixture.poolSize>=4){
+        await control('wait-order:2');
+        assert.equal(firstDone,false,'first HTTP request remains blocked on the exact resource backend');
+        assert.equal(secondDone,false,'second HTTP request remains transitively blocked behind first');
+        await control('release-order');
+      }
+      return Promise.all([one,two]);
     }
     for (const closureFirst of [true, false]) {
       const race = await simpleOrder(page); orders[closureFirst ? 'raceClosureFirst' : 'raceEditFirst'] = race.order;
@@ -336,7 +344,14 @@ async function lostResponse(page, urlPattern, label) {
     // Diagnostics only: visible text of every open synthetic page, never credentials.
     let n = 0;
     for (const context of browser.contexts()) for (const page of context.pages()) {
-      try { fs.writeFileSync('/run/control/failure-' + (++n) + '.txt', (await page.locator('body').innerText({ timeout: 3000 })).slice(0, 6000)); await page.screenshot({ path: '/run/control/failure-' + n + '.png' }); } catch { }
+      try {
+        const text = (await page.locator('body').innerText({ timeout: 3000 })).slice(0, 6000);
+        fs.writeFileSync('/run/control/failure-' + (++n) + '.txt', text);
+        console.error('R03C_SYNTHETIC_FAILURE_PAGE ' + JSON.stringify({ url: page.url(), text }));
+        if (orders.main && await panelOf(page).count())
+          console.error('R03C_SYNTHETIC_FAILURE_STATE ' + JSON.stringify({ state: await state(page, orders.main), actions: await actions(page, orders.main) }));
+        await page.screenshot({ path: '/run/control/failure-' + n + '.png' });
+      } catch { }
     }
     throw error;
   } finally { await browser.close(); }

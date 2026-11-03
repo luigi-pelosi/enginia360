@@ -74,3 +74,23 @@ test("SSR transport permits only finite role reads with current Cookie and no sh
     assert.equal(seen, true);
   }
 });
+
+test("membership SSR separates access state and exact target from administrative delegations", async () => {
+  const { TenantRoleWorkspace } = await import("../components/tenant-role-workspace");
+  const html = renderToStaticMarkup(<TenantRoleWorkspace initial={{ status: 200, tenants: [], data: {
+    state: "ok", mode: "delegate", tenantId: "aaaaaaaa-0000-0000-0000-000000000001",
+    actions: [], permissions: [], roles: [], assignments: [], warehouses: [],
+    memberships: [{membershipId: "bbbbbbbb-0000-0000-0000-000000000001", internalIdentityId: "cccccccc-0000-0000-0000-000000000001",
+      bindingHash: "a".repeat(64), active: true, resourceId: null, revision: 1,
+      accessEnabled: false, accessRevision: 7, organizationDelegationActive: true,
+      isCurrentIdentity: true, canEnableAccess: false}]
+  } }} />);
+  assert.match(html, /Accesso al tenant: disabilitato/);
+  assert.match(html, /revisione accesso 7/);
+  assert.match(html, /Delega gestione utenti: attiva/);
+  assert.match(html, /Delega struttura: attiva/);
+  assert.match(html, /bbbbbbbb-0000-0000-0000-000000000001/);
+  assert.match(html, /disabilitando il proprio accesso/);
+  assert.match(html, /ripristino richiede il SUPER ADMIN/);
+  assert.match(html, /disabled=""[^>]*>Abilita accesso al tenant/);
+});

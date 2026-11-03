@@ -31,7 +31,7 @@ internal static class ActualTimeEndpoints
         var member = await access.ResolveMembership(Subject(user), ct);
         if (member is null) return null;
         WorkOrder? order;
-        await using (var tx = await db.Database.BeginTransactionAsync(ct))
+        await using (var tx = await db.BeginUserOperation(member.TenantId, ct))
         {
             await Context(db, member, ct);
             order = await db.Orders.AsNoTracking().SingleOrDefaultAsync(x => x.TenantId == member.TenantId && x.Id == id, ct);
@@ -51,7 +51,7 @@ internal static class ActualTimeEndpoints
         if (await access.Authorize(Subject(user), order.LegalEntityId, order.SiteId, "workshop.actual-time.read-own", false, ct) is null) return Results.StatusCode(403);
         // Authorization never nests another pooled connection inside the Workshop transaction.
         var canWrite = await access.Authorize(Subject(user), order.LegalEntityId, order.SiteId, "workshop.actual-time.write-own", true, ct) is not null;
-        await using var tx = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.RepeatableRead, ct);
+        await using var tx = await db.BeginUserOperation(member.TenantId, ct, System.Data.IsolationLevel.RepeatableRead);
         await Context(db, member, ct);
         var revision = await Revision(db, id, ct);
         var closed = await db.TechnicalClosures.AnyAsync(x => x.OrderId == id, ct);
@@ -106,7 +106,7 @@ internal static class ActualTimeEndpoints
         var found = await Find(id, user, access, db, ct); if (found is null) return Results.NotFound();
         var (member, order) = found.Value;
         if (await access.Authorize(Subject(user), order.LegalEntityId, order.SiteId, "workshop.actual-time.read-own", false, ct) is null) return Results.StatusCode(403);
-        await using var tx = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.RepeatableRead, ct);
+        await using var tx = await db.BeginUserOperation(member.TenantId, ct, System.Data.IsolationLevel.RepeatableRead);
         await Context(db, member, ct);
         var entry = await Entry(db, id, entryId, ct); if (entry is null) return Results.NotFound();
         var rows = await db.Database.SqlQuery<VersionRow>($"SELECT * FROM workshop.own_actual_time_versions WHERE \"OrderId\"={id} AND \"EntryId\"={entryId} AND \"Version\">{afterVersion ?? 0} ORDER BY \"Version\" LIMIT {(limit ?? 20) + 1}").ToListAsync(ct);
@@ -123,7 +123,7 @@ internal static class ActualTimeEndpoints
         var (member, order) = found.Value;
         if (await access.Authorize(Subject(user), order.LegalEntityId, order.SiteId, "workshop.actual-time.write-own", false, ct) is null) return Results.StatusCode(403);
         var canWrite = await access.Authorize(Subject(user), order.LegalEntityId, order.SiteId, "workshop.actual-time.write-own", true, ct) is not null;
-        await using var tx = await db.Database.BeginTransactionAsync(ct); await Context(db, member, ct);
+        await using var tx = await db.BeginUserOperation(member.TenantId, ct); await Context(db, member, ct);
         await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({id.ToString()},0))", ct);
         var entry = await Entry(db, id, entryId, ct); if (entry is null || entry.InternalIdentityId != identity) return Results.NotFound();
         var replay = await Replay(db, id, entryId, identity, request.CommandId, request, ct); if (replay is not null) return replay;
@@ -177,7 +177,7 @@ internal static class ActualTimeEndpoints
         var (member, order) = found.Value;
         if (await access.Authorize(Subject(user), order.LegalEntityId, order.SiteId, "workshop.actual-time.write-own", false, ct) is null) return Results.StatusCode(403);
         var canWrite = await access.Authorize(Subject(user), order.LegalEntityId, order.SiteId, "workshop.actual-time.write-own", true, ct) is not null;
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await using var tx = await db.BeginUserOperation(member.TenantId, ct);
         await Context(db, member, ct);
         await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({id.ToString()},0))", ct);
         var replay = await Replay(db, id, request.EntryId, identity, request.CommandId, request, ct); if (replay is not null) return replay;

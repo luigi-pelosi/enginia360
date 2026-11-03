@@ -17,7 +17,7 @@ CATEGORIES = {'organization_structure', 'security_binding', 'security_evidence',
               'stock_state', 'integration_evidence', 'audit_history', 'derived_projection', 'technical_ledger'}
 SECURITY_BINDINGS = {'organization_access.'+name for name in (
     'memberships', 'membership_scopes', 'company_permissions', 'common_edit_permissions',
-    'external_identity_bindings', 'delegation_mandates', 'delegated_scopes')}
+    'external_identity_bindings', 'delegation_mandates', 'delegated_scopes', 'membership_access_state')}
 
 
 def definitions(manifest):

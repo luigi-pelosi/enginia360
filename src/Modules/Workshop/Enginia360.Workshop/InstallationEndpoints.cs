@@ -36,9 +36,8 @@ internal static class InstallationEndpoints
             return Results.StatusCode(403);
         InstallationContract installation;
         var created = false;
-        await using (var tx = await db.Database.BeginTransactionAsync(ct))
+        await using (var tx = await db.BeginUserOperation(pick.TenantId, ct))
         {
-            await SetTenant(db, pick.TenantId, ct);
             await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({request.Id.ToString()}, 0))", ct);
             var existing = await db.Installations.AsNoTracking().SingleOrDefaultAsync(x => x.Id == request.Id, ct);
             if (existing is not null)
@@ -111,9 +110,8 @@ internal static class InstallationEndpoints
         var member = await access.ResolveMembership(subject, ct);
         if (member is null) return Results.NotFound();
         WorkOrder? order;
-        await using (var tx = await db.Database.BeginTransactionAsync(ct))
+        await using (var tx = await db.BeginUserOperation(member.TenantId, ct))
         {
-            await SetTenant(db, member.TenantId, ct);
             order = await db.Orders.AsNoTracking().SingleOrDefaultAsync(x => x.TenantId == member.TenantId && x.Id == id, ct);
             await tx.CommitAsync(ct);
         }
@@ -145,9 +143,8 @@ internal static class InstallationEndpoints
         List<InstalledPart> rows;
         decimal returned;
         // Compensation and persisted installations must describe the same snapshot.
-        await using (var tx = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.RepeatableRead, ct))
+        await using (var tx = await db.BeginUserOperation(pick.TenantId, ct, System.Data.IsolationLevel.RepeatableRead))
         {
-            await SetTenant(db, pick.TenantId, ct);
             returned = await db.Database.SqlQuery<decimal>($"SELECT inventory.pick_returned({pick.TenantId},{pickId}) AS \"Value\"").SingleAsync(ct);
             rows = await db.Installations.AsNoTracking().Where(x => x.TenantId == pick.TenantId && x.PickId == pickId).OrderBy(x => x.Id).ToListAsync(ct);
             await tx.CommitAsync(ct);
@@ -172,9 +169,8 @@ internal sealed class WorkshopInstallations(WorkshopDbContext db, IWorkshopAcces
         var member = await access.ResolveMembership(subject, ct);
         if (member is null) return null;
         InstalledPart? row;
-        await using (var tx = await db.Database.BeginTransactionAsync(ct))
+        await using (var tx = await db.BeginUserOperation(member.TenantId, ct))
         {
-            await InstallationEndpoints.SetTenant(db, member.TenantId, ct);
             row = await db.Installations.AsNoTracking().SingleOrDefaultAsync(x => x.TenantId == member.TenantId && x.Id == installationId, ct);
             await tx.CommitAsync(ct);
         }
@@ -183,8 +179,7 @@ internal sealed class WorkshopInstallations(WorkshopDbContext db, IWorkshopAcces
     }
     public async Task<IReadOnlyList<CarcassInstallation>> RequiredCarcass(Guid verifiedTenantId, Guid orderId, CancellationToken ct)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
-        await InstallationEndpoints.SetTenant(db, verifiedTenantId, ct);
+        await using var tx = await db.BeginUserOperation(verifiedTenantId, ct);
         var rows = await db.Installations.AsNoTracking().Where(x => x.TenantId == verifiedTenantId && x.OrderId == orderId
             && x.CarcassReturnRequired && x.CarcassPolicyVersion != null).OrderBy(x => x.Id)
             .Select(x => new CarcassInstallation(x.Id, x.LineId, x.CatalogItemId, x.Quantity, x.CarcassPolicyVersion!.Value, x.InstalledAt))

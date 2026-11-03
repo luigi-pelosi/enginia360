@@ -25,7 +25,7 @@ internal static class PurchaseIntentEndpoints
         if (orderId == Guid.Empty || lineId == Guid.Empty || warehouseId == Guid.Empty || supplierId == Guid.Empty) return Results.BadRequest();
         var member = await access.ResolveMembership(user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "", ct);
         if (member is null) return Results.StatusCode(403);
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await using var tx = await db.BeginUserOperation(member.TenantId, ct);
         await Context(db, member.TenantId, user, ct);
         var value = await db.Database.SqlQuery<string>($"SELECT catalog.purchase_intent_quote({orderId},{lineId},{warehouseId},{supplierId})::text AS \"Value\"").SingleAsync(ct);
         await tx.CommitAsync(ct);
@@ -41,7 +41,7 @@ internal static class PurchaseIntentEndpoints
             || request.ManualUnitPurchasePrice is { Length: > 13 }) return Results.BadRequest();
         var member = await access.ResolveMembership(user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "", ct);
         if (member is null) return Results.StatusCode(403);
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await using var tx = await db.BeginUserOperation(member.TenantId, ct);
         await Context(db, member.TenantId, user, ct);
         var descriptor = services.GetService<PurchaseDestinationBinding>()?.Descriptor ?? "{}";
         var value = await db.Database.SqlQuery<string>($"SELECT inventory.accept_purchase_intent({request.Id},{orderId},{lineId},{request.WarehouseId},{request.SupplierId},{request.SourceRevision.Value},{request.SupplierRevision.Value},{request.MappingRevision.Value},{request.Quantity},{request.QuoteRevision.Value},{request.CatalogVersion.Value},{request.AuthorityVersion.Value},{request.ManualUnitPurchasePrice},CAST({descriptor} AS jsonb))::text AS \"Value\"").SingleAsync(ct);
@@ -53,7 +53,7 @@ internal static class PurchaseIntentEndpoints
     {
         var member = await access.ResolveMembership(user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "", ct);
         if (member is null) return Results.StatusCode(403);
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await using var tx = await db.BeginUserOperation(member.TenantId, ct);
         await Context(db, member.TenantId, user, ct);
         var value = await db.Database.SqlQuery<string>($"SELECT inventory.purchase_intent_state({orderId},{lineId},{warehouseId})::text AS \"Value\"").SingleAsync(ct);
         await tx.CommitAsync(ct);
@@ -77,7 +77,7 @@ internal static class PurchaseIntentEndpoints
             || request.MappingRevision is not > 0 || request.Quantity is not { Length: > 0 and <= 13 }) return Results.BadRequest();
         var member = await access.ResolveMembership(user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "", ct);
         if (member is null) return Results.StatusCode(403);
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await using var tx = await db.BeginUserOperation(member.TenantId, ct);
         await Context(db, member.TenantId, user, ct);
         var destination = services.GetService<PurchaseDestinationBinding>();
         var descriptor = destination?.Descriptor ?? "{}";

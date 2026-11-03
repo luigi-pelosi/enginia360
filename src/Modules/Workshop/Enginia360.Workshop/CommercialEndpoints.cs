@@ -33,8 +33,6 @@ internal static partial class CommercialEndpoints
             && (!text.Contains('.') || text.Length - text.IndexOf('.') - 1 <= scale)
             && decimal.TryParse(text, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out value);
     }
-    private static async Task SetTenant(WorkshopDbContext db, Guid tenant, CancellationToken ct) =>
-        await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.tenant_id', {tenant.ToString()}, true)", ct);
 
     private static async Task<IResult> Add(Guid id, AddCaseLineRequest request, ClaimsPrincipal user,
         IWorkshopAccess access, IWorkshopCatalog catalog, WorkshopDbContext db, CancellationToken ct)
@@ -48,9 +46,8 @@ internal static partial class CommercialEndpoints
         if (member is null) return Results.NotFound();
         // Resolve the actual order scope first; no client company/site/tenant is trusted.
         WorkOrder? order;
-        await using (var lookup = await db.Database.BeginTransactionAsync(ct))
+        await using (var lookup = await db.BeginUserOperation(member.TenantId, ct))
         {
-            await SetTenant(db, member.TenantId, ct);
             order = await db.Orders.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id && x.TenantId == member.TenantId, ct);
             await lookup.CommitAsync(ct);
         }
@@ -58,8 +55,7 @@ internal static partial class CommercialEndpoints
         if (await access.Authorize(Subject(user), order.LegalEntityId, order.SiteId, "workshop.lines.add", true, ct) is null)
             return Results.StatusCode(403);
         var item = await catalog.Find(member.TenantId, request.CatalogItemId, ct);
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
-        await SetTenant(db, member.TenantId, ct);
+        await using var tx = await db.BeginUserOperation(member.TenantId, ct);
         // Serialize distinct and repeated commands for this resource, even with a multi-connection pool.
         await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({id.ToString()}, 0))", ct);
         var existing = await db.Lines.AsNoTracking().SingleOrDefaultAsync(x => x.Id == request.Id, ct);
@@ -129,9 +125,8 @@ internal static partial class CommercialEndpoints
         if (member is null) return Results.NotFound();
         WorkOrder? order;
         List<CommercialLine> lines;
-        await using (var tx = await db.Database.BeginTransactionAsync(ct))
+        await using (var tx = await db.BeginUserOperation(member.TenantId, ct))
         {
-            await SetTenant(db, member.TenantId, ct);
             order = await db.Orders.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id && x.TenantId == member.TenantId, ct);
             lines = await db.Lines.AsNoTracking().Where(x => x.OrderId == id && x.State == "Active").OrderBy(x => x.ExpectedRevision).ToListAsync(ct);
             await tx.CommitAsync(ct);

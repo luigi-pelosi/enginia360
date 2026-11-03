@@ -48,8 +48,7 @@ internal static partial class AdministrativeEndpoints
     {
         var member = await access.ResolveMembership(subject, ct);
         if (member is null) return null;
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
-        await InstallationEndpoints.SetTenant(db, member.TenantId, ct);
+        await using var tx = await db.BeginUserOperation(member.TenantId, ct);
         var order = await db.Orders.AsNoTracking().SingleOrDefaultAsync(x => x.TenantId == member.TenantId && x.Id == id, ct);
         await tx.CommitAsync(ct);
         return order is null ? null : (member, order);
@@ -68,8 +67,7 @@ internal static partial class AdministrativeEndpoints
         // Accepted carcass coverage is insert-only (D73): reading it first can only refuse spuriously, never clear wrongly.
         // Read before the Workshop transaction: no other module is called while a Workshop connection is held.
         var covered = await returns.Covered(member.TenantId, id, ct);
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
-        await InstallationEndpoints.SetTenant(db, member.TenantId, ct);
+        await using var tx = await db.BeginUserOperation(member.TenantId, ct);
         await Lock(db, id, ct);
         var replay = await db.TechnicalClosures.AsNoTracking().SingleOrDefaultAsync(x => x.Id == request.Id, ct);
         if (replay is not null)
@@ -113,9 +111,8 @@ internal static partial class AdministrativeEndpoints
             return Results.StatusCode(403);
         AdministrativeRequest row;
         var created = false;
-        await using (var tx = await db.Database.BeginTransactionAsync(ct))
+        await using (var tx = await db.BeginUserOperation(member.TenantId, ct))
         {
-            await InstallationEndpoints.SetTenant(db, member.TenantId, ct);
             await Lock(db, id, ct);
             await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.identity_subject', {subject}, true)", ct);
             var authorized = await db.Database.SqlQuery<bool>($"""
@@ -197,9 +194,8 @@ internal static partial class AdministrativeEndpoints
         if (await access.Authorize(subject, order.LegalEntityId, order.SiteId, "workshop.administrative-requests.read", false, ct) is null)
             return Results.NotFound();
         List<AdministrativeRequest> rows;
-        await using (var tx = await db.Database.BeginTransactionAsync(ct))
+        await using (var tx = await db.BeginUserOperation(member.TenantId, ct))
         {
-            await InstallationEndpoints.SetTenant(db, member.TenantId, ct);
             rows = await db.AdministrativeRequests.AsNoTracking().Where(x => x.TenantId == member.TenantId && x.OrderId == id)
                 .OrderBy(x => x.RequestedAt).ThenBy(x => x.Id).ToListAsync(ct);
             await tx.CommitAsync(ct);
@@ -239,8 +235,7 @@ internal static partial class AdministrativeEndpoints
         var (member, order) = found.Value;
         if (await access.Authorize(subject, order.LegalEntityId, order.SiteId, "workshop.orders.complete-administrative", true, ct) is null)
             return Results.StatusCode(403);
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
-        await InstallationEndpoints.SetTenant(db, member.TenantId, ct);
+        await using var tx = await db.BeginUserOperation(member.TenantId, ct);
         await Lock(db, id, ct);
         var replay = await db.AdministrativeClosures.AsNoTracking().SingleOrDefaultAsync(x => x.Id == command.Id, ct);
         if (replay is not null) return replay.OrderId == id ? Results.Ok(replay.Contract()) : Results.Conflict();
@@ -273,9 +268,8 @@ internal static partial class AdministrativeEndpoints
         var (member, order) = found.Value;
         if (await access.Authorize(subject, order.LegalEntityId, order.SiteId, "workshop.administrative-requests.reconcile", true, ct) is null
             || !await access.CapabilityEnabled(member.TenantId, order.LegalEntityId, "external-administration", ct)) return Results.StatusCode(403);
-        await using (var tx = await db.Database.BeginTransactionAsync(ct))
+        await using (var tx = await db.BeginUserOperation(member.TenantId, ct))
         {
-            await InstallationEndpoints.SetTenant(db, member.TenantId, ct);
             if (!await db.AdministrativeRequests.AnyAsync(x => x.Id == requestId && x.TenantId == member.TenantId && x.OrderId == id, ct))
                 return Results.NotFound();
             await tx.CommitAsync(ct);
@@ -291,8 +285,7 @@ internal static partial class AdministrativeEndpoints
         bool InternalClaim = false, bool ExternalDestination = false);
     internal static async Task<ClosureSnapshot> ReadSnapshot(WorkshopDbContext db, Guid tenant, Guid orderId, CancellationToken ct, bool actionFacts = false)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.RepeatableRead, ct);
-        await InstallationEndpoints.SetTenant(db, tenant, ct);
+        await using var tx = await db.BeginUserOperation(tenant, ct, System.Data.IsolationLevel.RepeatableRead);
         var technical = await db.TechnicalClosures.AsNoTracking().SingleOrDefaultAsync(x => x.TenantId == tenant && x.OrderId == orderId, ct);
         var administrative = await db.AdministrativeClosures.AsNoTracking().SingleOrDefaultAsync(x => x.TenantId == tenant && x.OrderId == orderId, ct);
         var request = await db.AdministrativeRequests.AsNoTracking().SingleOrDefaultAsync(x => x.TenantId == tenant && x.OrderId == orderId, ct);
@@ -324,9 +317,8 @@ internal static partial class AdministrativeEndpoints
         var ids = rows.Select(x => x.Id).ToArray();
         // Outcome first: the connector commits its Completed/Rejected state before Workshop records the outcome.
         Dictionary<Guid, AdministrativeOutcomeRow> outcomes;
-        await using (var tx = await db.Database.BeginTransactionAsync(ct))
+        await using (var tx = await db.BeginUserOperation(tenant, ct))
         {
-            await InstallationEndpoints.SetTenant(db, tenant, ct);
             outcomes = await db.AdministrativeOutcomes.AsNoTracking().Where(x => x.TenantId == tenant && ids.Contains(x.RequestId)).ToDictionaryAsync(x => x.RequestId, ct);
             await tx.CommitAsync(ct);
         }
@@ -344,10 +336,12 @@ internal sealed class WorkshopAdministrativeOutbox(WorkshopDbContext db, IWorksh
 
     public async Task<AdministrativeDispatchMessage?> Read(AdministrativeOutboxEnvelope envelope, CancellationToken ct)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
-        await InstallationEndpoints.SetTenant(db, envelope.TenantId, ct);
-        var row = await db.AdministrativeRequests.AsNoTracking().SingleOrDefaultAsync(x => x.TenantId == envelope.TenantId && x.Id == envelope.RequestId, ct);
-        await tx.CommitAsync(ct);
+        // Dedicated SD port can only project an already persisted request +
+        // outbox, with an exact binding when present. Historical unbound work
+        // stays visible for the existing controlled hold, never provider dispatch
+        // or outcome recording. No operator identity or user-chosen flag.
+        var json = await db.Database.SqlQuery<string?>($"SELECT workshop.read_accepted_administrative_request({envelope.TenantId},{envelope.RequestId})::text AS \"Value\"").SingleAsync(ct);
+        var row = json is null ? null : JsonSerializer.Deserialize<AdministrativeRequest>(json);
         // Disabling a capability pauses new worker uses as well as API writes; history stays readable.
         // The envelope supplies tenant scope, never client input. A paused request remains in the durable outbox.
         if (row is null || !await access.CapabilityEnabled(envelope.TenantId, row.LegalEntityId, "external-administration", ct)
@@ -361,21 +355,11 @@ internal sealed class WorkshopAdministrativeOutbox(WorkshopDbContext db, IWorksh
             || outcome is { Status: "Rejected", ExternalReference: null, RejectionCode: { } code } && AdministrativeEndpoints.Code().IsMatch(code);
         if (!valid) return false;
         await using var tx = await db.Database.BeginTransactionAsync(ct);
-        await InstallationEndpoints.SetTenant(db, envelope.TenantId, ct);
-        await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({envelope.RequestId.ToString()}, 0))", ct);
-        if (!await db.AdministrativeRequests.AnyAsync(x => x.TenantId == envelope.TenantId && x.Id == envelope.RequestId, ct)) return false;
-        var existing = await db.AdministrativeOutcomes.AsNoTracking().SingleOrDefaultAsync(x => x.RequestId == envelope.RequestId, ct);
-        if (existing is not null)
-            return existing.Status == outcome.Status && existing.ExternalReference == outcome.ExternalReference && existing.RejectionCode == outcome.RejectionCode;
-        var now = DateTimeOffset.UtcNow;
-        now = new DateTimeOffset(now.Ticks - now.Ticks % 10, TimeSpan.Zero);
-        var inserted = await db.Database.ExecuteSqlInterpolatedAsync($"""
-            INSERT INTO workshop.administrative_outcomes ("RequestId","TenantId","Status","ExternalReference","RejectionCode","RecordedAt")
-            VALUES ({envelope.RequestId},{envelope.TenantId},{outcome.Status},{outcome.ExternalReference},{outcome.RejectionCode},{now}) ON CONFLICT DO NOTHING
-            """, ct);
-        if (inserted == 0) return false; // The stable reference already confirms another request of the tenant.
+        var recorded = await db.Database.SqlQuery<bool>($"""
+            SELECT workshop.record_accepted_administrative_outcome({envelope.TenantId},{envelope.RequestId},{outcome.Status},{outcome.ExternalReference},{outcome.RejectionCode}) AS "Value"
+            """).SingleAsync(ct);
         await tx.CommitAsync(ct);
-        return true;
+        return recorded;
     }
 }
 

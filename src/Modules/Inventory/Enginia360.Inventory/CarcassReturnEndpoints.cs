@@ -49,7 +49,7 @@ internal static class CarcassReturnEndpoints
         // Immutable technical facts read before any Inventory transaction (shared pool may have one connection).
         // A later installation is simply not in this set and stays outstanding.
         var required = (await installations.RequiredCarcass(member.TenantId, orderId, ct)).Where(x => x.LineId == lineId).ToArray();
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await using var tx = await db.BeginUserOperation(member.TenantId, ct);
         await SetTenant(db, member.TenantId, ct);
         var stockProfile = await InventoryModule.StockProfile(db, member.TenantId, line.LegalEntityId, ct);
         if (stockProfile != "local") return Results.Conflict(new { code = "stock_profile_" + stockProfile });
@@ -126,7 +126,7 @@ internal static class CarcassReturnEndpoints
             return Results.NotFound();
         if (line.Kind != "Part") return Results.BadRequest();
         var required = (await installations.RequiredCarcass(member.TenantId, orderId, ct)).Where(x => x.LineId == lineId).ToArray();
-        await using var tx = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.RepeatableRead, ct);
+        await using var tx = await db.BeginUserOperation(member.TenantId, ct, System.Data.IsolationLevel.RepeatableRead);
         await SetTenant(db, member.TenantId, ct);
         var rows = await db.CarcassReturns.AsNoTracking().Where(x => x.TenantId == member.TenantId && x.LineId == lineId)
             .OrderBy(x => x.ReceivedAt).ThenBy(x => x.Id).ToListAsync(ct);
@@ -151,7 +151,7 @@ internal sealed class ReplacedPartReturns(InventoryDbContext db) : IReplacedPart
 {
     public async Task<IReadOnlyDictionary<Guid, decimal>> Covered(Guid verifiedTenantId, Guid orderId, CancellationToken ct)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await using var tx = await db.BeginUserOperation(verifiedTenantId, ct);
         await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.tenant_id', {verifiedTenantId.ToString()}, true)", ct);
         var rows = await (from link in db.CarcassReturnInstallations.AsNoTracking()
                           join receipt in db.CarcassReturns.AsNoTracking() on link.ReturnId equals receipt.Id

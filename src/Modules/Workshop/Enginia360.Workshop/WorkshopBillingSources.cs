@@ -7,8 +7,7 @@ internal sealed class WorkshopBillingSources(WorkshopDbContext db) : IWorkshopBi
 {
     public async Task<WorkshopBillingSource?> Find(Guid verifiedTenantId, Guid orderId, CancellationToken ct)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
-        await InstallationEndpoints.SetTenant(db, verifiedTenantId, ct);
+        await using var tx = await db.BeginUserOperation(verifiedTenantId, ct);
         var source = await Read(verifiedTenantId, orderId, ct);
         await tx.CommitAsync(ct);
         return source;
@@ -18,8 +17,7 @@ internal sealed class WorkshopBillingSources(WorkshopDbContext db) : IWorkshopBi
         int expectedRevision, CancellationToken ct)
     {
         if (invoiceId == Guid.Empty) return null;
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
-        await InstallationEndpoints.SetTenant(db, verifiedTenantId, ct);
+        await using var tx = await db.BeginUserOperation(verifiedTenantId, ct);
         await db.Database.ExecuteSqlInterpolatedAsync(
             $"SELECT pg_advisory_xact_lock(hashtextextended({orderId.ToString()}, 0))", ct);
         var source = await Read(verifiedTenantId, orderId, ct);

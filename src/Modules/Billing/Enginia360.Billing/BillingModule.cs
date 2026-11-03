@@ -19,6 +19,7 @@ public static partial class BillingModule
 
     public static IServiceCollection AddInternalBilling(this IServiceCollection services, string connection)
     {
+        services.AddHttpContextAccessor();
         services.AddDbContext<BillingDbContext>(o => o.UseNpgsql(connection));
         services.AddScoped<IConfirmedInvoices, ConfirmedInvoices>();
         return services;
@@ -58,7 +59,7 @@ public static partial class BillingModule
         if (candidate is null) return Results.NotFound();
         if (await access.Authorize(subject, candidate.LegalEntityId, candidate.SiteId, "billing.invoices.create", true, ct) is null)
             return Results.StatusCode(403);
-        await using (var configurationTx = await db.Database.BeginTransactionAsync(ct))
+        await using (var configurationTx = await db.BeginUserOperation(member.TenantId, ct))
         {
             await SetTenant(db, member.TenantId, ct);
             var configuration = await db.DocumentTypes.AsNoTracking().SingleOrDefaultAsync(x => x.TenantId == member.TenantId
@@ -79,7 +80,7 @@ public static partial class BillingModule
             Reference = request.Reference, Summary = JsonSerializer.Serialize(summary, Json), CreatedAt = Now(),
             CreatedBy = member.MembershipId
         };
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await using var tx = await db.BeginUserOperation(member.TenantId, ct);
         await SetTenant(db, member.TenantId, ct);
         var existing = await db.Invoices.AsNoTracking().SingleOrDefaultAsync(x => x.Id == request.Id, ct);
         if (existing is not null)
@@ -113,7 +114,7 @@ public static partial class BillingModule
         var member = await access.ResolveMembership(subject, ct);
         if (member is null) return Results.NotFound();
         TechnicalInvoice? row;
-        await using (var tx = await db.Database.BeginTransactionAsync(ct))
+        await using (var tx = await db.BeginUserOperation(member.TenantId, ct))
         {
             await SetTenant(db, member.TenantId, ct);
             row = await db.Invoices.AsNoTracking().SingleOrDefaultAsync(x => x.TenantId == member.TenantId && x.Id == id, ct);
@@ -132,7 +133,7 @@ public static partial class BillingModule
         var member = await access.ResolveMembership(subject, ct);
         if (member is null) return Results.NotFound();
         TechnicalInvoice? invoice;
-        await using (var readTx = await db.Database.BeginTransactionAsync(ct))
+        await using (var readTx = await db.BeginUserOperation(member.TenantId, ct))
         {
             await SetTenant(db, member.TenantId, ct);
             invoice = await db.Invoices.AsNoTracking().SingleOrDefaultAsync(x => x.TenantId == member.TenantId && x.Id == id, ct);
@@ -145,7 +146,7 @@ public static partial class BillingModule
             return Results.Conflict(new { code = "invoice_configuration_changed" });
         var recipient = await counterparties.Find(member.TenantId, invoice.PayerId, ct);
         if (recipient is null) return Results.Conflict(new { code = "invoice_recipient_missing" });
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await using var tx = await db.BeginUserOperation(member.TenantId, ct);
         await SetTenant(db, member.TenantId, ct);
         await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({id.ToString()}, 0))", ct);
         var replay = await db.Confirmations.AsNoTracking().SingleOrDefaultAsync(x => x.Id == request.Id, ct);
@@ -191,7 +192,7 @@ public static partial class BillingModule
     private static async Task<TechnicalInvoiceContract> Contract(TechnicalInvoice row, Guid tenant,
         BillingDbContext db, CancellationToken ct)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await using var tx = await db.BeginUserOperation(tenant, ct);
         await SetTenant(db, tenant, ct);
         var confirmation = await db.Confirmations.AsNoTracking().SingleOrDefaultAsync(x => x.InvoiceId == row.Id, ct);
         var link = await db.JournalLinks.AsNoTracking().SingleOrDefaultAsync(x => x.InvoiceId == row.Id, ct);
@@ -223,6 +224,10 @@ internal sealed class BillingTechnicalAuditFilter(ILogger<BillingTechnicalAuditF
             var status = (result as IStatusCodeHttpResult)?.StatusCode ?? 200;
             logger.LogInformation(new EventId(312), "Billing audit {Action} {Outcome} {ResourceId} {IdentityId}", action, status, resource, identity);
             return result;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Results.StatusCode(403);
         }
         catch
         {

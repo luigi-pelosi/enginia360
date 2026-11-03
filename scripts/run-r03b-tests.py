@@ -36,6 +36,41 @@ def marker(process, expected):
     raise TimeoutError('SQL barrier readiness not observed')
 
 
+def physical_order_waiters(query, holder_pid, required, first_pid=None, *, timeout_seconds=10):
+    """Observe exact live app backends, including the membership-lock chain.
+
+    The first request owns 777036 while waiting on the resource holder. The
+    second request must remain physically queued behind that same first backend,
+    not independently acquire the resource lock. Browser callers separately prove
+    both HTTP promises are unfinished before releasing the controller.
+    """
+    assert required in (1, 2)
+    stop = time.monotonic() + timeout_seconds
+    while True:
+        graph = json.loads(run(query + ['-c', f"""WITH RECURSIVE chain(pid,path) AS (
+            SELECT pid,ARRAY[pid] FROM pg_stat_activity
+            WHERE datname=current_database() AND usename='runtime_app' AND state='active'
+            UNION ALL SELECT chain.pid,chain.path||b.pid FROM chain
+            CROSS JOIN LATERAL unnest(pg_blocking_pids(chain.path[array_length(chain.path,1)])) b(pid)
+            WHERE NOT b.pid=ANY(chain.path)
+        ) SELECT coalesce(json_agg(json_build_object('pid',pid,'path',path)),'[]')
+          FROM chain WHERE path[array_length(path,1)]={int(holder_pid)} AND array_length(path,1)>1"""] ).strip())
+        direct = {r['pid'] for r in graph if len(r['path']) == 2}
+        pids = {r['pid'] for r in graph}
+        if required == 1 and len(pids) == 1 and direct == pids:
+            first_pid = next(iter(pids))
+            break
+        if required == 2 and len(pids) == 2 and direct == {first_pid} and any(
+                r['pid'] != first_pid and first_pid in r['path'][1:-1] for r in graph):
+            break
+        if time.monotonic() > stop:
+            raise TimeoutError(f'exact {required}-backend resource/membership wait chain absent: {graph}')
+        time.sleep(0.02)
+    print('BARRIER physical holder=' + str(holder_pid) + ' first=' + str(first_pid)
+          + ' required=' + str(required) + ' graph=' + json.dumps(graph, sort_keys=True), flush=True)
+    return first_pid
+
+
 def fixtures(state, secret, stock_setup=True):
     sql, identities = r00.fixtures(state, secret)
     browser = json.loads((state/'browser.json').read_text())
@@ -170,13 +205,9 @@ def main():
                             output=marker(holder,b'LOCKED').splitlines()
                             holder_pid=int([x for x in output if x.isdigit()][-1])
                         elif action.startswith(('wait-line:','wait-order:')):
-                            required=int(action.split(':')[1]); stop=time.monotonic()+10
-                            while True:
-                                count=int(run(query+['-c',f"SELECT count(DISTINCT w.pid) FROM pg_locks w JOIN pg_locks h ON (w.database,w.classid,w.objid,w.objsubid)=(h.database,h.classid,h.objid,h.objsubid) WHERE w.locktype='advisory' AND NOT w.granted AND h.granted AND h.pid={holder_pid}"]).strip())
-                                if count>=required: break
-                                if time.monotonic()>stop: raise TimeoutError('expected PostgreSQL advisory waiters absent')
-                                time.sleep(0.02)
-                            print(f'BARRIER observed {count} separate-connection advisory waiters',flush=True)
+                            required = int(action.split(':')[1])
+                            first_waiter_pid = physical_order_waiters(query, holder_pid, required,
+                                first_waiter_pid if required == 2 else None)
                         elif action in ('release-line','release-order'):
                             holder.stdin.write('\\q\n'); holder.stdin.flush(); holder.stdin.close(); holder.wait(timeout=5)
                         elif action.startswith('hold-order-lock:'):
@@ -221,6 +252,9 @@ def main():
             member=json.loads((state/'browser.json').read_text())['adminMembershipId']
             own_revision=int(scalar(f'SELECT "Revision" FROM workshop.own_actual_time_streams WHERE "OrderId"=\'{result["order"]}\' AND "MembershipId"=\'{member}\''))
             prefix=f"BEGIN; SET LOCAL ROLE runtime_app; SELECT set_config('app.tenant_id','{tenant}',true); SELECT set_config('app.workshop_actor_membership_id','{member}',true);"
+            missing=scalar(prefix+f"SELECT count(*) FROM workshop.own_actual_time_streams WHERE \"OrderId\"='{result['order']}'; ROLLBACK;")
+            assert missing.splitlines()[-1]=='0','raw own-time access requires the verified tuple'
+            prefix+=r00.verified_fixture_settings(query,member)
             attempts=[
                 f"INSERT INTO workshop.own_actual_time_versions SELECT \"EntryId\",99,\"TenantId\",\"OrderId\",\"MembershipId\",\"InternalIdentityId\",\"WorkDate\",\"DurationSeconds\",\"Note\",'gap','{uuid.uuid4()}',4,clock_timestamp() FROM workshop.own_actual_time_versions WHERE \"EntryId\"='{result['entry']}' AND \"Version\"=2;",
                 f"UPDATE workshop.own_actual_time_streams SET \"Revision\"=\"Revision\"+2 WHERE \"OrderId\"='{result['order']}';",

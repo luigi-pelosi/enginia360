@@ -33,7 +33,7 @@ internal static class PickingEndpoints
         if (await workshop.Authorize(Subject(user), reservation.LegalEntityId, reservation.SiteId, "workshop.orders.read", false, ct) is null
             || !await access.Authorize(Subject(user), reservation.LegalEntityId, reservation.SiteId, reservation.WarehouseId,
                 "inventory.picks.read", false, ct)) return Results.NotFound();
-        await using var tx = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.RepeatableRead, ct);
+        await using var tx = await db.BeginUserOperation(member.TenantId, ct, System.Data.IsolationLevel.RepeatableRead);
         await SetTenant(db, member.TenantId, ct);
         var picks = await db.Picks.AsNoTracking().Where(x => x.ReservationId == reservationId && x.TenantId == member.TenantId)
             .OrderBy(x => x.Id).ToListAsync(ct);
@@ -63,7 +63,7 @@ internal static class PickingEndpoints
         if (await workshop.Authorize(Subject(user), reservation.LegalEntityId, reservation.SiteId, "workshop.orders.read", true, ct) is null
             || !await access.Authorize(Subject(user), reservation.LegalEntityId, reservation.SiteId, reservation.WarehouseId,
                 "inventory.picks.create", true, ct)) return Results.StatusCode(403);
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await using var tx = await db.BeginUserOperation(member.TenantId, ct);
         await SetTenant(db, member.TenantId, ct);
         var stockProfile = await InventoryModule.StockProfile(db, member.TenantId, reservation.LegalEntityId, ct);
         if (stockProfile != "local") return Results.Conflict(new { code = "stock_profile_" + stockProfile });
@@ -125,7 +125,7 @@ internal static class PickingEndpoints
     private static async Task<Reservation?> FindReservation(InventoryDbContext db, Guid tenantId,
         Guid orderId, Guid lineId, Guid reservationId, CancellationToken ct)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await using var tx = await db.BeginUserOperation(tenantId, ct);
         await SetTenant(db, tenantId, ct);
         var reservation = await db.Reservations.AsNoTracking().SingleOrDefaultAsync(x => x.Id == reservationId
             && x.TenantId == tenantId && x.OrderId == orderId && x.LineId == lineId, ct);

@@ -9,7 +9,7 @@ import {
   type TenantRoleData,
 } from "../lib/tenant-roles";
 
-type Frozen = { readonly path: string; readonly body: string; uncertain: boolean };
+type Frozen = { readonly path: string; readonly readPath: string; readonly body: string; uncertain: boolean };
 export function TenantRoleWorkspace({
   initial,
 }: {
@@ -71,7 +71,7 @@ export function TenantRoleWorkspace({
         body: command.body,
       });
       command.uncertain = true;
-      const current = await readJson(command.path);
+      const current = await readJson(command.readPath);
       setData(current);
       setStatus(200);
       setPending(null);
@@ -90,7 +90,7 @@ export function TenantRoleWorkspace({
         setPending(null);
         fence.current = null;
         try {
-          setData(await readJson(command.path));
+          setData(await readJson(command.readPath));
         } catch (readError) {
           setData(null);
           setStatus(readError instanceof HttpFailure ? readError.status : 503);
@@ -132,7 +132,16 @@ export function TenantRoleWorkspace({
       resourceId: null,
       expectedRevision: 0,
     };
-    if (kind === "delegation" && member) {
+    if (kind === "membership-access" && member) {
+      payload = {
+        commandId: payload.commandId,
+        membershipId: member.membershipId,
+        internalIdentityId: member.internalIdentityId,
+        bindingHash: member.bindingHash,
+        expectedRevision: member.accessRevision,
+        enabled: active,
+      };
+    } else if (kind === "delegation" && member) {
       payload = {
         ...payload,
         resourceId: member.resourceId,
@@ -184,7 +193,8 @@ export function TenantRoleWorkspace({
       };
     } else return;
     const frozen = {
-      path: tenantRolePath + "/" + data.tenantId,
+      path: tenantRolePath + "/" + data.tenantId + (kind === "membership-access" ? "/membership-access" : ""),
+      readPath: tenantRolePath + "/" + data.tenantId,
       body: JSON.stringify(payload),
       uncertain: false,
     };
@@ -208,7 +218,7 @@ export function TenantRoleWorkspace({
       <h1>Gestione utenti, ruoli e permessi</h1>
       <p>
         Solo utenti già registrati. Nomi dei ruoli e permessi non nominano
-        amministratori. Inviti e abilitazione sono un incremento separato.
+        amministratori. L’accesso al tenant è distinto dalle deleghe; inviti e primo ingresso federato restano un incremento futuro.
       </p>
       {status === 401 && (
         <Button onClick={() => void login()}>
@@ -270,6 +280,36 @@ export function TenantRoleWorkspace({
             </p>
             <style>{".role-command{display:none!important}"}</style>
           </noscript>
+          <Card className="role-panel">
+            <h2>Accesso al tenant degli utenti esistenti</h2>
+            <p>La disabilitazione impedisce nuovi utilizzi senza cancellare ruoli,
+              deleghe, dati o lavori già accettati. La riabilitazione non rinnova
+              permessi scaduti o revocati e non crea nuove autorità.</p>
+            {data.memberships.map((member) => (
+              <form key={member.membershipId} className="membership-command"
+                onSubmit={(event) => submit(event, "membership-access")}>
+                <input type="hidden" name="membershipId" value={member.membershipId} />
+                <p>Utente {member.internalIdentityId} · membership {member.membershipId}</p>
+                <p>Accesso al tenant: {member.accessEnabled ? "abilitato" : "disabilitato"}
+                  {" "}· revisione accesso {member.accessRevision}</p>
+                <p>Delega gestione utenti: {member.active ? "attiva" : "non attiva"}
+                  {" "}· Delega struttura: {member.organizationDelegationActive ? "attiva" : "non attiva"}</p>
+                {member.isCurrentIdentity && <p role="note">Attenzione: disabilitando il proprio accesso
+                  si perde la gestione del tenant. Il ripristino richiede il SUPER ADMIN.</p>}
+                {!member.canEnableAccess && data.mode !== "owner" && <p>
+                  La riabilitazione di questo destinatario richiede il SUPER ADMIN;
+                  non può ripristinare implicitamente poteri amministrativi.</p>}
+                <fieldset className="role-command" disabled={!!pending || busy}>
+                  <Button type="submit" value="grant"
+                    disabled={member.accessEnabled || !member.canEnableAccess}>
+                    Abilita accesso al tenant
+                  </Button>{" "}
+                  <Button type="submit" value="revoke" variant="outline"
+                    disabled={!member.accessEnabled}>Disabilita accesso al tenant</Button>
+                </fieldset>
+              </form>
+            ))}
+          </Card>
           {data.mode === "owner" && (
             <Card className="role-command role-panel">
               <h2>Delega gestione utenti distinta</h2>

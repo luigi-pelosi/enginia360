@@ -12,6 +12,11 @@ public sealed class RuntimeMigrationPoolTests
         await using var admin = NpgsqlDataSource.Create(Environment.GetEnvironmentVariable("R00_POOL_ADMIN_CONNECTION")!);
         var tenant = Guid.NewGuid(); var foreign = Guid.NewGuid(); var order = Guid.NewGuid(); var foreignOrder = Guid.NewGuid();
         var members = new[] { Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid() };
+        for(var i=0;i<members.Length;i++)
+        {
+            await using var seed=admin.CreateCommand("INSERT INTO organization_access.tenants VALUES (@tenant,'Synthetic pool member tenant') ON CONFLICT DO NOTHING; INSERT INTO organization_access.external_identity_bindings VALUES (@member,'https://membership-pool.synthetic.invalid',@member::text);INSERT INTO organization_access.memberships VALUES (@member,@tenant,@member::text)");
+            seed.Parameters.AddWithValue("member",members[i]);seed.Parameters.AddWithValue("tenant",i<2?tenant:foreign);await seed.ExecuteNonQueryAsync();
+        }
         foreach (var scope in new[] { (Tenant: tenant, Order: order), (Tenant: foreign, Order: foreignOrder) })
         {
             await using var seed = admin.CreateCommand("""
@@ -33,7 +38,7 @@ public sealed class RuntimeMigrationPoolTests
             await using (var empty = new NpgsqlCommand("SELECT count(*) FROM workshop.own_actual_time_streams", connection)) Assert.Equal(0L, await empty.ExecuteScalarAsync());
             await using (var tx = await connection.BeginTransactionAsync())
             {
-                await using var context = new NpgsqlCommand("SELECT set_config('app.tenant_id',@tenant,true),set_config('app.workshop_actor_membership_id',@member,true)", connection);
+                await using var context = new NpgsqlCommand("SELECT set_config('app.tenant_id',@tenant,true),set_config('app.workshop_actor_membership_id',@member,true),set_config('app.identity_subject',@member,true),set_config('app.identity_issuer','https://membership-pool.synthetic.invalid',true),set_config('app.external_subject',@member,true)", connection);
                 context.Parameters.AddWithValue("tenant", (index < 2 ? tenant : foreign).ToString()); context.Parameters.AddWithValue("member", members[index].ToString()); await context.ExecuteNonQueryAsync();
                 await using var read = new NpgsqlCommand("SELECT \"MembershipId\" FROM workshop.own_actual_time_streams", connection);
                 await using (var rows = await read.ExecuteReaderAsync()) { Assert.True(await rows.ReadAsync()); Assert.Equal(members[index], rows.GetGuid(0)); Assert.False(await rows.ReadAsync()); }
@@ -72,6 +77,9 @@ public sealed class RuntimeMigrationPoolTests
             for (var i = 0; i < tenants.Length; i++)
             {
                 await using var seed = admin.CreateCommand("""
+                    INSERT INTO organization_access.tenants VALUES (@tenant,'Synthetic pool tenant');
+                    INSERT INTO organization_access.external_identity_bindings VALUES (@tenant,'https://membership-pool.synthetic.invalid',@tenant::text);
+                    INSERT INTO organization_access.memberships VALUES (@tenant,@tenant,@tenant::text);
                     INSERT INTO counterparties.counterparties
                     ("Id","TenantId","LegalName","FiscalIdentifier","RegisteredOffice")
                     VALUES (@id,@tenant,'Synthetic pool acceptance','SYNTHETIC','Test only')
@@ -142,7 +150,7 @@ public sealed class RuntimeMigrationPoolTests
             await using var seed = new NpgsqlCommand("""
                 INSERT INTO organization_access.tenants VALUES (@tenant,'Synthetic authority pool');
                 INSERT INTO organization_access.legal_entities VALUES (@company,@tenant,'Synthetic company');
-                INSERT INTO organization_access.external_identity_bindings VALUES (@actor,'https://synthetic.test',@subject);
+                INSERT INTO organization_access.external_identity_bindings VALUES (@actor,'https://membership-pool.synthetic.invalid',@subject);
                 INSERT INTO organization_access.memberships VALUES (@member,@tenant,@subject);
                 INSERT INTO organization_access.company_permissions VALUES (@grant,@member,@tenant,@company,'counterparties.read',NULL,NULL);
                 SET LOCAL ROLE runtime_owner;
@@ -169,7 +177,7 @@ public sealed class RuntimeMigrationPoolTests
                 var item = contexts[(index + round) % 2];
                 await using (var tx = await connection.BeginTransactionAsync())
                 {
-                    await using var set = new NpgsqlCommand("SELECT set_config('app.tenant_id',@tenant,true),set_config('app.identity_subject',@subject,true)", connection);
+                    await using var set = new NpgsqlCommand("SELECT set_config('app.tenant_id',@tenant,true),set_config('app.identity_subject',@subject,true),set_config('app.identity_issuer','https://membership-pool.synthetic.invalid',true),set_config('app.external_subject',@subject,true)", connection);
                     set.Parameters.AddWithValue("tenant", item.Tenant.ToString()); set.Parameters.AddWithValue("subject", item.Actor.ToString());
                     await set.ExecuteNonQueryAsync();
                     await using var query = new NpgsqlCommand("SELECT organization_access.read_master_authority(@company)->>'state'", connection);
@@ -201,7 +209,7 @@ public sealed class RuntimeMigrationPoolTests
             await using var seed = new NpgsqlCommand("""
                 INSERT INTO organization_access.tenants VALUES (@tenant,'Synthetic supplier pool');
                 INSERT INTO organization_access.legal_entities VALUES (@company,@tenant,'Synthetic company');
-                INSERT INTO organization_access.external_identity_bindings VALUES (@actor,'https://synthetic.test',@subject);
+                INSERT INTO organization_access.external_identity_bindings VALUES (@actor,'https://membership-pool.synthetic.invalid',@subject);
                 INSERT INTO organization_access.memberships VALUES (@member,@tenant,@subject);
                 INSERT INTO organization_access.company_permissions VALUES (@grant,@member,@tenant,@company,'counterparties.read',NULL,NULL);
                 INSERT INTO organization_access.common_edit_permissions VALUES (@member,@tenant);
@@ -225,7 +233,7 @@ public sealed class RuntimeMigrationPoolTests
             await using var connection = await source.OpenConnectionAsync();
             await using (var tx = await connection.BeginTransactionAsync())
             {
-                await using var set = new NpgsqlCommand("SELECT set_config('app.tenant_id',@tenant,true),set_config('app.identity_subject',@subject,true),set_config('app.legal_entity_id',@company,true)", connection);
+                await using var set = new NpgsqlCommand("SELECT set_config('app.tenant_id',@tenant,true),set_config('app.identity_subject',@subject,true),set_config('app.identity_issuer','https://membership-pool.synthetic.invalid',true),set_config('app.external_subject',@subject,true),set_config('app.legal_entity_id',@company,true)", connection);
                 set.Parameters.AddWithValue("tenant", item.Tenant.ToString()); set.Parameters.AddWithValue("subject", item.Actor.ToString()); set.Parameters.AddWithValue("company", item.Company.ToString());
                 await set.ExecuteNonQueryAsync();
                 await using var role = new NpgsqlCommand("SELECT counterparties.set_supplier_role(@company,@record,@command,1,0,true)->>'state'", connection);
@@ -255,7 +263,7 @@ public sealed class RuntimeMigrationPoolTests
                 var other = contexts[(index + round + 1) % 2];
                 await using (var tx = await connection.BeginTransactionAsync())
                 {
-                    await using var set = new NpgsqlCommand("SELECT set_config('app.tenant_id',@tenant,true),set_config('app.identity_subject',@subject,true),set_config('app.legal_entity_id',@company,true)", connection);
+                    await using var set = new NpgsqlCommand("SELECT set_config('app.tenant_id',@tenant,true),set_config('app.identity_subject',@subject,true),set_config('app.identity_issuer','https://membership-pool.synthetic.invalid',true),set_config('app.external_subject',@subject,true),set_config('app.legal_entity_id',@company,true)", connection);
                     set.Parameters.AddWithValue("tenant", item.Tenant.ToString()); set.Parameters.AddWithValue("subject", item.Actor.ToString()); set.Parameters.AddWithValue("company", item.Company.ToString());
                     await set.ExecuteNonQueryAsync();
                     await using var own = new NpgsqlCommand("SELECT counterparties.read_giobby_vendor_identity(@company,@record)->'vendor'->>'vendorId'", connection);
@@ -306,7 +314,7 @@ public sealed class RuntimeMigrationPoolTests
 
     private static async Task SetTenant(NpgsqlConnection connection, Guid tenant)
     {
-        await using var set = new NpgsqlCommand("SELECT set_config('app.tenant_id',@tenant,true)", connection);
+        await using var set = new NpgsqlCommand("SELECT set_config('app.tenant_id',@tenant,true),set_config('app.identity_subject',@tenant,true),set_config('app.identity_issuer','https://membership-pool.synthetic.invalid',true),set_config('app.external_subject',@tenant,true)", connection);
         set.Parameters.AddWithValue("tenant", tenant.ToString("D"));
         await set.ExecuteNonQueryAsync();
     }

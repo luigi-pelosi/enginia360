@@ -23,7 +23,7 @@ internal static class ReceiptIntentEndpoints
     {
         var member = await access.ResolveMembership(user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "", ct);
         if (member is null) return Results.StatusCode(403);
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await using var tx = await db.BeginUserOperation(member.TenantId, ct);
         await Context(db, member.TenantId, user, ct);
         var value = await db.Database.SqlQuery<string>($"SELECT inventory.receipt_sources({orderId},{lineId},{warehouseId})::text AS \"Value\"").SingleAsync(ct);
         await tx.CommitAsync(ct);
@@ -35,7 +35,7 @@ internal static class ReceiptIntentEndpoints
         if (sourceIntentId == Guid.Empty || request.Id == Guid.Empty || request.Quantity is not { Length: > 0 and <= 13 }) return Results.BadRequest();
         var member = await access.ResolveMembership(user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "", ct);
         if (member is null) return Results.StatusCode(403);
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await using var tx = await db.BeginUserOperation(member.TenantId, ct);
         await Context(db,member.TenantId,user,ct);
         var destination=services.GetService<ReceiptDestinationBinding>()?.Descriptor ?? "{}";
         var value=await db.Database.SqlQuery<string>($"SELECT inventory.create_receipt_intent({request.Id},{sourceIntentId},{request.Quantity},CAST({destination} AS jsonb))::text AS \"Value\"").SingleAsync(ct);
@@ -46,7 +46,7 @@ internal static class ReceiptIntentEndpoints
     {
         var member=await access.ResolveMembership(user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "",ct);
         if (member is null) return Results.StatusCode(403);
-        await using var tx=await db.Database.BeginTransactionAsync(ct);
+        await using var tx=await db.BeginUserOperation(member.TenantId, ct);
         await Context(db,member.TenantId,user,ct);
         var value=await db.Database.SqlQuery<string>($"SELECT inventory.receipt_state({sourceIntentId})::text AS \"Value\"").SingleAsync(ct);
         await tx.CommitAsync(ct);

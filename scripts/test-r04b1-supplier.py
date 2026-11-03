@@ -88,7 +88,7 @@ class SupplierSqlTests(unittest.TestCase):
 
     def app_prefix(self, ids, company=None, subject=None):
         company_setting = f",set_config('app.legal_entity_id','{company}',true)" if company else ''
-        return f"BEGIN; SELECT set_config('app.tenant_id','{ids['tenant']}',true),set_config('app.identity_subject','{subject or ids['actor']}',true){company_setting};"
+        return f"BEGIN; SELECT set_config('app.tenant_id','{ids['tenant']}',true),set_config('app.identity_subject','{subject or ids['actor']}',true),set_config('app.identity_issuer','https://synthetic.test',true),set_config('app.external_subject','subject-{subject or ids['actor']}',true){company_setting};"
 
     def role(self, ids, version, revision, supplier=True, command=None, company=None, record=None):
         return f"SELECT counterparties.set_supplier_role('{company or ids['companies'][0]}','{record or ids['record']}','{command or uuid.uuid4()}',{version},{revision},{'true' if supplier else 'false'})->>'state';"
@@ -128,6 +128,9 @@ class SupplierSqlTests(unittest.TestCase):
         self.assertEqual(self.sql("SELECT to_regprocedure('counterparties.set_supplier_role(uuid,uuid,uuid,integer,integer,boolean)') IS NOT NULL"), 't', 'supplier role command is missing')
         ids = self.world(local=False)
         prefix = self.app_prefix(ids)
+        # Missing verified tuple is a refusal, not an owner/worker fallback.
+        bare=f"BEGIN; SELECT set_config('app.tenant_id','{ids['tenant']}',true),set_config('app.identity_subject','{ids['actor']}',true);"
+        self.assertEqual(self.sql(bare + self.role(ids, 0, 0) + 'COMMIT;', app=True).splitlines()[-1], 'forbidden')
         self.assertEqual(self.sql(prefix + self.role(ids, 0, 0) + 'COMMIT;', app=True).splitlines()[-1], 'missing')
         self.authority(ids, 0, 'Enginia360ToExternal')
         command = str(uuid.uuid4())

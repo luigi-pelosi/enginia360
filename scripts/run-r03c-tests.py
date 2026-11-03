@@ -121,13 +121,9 @@ def main():
                             output = marker(holder, b'LOCKED').splitlines()
                             holder_pid = int([x for x in output if x.isdigit()][-1])
                         elif action.startswith('wait-order:'):
-                            required = int(action.split(':')[1]); stop = time.monotonic()+10
-                            while True:
-                                count = int(run(query+['-c', f"SELECT count(DISTINCT w.pid) FROM pg_locks w JOIN pg_locks h ON (w.database,w.classid,w.objid,w.objsubid)=(h.database,h.classid,h.objid,h.objsubid) WHERE w.locktype='advisory' AND NOT w.granted AND h.granted AND h.pid={holder_pid}"]).strip())
-                                if count >= required: break
-                                if time.monotonic() > stop: raise TimeoutError('expected PostgreSQL advisory waiters absent')
-                                time.sleep(0.02)
-                            print(f'BARRIER observed {count} separate-connection advisory waiters', flush=True)
+                            required = int(action.split(':')[1])
+                            first_waiter_pid = r03b.physical_order_waiters(query, holder_pid, required,
+                                first_waiter_pid if required == 2 else None)
                         elif action == 'release-order':
                             holder.stdin.write('\\q\n'); holder.stdin.flush(); holder.stdin.close(); holder.wait(timeout=5)
                         else: raise ValueError('unknown R03.c lifecycle command')

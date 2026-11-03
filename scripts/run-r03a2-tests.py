@@ -226,6 +226,11 @@ def main():
             for table in ('billing.invoices','billing.invoice_confirmations','accounting.journal_entries','accounting.journal_entry_lines'):
                 assert scalar(f"SELECT has_table_privilege('runtime_app','{table}','UPDATE')")=='f'
             raw=f"SET ROLE runtime_app; SELECT set_config('app.tenant_id','{tenant}',false); UPDATE workshop.commercial_lines SET \"Quantity\"=9,\"Version\"=\"Version\"+1 WHERE \"Id\"='{result['ual']}';"
+            missing=subprocess.run(query+['-c',raw+f"SELECT count(*) FROM workshop.commercial_lines WHERE \"Id\"='{result['ual']}';"],cwd=ROOT,capture_output=True,text=True,timeout=20)
+            assert missing.returncode==0 and missing.stdout.splitlines()[-1]=='0','missing verified tuple must hide the raw target'
+            fixture_member=json.loads((state/'browser.json').read_text())['adminMembershipId']
+            verified=r00.verified_fixture_settings(query,fixture_member,local=False)
+            raw=raw.replace('UPDATE workshop.commercial_lines',verified+'UPDATE workshop.commercial_lines')
             refused=subprocess.run(query+['-c',raw],cwd=ROOT,capture_output=True,text=True,timeout=20)
             assert refused.returncode!=0 and 'active_material_commitments' in refused.stderr,'no raw app bypass of the active fence'
             assert scalar(f"SELECT \"Quantity\"||'|'||\"Version\" FROM workshop.commercial_lines WHERE \"Id\"='{result['ual']}'")=='4.000000|2'

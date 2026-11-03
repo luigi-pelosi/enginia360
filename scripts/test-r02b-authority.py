@@ -60,11 +60,15 @@ class AuthoritySqlTests(unittest.TestCase):
             INSERT INTO organization_access.company_permissions VALUES ('{uuid.uuid4()}','{member}','{tenant}','{company}','counterparties.read',NULL,NULL);
             INSERT INTO organization_access.common_edit_permissions VALUES ('{member}','{tenant}');
             INSERT INTO counterparties.counterparties VALUES ('{record}','{tenant}','Before','SYNTHETIC','Synthetic office');''')
-        prefix=f"BEGIN; SELECT set_config('app.tenant_id','{tenant}',true),set_config('app.identity_subject','{actor}',true);"
+        prefix=f"BEGIN; SELECT set_config('app.tenant_id','{tenant}',true),set_config('app.identity_subject','{actor}',true),set_config('app.identity_issuer','https://synthetic.test',true),set_config('app.external_subject','actor',true);"
         def edit(version,revision=0,command=None,name='After'):
             return f"SELECT counterparties.edit_common('{company}','{record}','{command or uuid.uuid4()}',{version},{revision},'{name}','SYNTHETIC','Synthetic office')->>'state';"
         def setup(expected,direction):
             return f"BEGIN; SET LOCAL ROLE {self.owner}; SELECT set_config('app.tenant_id','{tenant}',true); SELECT organization_access.establish_master_authority('{uuid.uuid4()}','{tenant}','{member}','{proof}',{expected},'{direction}','{source}','{profile}',ARRAY['{company}'::uuid]); COMMIT;"
+        # New verified-identity prerequisite; retain the original missing-profile
+        # assertion below with the exact tuple from this synthetic binding.
+        bare=f"BEGIN; SELECT set_config('app.tenant_id','{tenant}',true),set_config('app.identity_subject','{actor}',true);"
+        self.assertEqual(self.sql(bare+edit(0)+'COMMIT;',app=True).splitlines()[-1],'forbidden')
         self.assertEqual(self.sql(prefix+edit(0)+'COMMIT;',app=True).splitlines()[-1],'missing')
         self.assertEqual(self.sql(setup(0,'Enginia360ToExternal')).splitlines()[-1],'applied')
         command=str(uuid.uuid4())
@@ -89,7 +93,7 @@ class AuthoritySqlTests(unittest.TestCase):
             INSERT INTO organization_access.common_edit_permissions VALUES ('{foreign_member}','{foreign_tenant}');
             INSERT INTO counterparties.counterparties VALUES ('{foreign_record}','{foreign_tenant}','Foreign before','SYNTHETIC','Office');''')
         self.sql(f"BEGIN;SET LOCAL ROLE {self.owner};SELECT set_config('app.tenant_id','{foreign_tenant}',true);SELECT organization_access.establish_master_authority('{uuid.uuid4()}','{foreign_tenant}','{foreign_member}','{proof}',0,'Enginia360ToExternal','{uuid.uuid4()}','{uuid.uuid4()}',ARRAY['{foreign_company}'::uuid]);COMMIT;")
-        foreign_prefix=f"BEGIN; SELECT set_config('app.tenant_id','{foreign_tenant}',true),set_config('app.identity_subject','{foreign_actor}',true);"
+        foreign_prefix=f"BEGIN; SELECT set_config('app.tenant_id','{foreign_tenant}',true),set_config('app.identity_subject','{foreign_actor}',true),set_config('app.identity_issuer','https://synthetic.test',true),set_config('app.external_subject','foreign',true);"
         self.assertEqual(self.sql(foreign_prefix+f"SELECT counterparties.edit_common('{foreign_company}','{foreign_record}','{command}',1,0,'Foreign after','SYNTHETIC','Office')->>'state';COMMIT;",app=True).splitlines()[-1],'conflict','foreign command collision must be a controlled conflict, never an exception or leaked row')
         self.assertEqual(self.sql(f'SELECT "LegalName" FROM counterparties.counterparties WHERE "Id"=\'{foreign_record}\''),'Foreign before')
 
@@ -107,7 +111,7 @@ class AuthoritySqlTests(unittest.TestCase):
         app=os.environ['R00_APP_USER']
         env=dict(os.environ,PGDATABASE=self.database,PGUSER=app,PGPASSWORD=os.environ['R00_APP_PASSWORD'])
         owner_prefix=f"BEGIN; SET LOCAL ROLE {self.owner}; SELECT set_config('app.tenant_id','{tenant}',true);"
-        prefix=f"BEGIN; SELECT set_config('app.tenant_id','{tenant}',true),set_config('app.identity_subject','{actor}',true);"
+        prefix=f"BEGIN; SELECT set_config('app.tenant_id','{tenant}',true),set_config('app.identity_subject','{actor}',true),set_config('app.identity_issuer','https://synthetic.test',true),set_config('app.external_subject','actor',true);"
         def decision(version,direction='Enginia360ToExternal',actor_id=member,companies=None):
             return f"SELECT organization_access.establish_master_authority('{uuid.uuid4()}','{tenant}','{actor_id}','{proof}',{version},'{direction}','{source}','{profile}',ARRAY['{companies or company}'::uuid]);"
         def edit(version,command=None):
@@ -131,7 +135,7 @@ class AuthoritySqlTests(unittest.TestCase):
                 refused(operation+' '+table+';','append-only',owner=True)
             refused('UPDATE '+table+' SET "TenantId"="TenantId";','append-only',owner=True)
         self.assertEqual(self.sql(prefix+f"SELECT organization_access.read_master_authority('{other}')->>'state';COMMIT;",app=True).splitlines()[-1],'forbidden')
-        self.assertEqual(self.sql(f"BEGIN; SELECT set_config('app.tenant_id','{uuid.uuid4()}',true),set_config('app.identity_subject','{actor}',true);"+edit(1)+'COMMIT;',app=True).splitlines()[-1],'forbidden')
+        self.assertEqual(self.sql(f"BEGIN; SELECT set_config('app.tenant_id','{uuid.uuid4()}',true),set_config('app.identity_subject','{actor}',true),set_config('app.identity_issuer','https://synthetic.test',true),set_config('app.external_subject','actor',true);"+edit(1)+'COMMIT;',app=True).splitlines()[-1],'forbidden')
         # Owner change owns the exact advisory lock before the app write enters.
         process=subprocess.Popen(['psql','-X','-qAt','-v','ON_ERROR_STOP=1'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,env=dict(os.environ,PGDATABASE=self.database,PGAPPNAME='r02b-controlled-owner'),text=True)
         process.stdin.write(owner_prefix+decision(1,'ExternalToEnginia360')+'SELECT pg_sleep(1.5);COMMIT;');process.stdin.close();process.stdin=None

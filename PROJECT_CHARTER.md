@@ -474,6 +474,14 @@ Dopo l'approvazione del dossier, il primo incremento di codice deve essere uno s
 
 ## 13. Metodo di lavoro richiesto agli agenti
 
+### Cadenza di validazione — disposizione corrente del proprietario
+
+Il proprietario dispone: «Unit Test, Test di CI, CI pipelines e tutto ciò che concerne la validazione, il testing del codice e la sua distribuzione deve perentoriamente avvenire a fine implementazione dei punti di sviluppo».
+
+Completare l'implementazione del punto di sviluppo concordato prima di eseguire unit test, test di integrazione/sicurezza/runtime, build e audit di validazione, pipeline CI o distribuzione. Non suddividere artificiosamente il punto in micro-passaggi per mantenere verifiche intermedie. Questa disposizione sostituisce la precedente sequenza test-first/RED → GREEN ove incompatibile, senza cancellare prove e decisioni storiche.
+
+La validazione finale resta obbligatoria prima di dichiarare il punto verificato, effettuare il merge o distribuire il software. Eventuali esiti negativi aprono una fase correttiva seguita dalle verifiche finali interessate. Nessuna rinuncia a sicurezza, isolamento o criteri di accettazione; nessuna autorizzazione aggiuntiva al deployment. Lettura del codice, progettazione e raccolta del contesto restano attività di implementazione; non sono campagne di test. I controlli automatici esistenti non vengono disabilitati: la PR di consegna viene aperta nella fase finale, non durante l'implementazione.
+
 Prima di proporre o implementare una modifica, l'agente deve:
 
 1. leggere questo documento;

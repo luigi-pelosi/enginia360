@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Enginia360.Integrations;
 
-internal sealed class IntegrationsDbContext(DbContextOptions<IntegrationsDbContext> options) : DbContext(options)
+internal sealed partial class IntegrationsDbContext(DbContextOptions<IntegrationsDbContext> options, Microsoft.AspNetCore.Http.IHttpContextAccessor accessor, Microsoft.Extensions.Configuration.IConfiguration configuration) : DbContext(options)
 {
     internal DbSet<Dispatch> Dispatches => Set<Dispatch>();
     internal DbSet<Reconciliation> Reconciliations => Set<Reconciliation>();
@@ -38,7 +38,7 @@ internal sealed class AdministrativeDeliveries(IntegrationsDbContext db) : IAdmi
 {
     public async Task<IReadOnlyDictionary<Guid, AdministrativeDelivery>> Read(Guid verifiedTenantId, IReadOnlyCollection<Guid> requestIds, CancellationToken ct)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await using var tx = await db.BeginUserOperation(verifiedTenantId, ct);
         await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.tenant_id', {verifiedTenantId.ToString()}, true)", ct);
         var rows = await db.Dispatches.AsNoTracking().Where(x => x.TenantId == verifiedTenantId && requestIds.Contains(x.RequestId)).ToListAsync(ct);
         await tx.CommitAsync(ct);
@@ -54,7 +54,7 @@ internal sealed class PurchaseDeliveries(IntegrationsDbContext db, ConnectorOpti
 
     public async Task<IReadOnlyDictionary<Guid, PurchaseDelivery>> Read(Guid verifiedTenantId, IReadOnlyCollection<Guid> intentIds, CancellationToken ct)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await using var tx = await db.BeginUserOperation(verifiedTenantId, ct);
         await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.tenant_id', {verifiedTenantId.ToString()}, true)", ct);
         var rows = await db.PurchaseDispatches.AsNoTracking().Where(x => x.TenantId == verifiedTenantId && intentIds.Contains(x.IntentId)).ToListAsync(ct);
         await tx.CommitAsync(ct);
@@ -68,7 +68,7 @@ internal sealed class ReceiptDeliveries(IntegrationsDbContext db) : IReceiptDeli
 {
     public async Task<IReadOnlyDictionary<Guid,ReceiptDelivery>> Read(Guid verifiedTenantId,IReadOnlyCollection<Guid> receiptIds,CancellationToken ct)
     {
-        await using var tx=await db.Database.BeginTransactionAsync(ct);
+        await using var tx=await db.BeginUserOperation(verifiedTenantId, ct);
         await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('app.tenant_id',{verifiedTenantId.ToString()},true)",ct);
         var rows=await db.ReceiptDispatches.AsNoTracking().Where(r=>r.TenantId==verifiedTenantId && receiptIds.Contains(r.ReceiptId)).ToListAsync(ct);
         await tx.CommitAsync(ct);

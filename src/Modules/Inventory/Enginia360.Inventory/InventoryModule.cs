@@ -14,6 +14,7 @@ public static class InventoryModule
 {
     public static IServiceCollection AddInventory(this IServiceCollection services, string connection)
     {
+        services.AddHttpContextAccessor();
         services.AddDbContext<InventoryDbContext>(o => o.UseNpgsql(connection));
         services.AddScoped<IWorkshopPickedParts, WorkshopPickedParts>();
         services.AddScoped<IInstallationStockEffects, InstallationStockEffects>();
@@ -60,7 +61,7 @@ public static class InventoryModule
             || !await access.Authorize(Subject(user), line.LegalEntityId, line.SiteId, warehouseId, "inventory.reservations.read", false, ct))
             return Results.NotFound();
         if (line.Kind != "Part") return Results.BadRequest();
-        await using var tx = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.RepeatableRead, ct);
+        await using var tx = await db.BeginUserOperation(member.TenantId, ct, System.Data.IsolationLevel.RepeatableRead);
         await SetTenant(db, member.TenantId, ct);
         var physical = await db.Stock.Where(x => x.TenantId == member.TenantId && x.LegalEntityId == line.LegalEntityId
             && x.SiteId == line.SiteId && x.WarehouseId == warehouseId && x.CatalogItemId == line.CatalogItemId)
@@ -101,7 +102,7 @@ public static class InventoryModule
         if (await workshop.Authorize(Subject(user), line.LegalEntityId, line.SiteId, "workshop.orders.read", true, ct) is null
             || !await access.Authorize(Subject(user), line.LegalEntityId, line.SiteId, request.WarehouseId, "inventory.reservations.create", true, ct))
             return Results.StatusCode(403);
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await using var tx = await db.BeginUserOperation(member.TenantId, ct);
         await SetTenant(db, member.TenantId, ct);
         var stockProfile = await StockProfile(db, member.TenantId, line.LegalEntityId, ct);
         if (stockProfile != "local") return Results.Conflict(new { code = "stock_profile_" + stockProfile });
@@ -162,7 +163,7 @@ public static class InventoryModule
         return Results.Created($"/api/v1/inventory/orders/{orderId}/lines/{lineId}?warehouseId={request.WarehouseId}", row.Contract());
     }
 }
-internal sealed class InventoryDbContext(DbContextOptions<InventoryDbContext> options) : DbContext(options)
+internal sealed partial class InventoryDbContext(DbContextOptions<InventoryDbContext> options, Microsoft.AspNetCore.Http.IHttpContextAccessor accessor, Microsoft.Extensions.Configuration.IConfiguration configuration) : DbContext(options)
 {
     internal DbSet<ConsumedPart> Consumptions => Set<ConsumedPart>();
     internal DbSet<Stock> Stock => Set<Stock>();
