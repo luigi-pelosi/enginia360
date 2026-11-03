@@ -289,8 +289,37 @@ FRONTEND_WIRING = {'scripts/select-ci-impact.py', '.github/workflows/ci.yml'}
 FRONTEND_CHECKPOINTS = {'docs/mvp-backlog.json', 'docs/mvp-delivery-plan.md'}
 
 
+PLATFORM_FILES = {
+    'src/Enginia360.Api/PlatformAdministration/PlatformAuthority.cs',
+    'scripts/owner-platform-authority.py', 'scripts/test-mvp02a-authority.py',
+    'scripts/run-mvp02a-tests.py', 'scripts/test-mvp02a-impact.py',
+    'tests/browser/mvp02a-authority.cjs', 'database/runtime/migrations/0036_platform_authority.sql',
+}
+PLATFORM_WIRING = {'src/Enginia360.Api/OrganizationAccess/OrganizationAccessModule.cs',
+    'migrator.runtime.Dockerfile', 'database/runtime/manifest.json',
+    'scripts/select-ci-impact.py', '.github/workflows/ci.yml',
+    'tests/Enginia360.Api.Tests/ExternalIdentityAuthenticationTests.cs',
+    'docs/mvp02a-platform-authority.md', 'docs/mvp-backlog.json', 'docs/mvp-delivery-plan.md',
+    'docs/mvp01-frontend.md', 'docs/productization-plan.md', 'docs/r06-migration-inventory.json', 'docs/r06-migration-inventory.md'}
+
+
 def selection(paths):
     paths = sorted(set(paths))
+    platform = bool(set(paths) & PLATFORM_FILES)
+    if platform:
+        remaining = set(paths) - PLATFORM_FILES
+        if remaining <= PLATFORM_WIRING:
+            remaining -= PLATFORM_WIRING
+        result = selection(sorted(remaining))
+        result.update(changed_paths=paths, platform_authority=True, browser=True, migrations=True,
+                      mvp_offline=True,
+                      platform_foundation_only=set(paths) <= PLATFORM_FILES | PLATFORM_WIRING)
+        if result['platform_foundation_only']:
+            # Dedicated inventory/readiness checks replace no unrelated ERP policy suite.
+            result['r06_offline'] = False
+        if not result['api_filter']:
+            result['api_filter'] = AUTH_FILTER
+        return result
     frontend = bool(set(paths) & FRONTEND_FILES)
     if frontend:
         remaining = set(paths) - FRONTEND_FILES

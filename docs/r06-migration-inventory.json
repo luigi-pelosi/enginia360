@@ -1,5 +1,59 @@
 [
   {
+    "table": "organization_access.platform_authority",
+    "owner": "organization_access",
+    "category": "authority_evidence",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "Slot"
+    ],
+    "definition": {
+      "migration": "0036_platform_authority",
+      "path": "database/runtime/migrations/0036_platform_authority.sql",
+      "file_sha256": "9ae1014ad1cc4680703958f65009fb73732536a055b6ac0e0c8daa3fd0d49be6",
+      "create_sql": "CREATE TABLE organization_access.platform_authority (\n \"Slot\" boolean PRIMARY KEY CHECK (\"Slot\"),\n \"InternalIdentityId\" uuid NOT NULL CHECK (\"InternalIdentityId\"<>'00000000-0000-0000-0000-000000000000'),\n \"Issuer\" text COLLATE \"C\" NOT NULL,\n \"Subject\" text COLLATE \"C\" NOT NULL,\n \"Active\" boolean NOT NULL,\n \"Revision\" integer NOT NULL CHECK (\"Revision\">0)\n);",
+      "columns": [
+        "Slot",
+        "InternalIdentityId",
+        "Issuer",
+        "Subject",
+        "Active",
+        "Revision"
+      ],
+      "primary_key": [
+        "Slot"
+      ]
+    }
+  },
+  {
+    "table": "organization_access.platform_authority_audit",
+    "owner": "organization_access",
+    "category": "security_evidence",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "CommandId"
+    ],
+    "definition": {
+      "migration": "0036_platform_authority",
+      "path": "database/runtime/migrations/0036_platform_authority.sql",
+      "file_sha256": "9ae1014ad1cc4680703958f65009fb73732536a055b6ac0e0c8daa3fd0d49be6",
+      "create_sql": "CREATE TABLE organization_access.platform_authority_audit (\n \"CommandId\" uuid PRIMARY KEY CHECK (\"CommandId\"<>'00000000-0000-0000-0000-000000000000'),\n \"Request\" jsonb NOT NULL,\n \"Snapshot\" jsonb NOT NULL,\n \"OccurredAt\" timestamptz NOT NULL DEFAULT clock_timestamp()\n);",
+      "columns": [
+        "CommandId",
+        "Request",
+        "Snapshot",
+        "OccurredAt"
+      ],
+      "primary_key": [
+        "CommandId"
+      ]
+    }
+  },
+  {
     "table": "accounting.chart_accounts",
     "owner": "accounting",
     "category": "business_configuration",

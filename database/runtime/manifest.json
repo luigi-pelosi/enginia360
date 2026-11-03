@@ -173,5 +173,10 @@
     "id": "0035_external_supplier_projection",
     "path": "migrations/0035_external_supplier_projection.sql",
     "sha256": "40313dd89cf7c7790ad0af1916fe573c9a36d453c85b4cfdafbb5726b20814c9"
+  },
+  {
+    "id": "0036_platform_authority",
+    "path": "migrations/0036_platform_authority.sql",
+    "sha256": "9ae1014ad1cc4680703958f65009fb73732536a055b6ac0e0c8daa3fd0d49be6"
   }
 ]

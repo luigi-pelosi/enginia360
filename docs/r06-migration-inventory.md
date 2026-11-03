@@ -26,6 +26,8 @@ Risultato calcolato sul baseline R05.b.1: **26 migrazioni, 66 definizioni CREATE
 
 **Aggiornamento candidato D95:** migrazione append-only 0035, **35 migrazioni, 80 definizioni CREATE, 9 schemi**. La nuova `counterparties.external_supplier_projection_history` è `audit_history`, UNDECIDED / NO_LEGACY_IMPORT_APPROVED; tutte le 79 voci precedenti restano identiche. La funzione owner-offline non è importazione legacy né approvazione di readiness.
 
+**Aggiornamento MVP-02.a:** migrazione append-only 0036, **36 migrazioni, 82 definizioni CREATE, 9 schemi**. `organization_access.platform_authority` (`authority_evidence`) e `organization_access.platform_authority_audit` (`security_evidence`) sono UNDECIDED / NO_LEGACY_IMPORT_APPROVED; le 80 definizioni precedenti restano identiche. Autorità owner-offline esplicita, non import, membership o onboarding operativo.
+
 Ogni voce registra:
 
 - `table`, `owner`: nome qualificato e modulo/schema proprietario osservato, non una nuova ownership di business;

@@ -20,6 +20,61 @@ using Xunit;
 
 public sealed class ExternalIdentityAuthenticationTests
 {
+    [RuntimePostgreSqlTheory]
+    [InlineData(1)]
+    [InlineData(4)]
+    public async Task Platform_authority_is_current_exact_and_membership_free_for_real_signed_bearer(int poolSize)
+    {
+        var identity = Guid.NewGuid();
+        var subject = "platform-" + Guid.NewGuid().ToString("D");
+        await using var admin = NpgsqlDataSource.Create(Environment.GetEnvironmentVariable("R00_POOL_ADMIN_CONNECTION")!);
+        await using var seed = admin.CreateCommand("""
+            INSERT INTO organization_access.external_identity_bindings VALUES (@id,@issuer,@subject);
+            """);
+        seed.Parameters.AddWithValue("id", identity);
+        seed.Parameters.AddWithValue("issuer", BindingApiFactory.Issuer);
+        seed.Parameters.AddWithValue("subject", subject);
+        await seed.ExecuteNonQueryAsync();
+        try
+        {
+            using var factory = new BindingApiFactory(poolSize);
+            using var client = factory.CreateClient(new() { AllowAutoRedirect = false });
+            const string route = "/api/v1/platform/administration-eligibility";
+            Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync(route)).StatusCode);
+            client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(subject, Guid.NewGuid()));
+            var denied = await client.GetAsync(route);
+            Assert.Equal(HttpStatusCode.Forbidden, denied.StatusCode);
+            Assert.True(denied.Headers.CacheControl?.NoStore);
+            await using var grant = admin.CreateCommand("""
+                INSERT INTO organization_access.platform_authority VALUES(true,@id,@issuer,@subject,true,1);
+                """);
+            grant.Parameters.AddWithValue("id", identity);
+            grant.Parameters.AddWithValue("issuer", BindingApiFactory.Issuer);
+            grant.Parameters.AddWithValue("subject", subject);
+            await grant.ExecuteNonQueryAsync();
+            var allowed = await client.GetAsync(route);
+            Assert.Equal(HttpStatusCode.OK, allowed.StatusCode);
+            Assert.True(allowed.Headers.CacheControl?.NoStore);
+            Assert.Equal("{\"canAdministerPlatform\":true}", await allowed.Content.ReadAsStringAsync());
+            Assert.Empty((await client.GetFromJsonAsync<OrganizationContextContract[]>("/api/v1/organization/contexts"))!);
+            await using var revoke = admin.CreateCommand("UPDATE organization_access.platform_authority SET \"Active\"=false WHERE \"InternalIdentityId\"=@id");
+            revoke.Parameters.AddWithValue("id", identity);
+            await revoke.ExecuteNonQueryAsync();
+            Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync(route)).StatusCode);
+            client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(identity.ToString("D"), Guid.NewGuid()));
+            Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync(route)).StatusCode);
+        }
+        finally
+        {
+            await using var cleanup = admin.CreateCommand("""
+                DELETE FROM organization_access.platform_authority WHERE "InternalIdentityId"=@id;
+                DELETE FROM organization_access.external_identity_bindings WHERE "InternalIdentityId"=@id;
+                """);
+            cleanup.Parameters.AddWithValue("id", identity);
+            await cleanup.ExecuteNonQueryAsync();
+        }
+    }
+
     [Fact]
     public async Task Binding_store_outage_returns_controlled_unavailable_not_login_or_authorization()
     {
