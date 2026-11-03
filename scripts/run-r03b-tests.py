@@ -36,7 +36,7 @@ def marker(process, expected):
     raise TimeoutError('SQL barrier readiness not observed')
 
 
-def physical_order_waiters(query, holder_pid, required, first_pid=None):
+def physical_order_waiters(query, holder_pid, required, first_pid=None, *, timeout_seconds=10):
     """Observe exact live app backends, including the membership-lock chain.
 
     The first request owns 777036 while waiting on the resource holder. The
@@ -45,7 +45,7 @@ def physical_order_waiters(query, holder_pid, required, first_pid=None):
     both HTTP promises are unfinished before releasing the controller.
     """
     assert required in (1, 2)
-    stop = time.monotonic() + 10
+    stop = time.monotonic() + timeout_seconds
     while True:
         graph = json.loads(run(query + ['-c', f"""WITH RECURSIVE chain(pid,path) AS (
             SELECT pid,ARRAY[pid] FROM pg_stat_activity

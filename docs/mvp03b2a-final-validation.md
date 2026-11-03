@@ -73,6 +73,14 @@ RED. Final remote runners execute the current SQL inventory including that case.
   requests must still be unfinished before release. Required2 is not reduced;
   all original duration/revision/conflict/double-effect assertions remain. The
   sibling closure/binding barriers use the same fixture helper, not production code.
+  The second dispatch exposed the same direct-only count in the receipt-browser
+  budget race (separate from already-passed receipt SQL). It now starts request1,
+  pins its direct source wait, starts request2 and proves the exact transitive
+  two-backend chain plus both unfinished HTTP requests. Original201/409, uncertain
+  capacity,3-provider-POST/single effects and both grant-revocation orders remain;
+  the original15-second receipt wait and10-second other waits are preserved.
+  The failed receipt-browser log is retained; final complete receipt pool4/pool1
+  and lifecycle steps are mandatory, not replaced by SQL-only evidence.
 - Return's former read/write fixture created its own lock cycle. The replacement
   proves the reader→holder/writer→reader physical chain, coherent before/after
   quantities and unchanged original successful-write/status checks. It does not

@@ -64,11 +64,8 @@ def control(action,state,query,fixture,holders):
   holder.stdin.write(f"BEGIN; SELECT pg_advisory_xact_lock(hashtextextended('receipt-source:{t}:{source}',0)); SELECT pg_backend_pid();\n\\echo LOCKED\n");holder.stdin.flush()
   output=binding.marker(holder,b'LOCKED').splitlines();controller.update(holder=holder,pid=int([v for v in output if v.isdigit()][-1]))
  elif action.startswith('receipt-wait:'):
-  count=int(action.split(':')[1]);pid=controller['pid'];stop=time.monotonic()+15
-  while int(sql(f"SELECT count(*) FROM pg_stat_activity WHERE datname=current_database() AND {pid}=ANY(pg_blocking_pids(pid))"))<count:
-   if time.monotonic()>stop:raise TimeoutError('physical API receipt budget waiters missing')
-   time.sleep(.03)
-  print(f'RECEIPT_PHYSICAL_API_BARRIER holder={pid} waiters={count}',flush=True)
+  count=int(action.split(':')[1]);pid=controller['pid']
+  controller['first_waiter']=binding.r03b.physical_order_waiters(query,pid,count,controller.get('first_waiter') if count==2 else None,timeout_seconds=15)
  elif action=='receipt-release':
   holder=controller['holder'];holder.stdin.write('COMMIT;\n\\q\n');holder.stdin.flush();holder.stdin.close();holder.wait(timeout=5)
  elif action.startswith('receipt-permission:'):

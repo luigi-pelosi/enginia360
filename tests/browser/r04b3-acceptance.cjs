@@ -79,8 +79,17 @@ async function waitForTlsApi(browser) {
   assert.equal((await post(page,u2,{id:uid(),quantity:'2'})).status,409);
   const cs=(await json(page,'/auth/csrf')).value.requestToken;
   if(fixture.poolSize>1)await control('receipt-hold:'+source2);
-  const pending=[post(page,u2,{id:uid(),quantity:'1'},cs),post(page,u2,{id:uid(),quantity:'1'},cs)];
-  if(fixture.poolSize>1){await control('receipt-wait:2');await control('receipt-release');}
+  let firstDone=false,secondDone=false;
+  const first=post(page,u2,{id:uid(),quantity:'1'},cs).finally(()=>{firstDone=true;});
+  if(fixture.poolSize>1)await control('receipt-wait:1');
+  const second=post(page,u2,{id:uid(),quantity:'1'},cs).finally(()=>{secondDone=true;});
+  const pending=[first,second];
+  if(fixture.poolSize>1){
+   await control('receipt-wait:2');
+   assert.equal(firstDone,false,'first receipt remains blocked on exact source holder');
+   assert.equal(secondDone,false,'second receipt remains transitively blocked behind first');
+   await control('receipt-release');
+  }
   assert.deepEqual((await Promise.all(pending)).map(r=>r.status).sort(),[201,409]);
   await sleep(1500);assert.equal((await receiptState(lost.id)).outcome,null);
   const receiptPosts=(await wire()).filter(c=>c.method==='POST'&&c.path==='/purchases/goodsreceipt');assert.equal(receiptPosts.length,3,'one confirmed fraction, one unknown receipt and one remaining-unit receipt; never second POST');
