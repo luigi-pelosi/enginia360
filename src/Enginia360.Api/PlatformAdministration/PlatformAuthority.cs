@@ -26,6 +26,7 @@ public static class PlatformAuthority
 {
     public static WebApplication MapPlatformAuthority(this WebApplication app)
     {
+        app.MapOrganizationAdministration();
         app.MapGet("/api/v1/platform/administration-eligibility", ReadEligibility)
             .RequireAuthorization();
         return app;

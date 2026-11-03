@@ -24,6 +24,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
+      organization_administration: ${{ steps.selection.outputs.organization_administration }}
       platform_foundation_only: ${{ steps.selection.outputs.platform_foundation_only }}
       platform_authority: ${{ steps.selection.outputs.platform_authority }}
       api_filter: ${{ steps.selection.outputs.api_filter }}
@@ -107,6 +108,8 @@ jobs:
         run: python3 -I scripts/test-mvp01-impact.py
       - name: Verify finite platform authority impact and owner input
         run: python3 -I scripts/test-mvp02a-impact.py && python3 -I scripts/test-mvp02a-authority.py OwnerInputTests
+      - name: Verify finite organization administration impact
+        run: python3 -I scripts/test-mvp02b-impact.py
       - name: Select exact changed-file impact
         id: selection
         env:
@@ -160,6 +163,35 @@ jobs:
         with:
           name: mvp02a-${{ github.sha }}
           path: ${{ runner.temp }}/mvp02a
+          retention-days: 7
+          if-no-files-found: error
+  affected-organization-administration:
+    needs: impact
+    if: github.event_name == 'workflow_dispatch' && needs.impact.outputs.organization_administration == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - name: Initialize private organization evidence
+        run: |
+          printf 'TMPDIR=%s\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/mvp02b"
+      - name: Nonroot organization fixture writer retains readonly mounts
+        run: docker run --rm --user 1001:1001 --read-only --cap-drop=ALL --security-opt=no-new-privileges:true --network none --memory=128m --cpus=1 --pids-limit=32 --log-opt=max-size=10m --tmpfs /scratch:rw,noexec,nosuid,size=16m,uid=1001,gid=1001 -e TMPDIR=/scratch -v "$PWD:/source:ro" -w /source python:3.14.3-alpine3.23@sha256:faee120f7885a06fcc9677922331391fa690d911c020abb9e8025ff3d908e510 python3 -I scripts/test-mvp02b-organization.py FixtureTests -v
+      - name: Real SQL barriers atomic audit current authority and TLS OIDC HTTP pool4
+        shell: bash
+        run: timeout 600 python3 -I scripts/run-mvp02b-tests.py 2>&1 | tee "$RUNNER_TEMP/mvp02b/organization-pool4.log"
+      - name: Same organization SQL and authenticated HTTP pool1
+        shell: bash
+        run: MVP02B_POOL_SIZE=1 timeout 600 python3 -I scripts/run-mvp02b-tests.py 2>&1 | tee "$RUNNER_TEMP/mvp02b/organization-pool1.log"
+      - name: Retain exact-head organization execution evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mvp02b-${{ github.sha }}
+          path: ${{ runner.temp }}/mvp02b
           retention-days: 7
           if-no-files-found: error
   affected-frontend:
