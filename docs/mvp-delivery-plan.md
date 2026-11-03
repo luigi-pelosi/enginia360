@@ -42,9 +42,13 @@ Gli ID sono risultati, non obblighi di una sola PR: suddividere in sottoincremen
 
 Il SUPER ADMIN è Luigi Pelosi, non il primo utente che si autentica. Il bootstrap dell'autorità globale deve essere esplicito, verificabile e auditato; nessuna inferenza da email, registrazione o correlation token. Non pubblicare identità o credenziali personali nelle fixture.
 
-Il contesto di destinazione è verificato per ogni operazione globale. La delega è attribuita dal SUPER ADMIN a un soggetto già anagrafato nel singolo tenant. Gestione struttura e invito/abilitazione/ruoli sono facoltà distinte; nessuna estensione implicita ad altri tenant o al ruolo SUPER ADMIN. La facoltà di nominare ulteriori amministratori o subdelegare non è stata confermata: non implementarla come effetto collaterale.
+Il contesto di destinazione è verificato per ogni operazione globale. La delega è attribuita dal SUPER ADMIN a un soggetto già anagrafato nel singolo tenant. Gestione struttura e invito/abilitazione/ruoli sono facoltà distinte; D97 approva anche creazione e modifica di ruoli e permessi con audit obbligatorio, non soltanto assegnazione di ruoli predefiniti. Nessuna estensione implicita ad altri tenant, control-plane o al ruolo SUPER ADMIN. Nessuna nomina di ulteriori amministratori o subdelega come effetto collaterale.
 
-Prima dell'implementazione dipendente definire campi minimi, revoca e assegnabilità finita. Le decisioni tecniche senza impatto di dominio sono responsabilità dell'agente. L'assenza di un dettaglio non blocca shell, letture e altro lavoro indipendente.
+<!-- d97-current:start -->
+D97: creare e modificare ruoli e permessi con audit immutabile e tracciabile obbligatorio, solo nel proprio tenant; gestione utenti distinta dalla delega organizzativa; nessun SUPER ADMIN, nessun potere cross-tenant o control-plane, nessuna subdelega o nomina implicita; non solo ruoli definiti dal proprietario; nessun runtime consegnato qui. [Decisione e contratto finito MVP03.b](mvp03b-user-administration.md), con interpretazione tecnica minima correggibile sulle azioni/scope eseguibili supportati, non un nuovo tetto ai ruoli.
+<!-- d97-current:end -->
+
+Prima dell'implementazione dipendente definire campi minimi, revoca e matching tecnico dei grant azione/scope. Non riaprire la creazione/modifica gia' approvata con D97 e non inventare ruoli di dominio o sicurezza degli inviti. Le decisioni tecniche senza impatto di dominio sono responsabilità dell'agente. L'assenza di un dettaglio non blocca shell, letture e altro lavoro indipendente.
 
 ## Pulizia controllata
 
@@ -72,7 +76,7 @@ Riutilizzare il Project esistente, rinominandolo per il MVP e preservando gli it
 
 ### Checkpoint corrente — 3 novembre 2026
 
-MVP-02/#141 completato dopo PR #157, main `095abca4656bffa626e259f7f4aa8237d6afdf26`, tree equivalente al candidato `53704fe326545be0ccd514f63bcd43671e8960b8`; PR CI `41585054855` e dispatch `41585054020` con artefatti verificati dal coordinatore. MVP-03/#142 e' In corso: [MVP03.a/#158](mvp03a-organization-delegation.md) aggiunge soltanto la delega organizzativa, non amministrazione utenti/ruoli. Il [checkpoint di esecuzione](mvp03a-progress.md) distingue prove locali, PR e acceptance remota. Il parent #142 rimane aperto per MVP03.b; nessuna assegnabilita' utenti o readiness operativa implicita.
+MVP-02/#141 completato dopo PR #157, main `095abca4656bffa626e259f7f4aa8237d6afdf26`, tree equivalente al candidato `53704fe326545be0ccd514f63bcd43671e8960b8`; PR CI `41585054855` e dispatch `41585054020` con artefatti verificati dal coordinatore. MVP-03/#142 e' In corso. [MVP03.a/#158](mvp03a-organization-delegation.md) e' consegnato via PR #159, main `097680690d479bbfbd498fa4fd3d6c4bd5a99db8`, candidato `cbf359c559fe8ff1cafdbd34ab4f2aa70933d5cd`, tree equivalente `54889c8a5563946082145ba383289c59f93ff7d4`; PR CI `41607621063` e dispatch `41607614693` verificati dal coordinatore. Aggiunge soltanto la delega organizzativa, non amministrazione utenti/ruoli. Il [checkpoint di esecuzione](mvp03a-progress.md) conserva le prove. Il parent #142 rimane aperto per [MVP03.b/D97](mvp03b-user-administration.md): creazione/modifica di ruoli e permessi approvata con audit obbligatorio; gate documentale prima del runtime, nessuna readiness operativa implicita.
 
 ### Riorganizzazione storica riletta il 2 novembre 2026
 

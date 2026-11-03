@@ -347,10 +347,14 @@ Decisione confermata dal proprietario il 2 novembre 2026 durante la revisione de
 
 - Il proprietario del software, Luigi Pelosi, opera come SUPER ADMIN: puo' creare e amministrare i tenant di tutti i clienti e gestire le rispettive strutture organizzative (societa', sedi e magazzini).
 - Il SUPER ADMIN puo' delegare la gestione della struttura organizzativa di uno specifico tenant a un soggetto gia' anagrafato in quel tenant.
-- Il SUPER ADMIN puo' delegare anche l'invito o l'abilitazione degli utenti nel tenant e l'assegnazione dei relativi ruoli e permessi. Questa facolta' e' distinta dalla gestione della struttura organizzativa e non deriva automaticamente da essa.
+- Il SUPER ADMIN puo' delegare anche l'invito o l'abilitazione degli utenti nel tenant, l'assegnazione e, con D97, la creazione e modifica dei relativi ruoli e permessi. Questa facolta' e' distinta dalla gestione della struttura organizzativa e non deriva automaticamente da essa.
 - La delega vale soltanto per il tenant indicato, non per gli altri clienti. L'anagrafazione e' un prerequisito e non attribuisce da sola poteri amministrativi.
 - L'autorita' globale del SUPER ADMIN e la delega organizzativa tenant-scoped sono distinte. Anche le operazioni globali devono individuare e verificare il tenant destinatario e restare sottoposte ad autorizzazione e audit; non implicano un bypass dell'isolamento.
-- Queste decisioni superano i precedenti limiti di D77 dove impedivano le deleghe confermate per struttura organizzativa, invito o abilitazione degli utenti e assegnazione di ruoli e permessi nel tenant. Non approvano implicitamente subdelega, attribuzione del ruolo SUPER ADMIN o accesso ad altri tenant. Il perimetro dei ruoli e permessi assegnabili, inclusa l'eventuale abilitazione di ulteriori amministratori, resta da definire; non si presume una facolta' illimitata.
+- Queste decisioni superano i precedenti limiti di D77 dove impedivano le deleghe confermate per struttura organizzativa, invito o abilitazione degli utenti, assegnazione e creazione/modifica di ruoli e permessi nel tenant. Non approvano implicitamente subdelega, nomina di amministratori, attribuzione del ruolo SUPER ADMIN o accesso ad altri tenant. La creazione/modifica e' approvata in generale da D97, non limitata ai ruoli predefiniti dal proprietario; il matching tecnico azione/scope e' lavoro dell'incremento dipendente.
+
+<!-- d97-current:start -->
+D97: creare e modificare ruoli e permessi con audit immutabile e tracciabile obbligatorio, solo nel proprio tenant; gestione utenti distinta dalla delega organizzativa; nessun SUPER ADMIN, nessun potere cross-tenant o control-plane, nessuna subdelega o nomina implicita; non solo ruoli definiti dal proprietario; nessun runtime consegnato qui. [Decisione e contratto finito MVP03.b](docs/mvp03b-user-administration.md), inclusa l'interpretazione tecnica minima correggibile sulle azioni/scope eseguibili supportati, non un nuovo tetto ai ruoli.
+<!-- d97-current:end -->
 
 Questa sezione registra il requisito confermato, non un comportamento runtime gia' implementato. D96 autorizza l'implementazione autonoma nei limiti dichiarati; il contratto del singolo incremento deve esplicitare assegnabilita' e verifiche senza attribuire poteri non confermati.
 

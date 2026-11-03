@@ -22,7 +22,13 @@
     {
       "id": "MVP-03", "title": "Deleghe tenant-scoped e amministrazione utenti, ruoli e permessi",
       "domainIds": ["identity", "organization"], "dependsOn": ["MVP-02"], "status": "in_progress", "issueNumber": 142,
-      "acceptance": ["SUPER ADMIN delega un soggetto gia' anagrafato nel tenant", "Gestione struttura e gestione utenti sono facolta' distinte", "Invito o abilitazione utenti e assegnazione ruoli entro perimetro esplicito", "Nessuna auto-promozione SUPER ADMIN, subdelega implicita o potere su altri tenant", "Revoca, azione/scope e tentativi concorrenti verificati"]
+      "acceptance": ["SUPER ADMIN delega un soggetto gia' anagrafato nel tenant", "Gestione struttura e gestione utenti sono facolta' distinte", "Invito o abilitazione utenti, assegnazione e creazione e modifica di ruoli e permessi nel proprio tenant (D97), non solo ruoli definiti dal proprietario", "Ogni modifica amministrativa richiede audit immutabile e tracciabile obbligatorio, atomico alla modifica", "Nessuna auto-promozione SUPER ADMIN, subdelega o nomina implicita, potere cross-tenant o control-plane", "Revoca, azione/scope e tentativi concorrenti verificati"],
+      "userAdministrationPolicy": {
+        "decision": "D97",
+        "contract": "docs/mvp03b-user-administration.md",
+        "runtimeDelivered": false,
+        "summary": "D97: creare e modificare ruoli e permessi con audit immutabile e tracciabile obbligatorio, solo nel proprio tenant; gestione utenti distinta dalla delega organizzativa; nessun SUPER ADMIN, nessun potere cross-tenant o control-plane, nessuna subdelega o nomina implicita; non solo ruoli definiti dal proprietario; nessun runtime consegnato qui."
+      }
     },
     {
       "id": "MVP-04", "title": "Gestione autonoma controparti e ruoli",

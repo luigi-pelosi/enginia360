@@ -272,6 +272,14 @@ MVP_ANCHORS = MVP_OFFLINE_FILES - {'AGENTS.md', 'docs/productization-plan.md',
     'scripts/select-ci-impact.py', '.github/workflows/ci.yml'}
 MVP_GUARDS = {'scripts/test-mvp-baseline.py', 'scripts/test-mvp-impact.py'}
 
+# D97 adds only its finite documentary contract/guards, not a runtime ceiling.
+# Keep the D96 set/assertions intact and shared wiring's default consumers.
+D97_FILES = {'docs/mvp03b-user-administration.md', 'scripts/test-d97-policy.py',
+             'scripts/test-d97-impact.py'}
+D97_SCOPE = D97_FILES | {'AGENTS.md', 'PROJECT_CHARTER.md', 'docs/mvp-baseline.md',
+    'docs/mvp-backlog.json', 'docs/mvp-delivery-plan.md',
+    'scripts/select-ci-impact.py', '.github/workflows/ci.yml'}
+
 
 # MVP-01 owns only these explicit paths. New routes/scripts require a tested mapping.
 FRONTEND_FILES = {
@@ -352,6 +360,13 @@ AUTHENTICATED_ORGANIZATION_DIRECT = {
 
 def _selection(paths):
     paths = sorted(set(paths))
+    if set(paths) & D97_FILES:
+        remaining = set(paths) - D97_FILES
+        if set(paths) <= D97_SCOPE:
+            remaining -= {'scripts/select-ci-impact.py', '.github/workflows/ci.yml'}
+        result = selection(sorted(remaining))
+        result.update(changed_paths=paths, mvp_offline=True)
+        return result
     if set(paths) & AUTHENTICATED_ORGANIZATION_FILES:
         remaining = set(paths) - AUTHENTICATED_ORGANIZATION_FILES
         if remaining <= FRONTEND_FILES | FRONTEND_WIRING | FRONTEND_CHECKPOINTS:
