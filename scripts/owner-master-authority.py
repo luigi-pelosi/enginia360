@@ -23,7 +23,7 @@ def validate(value):
         raise ValueError('every explicit field is required; no defaults or scheduling')
     if any(not valid_id(value[key]) for key in IDS):
         raise ValueError('nonempty canonical technical references required')
-    if value['domain']!='counterparties' or value['direction'] not in ('Enginia360ToExternal','ExternalToEnginia360'):
+    if value['domain'] not in ('counterparties','catalog') or value['direction'] not in ('Enginia360ToExternal','ExternalToEnginia360'):
         raise ValueError('unsupported domain/direction')
     if type(value['expectedVersion']) is not int or not 0<=value['expectedVersion']<2147483647:
         raise ValueError('explicit current version required')
@@ -44,12 +44,16 @@ COMMIT;
 SELECT set_config('app.tenant_id',:'tenantId',false);
 SELECT count(*) FROM organization_access.master_authority_history WHERE "CommandId"=:'commandId'::uuid AND "TenantId"=:'tenantId'::uuid AND "ActorMembershipId"=:'actorMembershipId'::uuid AND "VerificationReference"=:'verificationReference'::uuid AND "Version"=:'expectedVersion'::integer+1 AND "Direction"=:'direction' AND "SourceId"=:'sourceId'::uuid AND "ProfileId"=:'profileId'::uuid AND "CompanyIds"=:'companies'::uuid[];
 '''
+    if value['domain']=='catalog':
+        # Finite routing only; counterparties setup never grants catalog authority.
+        sql=sql.replace('organization_access.establish_master_authority(', 'catalog.establish_authority(').replace('organization_access.master_authority_history', 'catalog.authority_history')
     args=['psql','-X','-qAt','-v','ON_ERROR_STOP=1']
     for key in IDS|{'expectedVersion','direction'}:
         args+=['-v',key+'='+str(value[key])]
     args+=['-v','companies={'+','.join(value['companyIds'])+'}']
     result=subprocess.run(args,input=sql,text=True,capture_output=True,timeout=30)
-    if result.returncode or result.stdout.splitlines()[-1:]!=['1']:
+    outcomes=[line for line in result.stdout.splitlines() if line in ('applied','replayed')]
+    if result.returncode or len(outcomes)!=1 or result.stdout.splitlines()[-1:]!=['1']:
         raise ValueError('owner decision refused or exact readback failed')
     print('Owner authority decision committed/replayed and exact history read back. No identity or ERP provisioning performed.')
 

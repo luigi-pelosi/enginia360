@@ -23,6 +23,9 @@ AUTH_FILES = {
     'scripts/test-r02b-authority.py','scripts/owner-master-authority.py',
     'scripts/test-r04b1-supplier.py','scripts/owner-supplier-vendor-identity.py','scripts/test-r04b1-impact.py',
     'web/nginx.r00b-test.conf','web/runtime-access.html','web/runtime-access.js',
+    'scripts/run-r00a-tests.sh','scripts/run-r00a-tests.py','scripts/run-r00b-tests.py',
+    'scripts/test-r00a-ci.py','scripts/test-r00a-lifecycle.py','scripts/test-r00-migrations.py',
+    'scripts/test-r00b-lifecycle.py','scripts/test-r00b-migration-tls.py','scripts/test-r00b-bindings.py',
 }
 AUTH_TESTS = {'BrowserSessionTests','BoundedTicketStoreTests','BrowserAuthenticationBoundaryTests',
               'ExternalIdentityAuthenticationTests','AuthorizedContextContractTests','LimitedGrantAdministrationTests',
@@ -478,8 +481,65 @@ COUNTERPARTY_MANAGEMENT_SHARED = {
 COUNTERPARTY_MANAGEMENT_SHARED |= {"frontend/tests/acceptance.spec.ts", "scripts/test-d97-policy.py", "scripts/test-d98-policy.py", "src/Modules/Counterparties/Enginia360.Counterparties/WorkshopCounterparties.cs"}
 COUNTERPARTY_MANAGEMENT_SCOPE = COUNTERPARTY_MANAGEMENT_FILES | COUNTERPARTY_MANAGEMENT_SHARED
 
+CATALOG_MANAGEMENT_FILES = {
+    'database/runtime/migrations/0043_catalog_management.sql',
+    'src/Modules/Catalog/Enginia360.Catalog/ManagementEndpoints.cs',
+    'src/Modules/Catalog/Enginia360.Catalog.Contracts/ManagementContracts.cs',
+    'frontend/app/catalog/page.tsx', 'frontend/components/catalog-workspace.tsx',
+    'frontend/lib/catalog.ts', 'frontend/tests/catalog.test.tsx',
+    'scripts/run-mvp05-tests.py', 'scripts/test-mvp05-catalog.py',
+    'scripts/test-mvp05-impact.py', 'scripts/test-mvp05-contract.py',
+    'tests/browser/mvp05-catalog.cjs',
+    'tests/Enginia360.Api.Tests/CatalogManagementTests.cs',
+}
+CATALOG_MANAGEMENT_SHARED = COUNTERPARTY_MANAGEMENT_SCOPE | {
+    'src/Enginia360.Api/Program.cs', 'scripts/owner-master-authority.py',
+    'src/Modules/Catalog/Enginia360.Catalog/CatalogModule.cs',
+    'scripts/run-mvp04-tests.py', 'scripts/test-mvp04-impact.py',
+    'tests/browser/mvp04-counterparties.cjs',
+    'docs/mvp05-catalog-contract.md', 'docs/mvp05-implementation.md',
+    # Exact read-only protected-inventory fixture composition. These runners
+    # preserve identity/start/mounts and report unrelated host lifecycle; their
+    # standalone/mixed producer selection remains unchanged below.
+    'scripts/run-r00a-tests.py', 'scripts/run-r00b-tests.py', 'scripts/test-r00b-lifecycle.py',
+    'scripts/run-mvp02a-tests.py', 'scripts/run-mvp02b-tests.py',
+    'scripts/run-mvp02c-tests.py', 'scripts/run-mvp03b1-tests.py',
+}
+CATALOG_MANAGEMENT_SCOPE = CATALOG_MANAGEMENT_FILES | CATALOG_MANAGEMENT_SHARED
+CATALOG_MANAGEMENT_DIRECT = {
+    'scripts/run-r00b-tests.py',
+    'src/Modules/Catalog/Enginia360.Catalog/CatalogModule.cs',
+    'src/Enginia360.Api/Program.cs',
+    'src/Modules/Catalog/Enginia360.Catalog.Contracts/Contracts.cs',
+    'src/Modules/Catalog/Enginia360.Catalog/MembershipOperation.cs',
+    'frontend/lib/private-backend.ts', 'frontend/components/tenant-role-workspace.tsx',
+    'src/Enginia360.Api/BrowserAuthentication/BrowserSessionModule.cs',
+    'src/Enginia360.Api/BrowserAuthentication/ExternalIdentityResolver.cs',
+    'database/runtime/migrations/0039_tenant_roles.sql',
+    'database/runtime/migrations/0040_membership_access.sql',
+    'database/runtime/migrations/0042_counterparty_management.sql',
+    'scripts/owner-master-authority.py', 'tests/fixtures/nginx.mvp02c.conf',
+}
+
 def _selection(paths):
     paths = sorted(set(paths))
+    if set(paths) & CATALOG_MANAGEMENT_FILES:
+        remaining = set(paths) - CATALOG_MANAGEMENT_FILES
+        finite = set(paths) <= CATALOG_MANAGEMENT_SCOPE
+        if finite:
+            remaining -= CATALOG_MANAGEMENT_SHARED
+        # Direct producer consumers remain mandatory. Mixed unrelated producers
+        # recursively retain their original selection; no prefix exemptions.
+        result = selection(sorted(remaining | {'scripts/test-mvp04-impact.py'}))
+        result.update(changed_paths=paths, catalog_management=True, frontend=True,
+                      migrations=True, browser=True, tenant_roles=True,
+                      membership_access=True, counterparty_management=True,
+                      federated_onboarding=True, authenticated_organization=True)
+        for name in ('CatalogManagementTests','BusinessMembershipFenceTests','SupplierPurchasePriceTests','WorkshopBoundaryTests','CommercialCalculationTests','CounterpartyArchitectureTests'):
+            token='FullyQualifiedName~'+name
+            if token not in result['api_filter'].split('|'):
+                result['api_filter'] += ('|' if result['api_filter'] else '')+token
+        return result
     if set(paths) & COUNTERPARTY_MANAGEMENT_FILES:
         remaining = set(paths) - COUNTERPARTY_MANAGEMENT_FILES
         finite = set(paths) <= COUNTERPARTY_MANAGEMENT_SCOPE
@@ -685,8 +745,7 @@ def _selection(paths):
             if path not in AUTH_FILES and not path.startswith(('src/Enginia360.Api/OrganizationAccess/','database/runtime/')):
                 continue
         if (path in AUTH_FILES or path.startswith(('src/Enginia360.Api/BrowserAuthentication/',
-                'src/Enginia360.Api/OrganizationAccess/','database/runtime/','tests/browser/',
-                'scripts/run-r00','scripts/test-r00'))
+                'src/Enginia360.Api/OrganizationAccess/','database/runtime/','tests/browser/'))
                 or (path.startswith('tests/Enginia360.Api.Tests/') and parsed.stem in AUTH_TESTS)):
             auth = True
         elif path.startswith('web/'):
@@ -782,6 +841,12 @@ def selection(paths):
         token='FullyQualifiedName~CounterpartyManagementTests'
         if token not in result['api_filter'].split('|'): result['api_filter'] += ('|' if result['api_filter'] else '')+token
     result.setdefault('counterparty_management',False)
+    if set(paths) & (CATALOG_MANAGEMENT_FILES | CATALOG_MANAGEMENT_DIRECT):
+        result['catalog_management'] = True
+        for name in ('CatalogManagementTests','SupplierPurchasePriceTests','BusinessMembershipFenceTests'):
+            token='FullyQualifiedName~'+name
+            if token not in result['api_filter'].split('|'): result['api_filter'] += ('|' if result['api_filter'] else '')+token
+    result.setdefault('catalog_management',False)
     return result
 
 

@@ -47,7 +47,7 @@ def main():
     args = parser.parse_args()
     project = 'enginia360-r00b-' + secrets.token_hex(6)
     before_volumes = r00.inventory('volume')
-    before_running = set(run(['docker', 'ps', '-q', '--no-trunc']).splitlines())
+    protected_inventory = r00.capture_protected_runtime()
     with tempfile.TemporaryDirectory(prefix='mvp02b-', dir=os.environ['TMPDIR']) as directory:
         state = Path(directory)
         values = {key: secrets.token_hex(24) for key in ('R00_INFRA_PASSWORD', 'R00_OWNER_PASSWORD', 'R00_APP_PASSWORD', 'R00_CLIENT_SECRET')}
@@ -168,7 +168,7 @@ def main():
                 for sig, handler in previous.items():
                     signal.signal(sig, handler)
     assert r00.inventory('volume') == before_volumes
-    assert set(run(['docker', 'ps', '-q', '--no-trunc']).splitlines()) == before_running
+    r00.verify_protected_runtime(protected_inventory)
     print('PASS MVP02B guarded cleanup; protected services and volumes unchanged', flush=True)
 if __name__ == '__main__':
     main()

@@ -60,7 +60,12 @@ def main():
     project = 'enginia360-r00a-' + secrets.token_hex(6)
     validate_project(project)
     before_volumes = inventory('volume')
-    before_containers = set(run(['docker', 'ps', '-q', '--no-trunc'], capture=True).stdout.splitlines())
+    import importlib.util
+    protected_spec = importlib.util.spec_from_file_location('protected_runtime', ROOT/'scripts/run-r00b-tests.py')
+    assert protected_spec and protected_spec.loader
+    protected_runtime = importlib.util.module_from_spec(protected_spec)
+    protected_spec.loader.exec_module(protected_runtime)
+    protected_inventory = protected_runtime.capture_protected_runtime()
     with tempfile.TemporaryDirectory(prefix=project+'-', dir=scratch) as directory:
         state = Path(directory)
         values = {'R00_DB_NAME': 'runtime', 'R00_OWNER_USER': 'runtime_owner', 'R00_APP_USER': 'runtime_app'}
@@ -128,7 +133,7 @@ def main():
                 for sig, handler in previous.items():
                     signal.signal(sig, handler)
     assert inventory('volume') == before_volumes, 'volume inventory changed'
-    assert set(run(['docker','ps','-q','--no-trunc'],capture=True).stdout.splitlines()) == before_containers, 'pre-existing running containers changed'
+    protected_runtime.verify_protected_runtime(protected_inventory)
     print('PASS R00.a PostgreSQL migrations, lifecycle, hardening and guarded cleanup; protected containers/volumes unchanged.')
 
 

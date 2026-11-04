@@ -1,3 +1,4 @@
+import { finiteCatalogRead } from "./catalog";
 import { finiteCounterpartyRead } from "./counterparties";
 import { request } from "node:https";
 // Native HTTPS preserves the explicit backend Host; undici fetch ignores Host.
@@ -46,6 +47,7 @@ export async function privateRead(
   },
 ) {
   if (
+    !finiteCatalogRead(path) &&
     !finiteCounterpartyRead(path) &&
     ![
       "/auth/session",

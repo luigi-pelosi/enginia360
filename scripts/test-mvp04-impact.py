@@ -47,7 +47,7 @@ class ImpactTests(unittest.TestCase):
    proof=previous['federatedFirstEntry'];self.assertEqual(proof['pr'],167);self.assertEqual(proof['prCi'],41752991377);self.assertEqual(proof['runtimeDispatch'],41753044926);self.assertEqual(proof['mergedMain'],'c4d46c03d80f7122f1172a5a6bd96ab0f8fa2edb')
    self.assertIs(previous['userAdministrationPolicy']['runtimeDelivered'],False);self.assertIs(previous['userOnboardingPolicy']['runtimeDelivered'],False)
    self.assertIs(proof['initialMembershipEnabled'],False);self.assertIs(proof['automaticRolesOrDelegations'],False)
-   self.assertEqual(current['status'],'in_progress');self.assertIs(current['runtimeDelivered'],False);self.assertEqual(current['validationStatus'],'LOCAL_FINAL_PASSED_REMOTE_PENDING')
+   self.assertEqual(current['status'],'done');self.assertIs(current['runtimeDelivered'],True);self.assertEqual(current['validationStatus'],'verified_parent_exact_head_artifacts');self.assertEqual(current['pr'],168);self.assertEqual(current['prCi'],41780772823);self.assertEqual(current['runtimeDispatch'],41780819337)
    for name in ('AGENTS.md','PROJECT_CHARTER.md','docs/mvp-baseline.md','docs/mvp-delivery-plan.md'):
     text=(root/name).read_text();self.assertIn('41752991377',text);self.assertIn('41753044926',text);self.assertIn('mvp04-counterparties-contract.md',text)
   check(ROOT)
@@ -60,7 +60,7 @@ class ImpactTests(unittest.TestCase):
     data=json.loads(original);next(i for i in data['items'] if i['id']=='MVP-03')[field]=value;(root/names[0]).write_text(json.dumps(data))
     with self.assertRaises(AssertionError):check(root)
     (root/names[0]).write_text(original)
-   for field,value in [('status','done'),('runtimeDelivered',True),('validationStatus','VERIFIED')]:
+   for field,value in [('status','in_progress'),('runtimeDelivered',False),('validationStatus','LOCAL_FINAL_PASSED_REMOTE_PENDING')]:
     data=json.loads(original);next(i for i in data['items'] if i['id']=='MVP-04')[field]=value;(root/names[0]).write_text(json.dumps(data))
     with self.assertRaises(AssertionError):check(root)
     (root/names[0]).write_text(original)

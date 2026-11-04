@@ -43,7 +43,7 @@ async function login(browser,index,pending=false,invitation=null){
   const tenant=fixture.contexts[0].tenantId;const company=fixture.contexts[0].legalEntityId;
   const roles='/api/v1/platform/tenant-roles/'+tenant;
   const catalog=await request(owner.page,roles);assert.equal(catalog.status,200);
-  assert.deepEqual(catalog.value.actions,['organization-context.read','organization-context.write','counterparties.shared.read','counterparties.shared.create','counterparties.shared.edit','counterparties.business-roles.write','counterparties.extensions.read','counterparties.extensions.write']);
+  assert.deepEqual(catalog.value.actions,['organization-context.read','organization-context.write','counterparties.shared.read','counterparties.shared.create','counterparties.shared.edit','counterparties.business-roles.write','counterparties.extensions.read','counterparties.extensions.write','catalog.shared.read','catalog.shared.create','catalog.shared.edit']);
   const member=catalog.value.memberships.find(m=>m.membershipId===fixture.grantTargetMembershipId);assert.ok(member);
   const post=async(page,path,body)=>request(page,path,{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':(await request(page,'/auth/csrf')).value.requestToken},body:JSON.stringify(body)});
   const env=(kind,values)=>({commandId:require('node:crypto').randomUUID(),kind,resourceId:null,expectedRevision:0,...values});

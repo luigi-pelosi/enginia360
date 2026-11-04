@@ -17,12 +17,13 @@ if (builder.Configuration.GetValue<bool>("Counterparties:Enabled"))
     builder.Services.AddScoped<Enginia360.Counterparties.Contracts.ICounterpartyAccess, CounterpartyAccessAdapter>();
     builder.Services.AddCounterparties(builder.Configuration.GetConnectionString("OrganizationAccess")!);
 }
+if (builder.Configuration.GetValue<bool>("Catalog:Enabled") || builder.Configuration.GetValue<bool>("Workshop:Enabled"))
+    Enginia360.Catalog.CatalogModule.AddCatalog(builder.Services, builder.Configuration.GetConnectionString("OrganizationAccess")!);
 if (builder.Configuration.GetValue<bool>("Workshop:Enabled"))
 {
     if (!builder.Configuration.GetValue<bool>("Counterparties:Enabled"))
         throw new InvalidOperationException("Workshop requires Counterparties.");
     builder.Services.AddScoped<Enginia360.Workshop.Contracts.IWorkshopAccess, WorkshopAccessAdapter>();
-    Enginia360.Catalog.CatalogModule.AddWorkshopCatalog(builder.Services, builder.Configuration.GetConnectionString("OrganizationAccess")!);
     Enginia360.Vehicles.VehiclesModule.AddWorkshopVehicles(builder.Services, builder.Configuration.GetConnectionString("OrganizationAccess")!);
     Enginia360.Workshop.WorkshopModule.AddWorkshop(builder.Services, builder.Configuration.GetConnectionString("OrganizationAccess")!);
 }
@@ -116,6 +117,11 @@ app.Use(
 // Platform metadata is private even when authentication denies before endpoint execution.
 app.Use(async (context, next) =>
 {
+    if (context.Request.Path.StartsWithSegments("/api/v1/catalog/management"))
+    {
+        context.Response.Headers.CacheControl = "private, no-store";
+        context.Response.Headers.Vary = "Cookie, Authorization";
+    }
     if (context.Request.Path.StartsWithSegments("/api/v1/platform"))
         context.Response.Headers.CacheControl = "no-store";
     await next(context);
@@ -155,6 +161,8 @@ app.MapHealthChecks(
 app.MapOrganizationAccess();
 app.MapBrowserSessions();
 app.MapPendingOnboarding();
+if (app.Configuration.GetValue<bool>("Catalog:Enabled"))
+    Enginia360.Catalog.CatalogModule.MapCatalogManagement(app);
 if (app.Configuration.GetValue<bool>("Counterparties:Enabled"))
     app.MapCounterparties();
 if (app.Configuration.GetValue<bool>("Workshop:Enabled"))

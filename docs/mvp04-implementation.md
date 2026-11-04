@@ -1,4 +1,8 @@
-# MVP04 / #143 — local final validation PASSED; remote delivery NOT VERIFIED
+# MVP04 / #143 — consegna verificata PR168
+
+Stato corrente: completato dopo merge controllato `03872078b2d77dcf6754700729e41fcf5567d051`, candidate `668440ae5154f076cdc308868a15846ab142095e`, tree equivalente `f7d9419348fc78463fe6e3bc5411a52d81beea8b`. Il coordinatore ha riletto CI `41780772823` (5 job/58 step), dispatch `41780819337` (14 job/130 step), otto ZIP/digest e 14 TRX non vuoti, tutti eseguiti/passati, zero skip. #143 chiusa/Project Completato; #144 In corso. Nessun deployment/readiness.
+
+Le sezioni successive conservano cronologia locale e limiti precedenti, non lo stato remoto corrente.
 
 ## Final local checkpoint — 4 November 2026
 

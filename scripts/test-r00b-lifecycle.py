@@ -73,7 +73,10 @@ class CleanupGuardTests(unittest.TestCase):
 
 def actual_term_probe():
     before_volumes=runner.inventory('volume')
-    before_running=set(runner.run(['docker','ps','-q','--no-trunc']).splitlines())
+    if not EDITOR and not R03A:
+        protected_inventory=runner.capture_protected_runtime()
+    else:
+        before_running=set(runner.run(['docker','ps','-q','--no-trunc']).splitlines())
     process=subprocess.Popen([sys.executable,str(RUNNER)],cwd=ROOT,
         stdout=subprocess.PIPE,stderr=subprocess.STDOUT,bufsize=0)
     deadline=time.monotonic()+PROBE_DEADLINE_SECONDS
@@ -104,7 +107,10 @@ def actual_term_probe():
                 process.communicate(timeout=10)
                 raise RuntimeError('runner failed bounded TERM cleanup')
     assert runner.inventory('volume')==before_volumes
-    assert set(runner.run(['docker','ps','-q','--no-trunc']).splitlines())==before_running
+    if not EDITOR and not R03A:
+        runner.verify_protected_runtime(protected_inventory)
+    else:
+        assert set(runner.run(['docker','ps','-q','--no-trunc']).splitlines())==before_running
     assert not runner.run(['docker','ps','-aq','--filter','label=com.docker.compose.project.config_files='+str(runner.CONFIG)]).strip()
     print('PASS actual '+('R03.a workspace' if R03A else 'UI01.b editor' if EDITOR else 'R00.b')+' TERM while PostgreSQL paused and Chromium alive; child/resources removed, protected inventory unchanged.')
 

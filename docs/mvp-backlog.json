@@ -150,7 +150,7 @@
       "dependsOn": [
         "MVP-03"
       ],
-      "status": "in_progress",
+      "status": "done",
       "issueNumber": 143,
       "acceptance": [
         "Contratto minimo campi/ruoli/operazioni esplicito prima del codice",
@@ -160,8 +160,12 @@
       ],
       "contract": "docs/mvp04-counterparties-contract.md",
       "implementationStatus": "source_complete",
-      "validationStatus": "LOCAL_FINAL_PASSED_REMOTE_PENDING",
-      "runtimeDelivered": false
+      "validationStatus": "verified_parent_exact_head_artifacts",
+      "runtimeDelivered": true,
+      "pr": 168,
+      "mergedMain": "03872078b2d77dcf6754700729e41fcf5567d051",
+      "prCi": 41780772823,
+      "runtimeDispatch": 41780819337
     },
     {
       "id": "MVP-05",
@@ -172,14 +176,18 @@
       "dependsOn": [
         "MVP-04"
       ],
-      "status": "backlog",
+      "status": "in_progress",
       "issueNumber": 144,
       "acceptance": [
         "Gestione e rilettura articolo e servizio senza Workshop",
         "Identita' tenant-wide separate da dati societari e stock",
         "Autorizzazione e revisioni esplicite; input e conflitti verificati",
         "Nessun listino, costo o fiscalita' aggiunti per implicazione"
-      ]
+      ],
+      "contract": "docs/mvp05-catalog-contract.md",
+      "implementationStatus": "source_complete",
+      "validationStatus": "FINAL_VALIDATION_IN_PROGRESS",
+      "runtimeDelivered": false
     },
     {
       "id": "MVP-06",
