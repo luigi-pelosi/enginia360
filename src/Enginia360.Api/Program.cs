@@ -122,6 +122,7 @@ app.Use(async (context, next) =>
 });
 app.UseBrowserSessionTransport();
 app.UseAuthentication();
+app.UsePendingOnboarding();
 app.UseBrowserSessionCsrf();
 app.UseAuthorization();
 
@@ -153,6 +154,7 @@ app.MapHealthChecks(
 );
 app.MapOrganizationAccess();
 app.MapBrowserSessions();
+app.MapPendingOnboarding();
 if (app.Configuration.GetValue<bool>("Counterparties:Enabled"))
     app.MapCounterparties();
 if (app.Configuration.GetValue<bool>("Workshop:Enabled"))

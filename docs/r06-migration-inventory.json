@@ -3009,5 +3009,99 @@
         "Id"
       ]
     }
+  },
+  {
+    "table": "organization_access.onboarding_invitations",
+    "owner": "organization_access",
+    "category": "security_evidence",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "Id"
+    ],
+    "definition": {
+      "migration": "0041_federated_onboarding",
+      "path": "database/runtime/migrations/0041_federated_onboarding.sql",
+      "file_sha256": "b947e5cda1690fef96f145883e7f1dd5afcc30424e15b1c3194db402d02a194d",
+      "create_sql": "CREATE TABLE organization_access.onboarding_invitations (\n \"Id\" uuid PRIMARY KEY, \"TenantId\" uuid NOT NULL REFERENCES organization_access.tenants(\"Id\"),\n \"Active\" boolean NOT NULL, \"Revision\" integer NOT NULL CHECK (\"Revision\">0),\n \"ExpiresAt\" timestamptz NOT NULL\n);",
+      "columns": [
+        "Id",
+        "TenantId",
+        "Active",
+        "Revision",
+        "ExpiresAt"
+      ],
+      "primary_key": [
+        "Id"
+      ]
+    }
+  },
+  {
+    "table": "organization_access.onboarding_requests",
+    "owner": "organization_access",
+    "category": "security_evidence",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "Id"
+    ],
+    "definition": {
+      "migration": "0041_federated_onboarding",
+      "path": "database/runtime/migrations/0041_federated_onboarding.sql",
+      "file_sha256": "b947e5cda1690fef96f145883e7f1dd5afcc30424e15b1c3194db402d02a194d",
+      "create_sql": "CREATE TABLE organization_access.onboarding_requests (\n \"Id\" uuid PRIMARY KEY, \"InvitationId\" uuid NOT NULL UNIQUE REFERENCES organization_access.onboarding_invitations(\"Id\"),\n \"TenantId\" uuid NOT NULL REFERENCES organization_access.tenants(\"Id\"),\n \"Issuer\" text COLLATE \"C\" NOT NULL, \"Subject\" varchar(255) COLLATE \"C\" NOT NULL,\n \"ExpiresAt\" timestamptz NOT NULL, \"Revision\" integer NOT NULL CHECK (\"Revision\">0),\n \"InternalIdentityId\" uuid, \"MembershipId\" uuid,\n CHECK ((\"InternalIdentityId\" IS NULL)=(\"MembershipId\" IS NULL))\n);",
+      "columns": [
+        "Id",
+        "InvitationId",
+        "TenantId",
+        "Issuer",
+        "Subject",
+        "ExpiresAt",
+        "Revision",
+        "InternalIdentityId",
+        "MembershipId"
+      ],
+      "primary_key": [
+        "Id"
+      ]
+    }
+  },
+  {
+    "table": "organization_access.onboarding_audit",
+    "owner": "organization_access",
+    "category": "security_evidence",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "Id"
+    ],
+    "definition": {
+      "migration": "0041_federated_onboarding",
+      "path": "database/runtime/migrations/0041_federated_onboarding.sql",
+      "file_sha256": "b947e5cda1690fef96f145883e7f1dd5afcc30424e15b1c3194db402d02a194d",
+      "create_sql": "CREATE TABLE organization_access.onboarding_audit (\n \"Id\" uuid PRIMARY KEY DEFAULT gen_random_uuid(), \"CommandId\" uuid,\n \"ActorId\" uuid, \"BindingHash\" bytea NOT NULL, \"Authority\" jsonb NOT NULL,\n \"TenantId\" uuid, \"Request\" jsonb NOT NULL, \"Before\" jsonb NOT NULL, \"After\" jsonb NOT NULL,\n \"Outcome\" text NOT NULL CHECK (\"Outcome\" IN ('applied','initiated','forbidden','invalid','conflict')),\n \"OccurredAt\" timestamptz NOT NULL DEFAULT clock_timestamp()\n);",
+      "columns": [
+        "Id",
+        "CommandId",
+        "ActorId",
+        "BindingHash",
+        "Authority",
+        "TenantId",
+        "Request",
+        "Before",
+        "After",
+        "Outcome",
+        "OccurredAt"
+      ],
+      "primary_key": [
+        "Id"
+      ]
+    }
   }
 ]

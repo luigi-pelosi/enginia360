@@ -36,3 +36,19 @@ test("SSR shell exposes seven domain links and an honest unauthenticated boundar
     assert.match(html, /Nessun contesto aziendale attivo/);
     assert.doesNotMatch(html, /SUPER ADMIN|tenantId|Bearer|Accedi come/);
 });
+
+test("SSR session footer distinguishes protected administration from isolated pending onboarding", async () => {
+    const { SessionBoundary } = await import(shellUrl.href);
+    for (const pathname of ["/organization", "/users", "/onboarding-admin"]) {
+        const html = renderToStaticMarkup(<SessionBoundary pathname={pathname} />);
+        assert.match(html, /Sessione gestita dal backend/);
+        assert.match(html, /Autorità verificata a ogni operazione/);
+        assert.doesNotMatch(html, /non ancora collegate/);
+    }
+    const pending = renderToStaticMarkup(<SessionBoundary pathname="/onboarding" />);
+    assert.match(pending, /sessione pendente consente solo lo stato della richiesta, non accesso aziendale/);
+    assert.doesNotMatch(pending, /non ancora collegate|Autorità verificata/);
+    for (const pathname of [null, "/", "/domains/catalog"]) {
+        assert.match(renderToStaticMarkup(<SessionBoundary pathname={pathname} />), /Accesso non disponibile/);
+    }
+});

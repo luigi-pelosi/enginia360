@@ -52,10 +52,10 @@ D97: creare e modificare ruoli e permessi con audit immutabile e tracciabile obb
 D98: prima associazione binding + membership di un soggetto federato autenticato approvabile dal delegato alla gestione utenti solo nel proprio tenant; autenticazione e audit obbligatori; nessun ruolo o potere amministrativo automatico; nessun tetto owner-only; runtime D98 non consegnato. [Contratto finito MVP03.b.2](mvp03b2-user-onboarding.md).
 <!-- d98-current:end -->
 
-MVP03.b.1 consegnato via PR #162: delega utenti distinta, ruoli/permessi configurabili, audit atomico immutabile ed enforcement effettivo sul catalogo iniziale `organization-context.read/write`. I domini futuri devono integrare i propri consumer reali. MVP03.b non completato: invito/abilitazione e primo ingresso federato restano da eseguire. «nessun runtime consegnato qui» si riferisce al gate di policy D97, non nega la successiva consegna MVP03.b.1; il runtimeDelivered=false di quel gate e dell’intero MVP03.b resta distinto dal sottoincremento consegnato.
+MVP03.b.1 consegnato via PR #162: delega utenti distinta, ruoli/permessi configurabili, audit atomico immutabile ed enforcement effettivo sul catalogo iniziale `organization-context.read/write`. I domini futuri devono integrare i propri consumer reali. MVP03.b non completato: invito/abilitazione distingue #164 consegnato via PR #165 e #166 primo ingresso federato con sorgente completa e prove locali eseguite; consegna NON VERIFICATA sino a verifica exact-head e chiusura del coordinatore. «nessun runtime consegnato qui» si riferisce al gate di policy D97, non nega la successiva consegna MVP03.b.1; il runtimeDelivered=false di quel gate e dell’intero MVP03.b resta distinto dal sottoincremento consegnato. I blocchi D97/D98 sopra sono riepiloghi storici dei gate; il contratto eseguibile corrente è [MVP03.b.2b](mvp03b2b-federated-onboarding.md).
 
 
-MVP03.b.1 ha definito e consegnato il matching sul catalogo iniziale; nel prossimo contratto D98 definire campi minimi, revoca, onboarding e abilitazione trasversale delle membership. Non riaprire la creazione/modifica gia' approvata con D97 e non inventare ruoli di dominio o fiducia nell'email degli inviti. Le decisioni tecniche senza impatto di dominio sono responsabilità dell'agente. L'assenza di un dettaglio non blocca shell, letture e altro lavoro indipendente.
+MVP03.b.1 ha consegnato il matching sul catalogo iniziale; #164 ha consegnato stato/enforcement trasversale delle membership. #166 completa il contratto D98 di invito/primo ingresso e approvazione; le prove locali sono state eseguite a implementazione dell'intero punto conclusa. La consegna resta subordinata a CI exact-head e chiusura del coordinatore. Non riaprire D97/D98 e non inventare ruoli di dominio o fiducia nell'email degli inviti. Le decisioni tecniche senza impatto di dominio sono responsabilità dell'agente.
 
 ## Pulizia controllata
 
@@ -95,13 +95,17 @@ Il checkpoint MVP-01 introduce soltanto la [shell tecnica verificabile](mvp01-fr
 
 Correzione tecnica di esecuzione: il vecchio gh CLI non accettava il valore numerico zero per Ordine; e' stato usato ordinamento 1–11, mantenendo invariati gli ID MVP-00–MVP-10. La creazione issue e' stata ripresa tramite marker, senza duplicazioni. Nessuna di queste operazioni dimostra una capability applicativa completata.
 
-### #164 — validazione finale in corso, non consegnato
+### Stato corrente dopo PR165 — #164 consegnato; #166 non verificato
 
-MVP03.b.2a abilita/disabilita membership **esistenti**: implementazione sorgente
-completata nel worktree dedicato, secondo la cadenza corrente. La validazione
-finale e le correzioni sono in corso: [ledger delle asserzioni effettivamente
-eseguite](mvp03b2a-final-validation.md). CI exact-head, artefatti e revisione del
-coordinatore restano gate distinti; nessuna consegna è implicita.
-[Checkpoint storico](mvp03b2a-backend-progress.md).
-#164/#142 restano aperti, runtimeDelivered dell’interoMVP03.b restafalse.
-Onboarding D98/prima associazione resta un punto futuro separato.
+MVP03.b.2a/#164 consegnato da PR #165, main
+`c2e94d7a91b5e641aaf1a169e878795b8612d071`, tree
+`90c21640f0657f60850527a6e7355b81697de346` equivalente al candidate
+`e044acbea33156ebde868cfc7385f035c6ca2d43`.
+Il coordinatore ha riletto PR CI `41731554031` (7job/69step), dispatch
+`41731544819` (30job/279step), step richiesti e sei artefatti: prove di #164,
+non una nuova esecuzione #166. [Ledger storico](mvp03b2a-final-validation.md).
+#164 chiusa; #142 resta aperta. #166 è il punto corrente: [primo ingresso
+federato/invito minimo/approvazione atomica](mvp03b2b-federated-onboarding.md),
+sorgente completa e prove locali finali eseguite. Consegna NON VERIFICATA sino a
+CI exact-head e chiusura del coordinatore; nessun deployment.
+runtimeDelivered dell'intero MVP03.b resta false fino alla chiusura finale di #166.

@@ -1,12 +1,12 @@
 # MVP03.b.2 — Primo ingresso federato e abilitazione: gate D98
 
-Data: 3 novembre 2026. Refs #142. Solo documentazione, test offline e selezione CI; runtime D98 non consegnato. D96 autorizza il seguito autonomo dopo il merge verificato del gate, non una nuova approvazione ordinaria. Nessun codice applicativo o migrazione in questa PR.
+Data del gate storico: 3 novembre 2026. Refs #142. Il gate D98 era solo documentazione/test offline. La decisione e i suoi blocchi sotto restano storici invariati. **Stato corrente:** #164 consegnato via PR #165; #166 primo ingresso federato/invito minimo/approvazione ha sorgente completa e prove locali; consegna NON VERIFICATA sino a verifica exact-head e chiusura del coordinatore. [Contratto eseguibile corrente](mvp03b2b-federated-onboarding.md). D96 autorizza il seguito autonomo senza nuova conferma D98. Nessuna validazione prima del completamento dell'intero punto #166.
 
 ## Stato corrente, distinto dalla decisione storica
 
 MVP03.b.1 consegnato via PR #162: main `4d3aeabe3d3d6fec3135ce31ad0e8da43cb54eea`, candidato `8c60f2f84cb075ffbb47c9c04c40b5bfe2fe01d7`, tree equivalente `2da30752115ca9460c0fa82cc8ef20ee7b2b1076`. PR CI `41638706451` (5 job/54 step) e dispatch `41638698110` (11 job/102 step), tutti i job selezionati passati, artefatti e contenuti verificati dal coordinatore: 15 test SQL per ciascun pool, 23 coppie modifica/audit, 2 note e 3 consumer API reali; hardening, SSR/no-store e screenshot 390px. Questa sezione riporta la verifica del coordinatore, non una riesecuzione runtime del documentatore.
 
-Il catalogo eseguibile iniziale è soltanto `organization-context.read/write`; i prossimi domini devono integrare e provare i propri consumer reali. Non è un tetto ai ruoli configurabili né copertura universale. MVP03.b non completato: invito/abilitazione e primo binding rimangono da implementare. Il `runtimeDelivered=false` D97 resta verità del gate di policy D97; «nessun runtime consegnato qui» non nega il sottoincremento successivo. Anche l'intero MVP03.b mantiene `runtimeDelivered=false` fino alle prove dei percorsi rimanenti. Il parent #142 rimane aperto; nessuna readiness operativa.
+Il catalogo eseguibile iniziale è soltanto `organization-context.read/write`; i prossimi domini devono integrare e provare i propri consumer reali. Non è un tetto ai ruoli configurabili né copertura universale. MVP03.b non completato: invito/abilitazione distingue #164 già consegnato e #166 primo binding con sorgente completa e prove locali; consegna NON VERIFICATA sino a verifica exact-head e chiusura del coordinatore. Il `runtimeDelivered=false` D97 resta verità del gate di policy D97; «nessun runtime consegnato qui» non nega il sottoincremento successivo. Anche l'intero MVP03.b mantiene `runtimeDelivered=false` fino alle prove dei percorsi rimanenti. Il parent #142 rimane aperto; nessuna readiness operativa. Le osservazioni del codice sotto descrivono la base del gate storico;0040 ha successivamente consegnato lo stato accesso,0041 è stata provata soltanto su fixture effimere, senza applicazione operativa.
 
 ## Decisione e alternative
 
@@ -31,13 +31,13 @@ D98: prima associazione binding + membership di un soggetto federato autenticato
 
 La delega utenti è distinta dalla delega struttura, concessa dal SUPER ADMIN a una membership già registrata: D98 riguarda il nuovo destinatario non ancora registrato, non elimina i prerequisiti del delegato approvante. Non è soltanto autorizzazione a spedire una email d'invito. Il SUPER ADMIN conserva le proprie facoltà, ma la sua approvazione esclusiva della prima associazione NON è una condizione del percorso delegato scelto. Nessuna subdelega, nomina amministrativa, auto-promozione, autorità SUPER ADMIN, control-plane o cross-tenant per implicazione. D97 resta confermata, inclusa la creazione/modifica di ruoli e permessi oltre i soli ruoli del proprietario.
 
-## Evidenza del codice attuale (lettura statica, non nuovo runtime)
+## Evidenza storica del codice alla base D98 (lettura statica, non nuovo runtime)
 
 - `ExternalIdentityResolver.Resolve` è invocabile soltanto dopo autenticazione verificata: **trusted issuer + opaque subject**, signature/token rules, lookup esatto del binding; un soggetto non associato oggi restituisce null. `BrowserSessionModule` e `OrganizationAccessModule` rivalutano il binding a ogni richiesta cookie/JWT; non esiste ancora un percorso per il non associato. Conservare questa autenticazione verificata; D98 non autorizza nuovi provider o claim browser fiduciari.
 - `0001_organization_access.sql` conserva l'unicità dell'identità nella membership ordinaria; `0015_external_identity_binding.sql` vincola issuer/subject e identità interna. **nessuna espansione multi-tenant** o migrazione implicita della cardinalità ordinaria, anche se il SUPER ADMIN ha una distinta autorità globale. Nessun flag di abilitazione membership attualmente consegnato.
 - Le origini di accesso comprendono root/D77/ruoli/grant societari; i diversi adapter non condividono sempre transazione di autorizzazione ed effetto. Non dichiarare serializzazione al commit senza una correzione reale e prove. I nuovi controlli non possono limitarsi al role editor o al solo resolver HTTP.
 
-## Contratto tecnico finito del prossimo incremento — da eseguire
+## Contratto tecnico finito D98 — storico del mandato, acceptance ancora vincolante
 
 Questo è un vincolo di acceptance del lavoro autonomo seguente, non runtime già consegnato. L'esecutore sceglie e documenta prima del codice payload/revisioni/chiavi e il minimo flusso di invito/iniziazione/consegna necessario; non riapre la decisione su chi approva.
 
@@ -50,7 +50,7 @@ Questo è un vincolo di acceptance del lavoro autonomo seguente, non runtime gi�
 
 La suddivisione ammessa mantiene il risultato finito: primo sottoincremento runtime con stato/enforcement trasversale di membership e abilitazione per utenti esistenti; poi primo ingresso federato pendente/invito minimo/approvazione atomica, oppure una sola PR se realmente contenuta. WIP 1; ogni sottoincremento dichiara prove e gap, #142 e l'intero MVP03.b restano aperti finché entrambi i percorsi funzionano. La separazione è tecnica, non una nuova approvazione owner-only e non rinvia silenziosamente l'enforcement delle vecchie origini.
 
-## Consegna del gate documentale
+## Consegna storica del gate documentale — non la cadenza corrente #166
 
 CLI: `python3 -I scripts/test-d98-policy.py --check-root .`; suite positiva/mutazioni: `python3 -I scripts/test-d98-policy.py`; selector/job: `python3 -I scripts/test-d98-impact.py`. Test-first: prima della scrittura documentale il CLI fallisce per assenza D98; prima del mapping/wiring i test falliscono per mapping e comandi mancanti. Una baseline CLI completa valida precede ogni mutazione di rimozione; nessuna modifica alle assertion D97 originali. Conservare RED/GREEN e manifest hash nel passaggio di consegna.
 

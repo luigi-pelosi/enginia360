@@ -1,5 +1,5 @@
 import { afterEach, expect, test, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import WorkshopEditor from './WorkshopEditor';
 import { longDocument, prototypeCatalog, prototypePayers, prototypeVehicles } from './syntheticFixtures';
 
@@ -20,9 +20,14 @@ test('the last row of the long document is still editable and applies its own id
     const lines = longDocument.groups.flatMap(group => group.lines);
     const last = lines[lines.length - 1];
     render(<WorkshopEditor document={longDocument} catalog={prototypeCatalog} vehicles={prototypeVehicles} payers={prototypePayers} onDraftChange={onDraftChange} />);
-    fireEvent.click(screen.getByRole('button', { name: `Modifica ${last.id}` }));
+    // Keep visible role/name checks, but do not recompute accessibility for
+    // every unrelated row when targeting the already-identified final row.
+    const lastRow = screen.getByText(last.id, { selector: 'small' }).closest('tr')!;
+    expect(lastRow).not.toBeNull();
+    fireEvent.click(within(lastRow).getByRole('button', { name: `Modifica ${last.id}` }));
     fireEvent.change(screen.getByLabelText(`Descrizione ${last.id}`), { target: { value: 'Riga finale sintetica' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Applica riga' }));
+    const summary = screen.getByRole('contentinfo', { name: 'Riepilogo commerciale fornito' });
+    fireEvent.click(within(summary).getByRole('button', { name: 'Applica riga' }));
     const emitted = onDraftChange.mock.calls[0][0].groups.flatMap((group: { lines: readonly { id: string; description: string }[] }) => group.lines);
     expect(emitted).toHaveLength(100);
     expect(emitted[emitted.length - 1]).toMatchObject({ id: last.id, description: 'Riga finale sintetica' });

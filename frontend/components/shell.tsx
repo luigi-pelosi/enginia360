@@ -5,6 +5,18 @@ import { usePathname } from "next/navigation";
 import { Button } from "./ui/button";
 import { domains } from "../lib/domains";
 
+export function SessionBoundary({ pathname }: { pathname: string | null }) {
+    return (
+        <footer>
+            {pathname === "/organization" || pathname === "/users" || pathname === "/onboarding-admin"
+                ? "Sessione gestita dal backend · Autorità verificata a ogni operazione; nessun permesso dal menu."
+                : pathname === "/onboarding"
+                    ? "Primo ingresso federato gestito dal backend · La sessione pendente consente solo lo stato della richiesta, non accesso aziendale."
+                    : "Accesso non disponibile · Federazione e autorizzazioni non ancora collegate."}
+        </footer>
+    );
+}
+
 export function Shell({ children }: { children: ReactNode }) {
     const [open, setOpen] = useState(false);
     const trigger = useRef<HTMLButtonElement>(null);
@@ -85,16 +97,7 @@ export function Shell({ children }: { children: ReactNode }) {
             <main id="main" tabIndex={-1} className="main-content">
                 {children}
             </main>
-            <footer>
-                {pathname === "/organization" || pathname === "/users" ? (
-                    "Sessione gestita dal backend · Autorità verificata a ogni operazione; nessun permesso dal menu."
-                ) : (
-                    <>
-                        Accesso non disponibile · Federazione e autorizzazioni
-                        non ancora collegate.
-                    </>
-                )}
-            </footer>
+            <SessionBoundary pathname={pathname} />
             <noscript>
                 <style>
                     {

@@ -81,6 +81,18 @@ public static class BrowserSessionModule
                 return Task.CompletedTask;
             };
         })
+        .AddCookie(PendingOnboarding.Scheme, options =>
+        {
+            options.Cookie.Name = "__Host-enginia360-pending";
+            options.Cookie.Path = "/";
+            options.Cookie.HttpOnly = true;
+            options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+            options.Cookie.SameSite = SameSiteMode.Lax;
+            options.ExpireTimeSpan = BoundedTicketStore.Lifetime;
+            options.SlidingExpiration = false;
+            options.Events.OnRedirectToLogin = context => { context.Response.StatusCode = 401; return Task.CompletedTask; };
+            options.Events.OnRedirectToAccessDenied = context => { context.Response.StatusCode = 403; return Task.CompletedTask; };
+        })
         .AddOpenIdConnect("oidc", options =>
         {
             options.SignInScheme = "browser";
@@ -138,12 +150,32 @@ public static class BrowserSessionModule
                 }
                 if (resolved is null)
                 {
+                    if (!context.HttpContext.Items.ContainsKey("IdentityStoreUnavailable")
+                        && subjects.Length == 1 && issuer == configuration["BrowserSessions:Authority"]
+                        && context.Properties.Items.TryGetValue("onboarding-invitation", out var invitationText)
+                        && Guid.TryParseExact(invitationText, "D", out var invitation))
+                    {
+                        try
+                        {
+                            if (await PendingOnboarding.Receive(context.HttpContext, issuer!, subjects[0].Value, invitation))
+                            {
+                                context.HandleResponse();
+                                context.Response.Redirect("/onboarding");
+                                return;
+                            }
+                        }
+                        catch (Exception error) when (error is DbException or TimeoutException)
+                        {
+                            context.HttpContext.Items["IdentityStoreUnavailable"] = true;
+                        }
+                    }
                     context.HandleResponse();
                     context.Response.StatusCode = context.HttpContext.Items.ContainsKey("IdentityStoreUnavailable") ? 503 : 403;
                     await context.Response.WriteAsJsonAsync(new { error = "identity_not_assigned" });
                     return;
                 }
                 context.Principal = resolved;
+                await context.HttpContext.SignOutAsync(PendingOnboarding.Scheme);
                 context.Properties ??= new AuthenticationProperties();
                 context.Properties.IsPersistent = false;
                 context.Properties.ExpiresUtc = DateTimeOffset.UtcNow + BoundedTicketStore.Lifetime;
@@ -156,6 +188,7 @@ public static class BrowserSessionModule
             };
         });
         services.AddOptions<CookieAuthenticationOptions>("browser").Configure<ITicketStore>((options, store) => options.SessionStore = store);
+        services.AddOptions<CookieAuthenticationOptions>(PendingOnboarding.Scheme).Configure<ITicketStore>((options, store) => options.SessionStore = store);
         services.PostConfigure<OpenIdConnectOptions>("oidc", options =>
             options.ConfigurationManager = new HttpsOidcConfigurationManager(options.ConfigurationManager!, configuration["BrowserSessions:Authority"]!));
         return services;
@@ -183,7 +216,7 @@ public static class BrowserSessionModule
                 return;
             }
             context.Response.Headers.CacheControl = "no-store";
-            context.Response.Headers["Referrer-Policy"] = context.Request.Path == "/signin-oidc" ? "no-referrer" : "same-origin";
+            context.Response.Headers["Referrer-Policy"] = context.Request.Path == "/signin-oidc" || context.Request.Path.StartsWithSegments("/auth/onboarding") ? "no-referrer" : "same-origin";
             try
             {
                 await next(context);

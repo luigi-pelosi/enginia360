@@ -198,5 +198,10 @@
     "id": "0040_membership_access",
     "path": "migrations/0040_membership_access.sql",
     "sha256": "cfd47c810509e6180d1e4b279bd9a2599564c878987a5696e9d631a60d75be6a"
+  },
+  {
+    "id": "0041_federated_onboarding",
+    "path": "migrations/0041_federated_onboarding.sql",
+    "sha256": "b947e5cda1690fef96f145883e7f1dd5afcc30424e15b1c3194db402d02a194d"
   }
 ]
