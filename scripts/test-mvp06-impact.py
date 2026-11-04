@@ -4,6 +4,7 @@ import importlib.util
 from pathlib import Path
 import subprocess
 import unittest
+from unittest.mock import patch
 ROOT=Path(__file__).resolve().parents[1]
 spec=importlib.util.spec_from_file_location('impact',ROOT/'scripts/select-ci-impact.py');assert spec and spec.loader
 m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
@@ -17,10 +18,26 @@ class ImpactTests(unittest.TestCase):
  def test_entire_finite_manifest_and_actual_tracked_untracked_paths_stay_bounded(self):
   manifests=[sorted(m.DOCUMENT_TYPES_SCOPE)]
   actual=set(subprocess.check_output(['git','diff','--name-only'],cwd=ROOT,text=True).splitlines())|set(subprocess.check_output(['git','ls-files','--others','--exclude-standard'],cwd=ROOT,text=True).splitlines())
-  if actual:manifests.append(sorted(actual))
+  if actual:
+   # Include the already-committed part of this whole point when correcting a
+   # shared fixture; dirty-only paths are not the entire MVP06 change manifest.
+   actual |= set(subprocess.check_output(['git','diff','--name-only','43a4ff836d67bf1b4f01eb27ccc318171ee45f8d','HEAD'],cwd=ROOT,text=True).splitlines())
+   manifests.append(sorted(actual))
   for paths in manifests:
    result=m.selection(paths);self.assertTrue(result['document_types'])
    for key in ('r04a','r03a','r03b','r03c','r04b2b3','r06b1','full_architecture'):self.assertFalse(result.get(key),key)
+ def test_committed_point_is_retained_for_a_dirty_shared_fixture_only_overlay(self):
+  calls=[]
+  def output(command,**kwargs):
+   calls.append(command)
+   if command==['git','diff','--name-only']:return 'tests/browser/mvp05-catalog.cjs\n'
+   if command==['git','ls-files','--others','--exclude-standard']:return ''
+   if command==['git','diff','--name-only','43a4ff836d67bf1b4f01eb27ccc318171ee45f8d','HEAD']:return 'database/runtime/migrations/0044_document_types.sql\n'
+   raise AssertionError(command)
+  with patch('subprocess.check_output',side_effect=output):
+   self.test_entire_finite_manifest_and_actual_tracked_untracked_paths_stay_bounded()
+  self.assertEqual(len(calls),3)
+  self.assertEqual(calls[-1],['git','diff','--name-only','43a4ff836d67bf1b4f01eb27ccc318171ee45f8d','HEAD'])
  def test_shared_producers_add_new_consumer_never_erase_prior_flags(self):
   for path in sorted(m.DOCUMENT_TYPES_DIRECT):
    result=m.selection([path]);self.assertTrue(result['document_types'],path);self.assertIn('DocumentTypeManagementTests',result['api_filter'])

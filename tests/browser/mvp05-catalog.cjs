@@ -1,6 +1,13 @@
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const {chromium}=require('playwright');
+const pendingRequests=new WeakMap();
+function track(page){
+ const active=new Map();pendingRequests.set(page,active);
+ page.on('request',request=>active.set(request,{method:request.method(),path:new URL(request.url()).pathname}));
+ for(const event of ['requestfinished','requestfailed'])page.on(event,request=>active.delete(request));
+ return page;
+}
 const fixture=JSON.parse(fs.readFileSync('/run/fixture.json','utf8'));
 const origin='https://app.r00.test:8443';
 const path='/api/v1/platform/tenants';
@@ -20,7 +27,7 @@ async function request(page,url=path,options={}){
  },{url,options});
 }
 async function login(browser,index,pending=false,invitation=null){
- const context=await browser.newContext();const page=await context.newPage();
+ const context=await browser.newContext();const page=track(await context.newPage());
  await page.goto(origin+'/auth/session');
  const token=(await request(page,'/auth/csrf')).value.requestToken;
  await page.evaluate(({token,path})=>{const f=document.createElement('form');f.method='POST';f.action=path;const i=document.createElement('input');i.name='__RequestVerificationToken';i.value=token;f.append(i);document.body.append(f);f.submit();},{token,path:pending?'/auth/onboarding/login/'+invitation:'/auth/login'});
@@ -34,8 +41,9 @@ async function login(browser,index,pending=false,invitation=null){
 }
 (async()=>{
  const browser=await chromium.launch({headless:true});
+ const geometry=page=>page.evaluate(()=>({innerWidth,innerHeight,scrollWidth:document.documentElement.scrollWidth,clientWidth:document.documentElement.clientWidth,visualWidth:visualViewport?.width,readyState:document.readyState,fonts:document.fonts.status,overflowing:[...document.querySelectorAll('body *')].map(element=>({tag:element.tagName,className:typeof element.className==='string'?element.className:'',x:element.getBoundingClientRect().x,width:element.getBoundingClientRect().width})).filter(box=>box.width>0&&(box.x<0||box.x+box.width>innerWidth)).slice(0,40)})).catch(()=>null);
  try {
-  const anonymous=await browser.newPage();
+  const anonymous=track(await browser.newPage());
   for(let i=0;i<60;i++){try{await anonymous.goto(origin+'/auth/session');break;}catch(e){if(i===59)throw e;await new Promise(r=>setTimeout(r,500));}}
   const cp='/api/v1/catalog/management';
   assert.equal((await request(anonymous,cp)).status,401);
@@ -96,7 +104,7 @@ async function login(browser,index,pending=false,invitation=null){
    const changedCsrf=await request(page,cp+'/commands',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':currentCsrf+'tampered'},body:JSON.stringify(csrfBody)});
    assert.equal(changedCsrf.status,400);assert.equal(changedCsrf.value.error,'csrf_invalid');assert.equal((await request(page,cp+'?search=Must%20not%20exist%20CSRF')).value.items.length,0);
    const nojs=await browser.newContext({javaScriptEnabled:false});await nojs.addCookies(await operator.context.cookies());
-   const nojsPage=await nojs.newPage();const response=await nojsPage.goto(origin+'/catalog?id='+item.id);const html=await nojsPage.content();
+   const nojsPage=track(await nojs.newPage());const response=await nojsPage.goto(origin+'/catalog?id='+item.id);const html=await nojsPage.content();
    assert.match(html,new RegExp('Synthetic edited '+kind));assert.match(html,new RegExp(italian));
    const headers=await response.allHeaders();assert.match(headers['cache-control'],/private/);assert.match(headers['cache-control'],/no-store/);
    fs.writeFileSync('/evidence/mvp05-'+kind+'-nojs.html',html);fs.writeFileSync('/evidence/mvp05-'+kind+'-nojs-headers.json',JSON.stringify(headers,null,2));
@@ -112,7 +120,7 @@ async function login(browser,index,pending=false,invitation=null){
   // Delay the actual catalog client chunk: SSR reads are usable, but mutation
   // forms must not submit as native GET before their handlers are installed.
   const hydrating=await browser.newContext();await hydrating.addCookies(await operator.context.cookies());
-  const hydrationPage=await hydrating.newPage();let releaseHydration;let sawChunk;
+  const hydrationPage=track(await hydrating.newPage());let releaseHydration;let sawChunk;
   const chunkSeen=new Promise(resolve=>{sawChunk=resolve;});
   const chunkGate=new Promise(resolve=>{releaseHydration=resolve;});
   await hydrationPage.route('**/_next/static/chunks/app/catalog/page-*.js',async route=>{sawChunk();await chunkGate;await route.continue();});
@@ -207,9 +215,10 @@ async function login(browser,index,pending=false,invitation=null){
    const url=new URL(page.url());
    if(url.hostname==='app.r00.test'&&['/catalog','/users'].includes(url.pathname)){
     const index=diagnostics.length;const prefix='/evidence/mvp05-failure-'+index;
+    const beforeScreenshot=await geometry(page);const pending=[...(pendingRequests.get(page)?.values()||[])];
     fs.writeFileSync(prefix+'.html',await page.content());
     await page.screenshot({path:prefix+'.png',fullPage:true});
-    diagnostics.push({path:url.pathname,buttons:await page.getByRole('button').allTextContents(),headings:await page.getByRole('heading').allTextContents()});
+    diagnostics.push({path:url.pathname,viewport:page.viewportSize(),beforeScreenshot,afterScreenshot:await geometry(page),pendingRequests:pending,buttons:await page.getByRole('button').allTextContents(),headings:await page.getByRole('heading').allTextContents()});
    }
   }
   fs.writeFileSync('/evidence/mvp05-failure-state.json',JSON.stringify(diagnostics,null,2));throw error;
