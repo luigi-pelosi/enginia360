@@ -48,6 +48,9 @@ test("HTTP returns real uncached Italian SSR with all seven domain pages and no 
         } else if (suffix === "/domains/catalog") {
             expect(html).toContain("Articoli e servizi");
             expect(html).not.toContain("Salva identità catalogo");
+        } else if (suffix === "/domains/document-types") {
+            expect(html).toContain("Tipologie documentali");
+            expect(html).not.toContain("Salva nuova versione");
         } else if (suffix) expect(html).toContain("Area non ancora implementata");
     }
     expect((await request.get("/domains/not-a-domain")).status()).toBe(404);

@@ -521,8 +521,79 @@ CATALOG_MANAGEMENT_DIRECT = {
     'scripts/owner-master-authority.py', 'tests/fixtures/nginx.mvp02c.conf',
 }
 
+DOCUMENT_TYPES_FILES = {
+    'database/runtime/migrations/0044_document_types.sql',
+    'frontend/app/document-types/page.tsx',
+    'frontend/components/document-types-workspace.tsx',
+    'frontend/lib/document-types.ts',
+    'frontend/tests/document-types.test.tsx',
+    'scripts/run-mvp06-tests.py',
+    'scripts/test-mvp06-contract.py',
+    'scripts/test-mvp06-document-types.py',
+    'scripts/test-mvp06-impact.py',
+    'src/Modules/DocumentTypes/Enginia360.DocumentTypes.Contracts/Contracts.cs',
+    'src/Modules/DocumentTypes/Enginia360.DocumentTypes.Contracts/Enginia360.DocumentTypes.Contracts.csproj',
+    'src/Modules/DocumentTypes/Enginia360.DocumentTypes.Contracts/packages.lock.json',
+    'src/Modules/DocumentTypes/Enginia360.DocumentTypes/DocumentTypesModule.cs',
+    'src/Modules/DocumentTypes/Enginia360.DocumentTypes/Enginia360.DocumentTypes.csproj',
+    'src/Modules/DocumentTypes/Enginia360.DocumentTypes/ManagementEndpoints.cs',
+    'src/Modules/DocumentTypes/Enginia360.DocumentTypes/packages.lock.json',
+    'tests/Enginia360.Api.Tests/DocumentTypeManagementTests.cs',
+    'tests/browser/mvp06-document-types.cjs',
+}
+_DOCUMENT_TYPES_ADDITIONAL_SHARED = {
+    'docs/mvp06-document-types-contract.md',
+    'docs/mvp06-implementation.md',
+    'scripts/run-mvp05-tests.py',
+    'scripts/test-mvp03b1-roles.py',
+    'scripts/test-mvp05-contract.py',
+    'scripts/test-mvp05-impact.py',
+    'src/Enginia360.Api/Enginia360.Api.csproj',
+    'src/Enginia360.Api/packages.lock.json',
+    'tests/Enginia360.Api.Tests/packages.lock.json',
+    'tests/browser/mvp05-catalog.cjs',
+}
+DOCUMENT_TYPES_SHARED = CATALOG_MANAGEMENT_SCOPE | _DOCUMENT_TYPES_ADDITIONAL_SHARED
+DOCUMENT_TYPES_SCOPE = DOCUMENT_TYPES_FILES | DOCUMENT_TYPES_SHARED
+DOCUMENT_TYPES_DIRECT = {
+    'browser.runtime.Dockerfile',
+    'compose.mvp02c-test.yaml',
+    'frontend/components/shell.tsx',
+    'frontend/lib/organization.ts',
+    'frontend/next.config.ts',
+    'scripts/run-mvp02b-tests.py',
+    'src/Enginia360.Api/packages.lock.json',
+    'tests/Enginia360.Api.Tests/packages.lock.json',
+    'database/runtime/migrations/0039_tenant_roles.sql',
+    'database/runtime/migrations/0040_membership_access.sql',
+    'database/runtime/migrations/0043_catalog_management.sql',
+    'frontend/components/tenant-role-workspace.tsx',
+    'frontend/lib/private-backend.ts',
+    'scripts/run-r00b-tests.py',
+    'src/Enginia360.Api/BrowserAuthentication/BrowserSessionModule.cs',
+    'src/Enginia360.Api/BrowserAuthentication/ExternalIdentityResolver.cs',
+    'src/Enginia360.Api/Enginia360.Api.csproj',
+    'src/Enginia360.Api/Program.cs',
+    'tests/fixtures/nginx.mvp02c.conf',
+}
+
 def _selection(paths):
     paths = sorted(set(paths))
+    if set(paths) & DOCUMENT_TYPES_FILES:
+        remaining = set(paths) - DOCUMENT_TYPES_FILES
+        if set(paths) <= DOCUMENT_TYPES_SCOPE:
+            remaining -= DOCUMENT_TYPES_SHARED
+        result = selection(sorted(remaining | {'scripts/test-mvp05-impact.py'}))
+        result.update(changed_paths=paths, document_types=True, frontend=True,
+                      migrations=True, browser=True, tenant_roles=True,
+                      membership_access=True, counterparty_management=True,
+                      catalog_management=True, federated_onboarding=True,
+                      authenticated_organization=True)
+        for name in ('DocumentTypeManagementTests','BusinessMembershipFenceTests'):
+            token='FullyQualifiedName~'+name
+            if token not in result['api_filter'].split('|'):
+                result['api_filter'] += ('|' if result['api_filter'] else '')+token
+        return result
     if set(paths) & CATALOG_MANAGEMENT_FILES:
         remaining = set(paths) - CATALOG_MANAGEMENT_FILES
         finite = set(paths) <= CATALOG_MANAGEMENT_SCOPE
@@ -847,6 +918,11 @@ def selection(paths):
             token='FullyQualifiedName~'+name
             if token not in result['api_filter'].split('|'): result['api_filter'] += ('|' if result['api_filter'] else '')+token
     result.setdefault('catalog_management',False)
+    if set(paths) & (DOCUMENT_TYPES_FILES | DOCUMENT_TYPES_DIRECT):
+        result['document_types'] = True
+        token='FullyQualifiedName~DocumentTypeManagementTests'
+        if token not in result['api_filter'].split('|'): result['api_filter'] += ('|' if result['api_filter'] else '')+token
+    result.setdefault('document_types',False)
     return result
 
 

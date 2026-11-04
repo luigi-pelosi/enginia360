@@ -604,6 +604,7 @@
           "Enginia360.Billing": "[1.0.0, )",
           "Enginia360.Catalog": "[1.0.0, )",
           "Enginia360.Counterparties": "[1.0.0, )",
+          "Enginia360.DocumentTypes": "[1.0.0, )",
           "Enginia360.Integrations": "[1.0.0, )",
           "Enginia360.Inventory": "[1.0.0, )",
           "Enginia360.Vehicles": "[1.0.0, )",
@@ -688,6 +689,16 @@
         }
       },
       "enginia360.workshop.contracts": {
+        "type": "Project"
+      },
+      "enginia360.documenttypes": {
+        "type": "Project",
+        "dependencies": {
+          "Enginia360.DocumentTypes.Contracts": "[1.0.0, )",
+          "Npgsql.EntityFrameworkCore.PostgreSQL": "[10.0.0, )"
+        }
+      },
+      "enginia360.documenttypes.contracts": {
         "type": "Project"
       }
     }

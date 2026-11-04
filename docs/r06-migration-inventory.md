@@ -1,6 +1,8 @@
 # R06.a.1 — inventario offline e riconciliazione sintetica
 
-MVP05 sorgente UNEXECUTED: 0043 aggiunge `catalog.authority_history` (authority_evidence) e `catalog.management_audit` (security_evidence), senza modificare i record inventario precedenti o i 42 file SQL pubblicati. Nessuna migrazione o verifica eseguita durante implementazione.
+R06.b.2: [registro OPE OPEN](r06-readiness-registry.json) e [runbook/limiti correnti](r06-recovery-runbook.md); nessuna readiness operativa.
+
+MVP06 sorgente UNEXECUTED: 0044 aggiunge `document_types.definitions` e `document_types.versions` (business_configuration), `document_types.command_audit` (security_evidence). Preservati tutti i record precedenti e i 43 file pubblicati. Nessuna migrazione o verifica eseguita durante implementazione. MVP05/#144 è consegnato PR169, merge `43a4ff836d67bf1b4f01eb27ccc318171ee45f8d`; la 0043 con authority_history/management_audit e le sue prove sono storiche, non pendenti. Nessuna eleggibilità legacy approvata.
 
 Aggiornamento storico MVP04, consegnato PR168: 0042 aggiunge `counterparties.management_audit` (audit_history) e `counterparties.destination_revisions` (technical_ledger). Le definizioni CREATE e i checksum sono registrati nell’inventario JSON; nessuna autorizzazione import legacy, nessun aggiornamento dei 41 file pubblicati, nessuna migrazione eseguita in questa fase. I vincoli ALTER non ricostruiscono automaticamente uno schema live.
 

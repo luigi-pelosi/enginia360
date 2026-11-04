@@ -1,3 +1,4 @@
+import { finiteDocumentTypesRead } from "./document-types";
 import { finiteCatalogRead } from "./catalog";
 import { finiteCounterpartyRead } from "./counterparties";
 import { request } from "node:https";
@@ -47,6 +48,7 @@ export async function privateRead(
   },
 ) {
   if (
+    !finiteDocumentTypesRead(path) &&
     !finiteCatalogRead(path) &&
     !finiteCounterpartyRead(path) &&
     ![

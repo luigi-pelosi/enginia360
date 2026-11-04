@@ -43,7 +43,7 @@ async function login(browser,index,pending=false,invitation=null){
   const tenant=fixture.contexts[0].tenantId;
   const roles='/api/v1/platform/tenant-roles/'+tenant;
   const directory=(await request(owner.page,roles)).value;
-  assert.deepEqual(directory.actions,['organization-context.read','organization-context.write','counterparties.shared.read','counterparties.shared.create','counterparties.shared.edit','counterparties.business-roles.write','counterparties.extensions.read','counterparties.extensions.write','catalog.shared.read','catalog.shared.create','catalog.shared.edit']);
+  assert.deepEqual(directory.actions,['organization-context.read','organization-context.write','counterparties.shared.read','counterparties.shared.create','counterparties.shared.edit','counterparties.business-roles.write','counterparties.extensions.read','counterparties.extensions.write','catalog.shared.read','catalog.shared.create','catalog.shared.edit','document-types.read','document-types.create','document-types.edit']);
   const member=directory.memberships.find(m=>m.membershipId===fixture.grantTargetMembershipId);assert.ok(member);
   const post=async(page,path,body)=>request(page,path,{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':(await request(page,'/auth/csrf')).value.requestToken},body:JSON.stringify(body)});
   const uuid=()=>require('node:crypto').randomUUID();

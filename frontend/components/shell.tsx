@@ -8,7 +8,7 @@ import { domains } from "../lib/domains";
 export function SessionBoundary({ pathname }: { pathname: string | null }) {
     return (
         <footer>
-            {pathname === "/organization" || pathname === "/users" || pathname === "/onboarding-admin" || pathname === "/counterparties" || pathname === "/catalog"
+            {pathname === "/organization" || pathname === "/users" || pathname === "/onboarding-admin" || pathname === "/counterparties" || pathname === "/catalog" || pathname === "/document-types"
                 ? "Sessione gestita dal backend · Autorità verificata a ogni operazione; nessun permesso dal menu."
                 : pathname === "/onboarding"
                     ? "Primo ingresso federato gestito dal backend · La sessione pendente consente solo lo stato della richiesta, non accesso aziendale."
@@ -74,9 +74,9 @@ export function Shell({ children }: { children: ReactNode }) {
                     {domains.map((domain, index) => (
                         <Link
                             key={domain.id}
-                            href={domain.id === "catalog" ? "/catalog" : domain.id === "counterparties" ? "/counterparties" : `/domains/${domain.id}`}
+                            href={domain.id === "document-types" ? "/document-types" : domain.id === "catalog" ? "/catalog" : domain.id === "counterparties" ? "/counterparties" : `/domains/${domain.id}`}
                             aria-current={
-                                pathname === `/domains/${domain.id}` || (domain.id === "counterparties" && pathname === "/counterparties") || (domain.id === "catalog" && pathname === "/catalog")
+                                pathname === `/domains/${domain.id}` || (domain.id === "counterparties" && pathname === "/counterparties") || (domain.id === "catalog" && pathname === "/catalog") || (domain.id === "document-types" && pathname === "/document-types")
                                     ? "page"
                                     : undefined
                             }

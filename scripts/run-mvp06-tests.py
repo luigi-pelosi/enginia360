@@ -1,0 +1,424 @@
+#!/usr/bin/env python3
+"""Private ephemeral MVP06 counterparty tests; reuses CA-trusted OIDC fixture, never a supplied target."""
+import argparse
+import importlib.util
+import json
+import os
+from pathlib import Path
+import secrets
+import signal
+import subprocess
+import tempfile
+import time
+import uuid
+ROOT = Path(__file__).resolve().parents[1]
+spec = importlib.util.spec_from_file_location('r00', ROOT / 'scripts/run-r00b-tests.py')
+assert spec and spec.loader
+r00 = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(r00)
+r00.CONFIG = ROOT / 'compose.mvp02c-test.yaml'
+run = r00.run
+
+def write_readonly_json(path, value):
+    if path.exists():
+        path.chmod(384)
+    try:
+        path.write_text(json.dumps(value))
+    finally:
+        if path.exists():
+            path.chmod(292)
+
+def candidate_source_hashes():
+    import hashlib
+    paths = set(run(['git', 'ls-files']).splitlines()) | set(run(['git', 'ls-files', '--others', '--exclude-standard']).splitlines())
+    return {path: hashlib.sha256((ROOT / path).read_bytes()).hexdigest()
+            for path in sorted(paths) if (ROOT / path).is_file()}
+
+def fixtures(state, secret):
+    spec = importlib.util.spec_from_file_location('backend_fixture', ROOT / 'scripts/run-mvp02b-tests.py')
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.fixtures(state, secret)
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--evidence-dir', required=True)
+    args = parser.parse_args()
+    evidence = Path(args.evidence_dir).resolve()
+    evidence.mkdir(parents=True, exist_ok=True)
+    evidence.chmod(511)
+    project = 'enginia360-r00b-' + secrets.token_hex(6)
+    before_volumes = r00.inventory('volume')
+    protected_inventory = r00.capture_protected_runtime()
+    protected_snapshot = protected_inventory['protected']
+    (evidence/'preexisting-containers.json').write_text(json.dumps(protected_snapshot,indent=2))
+    with tempfile.TemporaryDirectory(prefix='mvp06-', dir=os.environ['TMPDIR']) as directory:
+        state = Path(directory)
+        values = {key: secrets.token_hex(24) for key in ('R00_INFRA_PASSWORD', 'R00_OWNER_PASSWORD', 'R00_APP_PASSWORD', 'R00_CLIENT_SECRET')}
+        values.update(R00_STATE=str(state), R00_POOL_SIZE=os.environ.get('MVP06_POOL_SIZE', '4'), MVP02C_EVIDENCE=str(evidence))
+        envfile = state / 'runtime.env'
+        envfile.write_text(''.join((k + '=' + v + '\n' for k, v in values.items())))
+        envfile.chmod(384)
+        run(['openssl', 'req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-days', '1', '-subj', '/CN=Ephemeral acceptance CA', '-addext', 'basicConstraints=critical,CA:TRUE', '-keyout', str(state / 'ca.key'), '-out', str(state / 'ca.crt')])
+        (state / 'ca.key').chmod(384)
+        (state / 'public').mkdir()
+        (state / 'public/ca.crt').write_bytes((state / 'ca.crt').read_bytes())
+        for service, host, uid in [('postgres', 'postgres', 70), ('api', 'api.r00.test', 1654), ('web', 'app.r00.test', 101), ('identity', 'idp.r00.test', 1000)]:
+            r00.certificate(state, service, host, uid)
+        (state / 'postgres/pg_hba.conf').write_text('local all all trust\nhostnossl all all all reject\nhostssl all all all scram-sha-256\n')
+        sql, identities = fixtures(state, values['R00_CLIENT_SECRET'])
+        control = state / 'control'
+        control.mkdir()
+        control.chmod(511)
+        config = state / 'document-types-acceptance.yaml'
+        config.write_text(r00.CONFIG.read_text().replace('      Authentication__ValidIssuer:', '      DocumentTypes__Enabled: "true"\n      Workshop__Enabled: "false"\n      Authentication__ValidIssuer:').replace('      Authentication__ValidIssuer:', '      Authentication__Authority: https://idp.r00.test:8443/realms/runtime\n      Authentication__ValidIssuer:'))
+        config.chmod(0o444)
+        r00.CONFIG = config
+        command = ['docker', 'compose', '--project-directory', str(ROOT), '--env-file', str(envfile), '-p', project, '-f', str(r00.CONFIG)]
+
+        def interrupted(signum, frame):
+            raise KeyboardInterrupt
+        previous = {sig: signal.signal(sig, interrupted) for sig in (signal.SIGINT, signal.SIGTERM)}
+        process = None
+        try:
+            build = subprocess.run(command + ['build'], cwd=ROOT, text=True, capture_output=True, timeout=600)
+            (evidence/'locked-compose-build.log').write_text(build.stdout+build.stderr+'\nexit='+str(build.returncode))
+            if build.returncode:
+                print(build.stdout+build.stderr, flush=True)
+                raise RuntimeError('locked container build failed')
+            run(command + ['up', '-d', '--wait', '--wait-timeout', '180', 'postgres', 'identity'], timeout=210)
+            mounts = ['-v', str(ROOT / 'scripts') + ':/runtime/scripts:ro', '-v', str(ROOT / 'database/runtime') + ':/runtime/database/runtime:ro']
+            print('MVP06 SQL membership authorization and physical barriers', flush=True)
+            testenv = dict(os.environ, PGPASSWORD=values['R00_INFRA_PASSWORD'], R00_OWNER_PASSWORD=values['R00_OWNER_PASSWORD'], R00_APP_PASSWORD=values['R00_APP_PASSWORD'])
+            completed = subprocess.run(command + ['run', '--rm', '--no-deps', '-T', *mounts, '-e', 'R00_MIGRATION_TESTS=1', '-e', 'PGUSER=postgres', '-e', 'PGPASSWORD', '-e', 'R00_OWNER_USER=runtime_owner', '-e', 'R00_OWNER_PASSWORD', '-e', 'R00_APP_PASSWORD', '--entrypoint', 'python3', 'migrator', 'scripts/test-mvp06-document-types.py', 'DocumentTypeTests', '-v'], env=testenv, cwd=ROOT, text=True, capture_output=True, timeout=240)
+            (evidence / 'sql-tests.log').write_text(completed.stdout + completed.stderr + '\nexit=' + str(completed.returncode))
+            print(completed.stdout + completed.stderr, flush=True)
+            if completed.returncode:
+                raise RuntimeError('tenant membership SQL assertions failed')
+            import re
+            sql_count = re.search(r'Ran ([1-9][0-9]*) tests? in ', completed.stderr + completed.stdout)
+            assert sql_count and 'skipped=' not in completed.stderr + completed.stdout, 'nonzero executed catalog SQL required'
+            run(command + ['run', '--rm', '--no-deps', '-T', *mounts, 'migrator'], timeout=90)
+            query = command + ['exec', '-T', 'postgres', 'psql', '-X', '-qAt', '-U', 'postgres', '-d', 'runtime', '-v', 'ON_ERROR_STOP=1']
+            run(query, input=sql)
+            binding = json.loads(run(query + ['-c', f"""SELECT row_to_json(b) FROM organization_access.external_identity_bindings b WHERE "InternalIdentityId"='{identities[4]}' """]).strip())
+            revision = 0
+
+            def owner(operation):
+                nonlocal revision
+                payload = dict(commandId=str(uuid.uuid4()), operation=operation, internalIdentityId=binding['InternalIdentityId'], issuer=binding['Issuer'], subject=binding['Subject'], verificationReference=str(uuid.uuid4()), expectedRevision=revision)
+                path = state / 'public/authority.json'
+                write_readonly_json(path, payload)
+                for _ in range(2):
+                    result = run(command + ['run', '--rm', '--no-deps', '-T', *mounts, '--entrypoint', 'python3', 'migrator', 'scripts/owner-platform-authority.py', '/run/tls/authority.json'], timeout=45)
+                    assert 'exact immutable audit read back' in result
+                revision += 1
+                print('MVP06_OWNER ' + operation + ' exact replay/readback', flush=True)
+            # Execute singleton-owner classes in distinct invocations. Never
+            # parallelize them against one platform-authority slot.
+            image = project + '-document-types-api'
+            build = subprocess.run(['docker','build','-f','runtime-pool-test.Dockerfile','-t',image,'.'], cwd=ROOT, text=True, capture_output=True, timeout=600)
+            (evidence/'locked-api-build.log').write_text(build.stdout+build.stderr+'\nexit='+str(build.returncode))
+            if build.returncode:
+                print(build.stdout+build.stderr, flush=True)
+                raise RuntimeError('locked API build failed')
+            api_env = dict(os.environ,
+                R00_POOL_CONNECTION='Host=postgres;Database=runtime;Username=runtime_app;Password='+values['R00_APP_PASSWORD']+';SSL Mode=VerifyFull;Root Certificate=/run/tls/ca.crt;Timeout=5;Command Timeout=15',
+                R00_POOL_ADMIN_CONNECTION='Host=postgres;Database=runtime;Username=postgres;Password='+values['R00_INFRA_PASSWORD']+';SSL Mode=VerifyFull;Root Certificate=/run/tls/ca.crt;Timeout=5;Command Timeout=15')
+            for suite in ('DocumentTypeManagementTests','BusinessMembershipFenceTests'):
+                invocation=['docker','run','--rm','--label','com.docker.compose.project='+project,
+                    '--label','com.docker.compose.project.config_files='+str(config),
+                    '--network',project+'_runtime','--read-only','--cap-drop=ALL','--security-opt=no-new-privileges:true',
+                    '--memory=1024m','--cpus=2','--pids-limit=256','--log-opt=max-size=5m','--log-opt=max-file=2',
+                    '--tmpfs','/tmp:rw,noexec,nosuid,size=128m,uid=1654,gid=1654',
+                    '-v',str(state/'public')+':/run/tls:ro','-v',str(evidence)+':/evidence:rw',
+                    '-e','R00_POOL_CONNECTION','-e','R00_POOL_ADMIN_CONNECTION','--entrypoint','dotnet',image,
+                    'test','tests/Enginia360.Api.Tests','-c','Release','--no-build','--no-restore',
+                    '--filter','FullyQualifiedName~'+suite,'--logger','trx;LogFileName='+suite+'.trx','--results-directory','/evidence']
+                completed=subprocess.run(invocation,env=api_env,cwd=ROOT,text=True,capture_output=True,timeout=360)
+                (evidence/(suite+'.log')).write_text(completed.stdout+completed.stderr+'\nexit='+str(completed.returncode))
+                print(completed.stdout+completed.stderr,flush=True)
+                if completed.returncode: raise RuntimeError('membership owning suite failed: '+suite)
+                import xml.etree.ElementTree as ET
+                trx=ET.parse(evidence/(suite+'.trx'))
+                counters=trx.find('.//{*}Counters')
+                assert counters is not None and int(counters.attrib['total'])>0
+                assert int(counters.attrib['executed'])==int(counters.attrib['total'])
+                assert int(counters.attrib.get('failed','0'))==0 and int(counters.attrib.get('notExecuted','0'))==0
+                assert int(counters.attrib['passed'])==int(counters.attrib['total']),suite
+            # Actual post-migration catalog, not a source-only SD/RLS inventory.
+            catalog=run(query+['-c',"SELECT jsonb_build_object('functions',(SELECT jsonb_agg(jsonb_build_object('name',p.oid::regprocedure::text,'definer',p.prosecdef,'appExecute',has_function_privilege('runtime_app',p.oid,'EXECUTE'),'definition',pg_get_functiondef(p.oid))) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname IN ('organization_access','counterparties','catalog','vehicles','workshop','inventory','billing','accounting','integrations','document_types') AND p.prokind='f'),'policies',(SELECT jsonb_agg(to_jsonb(x)) FROM pg_policies x))"])
+            (evidence/'actual-runtime-catalog.json').write_text(catalog)
+            runtime_catalog=json.loads(catalog)
+            # Exact historical catalog inventory, including overloads; neither a
+            # regex over migrations nor a count can detect an unexpected ingress.
+            historical_sd = '''catalog.purchase_intent_quote(uuid,uuid,uuid,uuid)
+catalog.set_supplier_purchase_price(uuid,uuid,uuid,uuid,integer,integer,integer,integer,text)
+catalog.supplier_purchase_price_state(uuid,uuid,uuid)
+counterparties.common_edit_state(uuid,uuid)
+counterparties.edit_common(uuid,uuid,uuid,integer,integer,text,text,text)
+counterparties.purchase_suppliers(uuid)
+counterparties.read_giobby_vendor_identity(uuid,uuid)
+counterparties.set_supplier_role(uuid,uuid,uuid,integer,integer,boolean)
+inventory.accept_purchase_intent(uuid,uuid,uuid,uuid,uuid,integer,integer,integer,text,integer,integer,integer,text,jsonb)
+inventory.create_purchase_intent(uuid,uuid,uuid,uuid,uuid,integer,integer,integer,text,jsonb)
+inventory.create_receipt_intent(uuid,uuid,text,jsonb)
+inventory.pending_purchase_dispatch(integer,integer)
+inventory.pending_receipt_dispatch(integer,integer)
+inventory.purchase_intent_state(uuid,uuid,uuid)
+inventory.read_purchase_dispatch(uuid,uuid,uuid)
+inventory.read_receipt_dispatch(uuid,uuid,uuid)
+inventory.receipt_sources(uuid,uuid,uuid)
+inventory.receipt_state(uuid)
+inventory.record_purchase_outcome(uuid,uuid,uuid,text)
+inventory.record_receipt_outcome(uuid,uuid,uuid,text)
+organization_access.administrative_request_authorized(uuid,uuid,text,uuid,uuid)
+organization_access.command_operative_grant(uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,text)
+organization_access.command_organization(uuid,jsonb)
+organization_access.command_organization_delegation(uuid,jsonb)
+organization_access.command_tenant_role(uuid,jsonb)
+organization_access.company_stock_profile(uuid,uuid)
+organization_access.current_membership_access(uuid)
+organization_access.current_tenant_role_scopes()
+organization_access.grant_administration()
+organization_access.inventory_new_return_authorized(uuid,uuid,text,uuid,uuid,uuid,boolean)
+organization_access.inventory_release_authorized(uuid,uuid,text,uuid,uuid,uuid,boolean)
+organization_access.read_master_authority(uuid)
+organization_access.read_organization(uuid)
+organization_access.read_organization_delegations(uuid)
+organization_access.read_organization_workspace()
+organization_access.read_tenant_roles(uuid)
+workshop.pending_administrative_outbox(integer,integer)
+workshop.pending_administrative_outbox(integer)'''.splitlines()
+            additions = {'organization_access.command_membership_access(uuid,jsonb)',
+                'workshop.read_accepted_administrative_request(uuid,uuid)',
+                'workshop.record_accepted_administrative_outcome(uuid,uuid,text,text,text)',
+                'organization_access.read_onboarding(uuid)',
+                'organization_access.begin_onboarding(uuid)',
+                'organization_access.pending_onboarding_status(uuid,uuid)',
+                'organization_access.command_onboarding(uuid,jsonb)',
+                'counterparties.management_read(text,uuid,uuid,uuid)',
+                'counterparties.management_command(jsonb)',
+                'catalog.management_read(text,uuid,uuid,text)',
+                'catalog.management_command(jsonb)',
+                'document_types.read(uuid,text,uuid,uuid,integer,integer)',
+                'document_types.command(jsonb)'}
+            executable_sd = {f['name'] for f in runtime_catalog['functions'] if f['definer'] and f['appExecute']}
+            assert len(historical_sd) == len(set(historical_sd)) == 38
+            assert executable_sd == set(historical_sd) | additions, executable_sd.symmetric_difference(set(historical_sd) | additions)
+            accepted_sd = {name for name in executable_sd if name.startswith(('inventory.pending_', 'inventory.read_', 'inventory.record_', 'workshop.pending_', 'workshop.read_accepted_', 'workshop.record_accepted_'))}
+            (evidence/'exact-sd-classification.json').write_text(json.dumps(dict(historical=sorted(historical_sd),added=sorted(additions),acceptedWork=sorted(accepted_sd),userDerived=sorted(executable_sd-accepted_sd)),indent=2))
+            acl = run(query+['-c', "SELECT jsonb_agg(jsonb_build_object('schema',n.nspname,'table',c.relname,'column',a.attname,'select',has_column_privilege('runtime_app',c.oid,a.attnum,'SELECT'),'insert',has_column_privilege('runtime_app',c.oid,a.attnum,'INSERT'),'update',has_column_privilege('runtime_app',c.oid,a.attnum,'UPDATE'),'delete',has_table_privilege('runtime_app',c.oid,'DELETE'),'truncate',has_table_privilege('runtime_app',c.oid,'TRUNCATE')) ORDER BY n.nspname,c.relname,a.attnum) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace JOIN pg_attribute a ON a.attrelid=c.oid AND a.attnum>0 AND NOT a.attisdropped WHERE c.relkind='r' AND n.nspname IN ('organization_access','counterparties','catalog','vehicles','workshop','inventory','billing','accounting','integrations','document_types')"])
+            (evidence/'actual-runtime-column-acl.json').write_text(acl)
+            for row in json.loads(acl):
+                if row['schema']=='organization_access' and row['table'] in ('membership_access_state','membership_access_audit','membership_access_snapshot_fence','onboarding_invitations','onboarding_requests','onboarding_audit'):
+                    assert not any(row[k] for k in ('select','insert','update','delete','truncate')),row
+            owners=run(query+['-c', "SELECT jsonb_agg(jsonb_build_object('function',p.oid::regprocedure::text,'owner',r.rolname,'superuser',r.rolsuper,'bypassRls',r.rolbypassrls,'settings',p.proconfig)) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace JOIN pg_roles r ON r.oid=p.proowner WHERE p.prosecdef AND n.nspname IN ('organization_access','counterparties','catalog','vehicles','workshop','inventory','billing','accounting','integrations','document_types')"])
+            (evidence/'actual-sd-owners.json').write_text(owners)
+            # The published envelope-only NOLOGIN reader intentionally has
+            # BYPASSRLS. Classify its exact five functions and fifteen column
+            # grants instead of imposing a false blanket no-bypass assertion.
+            envelope_functions={'workshop.pending_administrative_outbox(integer)',
+                'workshop.pending_administrative_outbox(integer,integer)',
+                'inventory.pending_purchase_dispatch(integer,integer)',
+                'inventory.pending_receipt_dispatch(integer,integer)',
+                'inventory.receipt_source_company(uuid)'}
+            bypass_functions=set()
+            for row in json.loads(owners):
+                assert not row['superuser'],row
+                if row['bypassRls']:
+                    assert row['owner']=='enginia360_outbox_reader',row
+                    bypass_functions.add(row['function'])
+                assert any(setting.startswith('search_path=') for setting in (row['settings'] or [])),row
+            assert bypass_functions==envelope_functions,bypass_functions
+            reader=run(query+['-c', "SELECT jsonb_build_object('login',rolcanlogin,'superuser',rolsuper,'createRole',rolcreaterole,'createDb',rolcreatedb,'replication',rolreplication) FROM pg_roles WHERE rolname='enginia360_outbox_reader'"])
+            assert json.loads(reader)==dict(login=False,superuser=False,createRole=False,createDb=False,replication=False)
+            reader_acl=run(query+['-c', "SELECT jsonb_agg(jsonb_build_object('table',n.nspname||'.'||c.relname,'column',a.attname,'select',has_column_privilege('enginia360_outbox_reader',c.oid,a.attnum,'SELECT'),'insert',has_column_privilege('enginia360_outbox_reader',c.oid,a.attnum,'INSERT'),'update',has_column_privilege('enginia360_outbox_reader',c.oid,a.attnum,'UPDATE'),'delete',has_table_privilege('enginia360_outbox_reader',c.oid,'DELETE'),'truncate',has_table_privilege('enginia360_outbox_reader',c.oid,'TRUNCATE'))) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace JOIN pg_attribute a ON a.attrelid=c.oid AND a.attnum>0 AND NOT a.attisdropped WHERE c.relkind='r' AND n.nspname IN ('organization_access','counterparties','catalog','vehicles','workshop','inventory','billing','accounting','integrations','document_types')"])
+            (evidence/'accepted-envelope-reader-acl.json').write_text(reader_acl)
+            expected_columns={
+                (table,column) for table,columns in {
+                    'workshop.administrative_outbox':['TenantId','RequestId','CreatedAt'],
+                    'workshop.administrative_outcomes':['RequestId'],
+                    'inventory.purchase_intents':['TenantId','LegalEntityId','Id','CreatedAt'],
+                    'inventory.purchase_intent_prices':['IntentId'],
+                    'inventory.purchase_intent_outcomes':['IntentId'],
+                    'inventory.receipt_intents':['Id','TenantId','LegalEntityId','CreatedAt'],
+                    'inventory.receipt_outcomes':['ReceiptId'],
+                }.items() for column in columns}
+            assert {(r['table'],r['column']) for r in json.loads(reader_acl) if r['select']}==expected_columns
+            assert not any(r[k] for r in json.loads(reader_acl) for k in ('insert','update','delete','truncate'))
+            for function in runtime_catalog['functions']:
+                if '_before_access(' in function['name']:
+                    assert not function['appExecute'],'private original executable: '+function['name']
+            required={
+                'organization_access':('membership_scopes','common_edit_permissions','company_permissions','delegation_mandates','delegated_scopes'),
+                'counterparties':('counterparties','destinations'),
+                'catalog':('items','supplier_purchase_price_history'),
+                'vehicles':('vehicles',),
+                'inventory':('stock','reservations','picking_policies','picking_locations','picks','consumptions','carcass_locations','carcass_returns','carcass_return_installations','reservation_releases','new_part_returns','purchase_intents','purchase_intent_outbox','purchase_intent_prices','purchase_intent_outcomes','receipt_intents','receipt_outbox','receipt_outcomes'),
+                'billing':('document_types','issuer_profiles','invoices','invoice_confirmations','invoice_journal_links'),
+                'accounting':('chart_accounts','journal_entries','journal_entry_lines'),
+                'workshop':('orders','document_types','line_policies','carcass_policies','commercial_lines','working_groups','order_notes','editor_commands','workspace_history','technical_closures','installations','administrative_destinations','administrative_requests','administrative_bindings','administrative_outbox','administrative_outcomes','administrative_closures','internal_billing_claims','own_actual_time_streams','own_actual_time_entries','own_actual_time_commands','own_actual_time_versions','actual_time_group_references')}
+            for schema,tables in required.items():
+                for table in tables:
+                    policy=[p for p in runtime_catalog['policies'] if p['schemaname']==schema and p['tablename']==table and p['policyname']=='membership_access_current']
+                    assert len(policy)==1 and policy[0]['permissive']=='RESTRICTIVE',(schema,table)
+                    expected_predicate='organization_access.current_membership_access("TenantId")'
+                    assert policy[0]['qual']==policy[0]['with_check']==expected_predicate,(schema,table,policy)
+                    assert policy[0]['roles']==['runtime_app'],(schema,table,policy)
+                    assert policy[0]['cmd']=='ALL',(schema,table,policy)
+            assert {(p['schemaname'],p['tablename']) for p in runtime_catalog['policies'] if p['policyname']=='membership_access_current'}=={(schema,table) for schema,tables in required.items() for table in tables}
+            forced=run(query+['-c',"SELECT jsonb_agg(jsonb_build_object('schema',n.nspname,'table',c.relname,'force',c.relforcerowsecurity,'rls',c.relrowsecurity)) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE c.relkind='r'"])
+            (evidence/'actual-runtime-force-rls.json').write_text(forced)
+            table_flags={(r['schema'],r['table']):r for r in json.loads(forced)}
+            for schema,tables in required.items():
+                for table in tables:
+                    assert table_flags[schema,table]['force'] and table_flags[schema,table]['rls'],(schema,table)
+
+            for table in ('catalog.authority_history','catalog.management_audit','document_types.definitions','document_types.versions','document_types.command_audit'):
+                flags=table_flags[tuple(table.split('.'))]
+                assert flags['force'] and flags['rls'],table
+                for row in json.loads(acl):
+                    if row['schema']+'.'+row['table']==table:
+                        assert not any(row[k] for k in ('select','insert','update','delete','truncate')),row
+            private={'document_types.snapshot(uuid,integer)','organization_access.document_type_permission(text,uuid)','organization_access.read_tenant_roles_before_document_types(uuid)','catalog.establish_authority(uuid,uuid,uuid,uuid,integer,text,uuid,uuid,uuid[])','catalog.management_snapshot(uuid)','organization_access.catalog_permission(text)','organization_access.read_tenant_roles_before_catalog(uuid)'}
+            for function in runtime_catalog['functions']:
+                if function['name'] in private: assert not function['appExecute'],function['name']
+
+            # Published migration immutability is verified here, never while
+            # implementing the point. New0044 is not part of the published ledger.
+            import hashlib
+            published=json.loads(subprocess.check_output(['git','show','43a4ff836d67bf1b4f01eb27ccc318171ee45f8d:database/runtime/manifest.json'],cwd=ROOT,text=True))
+            hashes={}
+            for entry in published:
+                path='database/runtime/'+entry['path']
+                original=subprocess.check_output(['git','show','43a4ff836d67bf1b4f01eb27ccc318171ee45f8d:'+path],cwd=ROOT)
+                current=(ROOT/path).read_bytes();assert current==original,path
+                hashes[path]=hashlib.sha256(current).hexdigest()
+            assert len(hashes)==43
+            (evidence/'published-migration-hashes.json').write_text(json.dumps(hashes,indent=2))
+            # Include every committed/untracked source, fixture and build input.
+            source_hashes = candidate_source_hashes()
+            (evidence/'candidate.json').write_text(json.dumps(dict(head=run(['git','rev-parse','HEAD']).strip(),tree=run(['git','rev-parse','HEAD^{tree}']).strip(),sourceHashes=source_hashes,pool=values['R00_POOL_SIZE'],validationPhase='final',operationalReadiness=False),indent=2))
+            run(command + ['up', '-d', 'api', 'next', 'web'], timeout=120)
+            ids = run(command + ['ps', '-q']).splitlines()
+            inspected = json.loads(run(['docker', 'inspect', *ids]))
+            metadata = []
+            for container in inspected:
+                host = container['HostConfig']
+                metadata.append(dict(service=container['Config']['Labels']['com.docker.compose.service'], user=container['Config']['User'], readonly=host['ReadonlyRootfs'], capDrop=host['CapDrop'], securityOpt=host['SecurityOpt'], portBindings=host['PortBindings'], memory=host['Memory'], cpus=host['NanoCpus'], pids=host['PidsLimit'], mountTypes=[m['Type'] for m in container['Mounts']]))
+                assert container['Config']['User'] not in ('', '0', 'root') and host['ReadonlyRootfs'] and (host['CapDrop'] == ['ALL']) and ('no-new-privileges:true' in host['SecurityOpt']) and (not host['PortBindings']) and (host['Memory'] > 0) and (host['NanoCpus'] > 0) and (host['PidsLimit'] > 0) and (not any((m['Type'] == 'volume' for m in container['Mounts'])))
+            assert json.loads(run(['docker', 'network', 'inspect', project + '_runtime']))[0]['Internal']
+            (evidence / 'runtime-hardening.json').write_text(json.dumps(dict(containers=metadata, internalNetwork=True, pool=values['R00_POOL_SIZE']), indent=2))
+            browser = command + ['run', '--rm', '--no-deps', '-T', '--entrypoint', 'sh', 'browser', '-c', 'mkdir -p "$HOME/.pki/nssdb" && certutil -N -d sql:$HOME/.pki/nssdb --empty-password && certutil -A -d sql:$HOME/.pki/nssdb -n runtime-ephemeral-ca -t C,, -i /run/tls/ca.crt && exec node mvp06-document-types.cjs']
+            process = subprocess.Popen(browser, cwd=ROOT)
+            deadline = time.monotonic() + 420
+            operator_binding = None
+            while process.poll() is None:
+                if time.monotonic() > deadline:
+                    raise TimeoutError('authority browser deadline')
+                request = control / 'request'
+                if request.exists():
+                    # The browser is a one-shot container; inspect it while its first
+                    # control request proves it is alive, not only the five services.
+                    browser_ids = run(['docker', 'ps', '-q', '--filter', 'label=com.docker.compose.project=' + project, '--filter', 'label=com.docker.compose.service=browser']).splitlines()
+                    assert len(browser_ids) == 1, 'one owned browser must be alive'
+                    browser_container = json.loads(run(['docker', 'inspect', browser_ids[0]]))[0]
+                    host = browser_container['HostConfig']
+                    assert browser_container['Config']['User'] == '1001:1001'
+                    assert host['ReadonlyRootfs'] and host['CapDrop'] == ['ALL'] and 'no-new-privileges:true' in host['SecurityOpt']
+                    assert not host['PortBindings'] and host['Memory'] > 0 and host['NanoCpus'] > 0 and host['PidsLimit'] > 0
+                    assert not any(m['Type'] == 'volume' for m in browser_container['Mounts'])
+                    if not any(row['service'] == 'browser' for row in metadata):
+                        metadata.append(dict(service='browser', user=browser_container['Config']['User'], readonly=host['ReadonlyRootfs'], capDrop=host['CapDrop'], securityOpt=host['SecurityOpt'], portBindings=host['PortBindings'], memory=host['Memory'], cpus=host['NanoCpus'], pids=host['PidsLimit'], mountTypes=[m['Type'] for m in browser_container['Mounts']]))
+                        (evidence / 'runtime-hardening.json').write_text(json.dumps(dict(containers=metadata, internalNetwork=True, pool=values['R00_POOL_SIZE']), indent=2))
+                    action = request.read_text()
+                    request.unlink()
+                    if action in ('grant', 'revoke'):
+                        owner(action)
+                    elif action in ('doctype-binding-replace','doctype-binding-restore'):
+                        # Test-owned ephemeral PostgreSQL tuple only. No IdP admin call.
+                        if action == 'doctype-binding-replace':
+                            member=json.loads((state/'browser.json').read_text())['grantTargetMembershipId']
+                            operator_binding=json.loads(run(query+['-c',"SELECT to_jsonb(b) FROM organization_access.external_identity_bindings b JOIN organization_access.memberships m ON m.\"IdentitySubject\"=b.\"InternalIdentityId\"::text WHERE m.\"Id\"='"+member+"'"]))
+                        assert operator_binding is not None
+                        identity=operator_binding['InternalIdentityId']
+                        subject='Synthetic replaced MVP06 binding' if action.endswith('replace') else operator_binding['Subject']
+                        literal=subject.replace("'","''")
+                        run(query+['-c',"UPDATE organization_access.external_identity_bindings SET \"Subject\"='"+literal+"' WHERE \"InternalIdentityId\"='"+identity+"'"])
+                        actual=run(query+['-c',"SELECT \"Subject\" FROM organization_access.external_identity_bindings WHERE \"InternalIdentityId\"='"+identity+"'"]).strip()
+                        assert actual==subject,'exact synthetic binding readback required'
+                    elif action == 'doctype-audit-readback':
+                        tenant=json.loads((state/'browser.json').read_text())['contexts'][0]['tenantId']
+                        rows=json.loads(run(query+['-c',"SELECT coalesce(jsonb_agg(to_jsonb(a) ORDER BY \"OccurredAt\"),'[]') FROM document_types.command_audit a WHERE \"TenantId\"='"+tenant+"'::uuid"]))
+                        assert len(rows)==12,rows
+                        assert sorted(row['Request']['operation'] for row in rows)==['create']*6+['edit']*6
+                        assert len({row['CommandId'] for row in rows})==12
+                        assert {row['After']['effect'] for row in rows}=={'Load','Unload','Transfer','None'}
+                        assert len({row['LegalEntityId'] for row in rows})==2
+                        assert all(row['BindingHash'] and 'issuer' not in row['Request'] and 'subject' not in row['Request'] for row in rows)
+                        (evidence/'document-types-sql-readback.json').write_text(json.dumps(rows,indent=2))
+                        actual=json.loads(run(query+['-c',"SELECT jsonb_build_object('definitions',(SELECT jsonb_agg(to_jsonb(d)) FROM document_types.definitions d WHERE \"TenantId\"='"+tenant+"'),'versions',(SELECT jsonb_agg(to_jsonb(v)) FROM document_types.versions v WHERE \"TenantId\"='"+tenant+"'),'stock',(SELECT count(*) FROM inventory.stock WHERE \"TenantId\"='"+tenant+"'),'orders',(SELECT count(*) FROM workshop.orders WHERE \"TenantId\"='"+tenant+"'))"]))
+                        assert len(actual['definitions'])==6 and len(actual['versions'])==12
+                        assert actual['stock']==actual['orders']==0,actual
+                        assert sorted(d['Revision'] for d in actual['definitions'])==[1,2,2,2,2,3]
+                        by_version={(v['LegalEntityId'],v['DocumentTypeId'],v['Revision']):v for v in actual['versions']}
+                        for row in rows:
+                            snap=row['After'];v=by_version[snap['legalEntityId'],snap['id'],snap['revision']]
+                            assert (v['Label'],v['Effect'])==(snap['label'],snap['effect'])
+                        (evidence/'immutable-document-types-readback.json').write_text(json.dumps(actual,indent=2))
+                    elif action == 'doctype-paging-readback':
+                        tenant=json.loads((state/'browser.json').read_text())['contexts'][0]['tenantId']
+                        actual=json.loads(run(query+['-c',"SELECT jsonb_build_object('definitions',(SELECT jsonb_agg(to_jsonb(d)) FROM document_types.definitions d WHERE \"TenantId\"='"+tenant+"'),'versions',(SELECT jsonb_agg(to_jsonb(v)) FROM document_types.versions v WHERE \"TenantId\"='"+tenant+"'),'audit',(SELECT jsonb_agg(to_jsonb(a)) FROM document_types.command_audit a WHERE \"TenantId\"='"+tenant+"'),'stock',(SELECT count(*) FROM inventory.stock WHERE \"TenantId\"='"+tenant+"'),'orders',(SELECT count(*) FROM workshop.orders WHERE \"TenantId\"='"+tenant+"'))"]))
+                        assert len(actual['definitions'])==27 and len(actual['versions'])==len(actual['audit'])==56
+                        assert actual['stock']==actual['orders']==0
+                        assert len({a['CommandId'] for a in actual['audit']})==56
+                        assert sorted(a['Request']['operation'] for a in actual['audit'])==['create']*27+['edit']*29
+                        versions={(v['LegalEntityId'],v['DocumentTypeId'],v['Revision']):v for v in actual['versions']}
+                        for audit in actual['audit']:
+                            snapshot=audit['After'];version=versions[snapshot['legalEntityId'],snapshot['id'],snapshot['revision']]
+                            assert (version['Label'],version['Effect'])==(snapshot['label'],snapshot['effect'])
+                        for definition in actual['definitions']:
+                            version=versions[definition['LegalEntityId'],definition['Id'],definition['Revision']]
+                            assert definition['Revision']==max(v['Revision'] for v in actual['versions'] if v['DocumentTypeId']==definition['Id'])
+                        original=json.loads((evidence/'immutable-document-types-readback.json').read_text())
+                        assert all(row in actual['versions'] for row in original['versions'])
+                        assert all(row in actual['definitions'] for row in original['definitions'])
+                        (evidence/'paging-document-types-readback.json').write_text(json.dumps(actual,indent=2))
+                    else:
+                        raise ValueError('unknown role acceptance control')
+                    (control / 'ack').write_text(action)
+                time.sleep(0.05)
+            assert process.returncode == 0, 'authority Chromium failed'
+            print('PASS MVP06 real TLS OIDC HTTP and Next SSR pool' + values['R00_POOL_SIZE'], flush=True)
+        finally:
+            if process and process.poll() is None:
+                process.terminate()
+                try:
+                    process.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait(timeout=5)
+            for sig in previous:
+                signal.signal(sig, signal.SIG_IGN)
+            try:
+                r00.cleanup(command, project)
+                if run(['docker','image','ls','-q',project+'-document-types-api']).strip():
+                    run(['docker','image','rm',project+'-document-types-api'], timeout=45)
+            finally:
+                for sig, handler in previous.items():
+                    signal.signal(sig, handler)
+    assert r00.inventory('volume') == before_volumes
+    verification = r00.verify_protected_runtime(protected_inventory)
+    after_snapshot = verification['protectedAfter']
+    (evidence/'postexisting-containers.json').write_text(json.dumps(after_snapshot,indent=2))
+    (evidence/'unrelated-running-diff.json').write_text(json.dumps(dict(added=verification['added'],removed=verification['removed']),indent=2))
+    assert after_snapshot==protected_snapshot,'pre-existing container identity/start/mount changed'
+    assert not set(run(['docker','ps','-aq','--filter','label=com.docker.compose.project='+project]).splitlines()),'owned cleanup incomplete'
+    import hashlib
+    digests={path.name:hashlib.sha256(path.read_bytes()).hexdigest() for path in sorted(evidence.iterdir()) if path.is_file() and path.name!='artifact-sha256.json'}
+    (evidence/'artifact-sha256.json').write_text(json.dumps(dict(head=run(['git','rev-parse','HEAD']).strip(),tree=run(['git','rev-parse','HEAD^{tree}']).strip(),files=digests),indent=2))
+    print('PASS MVP06 guarded cleanup; protected services and volumes unchanged', flush=True)
+if __name__ == '__main__':
+    main()
