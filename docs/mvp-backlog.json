@@ -176,7 +176,7 @@
       "dependsOn": [
         "MVP-04"
       ],
-      "status": "in_progress",
+      "status": "done",
       "issueNumber": 144,
       "acceptance": [
         "Gestione e rilettura articolo e servizio senza Workshop",
@@ -186,8 +186,12 @@
       ],
       "contract": "docs/mvp05-catalog-contract.md",
       "implementationStatus": "source_complete",
-      "validationStatus": "FINAL_VALIDATION_IN_PROGRESS",
-      "runtimeDelivered": false
+      "validationStatus": "verified_parent_exact_head_artifacts",
+      "runtimeDelivered": true,
+      "pr": 169,
+      "mergedMain": "43a4ff836d67bf1b4f01eb27ccc318171ee45f8d",
+      "prCi": 41833394752,
+      "runtimeDispatch": 41833450699
     },
     {
       "id": "MVP-06",
@@ -198,14 +202,18 @@
       "dependsOn": [
         "MVP-05"
       ],
-      "status": "backlog",
+      "status": "in_progress",
       "issueNumber": 145,
       "acceptance": [
         "Ogni societa' gestisce le proprie tipologie autorizzate",
         "Effetto configurabile tra carico, scarico, trasferimento e nessun effetto",
         "Nessun codice o formula personalizzata; vincoli non aggirabili",
         "Versioni applicate e audit tracciabili senza riscrittura dei fatti confermati"
-      ]
+      ],
+      "contract": "docs/mvp06-document-types-contract.md",
+      "implementationStatus": "source_complete",
+      "validationStatus": "UNEXECUTED",
+      "runtimeDelivered": false
     },
     {
       "id": "MVP-07",

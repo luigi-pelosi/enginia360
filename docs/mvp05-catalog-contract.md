@@ -1,5 +1,11 @@
 # MVP05 / #144 — catalogo autonomo articoli e servizi
 
+## Stato corrente — consegna verificata dal coordinatore
+
+MVP-05/#144 COMPLETATO: PR #169, merge `43a4ff836d67bf1b4f01eb27ccc318171ee45f8d`, candidate `b6a337d35826d23de2465f79e99bd4f6105da458`, tree equivalente `2d5c06ae8c83e744a88e20abdcc0c34f0066ad81`. Il coordinatore ha riletto PR CI `41833394752` (5 job/59 step), dispatch `41833450699` (15 job/139 step), nove ZIP con SHA256/head verificati, 20 TRX con 274 test eseguiti/passati e zero skip; issue #144 chiusa e Project Completato. Evidenze `/root/.hermes/evidence/enginia360-mvp05/final/merge-ready.json` e `/root/.hermes/evidence/enginia360-mvp05-parent/merge-readback.json`. Equivalenza tree, non nuova CI main. MVP-06/#145 SORGENTI COMPLETI, NON VERIFICATO; contratto `docs/mvp06-document-types-contract.md`. #146–#149 restano Backlog. Nessun deployment o readiness operativa. I paragrafi seguenti conservano il checkpoint storico del candidato PR169; non descrivono un blocco corrente.
+
+## Checkpoint storico del candidato PR169
+
 Stato: SORGENTI COMPLETI, VALIDAZIONE FINALE IN CORSO. Intero punto #144 implementato prima di qualsiasi validazione; [manifest, criteri, incidenti e comandi finali](mvp05-implementation.md). Il checkpoint UNEXECUTED del writer è storico. Nessuna dichiarazione di consegna o readiness. D96, D97 e baseline MVP-A03; nessun prerequisito Workshop, ERP o fixture seed.
 
 ## Contratto minimo fissato prima del codice

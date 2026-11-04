@@ -213,5 +213,10 @@
     "id": "0043_catalog_management",
     "path": "migrations/0043_catalog_management.sql",
     "sha256": "e5d385c413eb7717d7a39595d4a92a5de2f7e409a9be354fc2b7b9f348096136"
+  },
+  {
+    "id": "0044_document_types",
+    "path": "migrations/0044_document_types.sql",
+    "sha256": "9fa81f312beeaa161583ddf2f94b2522230ed593889d828a999569965c162956"
   }
 ]

@@ -68,6 +68,8 @@ if (externalAdministration)
         builder.Configuration.GetSection("ExternalAdministration:Giobby")) is { } descriptor
         ? new Enginia360.Inventory.Contracts.PurchaseDestinationBinding(descriptor) : null!);
 }
+if (builder.Configuration.GetValue<bool>("DocumentTypes:Enabled"))
+    Enginia360.DocumentTypes.DocumentTypesModule.AddDocumentTypes(builder.Services, builder.Configuration.GetConnectionString("OrganizationAccess")!);
 var app = builder.Build();
 using var requestMeter = new Meter("Enginia360.Api", "1.0.0");
 var requestDuration = requestMeter.CreateHistogram<double>("enginia360.http.duration", "s");
@@ -117,7 +119,7 @@ app.Use(
 // Platform metadata is private even when authentication denies before endpoint execution.
 app.Use(async (context, next) =>
 {
-    if (context.Request.Path.StartsWithSegments("/api/v1/catalog/management"))
+    if (context.Request.Path.StartsWithSegments("/api/v1/catalog/management") || context.Request.Path.StartsWithSegments("/api/v1/document-types"))
     {
         context.Response.Headers.CacheControl = "private, no-store";
         context.Response.Headers.Vary = "Cookie, Authorization";
@@ -158,6 +160,8 @@ app.MapHealthChecks(
         Predicate = registration => registration.Tags.Contains("external"),
     }
 );
+if (app.Configuration.GetValue<bool>("DocumentTypes:Enabled"))
+    Enginia360.DocumentTypes.DocumentTypesModule.MapDocumentTypes(app);
 app.MapOrganizationAccess();
 app.MapBrowserSessions();
 app.MapPendingOnboarding();

@@ -162,7 +162,7 @@ export function TenantRoleWorkspace({
       );
       const action = text("action");
       const shared = ["counterparties.shared.read", "counterparties.shared.create", "counterparties.shared.edit", "counterparties.business-roles.write", "catalog.shared.read", "catalog.shared.create", "catalog.shared.edit"].includes(action);
-      const extension = ["counterparties.extensions.read", "counterparties.extensions.write"].includes(action);
+      const extension = ["counterparties.extensions.read", "counterparties.extensions.write", "document-types.read", "document-types.create", "document-types.edit"].includes(action);
       const company = data.companies?.find(c => c.legalEntityId === text("legalEntityId"));
       if ((!shared && !extension && !scope) || (extension && !company)) return;
       payload = {
@@ -413,7 +413,7 @@ export function TenantRoleWorkspace({
                       ))}
                     </select>
                   </label>
-                  ) : permissionAction.startsWith("counterparties.extensions.") ? (
+                  ) : (permissionAction.startsWith("counterparties.extensions.") || permissionAction.startsWith("document-types.")) ? (
                     <label>Scope società esatta
                       <select name="legalEntityId" required defaultValue={permission?.legalEntityId || ""}>
                         <option value="">Seleziona società</option>

@@ -42,7 +42,7 @@ class RoleTests(unittest.TestCase):
   self.assertEqual(len(result['memberships']),1)
   self.assertEqual(result['memberships'][0]['membershipId'],self.member)
   self.assertFalse(result['memberships'][0]['active']);self.assertEqual(result['memberships'][0]['revision'],0)
-  self.assertEqual(result['actions'],['organization-context.read','organization-context.write','counterparties.shared.read','counterparties.shared.create','counterparties.shared.edit','counterparties.business-roles.write','counterparties.extensions.read','counterparties.extensions.write','catalog.shared.read','catalog.shared.create','catalog.shared.edit'])
+  self.assertEqual(result['actions'],['organization-context.read','organization-context.write','counterparties.shared.read','counterparties.shared.create','counterparties.shared.edit','counterparties.business-roles.write','counterparties.extensions.read','counterparties.extensions.write','catalog.shared.read','catalog.shared.create','catalog.shared.edit','document-types.read','document-types.create','document-types.edit'])
   self.assertEqual(result['permissions'],[]);self.assertEqual(result['roles'],[]);self.assertEqual(result['assignments'],[])
   self.actor=self.delegate
   self.assertEqual(self.role_read(self.tenant),dict(state='forbidden'))

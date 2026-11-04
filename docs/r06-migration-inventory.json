@@ -3228,5 +3228,101 @@
         "CommandId"
       ]
     }
+  },
+  {
+    "table": "document_types.definitions",
+    "owner": "document_types",
+    "category": "business_configuration",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "Id"
+    ],
+    "definition": {
+      "migration": "0044_document_types",
+      "path": "database/runtime/migrations/0044_document_types.sql",
+      "file_sha256": "9fa81f312beeaa161583ddf2f94b2522230ed593889d828a999569965c162956",
+      "create_sql": "CREATE TABLE document_types.definitions (\n \"Id\" uuid PRIMARY KEY CHECK (\"Id\"<>'00000000-0000-0000-0000-000000000000'),\n \"TenantId\" uuid NOT NULL,\n \"LegalEntityId\" uuid NOT NULL,\n \"Revision\" integer NOT NULL CHECK (\"Revision\">0),\n UNIQUE (\"TenantId\",\"LegalEntityId\",\"Id\"),\n FOREIGN KEY (\"LegalEntityId\",\"TenantId\") REFERENCES organization_access.legal_entities(\"Id\",\"TenantId\")\n);",
+      "columns": [
+        "Id",
+        "TenantId",
+        "LegalEntityId",
+        "Revision"
+      ],
+      "primary_key": [
+        "Id"
+      ]
+    }
+  },
+  {
+    "table": "document_types.versions",
+    "owner": "document_types",
+    "category": "business_configuration",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "DocumentTypeId",
+      "Revision"
+    ],
+    "definition": {
+      "migration": "0044_document_types",
+      "path": "database/runtime/migrations/0044_document_types.sql",
+      "file_sha256": "9fa81f312beeaa161583ddf2f94b2522230ed593889d828a999569965c162956",
+      "create_sql": "CREATE TABLE document_types.versions (\n \"TenantId\" uuid NOT NULL,\n \"LegalEntityId\" uuid NOT NULL,\n \"DocumentTypeId\" uuid NOT NULL,\n \"Revision\" integer NOT NULL CHECK (\"Revision\">0),\n \"Label\" text NOT NULL CHECK (length(\"Label\") BETWEEN 1 AND 100 AND length(btrim(\"Label\"))>0 AND \"Label\" !~ '[[:cntrl:]]'),\n \"Effect\" text NOT NULL CHECK (\"Effect\" IN ('Load','Unload','Transfer','None')),\n \"OccurredAt\" timestamptz NOT NULL DEFAULT clock_timestamp(),\n PRIMARY KEY (\"TenantId\",\"LegalEntityId\",\"DocumentTypeId\",\"Revision\"),\n FOREIGN KEY (\"TenantId\",\"LegalEntityId\",\"DocumentTypeId\") REFERENCES document_types.definitions(\"TenantId\",\"LegalEntityId\",\"Id\")\n);",
+      "columns": [
+        "TenantId",
+        "LegalEntityId",
+        "DocumentTypeId",
+        "Revision",
+        "Label",
+        "Effect",
+        "OccurredAt"
+      ],
+      "primary_key": [
+        "TenantId",
+        "LegalEntityId",
+        "DocumentTypeId",
+        "Revision"
+      ]
+    }
+  },
+  {
+    "table": "document_types.command_audit",
+    "owner": "document_types",
+    "category": "security_evidence",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "CommandId"
+    ],
+    "definition": {
+      "migration": "0044_document_types",
+      "path": "database/runtime/migrations/0044_document_types.sql",
+      "file_sha256": "9fa81f312beeaa161583ddf2f94b2522230ed593889d828a999569965c162956",
+      "create_sql": "CREATE TABLE document_types.command_audit (\n \"CommandId\" uuid PRIMARY KEY,\n \"TenantId\" uuid NOT NULL,\n \"LegalEntityId\" uuid NOT NULL,\n \"ActorMembershipId\" uuid NOT NULL,\n \"BindingHash\" bytea NOT NULL,\n \"Request\" jsonb NOT NULL,\n \"Before\" jsonb NOT NULL,\n \"After\" jsonb NOT NULL,\n \"OccurredAt\" timestamptz NOT NULL DEFAULT clock_timestamp()\n);",
+      "columns": [
+        "CommandId",
+        "TenantId",
+        "LegalEntityId",
+        "ActorMembershipId",
+        "BindingHash",
+        "Request",
+        "Before",
+        "After",
+        "OccurredAt"
+      ],
+      "primary_key": [
+        "CommandId"
+      ]
+    }
   }
 ]
