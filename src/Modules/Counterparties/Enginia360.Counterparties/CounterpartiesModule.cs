@@ -22,6 +22,7 @@ public static class CounterpartiesModule
     public static WebApplication MapCounterparties(this WebApplication app)
     {
         var routes = app.MapGroup("/api/v1/counterparties").RequireAuthorization().AddEndpointFilter<TechnicalAuditFilter>();
+        ManagementEndpoints.Map(routes);
         routes.MapGet("/companies", async (ClaimsPrincipal user, ICounterpartyAccess access, CancellationToken ct) => Results.Ok(await access.ListCompanies(user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "", ct)));
         routes.MapGet("", async (Guid legalEntityId, string? search, int? limit, Guid? after, ClaimsPrincipal user, ICounterpartyAccess access, CounterpartiesDbContext db, CancellationToken ct) =>
         {

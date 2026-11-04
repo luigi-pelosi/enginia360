@@ -187,7 +187,9 @@ workshop.pending_administrative_outbox(integer)'''.splitlines()
                 'organization_access.read_onboarding(uuid)',
                 'organization_access.begin_onboarding(uuid)',
                 'organization_access.pending_onboarding_status(uuid,uuid)',
-                'organization_access.command_onboarding(uuid,jsonb)'}
+                'organization_access.command_onboarding(uuid,jsonb)',
+                'counterparties.management_read(text,uuid,uuid,uuid)',
+                'counterparties.management_command(jsonb)'}
             executable_sd = {f['name'] for f in runtime_catalog['functions'] if f['definer'] and f['appExecute']}
             assert len(historical_sd) == len(set(historical_sd)) == 38
             assert executable_sd == set(historical_sd) | additions, executable_sd.symmetric_difference(set(historical_sd) | additions)

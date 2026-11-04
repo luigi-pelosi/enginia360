@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { domains } from "../../../lib/domains";
 import { Badge } from "../../../components/ui/badge";
 import {
@@ -17,6 +17,7 @@ export default async function DomainPage({
     const { domain: id } = await params;
     const domain = domains.find((candidate) => candidate.id === id);
     if (!domain) notFound();
+    if (id === "counterparties") redirect("/counterparties");
     return (
         <>
             <div className="page-heading">

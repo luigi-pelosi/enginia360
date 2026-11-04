@@ -21,8 +21,12 @@ export function TenantRoleWorkspace({
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [permissionId, setPermissionId] = useState("");
+  const [permissionAction, setPermissionAction] = useState("organization-context.read");
   const [roleId, setRoleId] = useState("");
   const fence = useRef<Frozen | null>(null);
+  useEffect(() => {
+    setPermissionAction(data?.permissions.find(p => p.resourceId === permissionId)?.action || data?.actions[0] || "organization-context.read");
+  }, [data, permissionId]);
   useEffect(() => {
     const unload = (event: BeforeUnloadEvent) => {
       if (fence.current) event.preventDefault();
@@ -156,16 +160,20 @@ export function TenantRoleWorkspace({
       const scope = data.warehouses.find(
         (w) => w.warehouseId === text("warehouseId"),
       );
-      if (!scope) return;
+      const action = text("action");
+      const shared = ["counterparties.shared.read", "counterparties.shared.create", "counterparties.shared.edit", "counterparties.business-roles.write"].includes(action);
+      const extension = ["counterparties.extensions.read", "counterparties.extensions.write"].includes(action);
+      const company = data.companies?.find(c => c.legalEntityId === text("legalEntityId"));
+      if ((!shared && !extension && !scope) || (extension && !company)) return;
       payload = {
         ...payload,
         resourceId: prior?.resourceId || null,
         expectedRevision: prior?.revision || 0,
         label: text("label"),
-        action: text("action"),
-        legalEntityId: scope.legalEntityId,
-        siteId: scope.siteId,
-        warehouseId: scope.warehouseId,
+        action,
+        legalEntityId: shared ? null : extension ? company!.legalEntityId : scope!.legalEntityId,
+        siteId: shared || extension ? null : scope!.siteId,
+        warehouseId: shared || extension ? null : scope!.warehouseId,
       };
     } else if (kind === "role") {
       const prior = data.roles.find((r) => r.resourceId === roleId);
@@ -351,7 +359,7 @@ export function TenantRoleWorkspace({
                   Permesso da modificare
                   <select
                     value={permissionId}
-                    onChange={(event) => setPermissionId(event.target.value)}
+                    onChange={(event) => { setPermissionId(event.target.value); setPermissionAction(data.permissions.find(p => p.resourceId === event.target.value)?.action || data.actions[0]); }}
                   >
                     <option value="">Nuovo permesso</option>
                     {data.permissions.map((p) => (
@@ -380,13 +388,15 @@ export function TenantRoleWorkspace({
                     Azione supportata
                     <select
                       name="action"
-                      defaultValue={permission?.action || data.actions[0]}
+                      value={permissionAction}
+                      onChange={event => setPermissionAction(event.target.value)}
                     >
                       {data.actions.map((action) => (
                         <option key={action}>{action}</option>
                       ))}
                     </select>
                   </label>
+                  {permissionAction.startsWith("organization-context.") ? (
                   <label>
                     Scope magazzino esatto
                     <select
@@ -403,6 +413,15 @@ export function TenantRoleWorkspace({
                       ))}
                     </select>
                   </label>
+                  ) : permissionAction.startsWith("counterparties.extensions.") ? (
+                    <label>Scope società esatta
+                      <select name="legalEntityId" required defaultValue={permission?.legalEntityId || ""}>
+                        <option value="">Seleziona società</option>
+                        {data.companies?.map(c => <option key={c.legalEntityId} value={c.legalEntityId}>{c.name}</option>)}
+                      </select>
+                    </label>
+                  ) : <p>Scope tenant: identità e ruoli aziendali condivisi. Non è un permesso per tutte le società o i magazzini.</p>}
+
                 </div>
                 <Button type="submit">Salva permesso</Button>
               </fieldset>

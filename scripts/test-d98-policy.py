@@ -34,9 +34,11 @@ DETAILS = (QUESTION, CHOICE, OTHER, 'Alternativa A (raccomandata, SCELTA)',
            'TTL', 'consegna', 'CSRF', 'no-store', 'full_architecture=false')
 DELIVERY_HEADERS = ('docs/mvp03b-user-administration.md', 'docs/mvp-delivery-plan.md',
                     'docs/mvp03b1-tenant-role-contract.md', 'docs/mvp03b1-progress.md')
-STATUS = ('MVP03.b.1 consegnato via PR #162', 'organization-context.read/write',
-          'MVP03.b non completato', 'invito/abilitazione',
-          'nessun runtime consegnato qui', 'gate di policy D97')
+# Current status advances only against the coordinator's verified PR167 proof.
+# Historical policy CLAUSES/DETAILS and initial b.1 catalog remain exact below.
+STATUS = ('MVP-03/#142 e #166 COMPLETATI', 'PR #167',
+          '41752991377', '41753044926',
+          'runtimeDelivered=false solo del gate', 'mvp04-counterparties-contract.md')
 
 
 def block(text):
@@ -64,8 +66,12 @@ def validate(root):
         assert term in doc, f'contract missing {term}'
     data = json.loads((root / 'docs/mvp-backlog.json').read_text())
     item = next(i for i in data['items'] if i['id'] == 'MVP-03')
-    assert item['status'] == 'in_progress' and item['issueNumber'] == 142, 'parent remains open'
-    assert item['runtimeDelivered'] is False, 'whole MVP03.b not delivered'
+    assert item['status'] == 'done' and item['issueNumber'] == 142, 'parent delivered after verified PR167'
+    assert item['runtimeDelivered'] is True, 'whole MVP03.b delivery distinct from historical policy gate'
+    proof = item['federatedFirstEntry']
+    assert proof['runtimeDelivered'] is True and proof['pr'] == 167, 'first-entry verified delivery'
+    assert proof['mergedMain'] == 'c4d46c03d80f7122f1172a5a6bd96ab0f8fa2edb', 'merge proof'
+    assert proof['prCi'] == 41752991377 and proof['runtimeDispatch'] == 41753044926, 'exact-head acceptance proof'
     policy = item['userOnboardingPolicy']
     assert policy['decision'] == 'D98' and policy['contract'] == DOC, 'next finite policy contract'
     assert policy['runtimeDelivered'] is False, 'D98 policy not runtime'
@@ -73,7 +79,7 @@ def validate(root):
         assert clause in policy['summary'], f'backlog missing {clause}'
     delivered = item['deliveredSubincrements']['MVP03.b.1']
     assert delivered['pr'] == 162 and delivered['runtimeDelivered'] is True, 'role subincrement delivered'
-    assert delivered['catalog'] == ['organization-context.read', 'organization-context.write'], 'finite current executable catalog'
+    assert delivered['catalog'] == ['organization-context.read', 'organization-context.write'], 'historical b.1 initial executable catalog, not current domain coverage'
     for path in DELIVERY_HEADERS:
         active = (root / path).read_text().split('<!-- d97-history:start -->')[0]
         for term in STATUS:
@@ -126,7 +132,7 @@ class PolicyTests(unittest.TestCase):
                 item = next(i for i in data['items'] if i['id'] == 'MVP-03')
                 policy = item['userOnboardingPolicy']
                 if mutation == 'false-whole':
-                    item['runtimeDelivered'] = True
+                    item['runtimeDelivered'] = False
                 elif mutation == 'false-policy':
                     policy['runtimeDelivered'] = True
                 elif mutation == 'true-role':
@@ -149,7 +155,7 @@ class PolicyTests(unittest.TestCase):
         # Immutable historical dossier D1–D95; D96/D97 spans preserved separately.
         expected = {
             'docs/foundation/09-stakeholder-validation.md': '9f8286ab2938e84f1d5ddfc677111c2e383ad2adb78deace572335e36f99fd0c',
-            'scripts/test-d97-policy.py': '6cd4ad89bddb0ce6cb2af683949a241973f5df80e8185237e990e48f6a955612',
+            'scripts/test-d97-policy.py': '46f1c8f59316932468e0d76d7fc2a5aa292922cc96273f7c411af55046010b04',
             'scripts/test-d97-impact.py': '4526f0e535d2a40cea0ea36fb63a0d160dca8f71b1fe5e4b6e1c7d72f0fe38e6',
         }
         for path, digest in expected.items():
@@ -174,6 +180,6 @@ if __name__ == '__main__':
         except (AssertionError, KeyError, OSError, ValueError, IndexError) as error:
             print(str(error), file=sys.stderr)
             sys.exit(1)
-        print('D98 documentary policy consistent; onboarding runtime not delivered')
+        print('D98 historical documentary gate consistent; subsequent first-entry runtime delivery proof retained')
     else:
         unittest.main(argv=[sys.argv[0], *rest], verbosity=2)

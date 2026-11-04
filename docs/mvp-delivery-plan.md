@@ -52,10 +52,10 @@ D97: creare e modificare ruoli e permessi con audit immutabile e tracciabile obb
 D98: prima associazione binding + membership di un soggetto federato autenticato approvabile dal delegato alla gestione utenti solo nel proprio tenant; autenticazione e audit obbligatori; nessun ruolo o potere amministrativo automatico; nessun tetto owner-only; runtime D98 non consegnato. [Contratto finito MVP03.b.2](mvp03b2-user-onboarding.md).
 <!-- d98-current:end -->
 
-MVP03.b.1 consegnato via PR #162: delega utenti distinta, ruoli/permessi configurabili, audit atomico immutabile ed enforcement effettivo sul catalogo iniziale `organization-context.read/write`. I domini futuri devono integrare i propri consumer reali. MVP03.b non completato: invito/abilitazione distingue #164 consegnato via PR #165 e #166 primo ingresso federato con sorgente completa e prove locali eseguite; consegna NON VERIFICATA sino a verifica exact-head e chiusura del coordinatore. «nessun runtime consegnato qui» si riferisce al gate di policy D97, non nega la successiva consegna MVP03.b.1; il runtimeDelivered=false di quel gate e dell’intero MVP03.b resta distinto dal sottoincremento consegnato. I blocchi D97/D98 sopra sono riepiloghi storici dei gate; il contratto eseguibile corrente è [MVP03.b.2b](mvp03b2b-federated-onboarding.md).
+MVP-03/#142 e #166 COMPLETATI: PR #167 merged il 4 novembre 2026, main `c4d46c03d80f7122f1172a5a6bd96ab0f8fa2edb`, candidate `0f9f7d167b68778ff36d21b7b8355fecf541c72f`, tree equivalente `56f47b1cee07fe227422d9f49a3bcd703b3adf5a`. Il coordinatore ha verificato PR CI `41752991377` e dispatch `41753044926`, step richiesti e sette ZIP exact-head; evidenze `/root/.hermes/evidence/enginia360-mvp03b2b/final`. Primo binding crea membership disabilitata: abilitazione successiva e ruoli restano espliciti. Nessun deployment/readiness operativo. MVP-04/#143 IN IMPLEMENTAZIONE, NON VERIFICATO; contratto `docs/mvp04-counterparties-contract.md`. I riepiloghi D97/D98 sono storici dei gate documentali (runtimeDelivered=false solo del gate), non negano la consegna funzionale successiva.
 
 
-MVP03.b.1 ha consegnato il matching sul catalogo iniziale; #164 ha consegnato stato/enforcement trasversale delle membership. #166 completa il contratto D98 di invito/primo ingresso e approvazione; le prove locali sono state eseguite a implementazione dell'intero punto conclusa. La consegna resta subordinata a CI exact-head e chiusura del coordinatore. Non riaprire D97/D98 e non inventare ruoli di dominio o fiducia nell'email degli inviti. Le decisioni tecniche senza impatto di dominio sono responsabilità dell'agente.
+Stato corrente: MVP-03/#142 e #166 COMPLETATI: PR #167 merged il 4 novembre 2026, main `c4d46c03d80f7122f1172a5a6bd96ab0f8fa2edb`, candidate `0f9f7d167b68778ff36d21b7b8355fecf541c72f`, tree equivalente `56f47b1cee07fe227422d9f49a3bcd703b3adf5a`. Il coordinatore ha verificato PR CI `41752991377` e dispatch `41753044926`, step richiesti e sette ZIP exact-head; evidenze `/root/.hermes/evidence/enginia360-mvp03b2b/final`. Primo binding crea membership disabilitata: abilitazione successiva e ruoli restano espliciti. Nessun deployment/readiness operativo. MVP-04/#143 IN IMPLEMENTAZIONE, NON VERIFICATO; contratto `docs/mvp04-counterparties-contract.md`. I riepiloghi D97/D98 sono storici dei gate documentali (runtimeDelivered=false solo del gate), non negano la consegna funzionale successiva.
 
 ## Pulizia controllata
 
@@ -83,7 +83,11 @@ Non presumere approvati dati reali, accesso pubblico, acquisti, nuovi ambienti p
 
 Riutilizzare il Project esistente, rinominandolo per il MVP e preservando gli item storici. Creare issue idempotenti con marker `enginia360-mvp:MVP-xx`; assegnare i nuovi item al backlog corrente. Gli item della vecchia roadmap ancora aperti vanno distinti come sostituiti, mai dichiarati completati. Il dettaglio storico rimane nei corpi/commenti e nella Git history. Numero issue e stato del Project sono sempre verificati con readback, non dedotti dal successo di una scrittura.
 
-### Checkpoint corrente — 3 novembre 2026
+## Checkpoint corrente PR167 / MVP04
+
+MVP-03/#142 e #166 COMPLETATI: PR #167 merged il 4 novembre 2026, main `c4d46c03d80f7122f1172a5a6bd96ab0f8fa2edb`, candidate `0f9f7d167b68778ff36d21b7b8355fecf541c72f`, tree equivalente `56f47b1cee07fe227422d9f49a3bcd703b3adf5a`. Il coordinatore ha verificato PR CI `41752991377` e dispatch `41753044926`, step richiesti e sette ZIP exact-head; evidenze `/root/.hermes/evidence/enginia360-mvp03b2b/final`. Primo binding crea membership disabilitata: abilitazione successiva e ruoli restano espliciti. Nessun deployment/readiness operativo. MVP-04/#143 IN IMPLEMENTAZIONE, NON VERIFICATO; contratto `docs/mvp04-counterparties-contract.md`. I riepiloghi D97/D98 sono storici dei gate documentali (runtimeDelivered=false solo del gate), non negano la consegna funzionale successiva.
+
+### Checkpoint storico — 3 novembre 2026 (superato dal checkpoint PR167)
 
 MVP-02/#141 completato dopo PR #157, main `095abca4656bffa626e259f7f4aa8237d6afdf26`, tree equivalente al candidato `53704fe326545be0ccd514f63bcd43671e8960b8`; PR CI `41585054855` e dispatch `41585054020` con artefatti verificati dal coordinatore. MVP-03/#142 e' In corso. [MVP03.a/#158](mvp03a-organization-delegation.md) e' consegnato via PR #159, main `097680690d479bbfbd498fa4fd3d6c4bd5a99db8`, candidato `cbf359c559fe8ff1cafdbd34ab4f2aa70933d5cd`, tree equivalente `54889c8a5563946082145ba383289c59f93ff7d4`; PR CI `41607621063` e dispatch `41607614693` verificati dal coordinatore. Aggiunge soltanto la delega organizzativa, non amministrazione utenti/ruoli. Il [checkpoint di esecuzione](mvp03a-progress.md) conserva le prove. Il parent #142 rimane aperto: [MVP03.b.1](mvp03b1-tenant-role-contract.md) è consegnato via PR #162 (main `4d3aeabe3d3d6fec3135ce31ad0e8da43cb54eea`, candidato `8c60f2f84cb075ffbb47c9c04c40b5bfe2fe01d7`, tree `2da30752115ca9460c0fa82cc8ef20ee7b2b1076`); PR CI `41638706451` e dispatch `41638698110` verificati dal coordinatore con artefatti, entrambi i pool e consumer reali. [D98/MVP03.b.2](mvp03b2-user-onboarding.md) chiude la policy per prima associazione federata approvata dal delegato utenti: invito/abilitazione ed enforcement trasversale restano runtime da eseguire. Nessuna readiness operativa implicita.
 
@@ -95,7 +99,7 @@ Il checkpoint MVP-01 introduce soltanto la [shell tecnica verificabile](mvp01-fr
 
 Correzione tecnica di esecuzione: il vecchio gh CLI non accettava il valore numerico zero per Ordine; e' stato usato ordinamento 1–11, mantenendo invariati gli ID MVP-00–MVP-10. La creazione issue e' stata ripresa tramite marker, senza duplicazioni. Nessuna di queste operazioni dimostra una capability applicativa completata.
 
-### Stato corrente dopo PR165 — #164 consegnato; #166 non verificato
+### Stato storico dopo PR165 — superato da PR167
 
 MVP03.b.2a/#164 consegnato da PR #165, main
 `c2e94d7a91b5e641aaf1a169e878795b8612d071`, tree

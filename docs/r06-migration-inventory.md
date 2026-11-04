@@ -1,5 +1,7 @@
 # R06.a.1 — inventario offline e riconciliazione sintetica
 
+MVP04 sorgente non verificata: 0042 aggiunge `counterparties.management_audit` (audit_history) e `counterparties.destination_revisions` (technical_ledger). Le definizioni CREATE e i checksum sono registrati nell’inventario JSON; nessuna autorizzazione import legacy, nessun aggiornamento dei 41 file pubblicati, nessuna migrazione eseguita in questa fase. I vincoli ALTER non ricostruiscono automaticamente uno schema live.
+
 **Stato corrente R06.b.2:** tool R06.a.1 consegnato (PR #77), inventario aggiornato dai successivi incrementi; [registro OPE OPEN](r06-readiness-registry.json), [runbook/limiti correnti](r06-recovery-runbook.md). Il roundtrip sintetico STAGING-ONLY con replay è in [R06.a.2](r06a2-synthetic-import-export.md); import di dominio, tabelle reali e replay d'import reale restano non provati e UNDECIDED; parent #46 aperta. Le prove sotto non sono approvazione della migrazione.
 
 **Perimetro 27 ottobre 2026 (D87, scoping owner):** migrazione legacy fuori perimetro per ora — «Per ora non è prevista nessuna attività di migrazione dal sistema legacy.» Non è un divieto permanente né un’approvazione. R06.a completa per i soli strumenti sintetici staging-only consegnati (#76/#77, #106/#107); 66 voci UNDECIDED (eleggibilità invariata, registro OPEN); restore di fatti già legittimi e onboarding D77 non toccati; OPE01–OPE05 invariati OPEN; #46 aperta.

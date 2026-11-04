@@ -4,6 +4,7 @@ const config: NextConfig = {
     poweredByHeader: false,
     async headers() {
         return [
+            { source: "/counterparties", headers: [{ key: "Cache-Control", value: "private, no-store" }] },
             {
                 source: "/:path*",
                 headers: [

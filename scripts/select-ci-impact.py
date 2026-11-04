@@ -427,8 +427,70 @@ FEDERATED_ONBOARDING_DIRECT = AUTHENTICATED_ORGANIZATION_DIRECT | {
     'tests/fixtures/nginx.mvp02c.conf', 'compose.mvp02c-test.yaml',
 }
 
+
+COUNTERPARTY_MANAGEMENT_FILES = {
+    'database/runtime/migrations/0042_counterparty_management.sql',
+    'frontend/app/counterparties/page.tsx',
+    'frontend/components/counterparty-workspace.tsx',
+    'frontend/lib/counterparties.ts',
+    'frontend/tests/counterparties.test.tsx',
+    'scripts/run-mvp04-tests.py',
+    'scripts/test-mvp04-counterparties.py',
+    'scripts/test-mvp04-impact.py',
+    'src/Modules/Counterparties/Enginia360.Counterparties/ManagementEndpoints.cs',
+    'tests/Enginia360.Api.Tests/CounterpartyManagementTests.cs',
+    'tests/browser/mvp04-counterparties.cjs',
+}
+COUNTERPARTY_MANAGEMENT_SHARED = {
+    '.github/workflows/ci.yml',
+    'AGENTS.md',
+    'PROJECT_CHARTER.md',
+    'database/runtime/manifest.json',
+    'docs/mvp-backlog.json',
+    'docs/mvp-baseline.md',
+    'docs/mvp-delivery-plan.md',
+    'docs/mvp-existing-code-assessment.md',
+    'docs/mvp03b-user-administration.md',
+    'docs/mvp03b1-progress.md',
+    'docs/mvp03b1-tenant-role-contract.md',
+    'docs/mvp03b2-user-onboarding.md',
+    'docs/mvp03b2a-final-validation.md',
+    'docs/mvp03b2b-federated-onboarding.md',
+    'docs/mvp04-counterparties-contract.md',
+    'docs/mvp04-implementation.md',
+    'docs/r06-migration-inventory.json',
+    'docs/r06-migration-inventory.md',
+    'frontend/app/domains/[domain]/page.tsx',
+    'frontend/components/shell.tsx',
+    'frontend/components/tenant-role-workspace.tsx',
+    'frontend/lib/private-backend.ts',
+    'frontend/lib/tenant-roles.ts',
+    'frontend/next.config.ts',
+    'frontend/tests/shell.test.tsx',
+    'scripts/run-mvp03b2a-tests.py',
+    'scripts/run-mvp03b2b-tests.py',
+    'scripts/select-ci-impact.py',
+    'scripts/test-mvp03b1-roles.py',
+    'scripts/test-mvp03b2b-impact.py',
+    'src/Modules/Counterparties/Enginia360.Counterparties/CounterpartiesModule.cs',
+    'tests/fixtures/nginx.mvp02c.conf',
+}
+COUNTERPARTY_MANAGEMENT_SHARED |= {"frontend/tests/acceptance.spec.ts", "scripts/test-d97-policy.py", "scripts/test-d98-policy.py", "src/Modules/Counterparties/Enginia360.Counterparties/WorkshopCounterparties.cs"}
+COUNTERPARTY_MANAGEMENT_SCOPE = COUNTERPARTY_MANAGEMENT_FILES | COUNTERPARTY_MANAGEMENT_SHARED
+
 def _selection(paths):
     paths = sorted(set(paths))
+    if set(paths) & COUNTERPARTY_MANAGEMENT_FILES:
+        remaining = set(paths) - COUNTERPARTY_MANAGEMENT_FILES
+        finite = set(paths) <= COUNTERPARTY_MANAGEMENT_SCOPE
+        if finite:
+            remaining -= COUNTERPARTY_MANAGEMENT_SHARED
+        # Finite new composition plus its actual identity/role/access consumers.
+        # A mixed unrelated producer is still recursively selected in full.
+        result = selection(sorted(remaining | {'scripts/test-mvp03b2b-impact.py','scripts/test-mvp03b1-impact.py'}))
+        result.update(changed_paths=paths,counterparty_management=True,frontend=True,browser=True,migrations=True,
+                      tenant_roles=True,membership_access=True,federated_onboarding=True,authenticated_organization=True)
+        return result
     if set(paths) & FEDERATED_ONBOARDING_FILES:
         result = selection(sorted(set(paths) - FEDERATED_ONBOARDING_FILES))
         result.update(changed_paths=paths, federated_onboarding=True, browser=True, migrations=True, frontend=True)
@@ -715,6 +777,11 @@ def selection(paths):
         if token not in result['api_filter'].split('|'):
             result['api_filter'] += ('|' if result['api_filter'] else '')+token
     result.setdefault('federated_onboarding',False)
+    if set(paths) & (COUNTERPARTY_MANAGEMENT_FILES | {'frontend/components/tenant-role-workspace.tsx','frontend/lib/tenant-roles.ts','frontend/lib/private-backend.ts','src/Modules/Counterparties/Enginia360.Counterparties/CounterpartiesModule.cs'}):
+        result['counterparty_management'] = True
+        token='FullyQualifiedName~CounterpartyManagementTests'
+        if token not in result['api_filter'].split('|'): result['api_filter'] += ('|' if result['api_filter'] else '')+token
+    result.setdefault('counterparty_management',False)
     return result
 
 

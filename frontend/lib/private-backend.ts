@@ -1,3 +1,4 @@
+import { finiteCounterpartyRead } from "./counterparties";
 import { request } from "node:https";
 // Native HTTPS preserves the explicit backend Host; undici fetch ignores Host.
 const backendFetch: typeof fetch = async (input, init) =>
@@ -45,6 +46,7 @@ export async function privateRead(
   },
 ) {
   if (
+    !finiteCounterpartyRead(path) &&
     ![
       "/auth/session",
       "/auth/onboarding/status",

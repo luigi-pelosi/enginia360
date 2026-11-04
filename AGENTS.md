@@ -22,11 +22,13 @@ D97: creare e modificare ruoli e permessi con audit immutabile e tracciabile obb
 D98: prima associazione binding + membership di un soggetto federato autenticato approvabile dal delegato alla gestione utenti solo nel proprio tenant; autenticazione e audit obbligatori; nessun ruolo o potere amministrativo automatico; nessun tetto owner-only; runtime D98 non consegnato. [Contratto finito MVP03.b.2](docs/mvp03b2-user-onboarding.md).
 <!-- d98-current:end -->
 
-MVP03.b.1 consegnato via PR #162: delega utenti distinta, ruoli/permessi configurabili, audit atomico immutabile ed enforcement effettivo sul catalogo iniziale `organization-context.read/write`. I domini futuri devono integrare i propri consumer reali. MVP03.b non completato: il percorso invito/abilitazione è distinto per consegna. #164 è consegnato via PR #165 (main c2e94d7a91b5e641aaf1a169e878795b8612d071); #166 ha sorgente completa e prove finali locali eseguite; la consegna resta NON VERIFICATA fino alla verifica exact-head e alla chiusura del coordinatore. «nessun runtime consegnato qui» si riferisce al gate di policy D97, non nega la successiva consegna MVP03.b.1; il runtimeDelivered=false di quel gate e dell’intero MVP03.b resta distinto dal sottoincremento consegnato. I blocchi D97/D98 sopra conservano il riepilogo storico dei gate, non congelano lo stato corrente dell'implementazione. [Contratto eseguibile #166](docs/mvp03b2b-federated-onboarding.md). Nessuna validazione prima del completamento sorgente dell'intero punto.
+MVP-03/#142 e #166 COMPLETATI: PR #167 merged il 4 novembre 2026, main `c4d46c03d80f7122f1172a5a6bd96ab0f8fa2edb`, candidate `0f9f7d167b68778ff36d21b7b8355fecf541c72f`, tree equivalente `56f47b1cee07fe227422d9f49a3bcd703b3adf5a`. Il coordinatore ha verificato PR CI `41752991377` e dispatch `41753044926`, step richiesti e sette ZIP exact-head; evidenze `/root/.hermes/evidence/enginia360-mvp03b2b/final`. Primo binding crea membership disabilitata: abilitazione successiva e ruoli restano espliciti. Nessun deployment/readiness operativo. MVP-04/#143 IN IMPLEMENTAZIONE, NON VERIFICATO; contratto `docs/mvp04-counterparties-contract.md`. I riepiloghi D97/D98 sono storici dei gate documentali (runtimeDelivered=false solo del gate), non negano la consegna funzionale successiva.
 
 
 Earlier pilot instructions below are historical where inconsistent with this block. General security, isolation and evidence requirements remain mandatory. The active plan, not the old P00/UI01/R00–R06 sequence, determines the next item.
 <!-- mvp-current:end -->
+
+MVP03.b.2a/#164 (PR #165) precede il primo ingresso federato #166, consegnato separatamente con PR #167: [contratto e prove storiche](docs/mvp03b2b-federated-onboarding.md).
 
 ## Historical ERP pilot instructions — not the active MVP roadmap
 
