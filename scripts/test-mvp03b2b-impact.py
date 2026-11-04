@@ -11,19 +11,23 @@ assert spec and spec.loader
 m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
 def current_state(root):
  item=next(i for i in json.loads((root/'docs/mvp-backlog.json').read_text())['items'] if i['id']=='MVP-03')
- assert item['status']=='in_progress' and item['runtimeDelivered'] is False
+ assert item['status']=='done' and item['runtimeDelivered'] is True
  assert item['existingMembershipAccess']['runtimeDelivered'] is True
  assert item['existingMembershipAccess']['pr']==165
  pending=item['federatedFirstEntry']
- assert pending['issueNumber']==166 and pending['runtimeDelivered'] is False
+ assert pending['issueNumber']==166 and pending['runtimeDelivered'] is True
+ assert pending['pr']==167 and pending['mergedMain']=='c4d46c03d80f7122f1172a5a6bd96ab0f8fa2edb'
+ assert pending['prCi']==41752991377 and pending['runtimeDispatch']==41753044926
  assert pending['initialMembershipEnabled'] is False and pending['automaticRolesOrDelegations'] is False
  assert pending['contract']=='docs/mvp03b2b-federated-onboarding.md'
  assert pending['implementationStatus']=='source_complete'
- assert pending['validationStatus']=='local_final_passed_parent_delivery_pending'
+ assert pending['validationStatus']=='verified_parent_exact_head_artifacts'
  # Historical D97/D98 summary is not a live implementation-state assertion.
  for name in ('AGENTS.md','PROJECT_CHARTER.md','docs/mvp-baseline.md','docs/mvp-delivery-plan.md','docs/mvp03b2-user-onboarding.md'):
   text=(root/name).read_text()
-  assert '#164' in text and '#166' in text and 'NON VERIFICAT' in text
+  assert '#164' in text and '#166' in text
+  assert '41752991377' in text and '41753044926' in text
+  assert 'c4d46c03d80f7122f1172a5a6bd96ab0f8fa2edb' in text
   assert 'mvp03b2b-federated-onboarding.md' in text
 class FederatedImpactTests(unittest.TestCase):
  def test_each_exact_file_selects_real_runtime_without_full_architecture(self):
@@ -72,11 +76,11 @@ class FederatedImpactTests(unittest.TestCase):
     target=root/name;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes((ROOT/name).read_bytes())
    current_state(root);file=root/'docs/mvp-backlog.json';original=file.read_text()
    for field in ('initialMembershipEnabled','automaticRolesOrDelegations','runtimeDelivered','implementationStatus','validationStatus'):
-    value=json.loads(original);item=next(i for i in value['items'] if i['id']=='MVP-03');item['federatedFirstEntry'][field]=True;file.write_text(json.dumps(value))
+    value=json.loads(original);item=next(i for i in value['items'] if i['id']=='MVP-03');item['federatedFirstEntry'][field]=False if field=='runtimeDelivered' else True;file.write_text(json.dumps(value))
     with self.assertRaises(AssertionError):current_state(root)
     file.write_text(original)
    for name in names[1:]:
-    file=root/name;original_text=file.read_text();file.write_text(original_text.replace('NON VERIFICAT','REMOVED'))
+    file=root/name;original_text=file.read_text();file.write_text(original_text.replace('mvp03b2b-federated-onboarding.md','REMOVED'))
     with self.assertRaises(AssertionError):current_state(root)
     file.write_text(original_text)
 if __name__=='__main__':unittest.main()

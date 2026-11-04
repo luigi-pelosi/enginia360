@@ -67,7 +67,14 @@ def validate(root):
         assert 'mvp03b-user-administration.md' in active, f'{relative}: contract link missing'
     data = json.loads((root / 'docs/mvp-backlog.json').read_text())
     item = next(i for i in data['items'] if i['id'] == 'MVP-03')
-    assert item['status'] == 'in_progress' and item['issueNumber'] == 142, 'parent remains open/in progress'
+    assert item['status'] == 'done' and item['issueNumber'] == 142 and item['runtimeDelivered'] is True, 'parent delivered after verified PR167'
+    delivered = item['federatedFirstEntry']
+    assert delivered['pr'] == 167 and delivered['runtimeDelivered'] is True, 'onboarding delivered separately from policy gate'
+    assert delivered['mergedMain'] == 'c4d46c03d80f7122f1172a5a6bd96ab0f8fa2edb', 'exact verified merge proof'
+    assert delivered['prCi'] == 41752991377 and delivered['runtimeDispatch'] == 41753044926, 'exact-head acceptance proof'
+    for relative in CURRENT:
+        current = (root / relative).read_text()
+        assert '41752991377' in current and '41753044926' in current, 'current proof links missing'
     policy = item['userAdministrationPolicy']
     assert policy['decision'] == 'D97' and policy['runtimeDelivered'] is False, 'policy not runtime'
     assert policy['contract'] == DOC, 'finite contract reference'
@@ -134,6 +141,11 @@ class PolicyTests(unittest.TestCase):
                 item['userAdministrationPolicy']['summary'] = item['userAdministrationPolicy']['summary'].replace(clause, 'REMOVED')
                 (target / 'docs/mvp-backlog.json').write_text(json.dumps(data))
                 self.assertNotEqual(run().returncode, 0)
+            for key, value in (('status', 'in_progress'), ('runtimeDelivered', False)):
+                data = copy.deepcopy(original_data)
+                next(i for i in data['items'] if i['id'] == 'MVP-03')[key] = value
+                (target / 'docs/mvp-backlog.json').write_text(json.dumps(data))
+                self.assertNotEqual(run().returncode, 0)
             for key, value in (('runtimeDelivered', True), ('decision', 'D96'), ('contract', 'absent.md')):
                 data = copy.deepcopy(original_data)
                 next(i for i in data['items'] if i['id'] == 'MVP-03')['userAdministrationPolicy'][key] = value
@@ -151,6 +163,6 @@ if __name__ == '__main__':
         except (AssertionError, KeyError, OSError, ValueError, IndexError) as error:
             print(str(error), file=sys.stderr)
             sys.exit(1)
-        print('D97 documentary policy consistent; runtime not delivered')
+        print('D97 historical documentary gate consistent; subsequent MVP03 runtime delivery proof retained')
     else:
         unittest.main(argv=[sys.argv[0], *rest], verbosity=2)

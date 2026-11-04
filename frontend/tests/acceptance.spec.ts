@@ -42,7 +42,10 @@ test("HTTP returns real uncached Italian SSR with all seven domain pages and no 
         expect(html).not.toContain("untrusted");
         expect(html).not.toContain("SUPER_ADMIN");
         expect(html).not.toMatch(/<form|type="password"/);
-        if (suffix) expect(html).toContain("Area non ancora implementata");
+        if (suffix === "/domains/counterparties") {
+            expect(html).toContain("Controparti e ruoli aziendali");
+            expect(html).not.toContain("Salva dati comuni");
+        } else if (suffix) expect(html).toContain("Area non ancora implementata");
     }
     expect((await request.get("/domains/not-a-domain")).status()).toBe(404);
     // JavaScript disabled: content and ordinary navigation really are server rendered.

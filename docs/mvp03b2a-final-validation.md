@@ -1,5 +1,11 @@
 # MVP03.b.2a — Final validation ledger
 
+<!-- mvp03-delivery-current:start -->
+MVP-03/#142 e #166 COMPLETATI: PR #167 merged il 4 novembre 2026, main `c4d46c03d80f7122f1172a5a6bd96ab0f8fa2edb`, candidate `0f9f7d167b68778ff36d21b7b8355fecf541c72f`, tree equivalente `56f47b1cee07fe227422d9f49a3bcd703b3adf5a`. Il coordinatore ha verificato PR CI `41752991377` e dispatch `41753044926`, step richiesti e sette ZIP exact-head; evidenze `/root/.hermes/evidence/enginia360-mvp03b2b/final`. Primo binding crea membership disabilitata: abilitazione successiva e ruoli restano espliciti. Nessun deployment/readiness operativo. MVP-04/#143 IN IMPLEMENTAZIONE, NON VERIFICATO; contratto `docs/mvp04-counterparties-contract.md`. I riepiloghi D97/D98 sono storici dei gate documentali (runtimeDelivered=false solo del gate), non negano la consegna funzionale successiva. #164 rimane consegnato da PR #165.
+<!-- mvp03-delivery-current:end -->
+
+## Documento e checkpoint storici seguenti — superati per lo stato corrente
+
 Refs #164 / #142. This ledger supersedes **current-status** wording in the
 historical discovery/checkpoint documents, not their retained failures or RED
 chronology. Whole-point implementation is complete; final corrective validation

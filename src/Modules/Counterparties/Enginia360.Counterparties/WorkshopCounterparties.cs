@@ -23,6 +23,11 @@ internal sealed class WorkshopCounterparties(ICounterpartyAccess access, Counter
         await using var tx = await db.BeginUserOperation(verifiedTenantId, null, ct);
         var row = await db.Counterparties.AsNoTracking().SingleOrDefaultAsync(x => x.Id == counterpartyId && x.TenantId == verifiedTenantId, ct);
         await tx.CommitAsync(ct);
-        return row is null ? null : new(row.Id, row.LegalName, row.FiscalIdentifier, row.RegisteredOffice);
+        // Preserve the old recipient-port shape guaranteed by 0003 before MVP04:
+        // a minimally registered identity is not a completed legacy recipient.
+        // This is no fiscal validation and does not make these fields mandatory
+        // for shared-master creation, payer selection or the new management UI.
+        return row is null || row.FiscalIdentifier.Trim(' ').Length == 0 || row.RegisteredOffice.Trim(' ').Length == 0
+            ? null : new(row.Id, row.LegalName, row.FiscalIdentifier, row.RegisteredOffice);
     }
 }
