@@ -410,8 +410,29 @@ MEMBERSHIP_ACCESS_DIRECT = {'src/Modules/Accounting/Enginia360.Accounting/Member
 
 MEMBERSHIP_ACCESS_DIRECT |= {'frontend/tests/tenant-roles.test.tsx', 'scripts/test-r04b2b1-prices.py'}
 
+FEDERATED_ONBOARDING_FILES = {
+    'src/Enginia360.Api/BrowserAuthentication/PendingOnboarding.cs',
+    'database/runtime/migrations/0041_federated_onboarding.sql',
+    'frontend/app/onboarding/page.tsx', 'frontend/app/onboarding-admin/page.tsx',
+    'frontend/components/onboarding-workspace.tsx', 'frontend/lib/onboarding.ts',
+    'frontend/tests/onboarding.test.tsx', 'tests/Enginia360.Api.Tests/FederatedOnboardingTests.cs',
+    'scripts/test-mvp03b2b-onboarding.py', 'scripts/test-mvp03b2b-impact.py',
+    'scripts/run-mvp03b2b-tests.py', 'tests/browser/mvp03b2b-onboarding.cjs',
+}
+FEDERATED_ONBOARDING_DIRECT = AUTHENTICATED_ORGANIZATION_DIRECT | {
+    'src/Enginia360.Api/PlatformAdministration/TenantRoleAdministration.cs',
+    'frontend/lib/private-backend.ts', 'frontend/components/tenant-role-workspace.tsx',
+    'database/runtime/migrations/0039_tenant_roles.sql', 'database/runtime/migrations/0040_membership_access.sql',
+    'scripts/run-mvp03b2a-tests.py', 'scripts/run-mvp02b-tests.py',
+    'tests/fixtures/nginx.mvp02c.conf', 'compose.mvp02c-test.yaml',
+}
+
 def _selection(paths):
     paths = sorted(set(paths))
+    if set(paths) & FEDERATED_ONBOARDING_FILES:
+        result = selection(sorted(set(paths) - FEDERATED_ONBOARDING_FILES))
+        result.update(changed_paths=paths, federated_onboarding=True, browser=True, migrations=True, frontend=True)
+        return result
     if set(paths) & MEMBERSHIP_ACCESS_FILES:
         result = selection(sorted(set(paths) - MEMBERSHIP_ACCESS_FILES))
         result.update(changed_paths=paths, membership_access=True, browser=True, migrations=True, frontend=True)
@@ -687,6 +708,13 @@ def selection(paths):
             if token not in result['api_filter'].split('|'):
                 result['api_filter'] += ('|' if result['api_filter'] else '')+token
     result.setdefault('membership_access',False)
+    if set(paths) & (FEDERATED_ONBOARDING_FILES | FEDERATED_ONBOARDING_DIRECT):
+        result['federated_onboarding'] = True
+        result['frontend'] = True
+        token='FullyQualifiedName~FederatedOnboardingTests'
+        if token not in result['api_filter'].split('|'):
+            result['api_filter'] += ('|' if result['api_filter'] else '')+token
+    result.setdefault('federated_onboarding',False)
     return result
 
 

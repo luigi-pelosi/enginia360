@@ -217,9 +217,10 @@ export function TenantRoleWorkspace({
       <p className="eyebrow">Amministrazione tenant · D97</p>
       <h1>Gestione utenti, ruoli e permessi</h1>
       <p>
-        Solo utenti già registrati. Nomi dei ruoli e permessi non nominano
-        amministratori. L’accesso al tenant è distinto dalle deleghe; inviti e primo ingresso federato restano un incremento futuro.
+        Nomi dei ruoli e permessi non nominano amministratori.
+        L’accesso al tenant è distinto dalle deleghe; le nuove associazioni richiedono approvazione separata.
       </p>
+      <a href="/onboarding-admin">Inviti e primo ingresso federato</a>
       {status === 401 && (
         <Button onClick={() => void login()}>
           Accedi con identità federata

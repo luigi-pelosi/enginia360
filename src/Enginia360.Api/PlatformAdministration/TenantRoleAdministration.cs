@@ -18,6 +18,12 @@ public static class TenantRoleAdministration
             => Command(context, db, tenantId, ct));
         group.MapPost("/{tenantId:guid}/membership-access", (Guid tenantId, HttpContext context, OrganizationAccessDbContext db, CancellationToken ct)
             => Command(context, db, tenantId, ct, membershipAccess: true));
+        group.MapGet("/onboarding/workspace", (HttpContext context, OrganizationAccessDbContext db, CancellationToken ct)
+            => Execute(context, db, null, ct, onboarding: true));
+        group.MapGet("/{tenantId:guid}/onboarding", (Guid tenantId, HttpContext context, OrganizationAccessDbContext db, CancellationToken ct)
+            => Execute(context, db, tenantId, ct, onboarding: true));
+        group.MapPost("/{tenantId:guid}/onboarding", (Guid tenantId, HttpContext context, OrganizationAccessDbContext db, CancellationToken ct)
+            => Command(context, db, tenantId, ct, onboarding: true));
     }
 
     private static bool ValidJson(JsonElement value) => value.ValueKind switch
@@ -32,7 +38,7 @@ public static class TenantRoleAdministration
     };
 
     private static async Task<IResult> Command(HttpContext context, OrganizationAccessDbContext db,
-        Guid target, CancellationToken ct, bool membershipAccess = false)
+        Guid target, CancellationToken ct, bool membershipAccess = false, bool onboarding = false)
     {
         context.Response.Headers.CacheControl = "no-store";
         var buffer = new byte[16385];
@@ -49,7 +55,7 @@ public static class TenantRoleAdministration
             using var document = JsonDocument.Parse(buffer.AsMemory(0, count), new JsonDocumentOptions { MaxDepth = 8 });
             if (document.RootElement.ValueKind != JsonValueKind.Object || !ValidJson(document.RootElement))
                 return Results.BadRequest(new { state = "invalid" });
-            return await Execute(context, db, target, ct, document.RootElement.GetRawText(), membershipAccess);
+            return await Execute(context, db, target, ct, document.RootElement.GetRawText(), membershipAccess, onboarding);
         }
         catch (Exception error) when (error is JsonException or InvalidOperationException)
         {
@@ -58,7 +64,7 @@ public static class TenantRoleAdministration
     }
 
     private static async Task<IResult> Execute(HttpContext context, OrganizationAccessDbContext db,
-        Guid? target, CancellationToken ct, string? request = null, bool membershipAccess = false)
+        Guid? target, CancellationToken ct, string? request = null, bool membershipAccess = false, bool onboarding = false)
     {
         context.Response.Headers.CacheControl = "no-store";
         var actor = VerifiedActorContext.FromPrincipal(context.User);
@@ -71,7 +77,11 @@ public static class TenantRoleAdministration
                     set_config('app.identity_issuer', {actor.Issuer}, true),
                     set_config('app.external_subject', {actor.Subject}, true)
                 """, ct);
-            var json = request is null ? await db.Database.SqlQuery<string>($"""
+            var json = onboarding ? request is null ? await db.Database.SqlQuery<string>($"""
+                SELECT organization_access.read_onboarding({target}::uuid)::text AS "Value"
+                """).SingleAsync(ct) : await db.Database.SqlQuery<string>($"""
+                SELECT organization_access.command_onboarding({target}::uuid,{request}::jsonb)::text AS "Value"
+                """).SingleAsync(ct) : request is null ? await db.Database.SqlQuery<string>($"""
                 SELECT organization_access.read_tenant_roles({target}::uuid)::text AS "Value"
                 """).SingleAsync(ct) : membershipAccess ? await db.Database.SqlQuery<string>($"""
                 SELECT organization_access.command_membership_access({target}::uuid,{request}::jsonb)::text AS "Value"

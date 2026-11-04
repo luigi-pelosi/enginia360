@@ -34,9 +34,22 @@
         "issueNumber": 164,
         "contract": "docs/mvp03b2a-membership-access-contract.md",
         "implementationStatus": "source_complete",
-        "validationStatus": "final_corrective_validation_in_progress",
-        "runtimeDelivered": false,
+        "validationStatus": "verified_parent_exact_head_artifacts",
+        "runtimeDelivered": true,
+        "pr": 165,
+        "mergedMain": "c2e94d7a91b5e641aaf1a169e878795b8612d071",
+        "prCi": 41731554031,
+        "runtimeDispatch": 41731544819,
         "onboardingIncluded": false
+      },
+      "federatedFirstEntry": {
+        "issueNumber": 166,
+        "contract": "docs/mvp03b2b-federated-onboarding.md",
+        "implementationStatus": "source_complete",
+        "validationStatus": "local_final_passed_parent_delivery_pending",
+        "runtimeDelivered": false,
+        "initialMembershipEnabled": false,
+        "automaticRolesOrDelegations": false
       },
       "deliveredSubincrements": {
         "MVP03.b.1": {"pr": 162, "runtimeDelivered": true, "catalog": ["organization-context.read", "organization-context.write"]}

@@ -177,7 +177,11 @@ workshop.pending_administrative_outbox(integer,integer)
 workshop.pending_administrative_outbox(integer)'''.splitlines()
             additions = {'organization_access.command_membership_access(uuid,jsonb)',
                 'workshop.read_accepted_administrative_request(uuid,uuid)',
-                'workshop.record_accepted_administrative_outcome(uuid,uuid,text,text,text)'}
+                'workshop.record_accepted_administrative_outcome(uuid,uuid,text,text,text)',
+                'organization_access.read_onboarding(uuid)',
+                'organization_access.begin_onboarding(uuid)',
+                'organization_access.pending_onboarding_status(uuid,uuid)',
+                'organization_access.command_onboarding(uuid,jsonb)'}
             executable_sd = {f['name'] for f in runtime_catalog['functions'] if f['definer'] and f['appExecute']}
             assert len(historical_sd) == len(set(historical_sd)) == 38
             assert executable_sd == set(historical_sd) | additions, executable_sd.symmetric_difference(set(historical_sd) | additions)
