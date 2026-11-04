@@ -208,5 +208,10 @@
     "id": "0042_counterparty_management",
     "path": "migrations/0042_counterparty_management.sql",
     "sha256": "86ebca3460fde472ed91642a330e42fbfe59aa630e631357780fa8728194d92c"
+  },
+  {
+    "id": "0043_catalog_management",
+    "path": "migrations/0043_catalog_management.sql",
+    "sha256": "e5d385c413eb7717d7a39595d4a92a5de2f7e409a9be354fc2b7b9f348096136"
   }
 ]

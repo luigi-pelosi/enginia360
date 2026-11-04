@@ -1,6 +1,6 @@
 # MVP04 / #143 — contratto finito di implementazione
 
-Stato corrente: VALIDAZIONE FINALE LOCALE PASSATA; CI/ARTEFATTI EXACT-HEAD REMOTI PENDENTI, consegna NON VERIFICATA.
+Stato corrente: COMPLETATO con PR #168, merge `03872078b2d77dcf6754700729e41fcf5567d051`; CI `41780772823`, dispatch `41780819337`, otto artefatti exact-head verificati dal coordinatore. Nessuna readiness operativa.
 Contratto iniziale fissato prima del codice; intero #143 prima di qualsiasi test,
 build, audit, runtime o CI durante l'implementazione. Consegna e prove finali sono
 distinte: [ledger di implementazione e validazione](mvp04-implementation.md).

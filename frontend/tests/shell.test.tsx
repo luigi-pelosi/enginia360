@@ -30,7 +30,7 @@ test("SSR shell exposes seven domain links and an honest unauthenticated boundar
         "document-types",
         "documents",
     ]) {
-        assert.match(html, new RegExp(slug === "counterparties" ? `href="/counterparties"` : `href="/domains/${slug}"`));
+        assert.match(html, new RegExp(["counterparties", "catalog"].includes(slug) ? `href="/${slug}"` : `href="/domains/${slug}"`));
     }
     assert.match(html, /Accesso non disponibile/);
     assert.match(html, /Nessun contesto aziendale attivo/);
@@ -39,7 +39,7 @@ test("SSR shell exposes seven domain links and an honest unauthenticated boundar
 
 test("SSR session footer distinguishes protected administration from isolated pending onboarding", async () => {
     const { SessionBoundary } = await import(shellUrl.href);
-    for (const pathname of ["/organization", "/users", "/onboarding-admin", "/counterparties"]) {
+    for (const pathname of ["/organization", "/users", "/onboarding-admin", "/counterparties", "/catalog"]) {
         const html = renderToStaticMarkup(<SessionBoundary pathname={pathname} />);
         assert.match(html, /Sessione gestita dal backend/);
         assert.match(html, /Autorità verificata a ogni operazione/);

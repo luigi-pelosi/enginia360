@@ -17,6 +17,7 @@ export default async function DomainPage({
     const { domain: id } = await params;
     const domain = domains.find((candidate) => candidate.id === id);
     if (!domain) notFound();
+    if (id === "catalog") redirect("/catalog");
     if (id === "counterparties") redirect("/counterparties");
     return (
         <>

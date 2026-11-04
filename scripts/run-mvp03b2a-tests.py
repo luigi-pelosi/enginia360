@@ -44,9 +44,8 @@ def main():
     evidence.chmod(511)
     project = 'enginia360-r00b-' + secrets.token_hex(6)
     before_volumes = r00.inventory('volume')
-    before_running = set(run(['docker', 'ps', '-q', '--no-trunc']).splitlines())
-    protected=json.loads(run(['docker','inspect',*sorted(before_running)])) if before_running else []
-    protected_snapshot={c['Id']:c['State']['StartedAt'] for c in protected}
+    protected_inventory = r00.capture_protected_runtime()
+    protected_snapshot = protected_inventory['protected']
     (evidence/'preexisting-containers.json').write_text(json.dumps(protected_snapshot,indent=2))
     with tempfile.TemporaryDirectory(prefix='mvp03b2a-', dir=os.environ['TMPDIR']) as directory:
         state = Path(directory)
@@ -183,7 +182,9 @@ workshop.pending_administrative_outbox(integer)'''.splitlines()
                 'organization_access.pending_onboarding_status(uuid,uuid)',
                 'organization_access.command_onboarding(uuid,jsonb)',
                 'counterparties.management_read(text,uuid,uuid,uuid)',
-                'counterparties.management_command(jsonb)'}
+                'counterparties.management_command(jsonb)',
+                'catalog.management_read(text,uuid,uuid,text)',
+                'catalog.management_command(jsonb)'}
             executable_sd = {f['name'] for f in runtime_catalog['functions'] if f['definer'] and f['appExecute']}
             assert len(historical_sd) == len(set(historical_sd)) == 38
             assert executable_sd == set(historical_sd) | additions, executable_sd.symmetric_difference(set(historical_sd) | additions)
@@ -336,12 +337,11 @@ workshop.pending_administrative_outbox(integer)'''.splitlines()
                 for sig, handler in previous.items():
                     signal.signal(sig, handler)
     assert r00.inventory('volume') == before_volumes
-    after_running=set(run(['docker','ps','-q','--no-trunc']).splitlines())
-    observed=json.loads(run(['docker','inspect',*sorted(before_running)])) if before_running else []
-    after_snapshot={c['Id']:c['State']['StartedAt'] for c in observed}
+    verification = r00.verify_protected_runtime(protected_inventory)
+    after_snapshot = verification['protectedAfter']
     (evidence/'postexisting-containers.json').write_text(json.dumps(after_snapshot,indent=2))
-    (evidence/'unrelated-running-diff.json').write_text(json.dumps(dict(added=sorted(after_running-before_running),removed=sorted(before_running-after_running)),indent=2))
-    assert after_snapshot==protected_snapshot,'pre-existing container identity/start changed'
+    (evidence/'unrelated-running-diff.json').write_text(json.dumps(dict(added=verification['added'],removed=verification['removed']),indent=2))
+    assert after_snapshot==protected_snapshot,'pre-existing container identity/start/mount changed'
     assert not set(run(['docker','ps','-aq','--filter','label=com.docker.compose.project='+project]).splitlines()),'owned cleanup incomplete'
     import hashlib
     digests={path.name:hashlib.sha256(path.read_bytes()).hexdigest() for path in sorted(evidence.iterdir()) if path.is_file() and path.name!='artifact-sha256.json'}

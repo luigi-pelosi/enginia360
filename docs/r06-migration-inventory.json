@@ -3163,5 +3163,70 @@
       "DestinationId"
     ]
   }
-}
+},
+  {
+    "table": "catalog.authority_history",
+    "owner": "catalog",
+    "category": "authority_evidence",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "CommandId"
+    ],
+    "definition": {
+      "migration": "0043_catalog_management",
+      "path": "database/runtime/migrations/0043_catalog_management.sql",
+      "file_sha256": "e5d385c413eb7717d7a39595d4a92a5de2f7e409a9be354fc2b7b9f348096136",
+      "create_sql": "CREATE TABLE catalog.authority_history (\n \"CommandId\" uuid PRIMARY KEY CHECK (\"CommandId\"<>'00000000-0000-0000-0000-000000000000'),\n \"TenantId\" uuid NOT NULL REFERENCES organization_access.tenants(\"Id\"),\n \"Version\" integer NOT NULL CHECK (\"Version\">0),\n \"Direction\" text NOT NULL CHECK (\"Direction\" IN ('Enginia360ToExternal','ExternalToEnginia360')),\n \"SourceId\" uuid NOT NULL CHECK (\"SourceId\"<>'00000000-0000-0000-0000-000000000000'),\n \"ProfileId\" uuid NOT NULL CHECK (\"ProfileId\"<>'00000000-0000-0000-0000-000000000000'),\n \"CompanyIds\" uuid[] NOT NULL CHECK (cardinality(\"CompanyIds\")>0),\n \"ActorMembershipId\" uuid NOT NULL,\n \"VerificationReference\" uuid NOT NULL CHECK (\"VerificationReference\"<>'00000000-0000-0000-0000-000000000000'),\n \"EffectiveFrom\" timestamptz NOT NULL DEFAULT clock_timestamp(),\n UNIQUE(\"TenantId\",\"Version\"),\n FOREIGN KEY(\"ActorMembershipId\",\"TenantId\") REFERENCES organization_access.memberships(\"Id\",\"TenantId\")\n);",
+      "columns": [
+        "CommandId",
+        "TenantId",
+        "Version",
+        "Direction",
+        "SourceId",
+        "ProfileId",
+        "CompanyIds",
+        "ActorMembershipId",
+        "VerificationReference",
+        "EffectiveFrom"
+      ],
+      "primary_key": [
+        "CommandId"
+      ]
+    }
+  },
+  {
+    "table": "catalog.management_audit",
+    "owner": "catalog",
+    "category": "security_evidence",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "CommandId"
+    ],
+    "definition": {
+      "migration": "0043_catalog_management",
+      "path": "database/runtime/migrations/0043_catalog_management.sql",
+      "file_sha256": "e5d385c413eb7717d7a39595d4a92a5de2f7e409a9be354fc2b7b9f348096136",
+      "create_sql": "CREATE TABLE catalog.management_audit (\n \"CommandId\" uuid PRIMARY KEY,\n \"TenantId\" uuid NOT NULL,\n \"ActorMembershipId\" uuid NOT NULL,\n \"BindingHash\" bytea NOT NULL,\n \"Request\" jsonb NOT NULL,\n \"Before\" jsonb NOT NULL,\n \"After\" jsonb NOT NULL,\n \"AuthorityVersion\" integer NOT NULL,\n \"OccurredAt\" timestamptz NOT NULL DEFAULT clock_timestamp()\n);",
+      "columns": [
+        "CommandId",
+        "TenantId",
+        "ActorMembershipId",
+        "BindingHash",
+        "Request",
+        "Before",
+        "After",
+        "AuthorityVersion",
+        "OccurredAt"
+      ],
+      "primary_key": [
+        "CommandId"
+      ]
+    }
+  }
 ]

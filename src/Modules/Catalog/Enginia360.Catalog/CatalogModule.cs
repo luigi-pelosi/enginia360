@@ -7,7 +7,10 @@ namespace Enginia360.Catalog;
 public static class CatalogModule
 {
     public static void MapSupplierPurchasePrices(Microsoft.AspNetCore.Builder.WebApplication app) => PurchasePriceEndpoints.Map(app);
-    public static IServiceCollection AddWorkshopCatalog(this IServiceCollection services, string connection)
+    public static void MapCatalogManagement(this Microsoft.AspNetCore.Builder.WebApplication app) => ManagementEndpoints.Map(app);
+    // Preserve the historical composition entry point and its one canonical reader.
+    public static IServiceCollection AddWorkshopCatalog(this IServiceCollection services, string connection) => services.AddCatalog(connection);
+    public static IServiceCollection AddCatalog(this IServiceCollection services, string connection)
     {
         services.AddHttpContextAccessor();
         services.AddDbContext<CatalogDbContext>(o => o.UseNpgsql(connection));

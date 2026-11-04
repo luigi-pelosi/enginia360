@@ -35,6 +35,38 @@ def inventory(kind):
     return set(run(['docker', kind, 'ls', '-q']).splitlines())
 
 
+def capture_protected_runtime():
+    """Read names globally, but never inspect another product's configuration.
+
+    Every pre-existing Enginia360 container is retained, including unknown older
+    fixtures. Unrelated project lifecycle is recorded, not treated as mutation of
+    these protected IDs. Cleanup remains exact project/config scoped separately.
+    """
+    rows = [json.loads(line) for line in run(['docker', 'ps', '--no-trunc', '--format',
+        '{"Id":{{json .ID}},"Name":{{json .Names}}}']).splitlines() if line]
+    assert all(re.fullmatch(r'[0-9a-f]{64}', row['Id']) for row in rows)
+    ids = sorted(row['Id'] for row in rows if row['Name'] == 'enginia360' or row['Name'].startswith('enginia360-'))
+    protected = {}
+    if ids:
+        # Curated metadata only: no Config/Env, credentials, or unrelated inspect.
+        output = run(['docker', 'inspect', '--format',
+            '{"Id":{{json .Id}},"Name":{{json .Name}},"StartedAt":{{json .State.StartedAt}},"Mounts":{{json .Mounts}}}', *ids])
+        protected = {row['Id']: row for row in (json.loads(line) for line in output.splitlines() if line)}
+        assert set(protected) == set(ids), 'protected runtime inventory incomplete'
+    return dict(running=sorted(row['Id'] for row in rows), protected=protected)
+
+
+def verify_protected_runtime(before):
+    after = capture_protected_runtime()
+    protected_after = {id: after['protected'].get(id) for id in before['protected']}
+    assert protected_after == before['protected'], 'protected container identity/start/mount changed'
+    result = dict(protectedBefore=before['protected'], protectedAfter=protected_after,
+        added=sorted(set(after['running'])-set(before['running'])),
+        removed=sorted(set(before['running'])-set(after['running'])))
+    print('PROTECTED_RUNTIME_INVENTORY ' + json.dumps(result, sort_keys=True), flush=True)
+    return result
+
+
 def cleanup(command, project):
     if not re.fullmatch(r'enginia360-r00b-[0-9a-f]{12}', project):
         raise ValueError('refusing non-ephemeral target')
@@ -166,7 +198,7 @@ def main():
         raise ValueError('private TMPDIR required')
     project = 'enginia360-r00b-' + secrets.token_hex(6)
     before_volumes = inventory('volume')
-    before_running = set(run(['docker','ps','-q','--no-trunc']).splitlines())
+    protected_inventory = capture_protected_runtime()
     with tempfile.TemporaryDirectory(prefix=project+'-', dir=scratch) as directory:
         state = Path(directory)
         values = {key:secrets.token_hex(24) for key in ['R00_INFRA_PASSWORD','R00_OWNER_PASSWORD','R00_APP_PASSWORD','R00_CLIENT_SECRET']}
@@ -312,7 +344,7 @@ def main():
                 for sig,handler in previous.items():
                     signal.signal(sig,handler)
     assert inventory('volume') == before_volumes
-    assert set(run(['docker','ps','-q','--no-trunc']).splitlines()) == before_running
+    verify_protected_runtime(protected_inventory)
     print('PASS R00.b guarded cleanup; protected running containers and retained volumes unchanged.',flush=True)
 
 

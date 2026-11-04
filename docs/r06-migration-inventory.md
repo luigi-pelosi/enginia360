@@ -1,6 +1,8 @@
 # R06.a.1 — inventario offline e riconciliazione sintetica
 
-MVP04 sorgente non verificata: 0042 aggiunge `counterparties.management_audit` (audit_history) e `counterparties.destination_revisions` (technical_ledger). Le definizioni CREATE e i checksum sono registrati nell’inventario JSON; nessuna autorizzazione import legacy, nessun aggiornamento dei 41 file pubblicati, nessuna migrazione eseguita in questa fase. I vincoli ALTER non ricostruiscono automaticamente uno schema live.
+MVP05 sorgente UNEXECUTED: 0043 aggiunge `catalog.authority_history` (authority_evidence) e `catalog.management_audit` (security_evidence), senza modificare i record inventario precedenti o i 42 file SQL pubblicati. Nessuna migrazione o verifica eseguita durante implementazione.
+
+Aggiornamento storico MVP04, consegnato PR168: 0042 aggiunge `counterparties.management_audit` (audit_history) e `counterparties.destination_revisions` (technical_ledger). Le definizioni CREATE e i checksum sono registrati nell’inventario JSON; nessuna autorizzazione import legacy, nessun aggiornamento dei 41 file pubblicati, nessuna migrazione eseguita in questa fase. I vincoli ALTER non ricostruiscono automaticamente uno schema live.
 
 **Stato corrente R06.b.2:** tool R06.a.1 consegnato (PR #77), inventario aggiornato dai successivi incrementi; [registro OPE OPEN](r06-readiness-registry.json), [runbook/limiti correnti](r06-recovery-runbook.md). Il roundtrip sintetico STAGING-ONLY con replay è in [R06.a.2](r06a2-synthetic-import-export.md); import di dominio, tabelle reali e replay d'import reale restano non provati e UNDECIDED; parent #46 aperta. Le prove sotto non sono approvazione della migrazione.
 
