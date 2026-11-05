@@ -233,6 +233,10 @@
       "enginia360.workshop.contracts": {
         "type": "Project"
       },
+      "enginia360.documents": {
+        "type": "Project",
+        "dependencies": { "Npgsql.EntityFrameworkCore.PostgreSQL": "[10.0.0, )" }
+      },
       "enginia360.documenttypes": {
         "type": "Project",
         "dependencies": {

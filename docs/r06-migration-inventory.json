@@ -3104,66 +3104,66 @@
       ]
     }
   },
-{
-  "table": "counterparties.management_audit",
-  "owner": "counterparties",
-  "category": "audit_history",
-  "migration_eligibility": "UNDECIDED",
-  "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
-  "available_command": null,
-  "reconcile_keys": [
-    "TenantId",
-    "CommandId"
-  ],
-  "definition": {
-    "migration": "0042_counterparty_management",
-    "path": "database/runtime/migrations/0042_counterparty_management.sql",
-    "file_sha256": "86ebca3460fde472ed91642a330e42fbfe59aa630e631357780fa8728194d92c",
-    "create_sql": "CREATE TABLE counterparties.management_audit (\n \"CommandId\" uuid PRIMARY KEY,\n \"TenantId\" uuid NOT NULL,\n \"ActorMembershipId\" uuid NOT NULL,\n \"BindingHash\" bytea NOT NULL,\n \"Request\" jsonb NOT NULL,\n \"Before\" jsonb NOT NULL,\n \"After\" jsonb NOT NULL,\n \"AuthorityVersion\" integer,\n \"OccurredAt\" timestamptz NOT NULL DEFAULT clock_timestamp()\n);",
-    "columns": [
-      "CommandId",
+  {
+    "table": "counterparties.management_audit",
+    "owner": "counterparties",
+    "category": "audit_history",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
       "TenantId",
-      "ActorMembershipId",
-      "BindingHash",
-      "Request",
-      "Before",
-      "After",
-      "AuthorityVersion",
-      "OccurredAt"
-    ],
-    "primary_key": [
       "CommandId"
-    ]
-  }
-},
-{
-  "table": "counterparties.destination_revisions",
-  "owner": "counterparties",
-  "category": "technical_ledger",
-  "migration_eligibility": "UNDECIDED",
-  "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
-  "available_command": null,
-  "reconcile_keys": [
-    "TenantId",
-    "LegalEntityId",
-    "DestinationId"
-  ],
-  "definition": {
-    "migration": "0042_counterparty_management",
-    "path": "database/runtime/migrations/0042_counterparty_management.sql",
-    "file_sha256": "86ebca3460fde472ed91642a330e42fbfe59aa630e631357780fa8728194d92c",
-    "create_sql": "CREATE TABLE counterparties.destination_revisions (\n \"DestinationId\" uuid PRIMARY KEY,\n \"TenantId\" uuid NOT NULL,\n \"LegalEntityId\" uuid NOT NULL,\n \"Revision\" integer NOT NULL CHECK(\"Revision\">0)\n);",
-    "columns": [
-      "DestinationId",
+    ],
+    "definition": {
+      "migration": "0042_counterparty_management",
+      "path": "database/runtime/migrations/0042_counterparty_management.sql",
+      "file_sha256": "86ebca3460fde472ed91642a330e42fbfe59aa630e631357780fa8728194d92c",
+      "create_sql": "CREATE TABLE counterparties.management_audit (\n \"CommandId\" uuid PRIMARY KEY,\n \"TenantId\" uuid NOT NULL,\n \"ActorMembershipId\" uuid NOT NULL,\n \"BindingHash\" bytea NOT NULL,\n \"Request\" jsonb NOT NULL,\n \"Before\" jsonb NOT NULL,\n \"After\" jsonb NOT NULL,\n \"AuthorityVersion\" integer,\n \"OccurredAt\" timestamptz NOT NULL DEFAULT clock_timestamp()\n);",
+      "columns": [
+        "CommandId",
+        "TenantId",
+        "ActorMembershipId",
+        "BindingHash",
+        "Request",
+        "Before",
+        "After",
+        "AuthorityVersion",
+        "OccurredAt"
+      ],
+      "primary_key": [
+        "CommandId"
+      ]
+    }
+  },
+  {
+    "table": "counterparties.destination_revisions",
+    "owner": "counterparties",
+    "category": "technical_ledger",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
       "TenantId",
       "LegalEntityId",
-      "Revision"
-    ],
-    "primary_key": [
       "DestinationId"
-    ]
-  }
-},
+    ],
+    "definition": {
+      "migration": "0042_counterparty_management",
+      "path": "database/runtime/migrations/0042_counterparty_management.sql",
+      "file_sha256": "86ebca3460fde472ed91642a330e42fbfe59aa630e631357780fa8728194d92c",
+      "create_sql": "CREATE TABLE counterparties.destination_revisions (\n \"DestinationId\" uuid PRIMARY KEY,\n \"TenantId\" uuid NOT NULL,\n \"LegalEntityId\" uuid NOT NULL,\n \"Revision\" integer NOT NULL CHECK(\"Revision\">0)\n);",
+      "columns": [
+        "DestinationId",
+        "TenantId",
+        "LegalEntityId",
+        "Revision"
+      ],
+      "primary_key": [
+        "DestinationId"
+      ]
+    }
+  },
   {
     "table": "catalog.authority_history",
     "owner": "catalog",
@@ -3322,6 +3322,278 @@
       ],
       "primary_key": [
         "CommandId"
+      ]
+    }
+  },
+  {
+    "table": "documents.headers",
+    "owner": "documents",
+    "category": "operational_fact",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "SiteId",
+      "Id"
+    ],
+    "definition": {
+      "migration": "0045_documents_inventory",
+      "path": "database/runtime/migrations/0045_documents_inventory.sql",
+      "file_sha256": "97348c6f9d0e9def5ac8abe766098a759c19963ff911002592ab5810960bb01d",
+      "create_sql": "CREATE TABLE documents.headers (\n \"Id\" uuid PRIMARY KEY, \"TenantId\" uuid NOT NULL, \"LegalEntityId\" uuid NOT NULL,\n \"SiteId\" uuid NOT NULL, \"DocumentTypeId\" uuid NOT NULL,\n \"Revision\" integer NOT NULL CHECK (\"Revision\">0), \"State\" text NOT NULL CHECK (\"State\" IN ('Draft','Confirmed')),\n \"Title\" text NOT NULL CHECK (length(\"Title\") BETWEEN 1 AND 100 AND btrim(\"Title\")<>'' AND \"Title\" !~ '[[:cntrl:]]'),\n \"AppliedConfiguration\" jsonb, \"ConfirmedAt\" timestamptz,\n UNIQUE(\"TenantId\",\"LegalEntityId\",\"Id\"),\n FOREIGN KEY (\"SiteId\",\"LegalEntityId\",\"TenantId\") REFERENCES organization_access.sites(\"Id\",\"LegalEntityId\",\"TenantId\"),\n FOREIGN KEY (\"TenantId\",\"LegalEntityId\",\"DocumentTypeId\") REFERENCES document_types.definitions(\"TenantId\",\"LegalEntityId\",\"Id\"),\n CHECK ((\"State\"='Confirmed')=(\"AppliedConfiguration\" IS NOT NULL AND \"ConfirmedAt\" IS NOT NULL))\n);",
+      "columns": [
+        "Id",
+        "TenantId",
+        "LegalEntityId",
+        "SiteId",
+        "DocumentTypeId",
+        "Revision",
+        "State",
+        "Title",
+        "AppliedConfiguration",
+        "ConfirmedAt"
+      ],
+      "primary_key": [
+        "Id"
+      ]
+    }
+  },
+  {
+    "table": "documents.lines",
+    "owner": "documents",
+    "category": "operational_fact",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "WarehouseId",
+      "DocumentId",
+      "Id"
+    ],
+    "definition": {
+      "migration": "0045_documents_inventory",
+      "path": "database/runtime/migrations/0045_documents_inventory.sql",
+      "file_sha256": "97348c6f9d0e9def5ac8abe766098a759c19963ff911002592ab5810960bb01d",
+      "create_sql": "CREATE TABLE documents.lines (\n \"TenantId\" uuid NOT NULL, \"LegalEntityId\" uuid NOT NULL, \"DocumentId\" uuid NOT NULL,\n \"Id\" uuid NOT NULL, \"Position\" integer NOT NULL CHECK (\"Position\">0),\n \"CatalogItemId\" uuid NOT NULL REFERENCES catalog.items(\"Id\"), \"CatalogVersion\" integer NOT NULL CHECK (\"CatalogVersion\">0),\n \"Kind\" text NOT NULL CHECK (\"Kind\" IN ('Article','Service')), \"Label\" text NOT NULL,\n \"Quantity\" numeric(24,6) NOT NULL CHECK (\"Quantity\">0), \"WarehouseId\" uuid, \"DestinationWarehouseId\" uuid,\n PRIMARY KEY(\"TenantId\",\"LegalEntityId\",\"DocumentId\",\"Id\"), UNIQUE(\"TenantId\",\"LegalEntityId\",\"DocumentId\",\"Position\"),\n FOREIGN KEY(\"TenantId\",\"LegalEntityId\",\"DocumentId\") REFERENCES documents.headers(\"TenantId\",\"LegalEntityId\",\"Id\"),\n CHECK (\"Kind\"<>'Service' OR (\"WarehouseId\" IS NULL AND \"DestinationWarehouseId\" IS NULL))\n);",
+      "columns": [
+        "TenantId",
+        "LegalEntityId",
+        "DocumentId",
+        "Id",
+        "Position",
+        "CatalogItemId",
+        "CatalogVersion",
+        "Kind",
+        "Label",
+        "Quantity",
+        "WarehouseId",
+        "DestinationWarehouseId"
+      ],
+      "primary_key": [
+        "TenantId",
+        "LegalEntityId",
+        "DocumentId",
+        "Id"
+      ]
+    }
+  },
+  {
+    "table": "documents.versions",
+    "owner": "documents",
+    "category": "audit_history",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "DocumentId",
+      "Revision"
+    ],
+    "definition": {
+      "migration": "0045_documents_inventory",
+      "path": "database/runtime/migrations/0045_documents_inventory.sql",
+      "file_sha256": "97348c6f9d0e9def5ac8abe766098a759c19963ff911002592ab5810960bb01d",
+      "create_sql": "CREATE TABLE documents.versions (\n \"TenantId\" uuid NOT NULL, \"LegalEntityId\" uuid NOT NULL, \"DocumentId\" uuid NOT NULL,\n \"Revision\" integer NOT NULL, \"Snapshot\" jsonb NOT NULL,\n PRIMARY KEY(\"TenantId\",\"LegalEntityId\",\"DocumentId\",\"Revision\"),\n FOREIGN KEY(\"TenantId\",\"LegalEntityId\",\"DocumentId\") REFERENCES documents.headers(\"TenantId\",\"LegalEntityId\",\"Id\")\n);",
+      "columns": [
+        "TenantId",
+        "LegalEntityId",
+        "DocumentId",
+        "Revision",
+        "Snapshot"
+      ],
+      "primary_key": [
+        "TenantId",
+        "LegalEntityId",
+        "DocumentId",
+        "Revision"
+      ]
+    }
+  },
+  {
+    "table": "documents.policy_versions",
+    "owner": "documents",
+    "category": "business_configuration",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "Revision"
+    ],
+    "definition": {
+      "migration": "0045_documents_inventory",
+      "path": "database/runtime/migrations/0045_documents_inventory.sql",
+      "file_sha256": "97348c6f9d0e9def5ac8abe766098a759c19963ff911002592ab5810960bb01d",
+      "create_sql": "CREATE TABLE documents.policy_versions (\n \"TenantId\" uuid NOT NULL, \"LegalEntityId\" uuid NOT NULL,\n \"Revision\" integer NOT NULL CHECK (\"Revision\">0), \"AllowNegative\" boolean NOT NULL,\n \"OccurredAt\" timestamptz NOT NULL DEFAULT clock_timestamp(),\n PRIMARY KEY(\"TenantId\",\"LegalEntityId\",\"Revision\"),\n FOREIGN KEY(\"LegalEntityId\",\"TenantId\") REFERENCES organization_access.legal_entities(\"Id\",\"TenantId\")\n);",
+      "columns": [
+        "TenantId",
+        "LegalEntityId",
+        "Revision",
+        "AllowNegative",
+        "OccurredAt"
+      ],
+      "primary_key": [
+        "TenantId",
+        "LegalEntityId",
+        "Revision"
+      ]
+    }
+  },
+  {
+    "table": "documents.balances",
+    "owner": "documents",
+    "category": "stock_state",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "SiteId",
+      "WarehouseId",
+      "CatalogItemId"
+    ],
+    "definition": {
+      "migration": "0045_documents_inventory",
+      "path": "database/runtime/migrations/0045_documents_inventory.sql",
+      "file_sha256": "97348c6f9d0e9def5ac8abe766098a759c19963ff911002592ab5810960bb01d",
+      "create_sql": "CREATE TABLE documents.balances (\n \"TenantId\" uuid NOT NULL, \"LegalEntityId\" uuid NOT NULL, \"SiteId\" uuid NOT NULL,\n \"WarehouseId\" uuid NOT NULL, \"CatalogItemId\" uuid NOT NULL REFERENCES catalog.items(\"Id\"),\n \"Quantity\" numeric(24,6) NOT NULL,\n PRIMARY KEY(\"TenantId\",\"LegalEntityId\",\"SiteId\",\"WarehouseId\",\"CatalogItemId\"),\n FOREIGN KEY(\"WarehouseId\",\"SiteId\",\"LegalEntityId\",\"TenantId\") REFERENCES organization_access.warehouses(\"Id\",\"SiteId\",\"LegalEntityId\",\"TenantId\")\n);",
+      "columns": [
+        "TenantId",
+        "LegalEntityId",
+        "SiteId",
+        "WarehouseId",
+        "CatalogItemId",
+        "Quantity"
+      ],
+      "primary_key": [
+        "TenantId",
+        "LegalEntityId",
+        "SiteId",
+        "WarehouseId",
+        "CatalogItemId"
+      ]
+    }
+  },
+  {
+    "table": "documents.ledger",
+    "owner": "documents",
+    "category": "operational_fact",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "SiteId",
+      "WarehouseId",
+      "Id"
+    ],
+    "definition": {
+      "migration": "0045_documents_inventory",
+      "path": "database/runtime/migrations/0045_documents_inventory.sql",
+      "file_sha256": "97348c6f9d0e9def5ac8abe766098a759c19963ff911002592ab5810960bb01d",
+      "create_sql": "CREATE TABLE documents.ledger (\n \"Id\" uuid PRIMARY KEY DEFAULT gen_random_uuid(),\n \"TenantId\" uuid NOT NULL, \"LegalEntityId\" uuid NOT NULL, \"SiteId\" uuid NOT NULL,\n \"DocumentId\" uuid NOT NULL, \"LineId\" uuid NOT NULL, \"WarehouseId\" uuid NOT NULL,\n \"CatalogItemId\" uuid NOT NULL, \"CatalogVersion\" integer NOT NULL, \"CatalogLabel\" text NOT NULL,\n \"Leg\" text NOT NULL CHECK (\"Leg\" IN ('in','out')), \"Quantity\" numeric(24,6) NOT NULL CHECK (\"Quantity\"<>0),\n \"OccurredAt\" timestamptz NOT NULL,\n UNIQUE(\"TenantId\",\"LegalEntityId\",\"DocumentId\",\"LineId\",\"Leg\"),\n FOREIGN KEY(\"TenantId\",\"LegalEntityId\",\"DocumentId\",\"LineId\") REFERENCES documents.lines(\"TenantId\",\"LegalEntityId\",\"DocumentId\",\"Id\"),\n FOREIGN KEY(\"TenantId\",\"LegalEntityId\",\"SiteId\",\"WarehouseId\",\"CatalogItemId\") REFERENCES documents.balances(\"TenantId\",\"LegalEntityId\",\"SiteId\",\"WarehouseId\",\"CatalogItemId\"),\n CHECK ((\"Leg\"='in')=(\"Quantity\">0))\n);",
+      "columns": [
+        "Id",
+        "TenantId",
+        "LegalEntityId",
+        "SiteId",
+        "DocumentId",
+        "LineId",
+        "WarehouseId",
+        "CatalogItemId",
+        "CatalogVersion",
+        "CatalogLabel",
+        "Leg",
+        "Quantity",
+        "OccurredAt"
+      ],
+      "primary_key": [
+        "Id"
+      ]
+    }
+  },
+  {
+    "table": "documents.command_audit",
+    "owner": "documents",
+    "category": "security_evidence",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "CommandId"
+    ],
+    "definition": {
+      "migration": "0045_documents_inventory",
+      "path": "database/runtime/migrations/0045_documents_inventory.sql",
+      "file_sha256": "97348c6f9d0e9def5ac8abe766098a759c19963ff911002592ab5810960bb01d",
+      "create_sql": "CREATE TABLE documents.command_audit (\n \"CommandId\" uuid PRIMARY KEY, \"TenantId\" uuid NOT NULL, \"LegalEntityId\" uuid NOT NULL,\n \"ActorMembershipId\" uuid NOT NULL, \"BindingHash\" bytea NOT NULL, \"Request\" jsonb NOT NULL,\n \"Before\" jsonb NOT NULL, \"After\" jsonb NOT NULL, \"OccurredAt\" timestamptz NOT NULL DEFAULT clock_timestamp()\n);",
+      "columns": [
+        "CommandId",
+        "TenantId",
+        "LegalEntityId",
+        "ActorMembershipId",
+        "BindingHash",
+        "Request",
+        "Before",
+        "After",
+        "OccurredAt"
+      ],
+      "primary_key": [
+        "CommandId"
+      ]
+    }
+  },
+  {
+    "table": "documents.snapshot_fence",
+    "owner": "documents",
+    "category": "technical_ledger",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": null,
+    "reconcile_keys": [
+      "Singleton"
+    ],
+    "definition": {
+      "migration": "0045_documents_inventory",
+      "path": "database/runtime/migrations/0045_documents_inventory.sql",
+      "file_sha256": "97348c6f9d0e9def5ac8abe766098a759c19963ff911002592ab5810960bb01d",
+      "create_sql": "CREATE TABLE documents.snapshot_fence (\"Singleton\" boolean PRIMARY KEY CHECK (\"Singleton\"), \"Token\" boolean NOT NULL);",
+      "columns": [
+        "Singleton",
+        "Token"
+      ],
+      "primary_key": [
+        "Singleton"
       ]
     }
   }

@@ -462,6 +462,20 @@ footer {
     padding: 16px;
   }
 }
+/* Quantity-only document workspace: native reads and editable multiline forms. */
+.documents-workspace { min-width: 0; overflow-wrap: anywhere; }
+.documents-workspace h1 { font-size: clamp(1.6rem,4vw,2.4rem); line-height: 1.2; font-weight: 700; }
+.documents-workspace .role-panel { min-width: 0; padding: 24px; }
+.documents-workspace fieldset { min-inline-size: 0; display: grid; gap: 14px; }
+.documents-workspace legend { max-width: 100%; white-space: normal; overflow-wrap: anywhere; font-weight: 600; }
+.documents-workspace .document-line { padding: 16px; border: 1px solid var(--color-input); border-radius: 6px; }
+.documents-workspace button { max-width: 100%; white-space: normal; height: auto; min-height: 40px; }
+.documents-workspace ul, .documents-workspace ol { display: grid; gap: 12px; margin-block: 12px; }
+.documents-workspace li { min-width: 0; }
+.documents-workspace a { display: inline-block; margin-inline: 6px; text-decoration: underline; }
+.documents-workspace label:has(input[type="checkbox"]) { display: flex; align-items: center; gap: 10px; }
+.documents-workspace input[type="checkbox"] { width: 20px; min-height: 20px; flex: 0 0 20px; }
+@media (max-width: 599px) { .documents-workspace .role-panel { padding: 16px; } }
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

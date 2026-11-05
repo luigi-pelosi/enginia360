@@ -577,8 +577,31 @@ DOCUMENT_TYPES_DIRECT = {
     'tests/fixtures/nginx.mvp02c.conf',
 }
 
+DOCUMENTS_FILES = {'frontend/app/documents/page.tsx', 'frontend/tests/documents.test.tsx', 'tests/browser/mvp07-documents-inventory.cjs', 'database/runtime/migrations/0045_documents_inventory.sql', 'scripts/test-mvp07-impact.py', 'src/Modules/Documents/Enginia360.Documents/Contracts.cs', 'tests/Enginia360.Api.Tests/DocumentInventoryTests.cs', 'frontend/lib/documents.ts', 'scripts/test-mvp07-contract.py', 'src/Modules/Documents/Enginia360.Documents/DocumentEndpoints.cs', 'scripts/run-mvp07-tests.py', 'src/Modules/Documents/Enginia360.Documents/DocumentsModule.cs', 'src/Modules/Documents/Enginia360.Documents/Enginia360.Documents.csproj', 'scripts/test-mvp07-documents-inventory.py', 'frontend/components/documents-workspace.tsx', 'src/Modules/Documents/Enginia360.Documents/packages.lock.json'}
+DOCUMENTS_SHARED = DOCUMENT_TYPES_SCOPE | {'scripts/test-mvp06-contract.py', 'scripts/run-mvp06-tests.py', 'frontend/lib/tenant-roles.ts', 'tests/browser/mvp05-catalog.cjs', 'docs/mvp07-documents-inventory-contract.md', 'scripts/test-mvp03b1-roles.py', 'scripts/run-mvp03b2a-tests.py', 'scripts/run-mvp03b2b-tests.py', 'scripts/test-mvp06-impact.py', 'docs/mvp07-implementation.md', 'scripts/run-mvp04-tests.py', 'tests/browser/mvp06-document-types.cjs'}
+DOCUMENTS_SHARED |= {'frontend/app/page.tsx','frontend/app/layout.tsx','frontend/app/globals.css','tests/browser/mvp04-counterparties.cjs','frontend/tests/shell.test.tsx','frontend/tests/acceptance.spec.ts','docs/foundation/01-glossary-and-domain-boundaries.md'}
+DOCUMENTS_SHARED |= {'scripts/test-c00-consistency.py', 'scripts/test-r00-migrations.py'}  # exact D99 register guard; mixed producers retain original consumers
+DOCUMENTS_SCOPE = DOCUMENTS_FILES | DOCUMENTS_SHARED
+DOCUMENTS_DIRECT = DOCUMENT_TYPES_DIRECT | {'database/runtime/migrations/0044_document_types.sql', 'frontend/lib/tenant-roles.ts'}
+
+DOCUMENTS_DIRECT |= {'frontend/app/globals.css'}
+
 def _selection(paths):
     paths = sorted(set(paths))
+    if set(paths) & DOCUMENTS_FILES:
+        remaining = set(paths) - DOCUMENTS_FILES
+        if set(paths) <= DOCUMENTS_SCOPE:
+            remaining -= DOCUMENTS_SHARED
+        result = selection(sorted(remaining | {'scripts/test-mvp06-impact.py'}))
+        result.update(changed_paths=paths, documents=True, document_types=True, frontend=True,
+                      migrations=True, browser=True, tenant_roles=True,
+                      membership_access=True, catalog_management=True, counterparty_management=True,
+                      federated_onboarding=True, authenticated_organization=True)
+        for name in ('DocumentInventoryTests','DocumentTypeManagementTests','BusinessMembershipFenceTests'):
+            token='FullyQualifiedName~'+name
+            if token not in result['api_filter'].split('|'):
+                result['api_filter'] += ('|' if result['api_filter'] else '')+token
+        return result
     if set(paths) & DOCUMENT_TYPES_FILES:
         remaining = set(paths) - DOCUMENT_TYPES_FILES
         if set(paths) <= DOCUMENT_TYPES_SCOPE:
@@ -923,6 +946,11 @@ def selection(paths):
         token='FullyQualifiedName~DocumentTypeManagementTests'
         if token not in result['api_filter'].split('|'): result['api_filter'] += ('|' if result['api_filter'] else '')+token
     result.setdefault('document_types',False)
+    if set(paths) & (DOCUMENTS_FILES | DOCUMENTS_DIRECT):
+        result['documents'] = True
+        token='FullyQualifiedName~DocumentInventoryTests'
+        if token not in result['api_filter'].split('|'): result['api_filter'] += ('|' if result['api_filter'] else '')+token
+    result.setdefault('documents',False)
     return result
 
 

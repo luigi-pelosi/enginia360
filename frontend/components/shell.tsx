@@ -8,11 +8,11 @@ import { domains } from "../lib/domains";
 export function SessionBoundary({ pathname }: { pathname: string | null }) {
     return (
         <footer>
-            {pathname === "/organization" || pathname === "/users" || pathname === "/onboarding-admin" || pathname === "/counterparties" || pathname === "/catalog" || pathname === "/document-types"
+            {pathname === "/organization" || pathname === "/users" || pathname === "/onboarding-admin" || pathname === "/counterparties" || pathname === "/catalog" || pathname === "/document-types" || pathname === "/documents"
                 ? "Sessione gestita dal backend · Autorità verificata a ogni operazione; nessun permesso dal menu."
                 : pathname === "/onboarding"
                     ? "Primo ingresso federato gestito dal backend · La sessione pendente consente solo lo stato della richiesta, non accesso aziendale."
-                    : "Accesso non disponibile · Federazione e autorizzazioni non ancora collegate."}
+                    : "Contesto non selezionato · Accesso e autorizzazioni sono verificati nei percorsi collegati."}
         </footer>
     );
 }
@@ -47,7 +47,7 @@ export function Shell({ children }: { children: ReactNode }) {
                     Enginia360
                 </Link>
                 <span className="shell-label">
-                    Ambiente di sviluppo · MVP-01
+                    Ambiente di sviluppo · MVP
                 </span>
                 <Button
                     ref={trigger}
@@ -74,9 +74,9 @@ export function Shell({ children }: { children: ReactNode }) {
                     {domains.map((domain, index) => (
                         <Link
                             key={domain.id}
-                            href={domain.id === "document-types" ? "/document-types" : domain.id === "catalog" ? "/catalog" : domain.id === "counterparties" ? "/counterparties" : `/domains/${domain.id}`}
+                            href={domain.id === "documents" || domain.id === "inventory" ? "/documents" : domain.id === "document-types" ? "/document-types" : domain.id === "catalog" ? "/catalog" : domain.id === "counterparties" ? "/counterparties" : `/domains/${domain.id}`}
                             aria-current={
-                                pathname === `/domains/${domain.id}` || (domain.id === "counterparties" && pathname === "/counterparties") || (domain.id === "catalog" && pathname === "/catalog") || (domain.id === "document-types" && pathname === "/document-types")
+                                pathname === `/domains/${domain.id}` || (domain.id === "counterparties" && pathname === "/counterparties") || (domain.id === "catalog" && pathname === "/catalog") || (domain.id === "document-types" && pathname === "/document-types") || ((domain.id === "documents" || domain.id === "inventory") && pathname === "/documents")
                                     ? "page"
                                     : undefined
                             }

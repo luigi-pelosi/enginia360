@@ -8,7 +8,7 @@ export const metadata: Metadata = {
         template: "%s · Enginia360",
     },
     description:
-        "Shell tecnica del nuovo MVP Enginia360. Funzioni operative non ancora disponibili.",
+        "Navigazione del nuovo MVP Enginia360. Sessione e permessi verificati nei percorsi collegati, senza contesto implicito.",
     robots: { index: false, follow: false },
 };
 export const dynamic = "force-dynamic";

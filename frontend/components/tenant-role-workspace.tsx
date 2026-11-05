@@ -162,18 +162,20 @@ export function TenantRoleWorkspace({
       );
       const action = text("action");
       const shared = ["counterparties.shared.read", "counterparties.shared.create", "counterparties.shared.edit", "counterparties.business-roles.write", "catalog.shared.read", "catalog.shared.create", "catalog.shared.edit"].includes(action);
-      const extension = ["counterparties.extensions.read", "counterparties.extensions.write", "document-types.read", "document-types.create", "document-types.edit"].includes(action);
+      const extension = ["counterparties.extensions.read", "counterparties.extensions.write", "document-types.read", "document-types.create", "document-types.edit", "inventory.policy.read", "inventory.policy.manage"].includes(action);
       const company = data.companies?.find(c => c.legalEntityId === text("legalEntityId"));
-      if ((!shared && !extension && !scope) || (extension && !company)) return;
+      const siteScoped = ["documents.read", "documents.save", "documents.confirm"].includes(action);
+      const site = data.sites?.find(s => s.siteId === text("siteId"));
+      if ((!shared && !extension && !siteScoped && !scope) || (extension && !company) || (siteScoped && !site)) return;
       payload = {
         ...payload,
         resourceId: prior?.resourceId || null,
         expectedRevision: prior?.revision || 0,
         label: text("label"),
         action,
-        legalEntityId: shared ? null : extension ? company!.legalEntityId : scope!.legalEntityId,
-        siteId: shared || extension ? null : scope!.siteId,
-        warehouseId: shared || extension ? null : scope!.warehouseId,
+        legalEntityId: shared ? null : extension ? company!.legalEntityId : siteScoped ? site!.legalEntityId : scope!.legalEntityId,
+        siteId: shared || extension ? null : siteScoped ? site!.siteId : scope!.siteId,
+        warehouseId: shared || extension || siteScoped ? null : scope!.warehouseId,
       };
     } else if (kind === "role") {
       const prior = data.roles.find((r) => r.resourceId === roleId);
@@ -396,7 +398,7 @@ export function TenantRoleWorkspace({
                       ))}
                     </select>
                   </label>
-                  {permissionAction.startsWith("organization-context.") ? (
+                  {(permissionAction.startsWith("organization-context.") || ["inventory.document-effects.apply", "inventory.quantities.read"].includes(permissionAction)) ? (
                   <label>
                     Scope magazzino esatto
                     <select
@@ -407,19 +409,23 @@ export function TenantRoleWorkspace({
                       <option value="">Seleziona magazzino</option>
                       {data.warehouses.map((w) => (
                         <option key={w.warehouseId} value={w.warehouseId}>
-                          {w.name} · {w.legalEntityId.slice(0, 8)} /{" "}
-                          {w.siteId.slice(0, 8)} / {w.warehouseId.slice(0, 8)}
+                          {w.name} · {data.companies?.find(c => c.legalEntityId === w.legalEntityId)?.name || "Società del magazzino"} /{" "}
+                          {data.sites?.find(s => s.siteId === w.siteId)?.name || "Sede del magazzino"}
                         </option>
                       ))}
                     </select>
                   </label>
-                  ) : (permissionAction.startsWith("counterparties.extensions.") || permissionAction.startsWith("document-types.")) ? (
+                  ) : (permissionAction.startsWith("counterparties.extensions.") || permissionAction.startsWith("document-types.") || permissionAction.startsWith("inventory.policy.")) ? (
                     <label>Scope società esatta
                       <select name="legalEntityId" required defaultValue={permission?.legalEntityId || ""}>
                         <option value="">Seleziona società</option>
                         {data.companies?.map(c => <option key={c.legalEntityId} value={c.legalEntityId}>{c.name}</option>)}
                       </select>
                     </label>
+                  ) : permissionAction.startsWith("documents.") ? (
+                    <label>Scope sede esatta<select name="siteId" required defaultValue={permission?.siteId || ""}>
+                      <option value="">Seleziona sede</option>{data.sites?.map(s => <option key={s.siteId} value={s.siteId}>{s.name} · {data.companies?.find(c => c.legalEntityId === s.legalEntityId)?.name}</option>)}
+                    </select></label>
                   ) : <p>Scope tenant: identità e ruoli aziendali condivisi. Non è un permesso per tutte le società o i magazzini.</p>}
 
                 </div>

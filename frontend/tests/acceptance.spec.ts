@@ -51,6 +51,9 @@ test("HTTP returns real uncached Italian SSR with all seven domain pages and no 
         } else if (suffix === "/domains/document-types") {
             expect(html).toContain("Tipologie documentali");
             expect(html).not.toContain("Salva nuova versione");
+        } else if (["/domains/documents", "/domains/inventory"].includes(suffix)) {
+            expect(html).toContain("Documenti e quantità");
+            expect(html).not.toContain("Conferma documento e applica quantità");
         } else if (suffix) expect(html).toContain("Area non ancora implementata");
     }
     expect((await request.get("/domains/not-a-domain")).status()).toBe(404);
@@ -69,7 +72,7 @@ test("HTTP returns real uncached Italian SSR with all seven domain pages and no 
         .getByRole("link", { name: "Documenti", exact: true })
         .click();
     await expect(
-        page.getByRole("heading", { name: "Area non ancora implementata" }),
+        page.getByRole("heading", { name: "Documenti e quantità" }),
     ).toBeVisible();
     await context.close();
 });
@@ -124,12 +127,12 @@ for (const viewport of [
             .getByRole("link", { name: "Documenti", exact: true });
         await documents.focus();
         await page.keyboard.press("Enter");
-        await expect(page).toHaveURL(/\/domains\/documents$/);
+        await expect(page).toHaveURL(/\/documents$/);
         await expect(
-            page.getByRole("heading", { name: "Documenti", exact: true }),
+            page.getByRole("heading", { name: "Documenti e quantità", exact: true }),
         ).toBeVisible();
         await expect(
-            page.getByRole("heading", { name: "Area non ancora implementata" }),
+            page.getByRole("heading", { name: "Documenti e quantità" }),
         ).toBeVisible();
         if (viewport.width >= 1024)
             await expect(documents).toHaveAttribute("aria-current", "page");

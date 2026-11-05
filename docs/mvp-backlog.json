@@ -202,7 +202,7 @@
       "dependsOn": [
         "MVP-05"
       ],
-      "status": "in_progress",
+      "status": "done",
       "issueNumber": 145,
       "acceptance": [
         "Ogni societa' gestisce le proprie tipologie autorizzate",
@@ -212,8 +212,12 @@
       ],
       "contract": "docs/mvp06-document-types-contract.md",
       "implementationStatus": "source_complete",
-      "validationStatus": "UNEXECUTED",
-      "runtimeDelivered": false
+      "validationStatus": "verified_parent_exact_head_artifacts",
+      "runtimeDelivered": true,
+      "pr": 170,
+      "mergedMain": "6ca378d94435eb78ff4955128e3646cc64ef1ece",
+      "prCi": 41881635998,
+      "runtimeDispatch": 41881398306
     },
     {
       "id": "MVP-07",
@@ -225,7 +229,7 @@
       "dependsOn": [
         "MVP-06"
       ],
-      "status": "backlog",
+      "status": "in_progress",
       "issueNumber": 146,
       "acceptance": [
         "Documento persistito con testata e righe coerenti con la tipologia",
@@ -233,7 +237,17 @@
         "Conferma produce effetti tracciati per documento/riga secondo il tipo",
         "Carico, scarico, trasferimento e nessun effetto eseguiti su dati sintetici",
         "Retry senza duplicazioni e concorrenza verificati; nessuna movimentazione autonoma"
-      ]
+      ],
+      "contract": "docs/mvp07-documents-inventory-contract.md",
+      "implementationStatus": "source_complete",
+      "validationStatus": "LOCAL_VERIFIED_PENDING_EXACT_HEAD",
+      "runtimeDelivered": false,
+      "negativeStockPolicy": {
+        "decision": "D99",
+        "ownerAnswer": "Configurabile per società, con blocco predefinito",
+        "scope": "company",
+        "defaultAllowNegative": false
+      }
     },
     {
       "id": "MVP-08",
