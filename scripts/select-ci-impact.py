@@ -596,8 +596,37 @@ DEVELOPMENT_SHARED = DOCUMENTS_SCOPE | {'docs/mvp08-document-development-contrac
 DEVELOPMENT_SCOPE = DEVELOPMENT_FILES | DEVELOPMENT_SHARED
 DEVELOPMENT_DIRECT = DOCUMENTS_FILES | DOCUMENTS_DIRECT | DOCUMENT_TYPES_FILES
 
+# MVP09 is a finite composition, not a new business-domain producer.
+INTEGRATED_FILES = {
+ 'scripts/run-mvp09-tests.py','scripts/run-mvp09-architecture.py',
+ 'scripts/test-mvp09-contract.py','scripts/test-mvp09-impact.py',
+ 'tests/browser/mvp09-integrated-acceptance.cjs',
+}
+INTEGRATED_SHARED = DEVELOPMENT_SCOPE | {
+ 'docs/mvp09-integrated-acceptance-contract.md','docs/mvp09-implementation.md',
+ 'docs/mvp09-cleanup-trace.md','docs/mvp09-final-acceptance.md',
+ 'docs/archive/mvp08-checkpoints.md',
+ 'scripts/test-mvp08-contract.py','scripts/test-mvp06-contract.py',
+ 'scripts/test-mvp07-contract.py',
+}
+INTEGRATED_SCOPE = INTEGRATED_FILES | INTEGRATED_SHARED
+INTEGRATED_DIRECT = DEVELOPMENT_FILES | DEVELOPMENT_DIRECT | {
+ 'scripts/run-mvp02b-tests.py','scripts/run-r00b-tests.py',
+ 'src/Enginia360.Api/BrowserAuthentication/PendingOnboarding.cs',
+ 'src/Enginia360.Api/PlatformAdministration/TenantRoleAdministration.cs',
+ 'frontend/components/tenant-role-workspace.tsx','frontend/components/shell.tsx',
+ 'frontend/lib/private-backend.ts',
+}
+
 def _selection(paths):
     paths = sorted(set(paths))
+    if set(paths) & INTEGRATED_FILES:
+        remaining = set(paths) - INTEGRATED_FILES
+        if set(paths) <= INTEGRATED_SCOPE:
+            remaining -= INTEGRATED_SHARED
+        result = selection(sorted(remaining | {'scripts/test-mvp08-impact.py'}))
+        result.update(changed_paths=paths, integrated_acceptance=True)
+        return result
     if set(paths) & DEVELOPMENT_FILES:
         remaining = set(paths) - DEVELOPMENT_FILES
         if set(paths) <= DEVELOPMENT_SCOPE:
@@ -916,6 +945,10 @@ def _selection(paths):
 
 
 def selection(paths):
+    # Historical browser-prefix mapping is not authority for new MVP09 fixtures.
+    unknown_integrated = [path for path in paths if path.startswith('tests/browser/mvp09-') and path not in INTEGRATED_FILES]
+    if unknown_integrated:
+        raise ValueError('extend and test direct-dependency impact mapping for: '+', '.join(unknown_integrated))
     # Add the new direct consumer without suppressing any existing producer flags.
     result = _selection(paths)
     if set(paths) & AUTHENTICATED_ORGANIZATION_DIRECT:
@@ -975,6 +1008,9 @@ def selection(paths):
         token='FullyQualifiedName~DocumentDevelopmentTests'
         if token not in result['api_filter'].split('|'):result['api_filter']+=('|' if result['api_filter'] else '')+token
     result.setdefault('document_development',False)
+    if set(paths) & INTEGRATED_DIRECT:
+        result['integrated_acceptance'] = True
+    result.setdefault('integrated_acceptance',False)
     return result
 
 

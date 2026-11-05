@@ -53,7 +53,7 @@ def sql_partitions():
     assert sorted(name for group in partitions for name in group)==names
     return partitions
 
-def main():
+def main(acceptance=None):
     parser = argparse.ArgumentParser()
     parser.add_argument('--evidence-dir', required=True)
     args = parser.parse_args()
@@ -80,14 +80,38 @@ def main():
             r00.certificate(state, service, host, uid)
         (state / 'postgres/pg_hba.conf').write_text('local all all trust\nhostnossl all all all reject\nhostssl all all all scram-sha-256\n')
         sql, identities = fixtures(state, values['R00_CLIENT_SECRET'])
+        if acceptance is not None:
+            sql = acceptance.prepare_fixture(state, sql, identities)
         control = state / 'control'
         control.mkdir()
         control.chmod(511)
         config = state / 'documents-inventory-acceptance.yaml'
         config.write_text(r00.CONFIG.read_text().replace('      Authentication__ValidIssuer:', '      Documents__Enabled: "true"\n      Catalog__Enabled: "true"\n      DocumentTypes__Enabled: "true"\n      Workshop__Enabled: "false"\n      Authentication__ValidIssuer:').replace('      Authentication__ValidIssuer:', '      Authentication__Authority: https://idp.r00.test:8443/realms/runtime\n      Authentication__ValidIssuer:'))
+        if acceptance is not None:
+            config.write_text(config.read_text().replace('      Authentication__ValidIssuer:', '      Counterparties__Enabled: "true"\n      Authentication__ValidIssuer:'))
         config.chmod(0o444)
         r00.CONFIG = config
         command = ['docker', 'compose', '--project-directory', str(ROOT), '--env-file', str(envfile), '-p', project, '-f', str(r00.CONFIG)]
+
+        def record_integrated_owned_runtime(phase):
+            if acceptance is None:
+                return
+            ids = run(['docker','ps','-aq','--filter','label=com.docker.compose.project='+project]).splitlines()
+            rows = []
+            if ids:
+                # Curated ownership only: never Config/Env or credentials.
+                projection = '{"Id":{{json .Id}},"StartedAt":{{json .State.StartedAt}},"Labels":{{json .Config.Labels}},"Mounts":{{json .Mounts}}}'
+                rows = [json.loads(line) for line in run(['docker','inspect','--format',projection,*ids]).splitlines() if line]
+                for row in rows:
+                    assert row['Labels'].get('com.docker.compose.project') == project
+                    assert row['Labels'].get('com.docker.compose.project.config_files') == str(config)
+                    assert row['Id'] not in protected_snapshot
+            path = evidence/'mvp09-owned-runtime-manifest.json'
+            history = json.loads(path.read_text()) if path.exists() else []
+            history.append(dict(phase=phase, project=project, config=str(config), runtime=rows))
+            path.write_text(json.dumps(history,indent=2))
+            (evidence/'mvp09-preexisting-volumes.json').write_text(json.dumps(sorted(before_volumes),indent=2))
+
 
         def interrupted(signum, frame):
             raise KeyboardInterrupt
@@ -100,6 +124,7 @@ def main():
                 print(build.stdout+build.stderr, flush=True)
                 raise RuntimeError('locked container build failed')
             run(command + ['up', '-d', '--wait', '--wait-timeout', '180', 'postgres', 'identity'], timeout=210)
+            record_integrated_owned_runtime('database-identity-alive')
             mounts = ['-v', str(ROOT / 'scripts') + ':/runtime/scripts:ro', '-v', str(ROOT / 'database/runtime') + ':/runtime/database/runtime:ro']
             print('MVP08 SQL membership authorization and physical barriers', flush=True)
             testenv = dict(os.environ, PGPASSWORD=values['R00_INFRA_PASSWORD'], R00_OWNER_PASSWORD=values['R00_OWNER_PASSWORD'], R00_APP_PASSWORD=values['R00_APP_PASSWORD'])
@@ -322,16 +347,17 @@ workshop.pending_administrative_outbox(integer)'''.splitlines()
                     assert not function['appExecute'],function['name']
 
             # Published migration immutability is verified here, never while
-            # implementing the point. New0046 is not part of the published ledger.
+            # implementing the point. Standalone MVP08 retains its historical45
+            # ledger; the integrated acceptance protects all46 now published SQL.
             import hashlib
-            published=json.loads(subprocess.check_output(['git','show','7d505db049880ef6fc4a2307dcd4575165c08923:database/runtime/manifest.json'],cwd=ROOT,text=True))
+            published=json.loads(subprocess.check_output(['git','show',(acceptance.BASE if acceptance is not None else '7d505db049880ef6fc4a2307dcd4575165c08923')+':database/runtime/manifest.json'],cwd=ROOT,text=True))
             hashes={}
             for entry in published:
                 path='database/runtime/'+entry['path']
-                original=subprocess.check_output(['git','show','7d505db049880ef6fc4a2307dcd4575165c08923:'+path],cwd=ROOT)
+                original=subprocess.check_output(['git','show',(acceptance.BASE if acceptance is not None else '7d505db049880ef6fc4a2307dcd4575165c08923')+':'+path],cwd=ROOT)
                 current=(ROOT/path).read_bytes();assert current==original,path
                 hashes[path]=hashlib.sha256(current).hexdigest()
-            assert len(hashes)==45
+            assert len(hashes)==(46 if acceptance is not None else 45)  # historical: assert len(hashes)==45
             (evidence/'published-migration-hashes.json').write_text(json.dumps(hashes,indent=2))
             # Include every committed/untracked source, fixture and build input.
             source_hashes = candidate_source_hashes()
@@ -346,7 +372,8 @@ workshop.pending_administrative_outbox(integer)'''.splitlines()
                 assert container['Config']['User'] not in ('', '0', 'root') and host['ReadonlyRootfs'] and (host['CapDrop'] == ['ALL']) and ('no-new-privileges:true' in host['SecurityOpt']) and (not host['PortBindings']) and (host['Memory'] > 0) and (host['NanoCpus'] > 0) and (host['PidsLimit'] > 0) and (not any((m['Type'] == 'volume' for m in container['Mounts'])))
             assert json.loads(run(['docker', 'network', 'inspect', project + '_runtime']))[0]['Internal']
             (evidence / 'runtime-hardening.json').write_text(json.dumps(dict(containers=metadata, internalNetwork=True, pool=values['R00_POOL_SIZE']), indent=2))
-            browser = command + ['run', '--rm', '--no-deps', '-T', '--entrypoint', 'sh', 'browser', '-c', 'mkdir -p "$HOME/.pki/nssdb" && certutil -N -d sql:$HOME/.pki/nssdb --empty-password && certutil -A -d sql:$HOME/.pki/nssdb -n runtime-ephemeral-ca -t C,, -i /run/tls/ca.crt && exec node mvp08-document-development.cjs']
+            browser_spec = acceptance.BROWSER if acceptance is not None else 'mvp08-document-development.cjs'
+            browser = command + ['run', '--rm', '--no-deps', '-T', '--entrypoint', 'sh', 'browser', '-c', 'mkdir -p "$HOME/.pki/nssdb" && certutil -N -d sql:$HOME/.pki/nssdb --empty-password && certutil -A -d sql:$HOME/.pki/nssdb -n runtime-ephemeral-ca -t C,, -i /run/tls/ca.crt && exec node '+browser_spec]
             process = subprocess.Popen(browser, cwd=ROOT)
             deadline = time.monotonic() + 420
             operator_binding = None
@@ -368,9 +395,13 @@ workshop.pending_administrative_outbox(integer)'''.splitlines()
                     if not any(row['service'] == 'browser' for row in metadata):
                         metadata.append(dict(service='browser', user=browser_container['Config']['User'], readonly=host['ReadonlyRootfs'], capDrop=host['CapDrop'], securityOpt=host['SecurityOpt'], portBindings=host['PortBindings'], memory=host['Memory'], cpus=host['NanoCpus'], pids=host['PidsLimit'], mountTypes=[m['Type'] for m in browser_container['Mounts']]))
                         (evidence / 'runtime-hardening.json').write_text(json.dumps(dict(containers=metadata, internalNetwork=True, pool=values['R00_POOL_SIZE']), indent=2))
+                    record_integrated_owned_runtime('browser-control-alive')
                     action = request.read_text()
                     request.unlink()
-                    if action in ('grant', 'revoke'):
+                    handled = acceptance is not None and acceptance.handle_control(action, state=state, evidence=evidence, query=query, command=command, mounts=mounts, identities=identities, r00=r00)
+                    if handled:
+                        pass
+                    elif action in ('grant', 'revoke'):
                         owner(action)
                     elif action == 'master-setup':
                         fixture=json.loads((state/'browser.json').read_text());context=fixture['contexts'][0]
@@ -463,6 +494,7 @@ workshop.pending_administrative_outbox(integer)'''.splitlines()
             for sig in previous:
                 signal.signal(sig, signal.SIG_IGN)
             try:
+                record_integrated_owned_runtime('before-exact-owned-cleanup')
                 r00.cleanup(command, project)
                 if run(['docker','image','ls','-q',project+'-documents-inventory-api']).strip():
                     run(['docker','image','rm',project+'-documents-inventory-api'], timeout=45)

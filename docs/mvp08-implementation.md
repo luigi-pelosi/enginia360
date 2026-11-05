@@ -1,4 +1,10 @@
-# MVP08 / #147 — sorgenti completi, UNVERIFIED
+# MVP08 / #147 — consegna verificata dal parent
+
+Stato corrente: MVP08 COMPLETATO via PR172 / main `b00fdbafd3f91f6526caf18e75b79476ab02660f`; [stato e prove parent](mvp-delivery-plan.md). MVP09/#148 è il punto corrente, non ancora verificato.
+
+## Checkpoint storico source-only, precedente alla validazione di PR172
+
+Il testo seguente conserva la cronologia della preparazione; UNVERIFIED/UNEXECUTED e i futuri #148/#149 descrivono quel momento, non lo stato corrente.
 
 **READY_FOR_FINAL_VALIDATION — solo completezza sorgente dell'intero punto, non consegna verificata.** Base `7d505db049880ef6fc4a2307dcd4575165c08923`, branch `feat/mvp-document-development`, worktree `/root/.hermes/cache/scratch/enginia360-mvp-document-development`. Il contratto finito e D100/D101 sono stati registrati prima del codice dipendente. Non sono stati eseguiti test, build, typecheck, audit, installazioni, migrazioni, container, browser, smoke o CI; nessun commit/push/PR, scrittura remota, merge o deployment. Diagnostici automatici dell'editor non sono acceptance. Non si attesta compilazione o comportamento eseguito.
 

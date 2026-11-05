@@ -17,9 +17,9 @@ def current_status(root):
  assert items['MVP-06']['status']=='done' and items['MVP-06']['runtimeDelivered'] is True
  assert (items['MVP-06']['pr'],items['MVP-06']['mergedMain'],items['MVP-06']['prCi'],items['MVP-06']['runtimeDispatch'])==(170,'6ca378d94435eb78ff4955128e3646cc64ef1ece',41881635998,41881398306)
  assert items['MVP-07']['status']=='done' and items['MVP-07']['runtimeDelivered'] is True
- assert items['MVP-08']['status']=='in_progress' and items['MVP-08']['runtimeDelivered'] is False
+ assert items['MVP-08']['status']=='done' and items['MVP-08']['runtimeDelivered'] is True
  assert items['MVP-06']['contract']=='docs/mvp06-document-types-contract.md'
- assert all(items[f'MVP-{n:02}']['status']=='backlog' for n in range(9,11))
+ assert items['MVP-09']['status']=='in_progress' and items['MVP-10']['status']=='backlog'
  for name in CURRENT:
   text=(root/name).read_text()
   for token in ('MVP-05/#144 COMPLETATO: PR #169',BASE,'41833394752','41833450699','2d5c06ae8c83e744a88e20abdcc0c34f0066ad81','MVP-06/#145 COMPLETATO: PR #170'):

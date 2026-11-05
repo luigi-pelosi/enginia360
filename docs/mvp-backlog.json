@@ -264,7 +264,7 @@
       "dependsOn": [
         "MVP-07"
       ],
-      "status": "in_progress",
+      "status": "done",
       "issueNumber": 147,
       "acceptance": [
         "Righe o quantita' selezionate sviluppate mantenendo origine e residuo",
@@ -275,8 +275,8 @@
       ],
       "contract": "docs/mvp08-document-development-contract.md",
       "implementationStatus": "source_complete",
-      "validationStatus": "UNEXECUTED",
-      "runtimeDelivered": false,
+      "validationStatus": "verified_parent_exact_head_artifacts",
+      "runtimeDelivered": true,
       "developmentPolicy": {
         "commitDecision": "D100",
         "commitAt": "destination_confirmation",
@@ -284,7 +284,11 @@
         "confirmedSourcesOnly": true,
         "mixedSourceTypesIfEveryPathEnabled": true,
         "draftReservesCapacity": false
-      }
+      },
+      "pr": 172,
+      "mergedMain": "b00fdbafd3f91f6526caf18e75b79476ab02660f",
+      "prCi": 42060851414,
+      "runtimeDispatch": 42060851802
     },
     {
       "id": "MVP-09",
@@ -301,7 +305,7 @@
       "dependsOn": [
         "MVP-08"
       ],
-      "status": "backlog",
+      "status": "in_progress",
       "issueNumber": 148,
       "acceptance": [
         "Percorso integrato dei sette domini realmente eseguito",
@@ -309,7 +313,11 @@
         "Migrazioni pubblicate, storia Git, evidenze e ambienti protetti preservati",
         "Campagna finale eccezionale dell'architettura MVP eseguita solo dopo completamento funzionale",
         "Limiti operativi e readiness residua dichiarati senza falsi pass"
-      ]
+      ],
+      "contract": "docs/mvp09-integrated-acceptance-contract.md",
+      "implementationStatus": "source_complete",
+      "validationStatus": "UNEXECUTED",
+      "runtimeDelivered": false
     },
     {
       "id": "MVP-10",

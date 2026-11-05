@@ -24,6 +24,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
+      integrated_acceptance: ${{ steps.selection.outputs.integrated_acceptance }}
       document_development: ${{ steps.selection.outputs.document_development }}
       documents: ${{ steps.selection.outputs.documents }}
       document_types: ${{ steps.selection.outputs.document_types }}
@@ -129,6 +130,8 @@ jobs:
         run: python3 -I scripts/test-mvp03b2b-impact.py
       - name: Verify finite MVP04 scope and truthful delivered predecessor
         run: python3 -I scripts/test-mvp04-impact.py
+      - name: Verify finite MVP09 integrated source preservation and impact
+        run: python3 -I scripts/test-mvp09-impact.py && python3 -I scripts/test-mvp09-contract.py
       - name: Verify finite MVP08 provenance stage capacity contract and impact
         run: python3 -I scripts/test-mvp08-impact.py && python3 -I scripts/test-mvp08-contract.py
       - name: Verify finite MVP07 document authority and impact
@@ -149,6 +152,34 @@ jobs:
           fi
           python3 scripts/select-ci-impact.py --base "$BASE_SHA" --head "$HEAD_SHA" > "$RUNNER_TEMP/impact.json"
           python3 -c 'import json,os; d=json.load(open(os.environ["RUNNER_TEMP"]+"/impact.json")); print(json.dumps(d,indent=2)); f=open(os.environ["GITHUB_OUTPUT"],"a"); [f.write(k+"="+(str(v).lower() if isinstance(v,bool) else v)+"\n") for k,v in d.items() if k!="changed_paths"]; f.close(); open(os.environ["GITHUB_STEP_SUMMARY"],"a").write("## Exact change-impact selection\n```json\n"+json.dumps(d,indent=2)+"\n```\nRuntime jobs run only on explicit dispatch; skipped runtime is not acceptance evidence.\n")'
+  affected-integrated-acceptance:
+    needs: impact
+    if: github.event_name == 'workflow_dispatch' && needs.impact.outputs.integrated_acceptance == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Initialize private integrated evidence
+        run: |
+          printf 'TMPDIR=%s\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/mvp09"
+      - name: One persisted seven-domain OIDC Next SSR SQL journey pool4
+        shell: bash
+        run: set -o pipefail; MVP09_POOL_SIZE=4 timeout 1500 python3 -I scripts/run-mvp09-tests.py --evidence-dir "$RUNNER_TEMP/mvp09/pool4" 2>&1 | tee "$RUNNER_TEMP/mvp09/pool4.log"
+      - name: Same generated chain pool1
+        shell: bash
+        run: set -o pipefail; MVP09_POOL_SIZE=1 timeout 1500 python3 -I scripts/run-mvp09-tests.py --evidence-dir "$RUNNER_TEMP/mvp09/pool1" 2>&1 | tee "$RUNNER_TEMP/mvp09/pool1.log"
+      - name: Retain integrated exact-head evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mvp09-${{ github.sha }}
+          path: ${{ runner.temp }}/mvp09
+          retention-days: 7
+          if-no-files-found: error
   affected-document-development:
     needs: impact
     if: github.event_name == 'workflow_dispatch' && needs.impact.outputs.document_development == 'true'
@@ -966,6 +997,35 @@ jobs:
         run: timeout 420 python3 scripts/test-r04b3-lifecycle.py
       - name: Actual TERM with held claim lock and Chromium
         run: timeout 420 python3 scripts/test-r04b2b3-lifecycle.py
+  architecture-current-contracts:
+    if: github.event_name == 'workflow_dispatch' && inputs.full_architecture
+    runs-on: ubuntu-24.04
+    timeout-minutes: 65
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        consumer: ["impact", "affected-integrated-acceptance", "affected-document-development", "affected-documents", "affected-document-types", "affected-catalog-management", "affected-counterparty-management", "affected-federated-onboarding", "affected-membership-access", "affected-tenant-roles", "affected-platform-offline", "affected-platform-authority", "affected-organization-administration", "affected-authenticated-organization", "affected-frontend", "affected-frontend-runtime", "affected-mvp-offline", "affected-r05a8-offline", "affected-r05a7-offline", "affected-r05a6-offline", "affected-r05a5-offline", "affected-r05a4-offline", "affected-r05a3-offline", "affected-r05a2-offline", "affected-r05a1-offline", "affected-r06-offline", "affected-migrations", "affected-browser", "affected-editor", "affected-r03a", "affected-r03a2", "affected-r04a", "affected-r04c1", "affected-r04c2", "affected-r06-restore", "affected-r06-staging", "affected-r03b", "affected-r03c", "affected-r05b0", "affected-r05b1", "affected-r04b2a", "affected-r04b2b1", "affected-r04b2b2", "affected-r04b2b3"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Initialize exceptional final private scratch
+        run: printf 'TMPDIR=%s\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+      - name: Execute actual existing finite consumer commands only in exceptional final campaign
+        env:
+          MVP09_EXCEPTIONAL_FINAL: 'true'
+          FINAL_CONSUMER: ${{ matrix.consumer }}
+        run: python3 -I scripts/run-mvp09-architecture.py --job "$FINAL_CONSUMER" --evidence-dir "$RUNNER_TEMP/mvp09-architecture"
+      - name: Preserve actual final per-step outcomes and original artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mvp09-architecture-${{ matrix.consumer }}-${{ github.sha }}
+          path: ${{ runner.temp }}/mvp09-architecture
+          retention-days: 7
+          if-no-files-found: error
   runtime-migrations:
     if: github.event_name == 'workflow_dispatch' && inputs.full_architecture
     runs-on: ubuntu-24.04

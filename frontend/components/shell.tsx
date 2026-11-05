@@ -17,6 +17,21 @@ export function SessionBoundary({ pathname }: { pathname: string | null }) {
     );
 }
 
+export function domainIsCurrent(domainId: string, pathname: string | null) {
+    // Inventory is a navigation alias into Documents, not a second current page.
+    const route = ["counterparties", "catalog", "document-types", "documents"].includes(domainId)
+        ? `/${domainId}` : `/domains/${domainId}`;
+    return pathname === route;
+}
+
+export function ContextBoundary({ pathname }: { pathname: string | null }) {
+    const module = ["/organization", "/users", "/onboarding-admin", "/counterparties", "/catalog", "/document-types", "/documents"].includes(pathname ?? "");
+    return <div className="context-note">
+        <strong>{module ? "Contesto del modulo" : "Nessun contesto aziendale attivo"}</strong>
+        <p>{module ? "Il contesto si seleziona nel modulo aperto. La shell non assegna accessi." : "La shell non seleziona tenant, società o utente."}</p>
+    </div>;
+}
+
 export function Shell({ children }: { children: ReactNode }) {
     const [open, setOpen] = useState(false);
     const trigger = useRef<HTMLButtonElement>(null);
@@ -76,7 +91,7 @@ export function Shell({ children }: { children: ReactNode }) {
                             key={domain.id}
                             href={domain.id === "documents" || domain.id === "inventory" ? "/documents" : domain.id === "document-types" ? "/document-types" : domain.id === "catalog" ? "/catalog" : domain.id === "counterparties" ? "/counterparties" : `/domains/${domain.id}`}
                             aria-current={
-                                pathname === `/domains/${domain.id}` || (domain.id === "counterparties" && pathname === "/counterparties") || (domain.id === "catalog" && pathname === "/catalog") || (domain.id === "document-types" && pathname === "/document-types") || ((domain.id === "documents" || domain.id === "inventory") && pathname === "/documents")
+                                domainIsCurrent(domain.id, pathname)
                                     ? "page"
                                     : undefined
                             }
@@ -89,10 +104,7 @@ export function Shell({ children }: { children: ReactNode }) {
                         </Link>
                     ))}
                 </nav>
-                <div className="context-note">
-                    <strong>Nessun contesto aziendale attivo</strong>
-                    <p>La shell non seleziona tenant, società o utente.</p>
-                </div>
+                <ContextBoundary pathname={pathname} />
             </aside>
             <main id="main" tabIndex={-1} className="main-content">
                 {children}
