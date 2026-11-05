@@ -3,6 +3,7 @@
     <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../Modules/Documents/Enginia360.Documents/Enginia360.Documents.csproj" />
     <ProjectReference Include="../Modules/DocumentTypes/Enginia360.DocumentTypes/Enginia360.DocumentTypes.csproj" />
     <ProjectReference Include="../Modules/Accounting/Enginia360.Accounting/Enginia360.Accounting.csproj" />
     <ProjectReference Include="../Modules/Billing/Enginia360.Billing/Enginia360.Billing.csproj" />

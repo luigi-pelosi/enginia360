@@ -392,7 +392,7 @@ class PostgreSqlTests(unittest.TestCase):
         self.assertIn('billing.invoices', tables)
         self.assertIn('accounting.chart_accounts', tables)
         for table in tables:
-            if table == 'organization_access.membership_access_snapshot_fence':
+            if table in ('organization_access.membership_access_snapshot_fence', 'documents.snapshot_fence'):
                 # Technical MVCC witness only; every business/security-binding
                 # table still has the original zero-row requirement.
                 self.assertEqual(self.sql(f'SELECT row_to_json(f) FROM {table} f'), '{"Singleton":true,"Token":false}')

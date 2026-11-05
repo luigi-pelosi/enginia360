@@ -13,11 +13,11 @@ def original(path):return subprocess.check_output(['git','show',BASE+':'+path],c
 class ContractTests(unittest.TestCase):
  def test_all_42_published_migrations_and_old_inventory_records_are_unchanged(self):
   old=json.loads(original('database/runtime/manifest.json'));new=json.loads((ROOT/'database/runtime/manifest.json').read_text())
-  self.assertEqual(len(old),42);self.assertEqual(new[:42],old);self.assertEqual(len(new),44);self.assertEqual(new[42]['id'],'0043_catalog_management');self.assertEqual(new[43]['id'],'0044_document_types')
+  self.assertEqual(len(old),42);self.assertEqual(new[:42],old);self.assertEqual(len(new),45);self.assertEqual(new[42]['id'],'0043_catalog_management');self.assertEqual(new[43]['id'],'0044_document_types')
   for entry in old:
    path='database/runtime/'+entry['path'];self.assertEqual((ROOT/path).read_bytes(),original(path),path)
   before=json.loads(original('docs/r06-migration-inventory.json'));after=json.loads((ROOT/'docs/r06-migration-inventory.json').read_text())
-  self.assertEqual(after[:len(before)],before);self.assertEqual({row['table'] for row in after[len(before):len(before)+2]},{'catalog.authority_history','catalog.management_audit'});self.assertEqual({row['table'] for row in after[len(before)+2:]},{'document_types.definitions','document_types.versions','document_types.command_audit'})
+  self.assertEqual(after[:len(before)],before);self.assertEqual({row['table'] for row in after[len(before):len(before)+2]},{'catalog.authority_history','catalog.management_audit'});self.assertEqual({row['table'] for row in after[len(before)+2:len(before)+5]},{'document_types.definitions','document_types.versions','document_types.command_audit'})
   spec=importlib.util.spec_from_file_location('inventory',ROOT/'scripts/r06_inventory.py');assert spec and spec.loader
   module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module);module.verify(ROOT,after)
  def test_existing_public_contract_and_old_price_writers_remain_byte_identical(self):
@@ -49,7 +49,7 @@ class ContractTests(unittest.TestCase):
    self.assertEqual(previous['status'],'done');self.assertIs(previous['runtimeDelivered'],True);self.assertEqual(previous['pr'],168);self.assertEqual(previous['mergedMain'],BASE);self.assertEqual(previous['prCi'],41780772823);self.assertEqual(previous['runtimeDispatch'],41780819337)
    self.assertEqual(current['status'],'done');self.assertIs(current['runtimeDelivered'],True);self.assertEqual(current['contract'],'docs/mvp05-catalog-contract.md');self.assertEqual(current['pr'],169);self.assertEqual(current['mergedMain'],'43a4ff836d67bf1b4f01eb27ccc318171ee45f8d');self.assertEqual(current['prCi'],41833394752);self.assertEqual(current['runtimeDispatch'],41833450699)
    for name in CURRENT:
-    text=(root/name).read_text();self.assertIn('MVP-05/#144 COMPLETATO: PR #169',text);self.assertIn('41833394752',text);self.assertIn('41833450699',text);self.assertIn('MVP-06/#145 SORGENTI COMPLETI, NON VERIFICATO',text)
+    text=(root/name).read_text();self.assertIn('MVP-05/#144 COMPLETATO: PR #169',text);self.assertIn('41833394752',text);self.assertIn('41833450699',text);self.assertIn('MVP-06/#145 COMPLETATO: PR #170',text)
     for line in text.splitlines():
      if 'MVP-04/#143 COMPLETATO:' in line:
       for token in ('PR #168',BASE,'41780772823','41780819337','f7d9419348fc78463fe6e3bc5411a52d81beea8b'):self.assertIn(token,line)

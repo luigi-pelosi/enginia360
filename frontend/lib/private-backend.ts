@@ -1,3 +1,4 @@
+import { finiteDocumentsRead } from "./documents";
 import { finiteDocumentTypesRead } from "./document-types";
 import { finiteCatalogRead } from "./catalog";
 import { finiteCounterpartyRead } from "./counterparties";
@@ -48,6 +49,7 @@ export async function privateRead(
   },
 ) {
   if (
+    !finiteDocumentsRead(path) &&
     !finiteDocumentTypesRead(path) &&
     !finiteCatalogRead(path) &&
     !finiteCounterpartyRead(path) &&

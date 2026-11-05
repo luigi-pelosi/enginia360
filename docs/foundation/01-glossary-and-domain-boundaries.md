@@ -1264,3 +1264,17 @@ Citazione esatta owner, distinta dalle conferme storiche D90/D92/D94 e non estes
 **Gate di implementazione, non nuova domanda:** dopo merge docs/guardie, vero RED della proiezione mancante con fixture valida; poi atomicità sorgente/versione/società/revisione/verifica/operatore, identità e grant correnti; race fisiche sorgente e revoca binding/membership/grant in entrambi gli ordinamenti, pool4 e completamento pool1; replay identico senza nuova storia, UUID/payload diverso o collisione straniera nascosta rifiutati senza fuga, rollback e audit immutabile; nessun mutamento prezzi/stock/ordini/outbox. Selettori esistenti via contratto proprietario, isolamento estensione altra società e 409 edit comune esterno preservati. Prova effettiva dei campi/identità sorgente è gate tecnico: nessun reader provider positivo inventato, nessuna automazione inbound generale.
 
 **Consegna e limiti:** solo decisione, documenti e guardie offline; runtime ancora pendente. #42/#44/#45 rimangono aperte; #128 resta chiusa per il ricevimento limitato già consegnato. D89 resta funzionale → FINAL eccezionale una volta completo → Esercizio OPEN/BACKLOG, nessuna full architecture ora. Nessuna modifica app/SQL/migrazioni/dipendenze/fixture/provider/auth, nessuna lettura credenziali o chiamata ERP, produzione/dato reale/acquisto/deploy/ambiente persistente. D1–D94 byte-prefix e tutti gli hash storici preservati, eleggibilità UNDECIDED invariata. Quattro container protetti, 27 volumi, Tailscale443→9119 e R00 preservati; nessun accesso SmartData. Rollback documentale solo PR tracciata, mai riscrittura della storia; parent responsabile di merge/chiusure/board.
+
+### D99 — Quantità insufficienti nel nuovo inventario documentale MVP
+
+**Fonte:** proprietario, chiarimento del 4 novembre 2026, issue #146. D96/D97/D98 sono i mandati MVP registrati nella carta e nei contratti correnti; D99 era inutilizzato.
+
+**Domanda esatta:** «Nel nuovo inventario, con 2 pezzi in giacenza e un documento che ne scarica 3, quale regola deve valere alla conferma?»
+
+**Risposta esatta:** «Configurabile per società, con blocco predefinito».
+
+**Decisione:** nel NUOVO inventario documentale MVP la società possiede la configurazione versionata per consentire stock negativo; default blocca conferme insufficienti. Gestione autorizzata esplicita e audit immutabile atomico; versione effettivamente applicata conservata con la conferma. Nessun grant implicito da creazione/salvataggio/conferma, delega organizzativa/utenti o autorità globale. Nessun writer autonomo di stock, formula/script o approvatore speciale. Le variazioni derivano soltanto dalla conferma documentale.
+
+**Interpretazione tecnica minima correggibile:** stessa regola per la gamba uscente di Transfer e Unload; entrambe le ubicazioni appartengono alla società/sede del documento. Riattivare il blocco non corregge saldi negativi esistenti. Nessun trasferimento cross-company, import/azzeramento o cambio automatico dei profili ERP storici. D34 non aveva risolto questo tema: il suo scenario di prenotazione officina e la cronologia restano invariati. Solo la domanda sulle quantità insufficienti del nuovo MVP è risolta.
+
+**Consegna:** intero #146 prima di qualsiasi validazione; contratto finito `../mvp07-documents-inventory-contract.md`, sorgenti UNVERIFIED. Nessun gate docs-only anticipato. #147 sviluppo/grouping/residui rimane futuro. Nessun deployment, dati reali o readiness implicita.

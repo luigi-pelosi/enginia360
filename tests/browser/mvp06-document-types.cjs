@@ -46,7 +46,7 @@ async function login(browser,index,pending=false,invitation=null){
   const second=await post(owner.page,path+'/'+tenant+'/commands',{commandId:uuid(),operation:'create',kind:'company',tenantId:tenant,resourceId:null,parentId:tenant,name:'Synthetic second company',expectedRevision:0});
   assert.equal(second.status,200);const other=second.value.snapshot.resourceId;
   let directory=(await request(owner.page,roles)).value;
-  assert.deepEqual(directory.actions,['organization-context.read','organization-context.write','counterparties.shared.read','counterparties.shared.create','counterparties.shared.edit','counterparties.business-roles.write','counterparties.extensions.read','counterparties.extensions.write','catalog.shared.read','catalog.shared.create','catalog.shared.edit','document-types.read','document-types.create','document-types.edit']);
+  assert.deepEqual(directory.actions,['organization-context.read','organization-context.write','counterparties.shared.read','counterparties.shared.create','counterparties.shared.edit','counterparties.business-roles.write','counterparties.extensions.read','counterparties.extensions.write','catalog.shared.read','catalog.shared.create','catalog.shared.edit','document-types.read','document-types.create','document-types.edit','documents.read','documents.save','documents.confirm','inventory.document-effects.apply','inventory.quantities.read','inventory.policy.read','inventory.policy.manage']);
   const member=directory.memberships.find(m=>m.membershipId===fixture.grantTargetMembershipId);assert.ok(member);
   const permissions=[];
   await owner.page.goto(origin+'/users?tenant='+tenant);

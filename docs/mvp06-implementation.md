@@ -1,4 +1,9 @@
-# MVP06 / #145 — SOURCE COMPLETE, UNVERIFIED
+# MVP06 / #145 — CONSEGNATO PR170
+
+Stato corrente verificato dal coordinatore: MVP06/#145 COMPLETATO con PR170, merge `6ca378d94435eb78ff4955128e3646cc64ef1ece`, candidato `149687265fb2f76550032333c660dca6f445d6b5`, tree equivalente `6e002f5cdce3769f8fedf1032b135f009ca33dd2`; PR CI41881635998 (5job/60step), dispatch41881398306 (16job/148step),10ZIP SHA256/head e24TRX328eseguiti/passati zero skip/fail riletti dal parent. Non nuova CI main. Issue145 chiusa/Project Completato. MVP07/#146 in implementazione sorgente NON VERIFICATA;147–149 Backlog. Incidente storico dispatch41873815332: overflow native-noJS pool1 inizialmente fallito, causa non provata; diagnostica soltanto, nessuna asserzione/CSS/attesa/deadline indebolita; successivi pass non provano una causa/fix. Smoke HTML lang=it protetto NONPASS non attribuibile al candidato, nessuna investigazione/restart. Valutazione sicurezza framework limitata alle modalità già documentate, non clearance operativa.
+
+## Checkpoint storico SOURCE-ONLY MVP06 — non stato corrente
+
 
 Intero punto implementato nei sorgenti prima della validazione. Nessun test,
 build, typecheck, audit, npm ci, migrazione, runtime/container, smoke o CI avviato

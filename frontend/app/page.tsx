@@ -14,7 +14,7 @@ export default function Home() {
         <>
             <div className="page-heading">
                 <p className="eyebrow">Enginia360 / Panoramica</p>
-                <Badge variant="outline">Shell tecnica</Badge>
+                <Badge variant="outline">MVP in sviluppo</Badge>
                 <h1>Uno spazio per il tuo lavoro.</h1>
                 <p className="lead">
                     Sette domini, un unico percorso gestionale. Il nuovo MVP è
@@ -25,12 +25,13 @@ export default function Home() {
                 <span className="status-dot" aria-hidden="true" />
                 <div>
                     <h2 id="boundary-title">
-                        Navigazione disponibile. Operatività non ancora
-                        disponibile.
+                        Navigazione disponibile. Ogni area verifica
+                        accesso e autorizzazioni.
                     </h2>
                     <p>
-                        Puoi esplorare le aree previste. Non sono presenti dati
-                        aziendali, sessioni autenticate o azioni sui dati.
+                        Questa panoramica non carica dati aziendali né seleziona
+                        un contesto. Apri un percorso collegato per verificare
+                        sessione e permessi correnti; il menu non concede accesso.
                     </p>
                 </div>
             </section>
@@ -47,7 +48,7 @@ export default function Home() {
                                     0{index + 1}
                                 </span>
                                 <Badge variant="secondary">
-                                    Non disponibile
+                                    Verifica accesso
                                 </Badge>
                             </div>
                             <CardTitle>
@@ -62,7 +63,7 @@ export default function Home() {
                         </CardHeader>
                         <CardContent>
                             <p className="milestone">
-                                In programma · {domain.milestone}
+                                Ambito · {domain.milestone}
                             </p>
                         </CardContent>
                     </Card>

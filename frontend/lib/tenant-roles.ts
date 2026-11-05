@@ -37,6 +37,7 @@ export type TenantRoleData = {
   roles: TenantRoleObject[];
   assignments: TenantRoleObject[];
   companies?: { legalEntityId: string; name: string }[];
+  sites?: { siteId: string; legalEntityId: string; name: string }[];
   warehouses: {
     warehouseId: string;
     legalEntityId: string;

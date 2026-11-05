@@ -218,5 +218,10 @@
     "id": "0044_document_types",
     "path": "migrations/0044_document_types.sql",
     "sha256": "9fa81f312beeaa161583ddf2f94b2522230ed593889d828a999569965c162956"
+  },
+  {
+    "id": "0045_documents_inventory",
+    "path": "migrations/0045_documents_inventory.sql",
+    "sha256": "97348c6f9d0e9def5ac8abe766098a759c19963ff911002592ab5810960bb01d"
   }
 ]

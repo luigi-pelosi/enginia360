@@ -230,11 +230,13 @@ def main():
             run(command+['run','--rm','--no-deps','-T','migrator'],timeout=90)
             query = command+['exec','-T','postgres','psql','-X','-qAt','-U','postgres','-d','runtime','-v','ON_ERROR_STOP=1']
             assert run(query+['-c','SELECT count(*) FROM runtime_migrations.applied']).strip() == manifest_count
-            # The only seeded row is the private technical MVCC witness, not
+            # Only the two named rows are private technical MVCC witnesses, not
             # business data or an identity/grant. Require its exact initial value.
             assert run(query+['-c','SELECT row_to_json(f) FROM organization_access.membership_access_snapshot_fence f']).strip() == '{"Singleton":true,"Token":false}'
             assert run(query+['-c','SELECT count(*) FROM organization_access.membership_access_snapshot_fence']).strip() == '1'
-            empty = """DO $$ DECLARE r record; n bigint; BEGIN FOR r IN SELECT schemaname,tablename FROM pg_tables WHERE schemaname NOT IN ('pg_catalog','information_schema','runtime_migrations') AND (schemaname,tablename)<>('organization_access','membership_access_snapshot_fence') LOOP EXECUTE format('SELECT count(*) FROM %I.%I',r.schemaname,r.tablename) INTO n; IF n <> 0 THEN RAISE EXCEPTION 'business data before fixture'; END IF; END LOOP; END $$;"""
+            assert run(query+['-c','SELECT row_to_json(f) FROM documents.snapshot_fence f']).strip() == '{"Singleton":true,"Token":false}'
+            assert run(query+['-c','SELECT count(*) FROM documents.snapshot_fence']).strip() == '1'
+            empty = """DO $$ DECLARE r record; n bigint; BEGIN FOR r IN SELECT schemaname,tablename FROM pg_tables WHERE schemaname NOT IN ('pg_catalog','information_schema','runtime_migrations') AND (schemaname,tablename) NOT IN (('organization_access','membership_access_snapshot_fence'),('documents','snapshot_fence')) LOOP EXECUTE format('SELECT count(*) FROM %I.%I',r.schemaname,r.tablename) INTO n; IF n <> 0 THEN RAISE EXCEPTION 'business data before fixture'; END IF; END LOOP; END $$;"""
             run(query, input=empty)
             run(query, input=sql)
             def owner_mandate(mandate,operation):

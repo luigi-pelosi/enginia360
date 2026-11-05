@@ -30,16 +30,16 @@ test("SSR shell exposes seven domain links and an honest unauthenticated boundar
         "document-types",
         "documents",
     ]) {
-        assert.match(html, new RegExp(["counterparties", "catalog", "document-types"].includes(slug) ? `href="/${slug}"` : `href="/domains/${slug}"`));
+        assert.match(html, new RegExp(["documents", "inventory"].includes(slug) ? `href="/documents"` : ["counterparties", "catalog", "document-types"].includes(slug) ? `href="/${slug}"` : `href="/domains/${slug}"`));
     }
-    assert.match(html, /Accesso non disponibile/);
+    assert.match(html, /Contesto non selezionato/);
     assert.match(html, /Nessun contesto aziendale attivo/);
     assert.doesNotMatch(html, /SUPER ADMIN|tenantId|Bearer|Accedi come/);
 });
 
 test("SSR session footer distinguishes protected administration from isolated pending onboarding", async () => {
     const { SessionBoundary } = await import(shellUrl.href);
-    for (const pathname of ["/organization", "/users", "/onboarding-admin", "/counterparties", "/catalog", "/document-types"]) {
+    for (const pathname of ["/organization", "/users", "/onboarding-admin", "/counterparties", "/catalog", "/document-types", "/documents"]) {
         const html = renderToStaticMarkup(<SessionBoundary pathname={pathname} />);
         assert.match(html, /Sessione gestita dal backend/);
         assert.match(html, /Autorità verificata a ogni operazione/);
@@ -49,6 +49,6 @@ test("SSR session footer distinguishes protected administration from isolated pe
     assert.match(pending, /sessione pendente consente solo lo stato della richiesta, non accesso aziendale/);
     assert.doesNotMatch(pending, /non ancora collegate|Autorità verificata/);
     for (const pathname of [null, "/", "/domains/catalog"]) {
-        assert.match(renderToStaticMarkup(<SessionBoundary pathname={pathname} />), /Accesso non disponibile/);
+        assert.match(renderToStaticMarkup(<SessionBoundary pathname={pathname} />), /Contesto non selezionato/);
     }
 });
