@@ -38,7 +38,7 @@ internal static class DocumentEndpoints
             return Task.FromResult<IResult>(Results.BadRequest(new { state = "invalid" }));
         var search = q["search"].FirstOrDefault(); var selection = q["selection"].FirstOrDefault();
         if (search is not null && (search.EnumerateRunes().Count() > 200 || search.Any(char.IsControl))
-            || selection is not null && selection is not ("catalog" or "types"))
+            || selection is not null && selection is not ("catalog" or "types" or "sources"))
             return Task.FromResult<IResult>(Results.BadRequest(new { state = "invalid" }));
         return Execute(context, db, ct, company, site, warehouse, id, search, after, selection, selectionAfter, ledgerAfter);
     }
@@ -73,6 +73,7 @@ internal static class DocumentEndpoints
             {
                 "create" or "save" => root.Deserialize<SaveDocumentCommand>(JsonOptions),
                 "confirm" => root.Deserialize<ConfirmDocumentCommand>(JsonOptions),
+                "develop" or "develop-save" => root.Deserialize<DevelopDocumentCommand>(JsonOptions),
                 "policy" => root.Deserialize<QuantityPolicyCommand>(JsonOptions),
                 _ => null,
             };

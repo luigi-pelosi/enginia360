@@ -24,6 +24,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
+      document_development: ${{ steps.selection.outputs.document_development }}
       documents: ${{ steps.selection.outputs.documents }}
       document_types: ${{ steps.selection.outputs.document_types }}
       catalog_management: ${{ steps.selection.outputs.catalog_management }}
@@ -128,6 +129,8 @@ jobs:
         run: python3 -I scripts/test-mvp03b2b-impact.py
       - name: Verify finite MVP04 scope and truthful delivered predecessor
         run: python3 -I scripts/test-mvp04-impact.py
+      - name: Verify finite MVP08 provenance stage capacity contract and impact
+        run: python3 -I scripts/test-mvp08-impact.py && python3 -I scripts/test-mvp08-contract.py
       - name: Verify finite MVP07 document authority and impact
         run: python3 -I scripts/test-mvp07-impact.py && python3 -I scripts/test-mvp07-contract.py
       - name: Verify finite MVP06 source contract and impact
@@ -146,6 +149,34 @@ jobs:
           fi
           python3 scripts/select-ci-impact.py --base "$BASE_SHA" --head "$HEAD_SHA" > "$RUNNER_TEMP/impact.json"
           python3 -c 'import json,os; d=json.load(open(os.environ["RUNNER_TEMP"]+"/impact.json")); print(json.dumps(d,indent=2)); f=open(os.environ["GITHUB_OUTPUT"],"a"); [f.write(k+"="+(str(v).lower() if isinstance(v,bool) else v)+"\n") for k,v in d.items() if k!="changed_paths"]; f.close(); open(os.environ["GITHUB_STEP_SUMMARY"],"a").write("## Exact change-impact selection\n```json\n"+json.dumps(d,indent=2)+"\n```\nRuntime jobs run only on explicit dispatch; skipped runtime is not acceptance evidence.\n")'
+  affected-document-development:
+    needs: impact
+    if: github.event_name == 'workflow_dispatch' && needs.impact.outputs.document_development == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Initialize private document development provenance evidence
+        run: |
+          printf 'TMPDIR=%s\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/mvp08"
+      - name: Final document development provenance SQL real OIDC JWT Next SSR pool4
+        shell: bash
+        run: set -o pipefail; MVP08_POOL_SIZE=4 timeout 1500 python3 -I scripts/run-mvp08-tests.py --evidence-dir "$RUNNER_TEMP/mvp08/pool4" 2>&1 | tee "$RUNNER_TEMP/mvp08/pool4.log"
+      - name: Final document development provenance SQL real OIDC JWT Next SSR pool1
+        shell: bash
+        run: set -o pipefail; MVP08_POOL_SIZE=1 timeout 1500 python3 -I scripts/run-mvp08-tests.py --evidence-dir "$RUNNER_TEMP/mvp08/pool1" 2>&1 | tee "$RUNNER_TEMP/mvp08/pool1.log"
+      - name: Retain exact-head document development provenance acceptance
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mvp08-${{ github.sha }}
+          path: ${{ runner.temp }}/mvp08
+          retention-days: 7
+          if-no-files-found: error
   affected-documents:
     needs: impact
     if: github.event_name == 'workflow_dispatch' && needs.impact.outputs.documents == 'true'

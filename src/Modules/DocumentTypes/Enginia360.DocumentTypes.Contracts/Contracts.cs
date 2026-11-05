@@ -10,3 +10,7 @@ public sealed record DocumentTypeVersion(Guid Id, Guid LegalEntityId, int Revisi
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record DocumentTypeCommand(Guid CommandId, string Operation, Guid LegalEntityId,
     Guid? DocumentTypeId, int ExpectedRevision, string Label, QuantityEffect Effect);
+
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed record DocumentPathCommand(Guid CommandId, string Operation, Guid LegalEntityId,
+    Guid SourceTypeId, Guid DestinationTypeId, int ExpectedRevision, bool Enabled, bool AllowCrossSite);

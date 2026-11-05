@@ -154,8 +154,8 @@ for value in ("D74", "D75", "P00/UI01/R00–R06", "Giobby", "D76",
 reject("only current post-slice authorization is C00" in agents, "AGENTS.md: obsolete C00-only authorization")
 register = Path(ACTIVE_DOCS[0]).read_text()
 ids = re.findall(r"^### D(\d+) —", register, re.MULTILINE)
-reject(len(ids) != len(set(ids)) or set(map(int, ids)) != set(range(1, 96)) | {99},
-       "Decision register must retain exact historical D1–D95 and append unique D99; D96–D98 remain in their current contracts")
+reject(len(ids) != len(set(ids)) or set(map(int, ids)) != set(range(1, 96)) | {99, 100, 101},
+       "Decision register must retain exact historical D1–D95 and append unique D99/D100/D101; D96–D98 remain in their current contracts")
 # Authorization guards inspect active text only; chronological decisions stay intact.
 reject('**D77 — accesso iniziale e delega limitata:**' not in register.split('## Archivio storico', 1)[0],
        'missing active D77')

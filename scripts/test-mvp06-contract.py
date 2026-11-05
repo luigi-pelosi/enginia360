@@ -16,9 +16,10 @@ def current_status(root):
  assert (items['MVP-05']['pr'],items['MVP-05']['mergedMain'],items['MVP-05']['prCi'],items['MVP-05']['runtimeDispatch'])==(169,BASE,41833394752,41833450699)
  assert items['MVP-06']['status']=='done' and items['MVP-06']['runtimeDelivered'] is True
  assert (items['MVP-06']['pr'],items['MVP-06']['mergedMain'],items['MVP-06']['prCi'],items['MVP-06']['runtimeDispatch'])==(170,'6ca378d94435eb78ff4955128e3646cc64ef1ece',41881635998,41881398306)
- assert items['MVP-07']['status']=='in_progress' and items['MVP-07']['runtimeDelivered'] is False
+ assert items['MVP-07']['status']=='done' and items['MVP-07']['runtimeDelivered'] is True
+ assert items['MVP-08']['status']=='in_progress' and items['MVP-08']['runtimeDelivered'] is False
  assert items['MVP-06']['contract']=='docs/mvp06-document-types-contract.md'
- assert all(items[f'MVP-{n:02}']['status']=='backlog' for n in range(8,11))
+ assert all(items[f'MVP-{n:02}']['status']=='backlog' for n in range(9,11))
  for name in CURRENT:
   text=(root/name).read_text()
   for token in ('MVP-05/#144 COMPLETATO: PR #169',BASE,'41833394752','41833450699','2d5c06ae8c83e744a88e20abdcc0c34f0066ad81','MVP-06/#145 COMPLETATO: PR #170'):
@@ -27,7 +28,7 @@ def current_status(root):
 class ContractTests(unittest.TestCase):
  def test_all_43_published_bytes_and_all_old_inventory_records_preserved(self):
   old=json.loads(original('database/runtime/manifest.json'));new=json.loads((ROOT/'database/runtime/manifest.json').read_text())
-  self.assertEqual(len(old),43);self.assertEqual(new[:43],old);self.assertEqual(len(new),45);self.assertEqual(new[43]['id'],'0044_document_types');self.assertEqual(new[44]['id'],'0045_documents_inventory')
+  self.assertEqual(len(old),43);self.assertEqual(new[:43],old);self.assertEqual(len(new),46);self.assertEqual(new[45]['id'],'0046_document_development');self.assertEqual(new[43]['id'],'0044_document_types');self.assertEqual(new[44]['id'],'0045_documents_inventory')
   for entry in old:
    path='database/runtime/'+entry['path'];self.assertEqual((ROOT/path).read_bytes(),original(path),path)
   before=json.loads(original('docs/r06-migration-inventory.json'));after=json.loads((ROOT/'docs/r06-migration-inventory.json').read_text());self.assertEqual(after[:len(before)],before)

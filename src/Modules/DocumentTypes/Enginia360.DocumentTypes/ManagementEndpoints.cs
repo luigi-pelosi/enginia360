@@ -70,8 +70,17 @@ internal static class ManagementEndpoints
         {
             using var document = JsonDocument.Parse(bytes.AsMemory(0, count), new JsonDocumentOptions { MaxDepth = 3 });
             if (document.RootElement.ValueKind != JsonValueKind.Object || !ValidJson(document.RootElement)) return Results.BadRequest(new { state = "invalid" });
-            var command = document.RootElement.Deserialize<DocumentTypeCommand>(new JsonSerializerOptions(JsonSerializerDefaults.Web));
-            if (command is null || !Enum.IsDefined(command.Effect)) return Results.BadRequest(new { state = "invalid" });
+            var root = document.RootElement;
+            var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+            if (root.TryGetProperty("operation", out var operation) && operation.GetString() == "path")
+            {
+                if (root.Deserialize<DocumentPathCommand>(options) is null) return Results.BadRequest(new { state = "invalid" });
+            }
+            else
+            {
+                var command = root.Deserialize<DocumentTypeCommand>(options);
+                if (command is null || !Enum.IsDefined(command.Effect)) return Results.BadRequest(new { state = "invalid" });
+            }
             return await Execute(context, db, ct, request: document.RootElement.GetRawText());
         }
         catch (Exception error) when (error is JsonException or InvalidOperationException or ArgumentException)

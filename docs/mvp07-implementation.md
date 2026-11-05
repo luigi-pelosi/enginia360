@@ -1,4 +1,8 @@
-# MVP07 / #146 — validazione locale PASS, consegna exact-head ancora da verificare
+# MVP07 / #146 — CONSEGNATO PR171
+
+MVP07/#146 COMPLETATO via PR171, main `7d505db049880ef6fc4a2307dcd4575165c08923`, candidate `09cc3b1acddfab31879b940339fcb5af31053991`, tree equivalente `5a58e881d71e5d4b12fdb42ea1829d49790b7e0e`. Il coordinatore ha riletto CI `41945630168` (5 job/61 step) e dispatch `41945650853` (17 job/157 step), 11 ZIP head/SHA256 e 28 TRX, 380 eseguiti/passati, zero skip; issue146 chiusa/Project Completato. Non nuova CI main. Evidence `/root/.hermes/evidence/enginia360-mvp07-parent/merge-readback.json`. MVP08/#147 attivo SOURCE-ONLY/UNVERIFIED; #148/149 Backlog. Nessun deployment/readiness operativo.
+
+## Prove locali storiche antecedenti alla consegna — non stato corrente
 
 ## Stato finale locale — 5 novembre 2026
 

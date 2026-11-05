@@ -3,6 +3,7 @@ export type QuantityEffect = "Load" | "Unload" | "Transfer" | "None";
 export const effectLabels: Readonly<Record<QuantityEffect, string>> = { Load: "Carico", Unload: "Scarico", Transfer: "Trasferimento", None: "Nessun effetto" };
 export type DocumentTypeVersion = Readonly<{ id: string; legalEntityId: string; revision: number; label: string; effect: QuantityEffect; occurredAt: string }>;
 export type DocumentTypesData = Readonly<{
+  paths?: ReadonlyArray<DevelopmentPath>; canManagePaths?: boolean;
   state: string; companies: ReadonlyArray<Readonly<{ id: string; name: string }>>; selectedCompanyId: string | null;
   canCreate: boolean; canEdit: boolean; items: ReadonlyArray<DocumentTypeVersion>; detail: DocumentTypeVersion | null;
   history: ReadonlyArray<DocumentTypeVersion>; selectedVersion: DocumentTypeVersion | null;
@@ -24,3 +25,5 @@ export function finiteDocumentTypesRead(path: string): boolean {
     : ["revision", "beforeRevision"].includes(key) ? /^[1-9][0-9]{0,9}$/.test(params.get(key) || "") && Number(params.get(key)) <= 2147483647
     : ["legalEntityId", "after", "id"].includes(key) && /^(?!00000000-0000-0000-0000-000000000000$)[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(params.get(key) || ""));
 }
+
+export type DevelopmentPath = Readonly<{sourceTypeId:string; destinationTypeId:string; revision:number; enabled:boolean; allowCrossSite:boolean; occurredAt:string}>;

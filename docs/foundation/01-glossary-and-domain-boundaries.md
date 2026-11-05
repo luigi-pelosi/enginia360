@@ -1278,3 +1278,21 @@ Citazione esatta owner, distinta dalle conferme storiche D90/D92/D94 e non estes
 **Interpretazione tecnica minima correggibile:** stessa regola per la gamba uscente di Transfer e Unload; entrambe le ubicazioni appartengono alla società/sede del documento. Riattivare il blocco non corregge saldi negativi esistenti. Nessun trasferimento cross-company, import/azzeramento o cambio automatico dei profili ERP storici. D34 non aveva risolto questo tema: il suo scenario di prenotazione officina e la cronologia restano invariati. Solo la domanda sulle quantità insufficienti del nuovo MVP è risolta.
 
 **Consegna:** intero #146 prima di qualsiasi validazione; contratto finito `../mvp07-documents-inventory-contract.md`, sorgenti UNVERIFIED. Nessun gate docs-only anticipato. #147 sviluppo/grouping/residui rimane futuro. Nessun deployment, dati reali o readiness implicita.
+
+
+## Decisioni successive MVP08 (5 novembre 2026)
+
+### D100 — Impegno della capacità alla conferma della destinazione
+
+<!-- d100-current:start -->
+D100: «La quantità viene prenotata alla conferma della bozza». La destinazione Draft salva allocazioni proposte, senza impegnare capacità sorgente né stock. L'impegno della capacità documentale avviene soltanto atomicamente con la conferma della destinazione, rileggendo tutti i residui riga/passaggio. Bozze concorrenti possono contendere: una conferma perdente riceve 409, resta Draft, senza riduzione silenziosa o effetto parziale. Non è una prenotazione fisica. Ogni precedente proposta di prenotazione al salvataggio è SUPERATA/non scelta.
+<!-- d100-current:end -->
+
+### D101 — Soltanto sorgenti confermate, tipi diversi se ogni percorso consente
+
+<!-- d101-current:start -->
+D101: «Usare soltanto sorgenti confermate, anche di tipi diversi se tutti abilitati verso la destinazione». Ogni sorgente deve essere Confirmed immutabile e ogni percorso societario sorgente→destinazione deve essere correntemente abilitato. Tipi sorgente differenti sono ammessi, mai tenant/società differenti. D14/D17 restano: customizing solo societario, stessa sede per default, cross-site della stessa società solo esplicitamente abilitato per ciascun percorso coinvolto.
+<!-- d101-current:end -->
+
+
+Contratto finito: [sviluppo documentale MVP08](../mvp08-document-development-contract.md); nessuna esecuzione di validazione in questa fase sorgente.

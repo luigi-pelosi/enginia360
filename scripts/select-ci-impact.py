@@ -586,8 +586,27 @@ DOCUMENTS_DIRECT = DOCUMENT_TYPES_DIRECT | {'database/runtime/migrations/0044_do
 
 DOCUMENTS_DIRECT |= {'frontend/app/globals.css'}
 
+DEVELOPMENT_FILES = {
+ 'database/runtime/migrations/0046_document_development.sql',
+ 'scripts/test-mvp08-document-development.py','scripts/test-mvp08-contract.py','scripts/test-mvp08-impact.py',
+ 'scripts/run-mvp08-tests.py','tests/browser/mvp08-document-development.cjs',
+ 'tests/Enginia360.Api.Tests/DocumentDevelopmentTests.cs','frontend/tests/document-development.test.tsx',
+}
+DEVELOPMENT_SHARED = DOCUMENTS_SCOPE | {'docs/mvp08-document-development-contract.md','docs/mvp08-implementation.md','docs/foundation/01a-commercial-document-model.md','scripts/test-mvp07-contract.py','scripts/test-mvp07-impact.py'}
+DEVELOPMENT_SCOPE = DEVELOPMENT_FILES | DEVELOPMENT_SHARED
+DEVELOPMENT_DIRECT = DOCUMENTS_FILES | DOCUMENTS_DIRECT | DOCUMENT_TYPES_FILES
+
 def _selection(paths):
     paths = sorted(set(paths))
+    if set(paths) & DEVELOPMENT_FILES:
+        remaining = set(paths) - DEVELOPMENT_FILES
+        if set(paths) <= DEVELOPMENT_SCOPE:
+            remaining -= DEVELOPMENT_SHARED
+        result = selection(sorted(remaining | {'scripts/test-mvp07-impact.py'}))
+        result.update(changed_paths=paths,document_development=True,documents=True,document_types=True,frontend=True,migrations=True,browser=True,tenant_roles=True,membership_access=True)
+        token='FullyQualifiedName~DocumentDevelopmentTests'
+        if token not in result['api_filter'].split('|'):result['api_filter']+=('|' if result['api_filter'] else '')+token
+        return result
     if set(paths) & DOCUMENTS_FILES:
         remaining = set(paths) - DOCUMENTS_FILES
         if set(paths) <= DOCUMENTS_SCOPE:
@@ -951,6 +970,11 @@ def selection(paths):
         token='FullyQualifiedName~DocumentInventoryTests'
         if token not in result['api_filter'].split('|'): result['api_filter'] += ('|' if result['api_filter'] else '')+token
     result.setdefault('documents',False)
+    if set(paths) & (DEVELOPMENT_FILES | DEVELOPMENT_DIRECT):
+        result['document_development']=True
+        token='FullyQualifiedName~DocumentDevelopmentTests'
+        if token not in result['api_filter'].split('|'):result['api_filter']+=('|' if result['api_filter'] else '')+token
+    result.setdefault('document_development',False)
     return result
 
 

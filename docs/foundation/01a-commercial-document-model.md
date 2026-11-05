@@ -4,6 +4,19 @@
 **Ambito:** consolidamento delle decisioni concettuali D3–D11, senza codice, schema dati o contratti API.
 **Fonti:** [glossario e registro delle decisioni](01-glossary-and-domain-boundaries.md), chiarimenti di Luigi Pelosi (proprietario del prodotto); `PROJECT_CHARTER.md` §7–11. Non sono introdotte nuove evidenze legacy.
 
+## Stato corrente MVP08 — D100/D101
+
+<!-- d100-current:start -->
+D100: «La quantità viene prenotata alla conferma della bozza». La destinazione Draft salva allocazioni proposte, senza impegnare capacità sorgente né stock. L'impegno della capacità documentale avviene soltanto atomicamente con la conferma della destinazione, rileggendo tutti i residui riga/passaggio. Bozze concorrenti possono contendere: una conferma perdente riceve 409, resta Draft, senza riduzione silenziosa o effetto parziale. Non è una prenotazione fisica. Ogni precedente proposta di prenotazione al salvataggio è SUPERATA/non scelta.
+<!-- d100-current:end -->
+
+<!-- d101-current:start -->
+D101: «Usare soltanto sorgenti confermate, anche di tipi diversi se tutti abilitati verso la destinazione». Ogni sorgente deve essere Confirmed immutabile e ogni percorso societario sorgente→destinazione deve essere correntemente abilitato. Tipi sorgente differenti sono ammessi, mai tenant/società differenti. D14/D17 restano: customizing solo societario, stessa sede per default, cross-site della stessa società solo esplicitamente abilitato per ciascun percorso coinvolto.
+<!-- d101-current:end -->
+
+
+Il contratto esecutivo finito è [MVP08](../mvp08-document-development-contract.md): compatibilità item/kind/versione/label, q6, contesto operativo destinazione scelto, percorsi stabili e correzioni Draft; riapertura residui/compensazioni Confirmed non implementate né inventate. I paragrafi seguenti conservano la sintesi concettuale storica; i dettagli qui risolti non sono domande da riaprire.
+
 ## 1. Decisioni acquisite
 
 | Tema | Requisito confermato | Fonte |
@@ -59,9 +72,9 @@ L'ownership concreta di tipi, regole comuni e istanze è ancora da progettare: n
 - Tracciare la provenienza a livello di riga e quantità/importo pertinente, anche se una riga destinazione raccoglie più origini.
 - Misurare sviluppato e residuo per specifico passaggio: da consegnare, da fatturare e da rettificare non sono un unico contatore globale.
 - Impedire duplicazioni nei retry e sviluppi concorrenti eccedenti quanto consentito.
-- Verificare compatibilità delle sorgenti prima di raggrupparle; i criteri non sono ancora decisi.
+- Verificare la compatibilità finita MVP08: stessa società/tenant, ogni percorso corrente abilitato, sede secondo D17; per fondere una riga coincidono identità canonica, kind/versione/label snapshot e contesto operativo destinazione. D100 impegna soltanto alla conferma della destinazione; D101 ammette sole sorgenti Confirmed anche di tipi differenti.
 
-Unità di misura, arrotondamenti, trasferimento/ricalcolo di prezzi e sconti, nonché riapertura dei residui dopo rettifica, restano aperti.
+MVP08 quantitativo usa q6 esatto senza conversioni di unità. Prezzi/sconti, conversioni e riapertura dei residui dopo rettifiche Confirmed restano esclusi/non deliberati; la correzione inclusa riguarda il piano Draft senza effetti sulla capacità.
 
 ## 5. Rettifiche e storico
 
@@ -80,9 +93,9 @@ Il default acquisito è efficacia dalle prossime operazioni e nessuna riscrittur
 ## 7. Questioni rinviate, senza riaprire le decisioni acquisite
 
 - Catalogo concreto delle regole configurabili. **Scope acquisito in D14: soltanto società**, senza ereditarietà di tenant o override di sede; non confondere customizing con entitlement, feature flag o permessi.
-- Ownership applicativa e struttura tecnica, senza anticipare schema o motore universale.
+- Ownership concreta MVP08: DocumentTypes per le regole societarie e Documents per istanze/quote e conferma atomica con il proprio inventario MVP07; nessun motore universale o rinomina dei fatti Workshop.
 - Dati obbligatori, ruoli dei soggetti, vincoli e autorizzazioni delle operazioni.
-- Criteri ulteriori di compatibilità per raggruppare documenti e righe. **D17 acquisita:** stessa sede per default; sedi diverse della stessa società solo con abilitazione nel customizing societario. **D15–D16:** società → sedi 1:N, sede → magazzini 1:N; sede unica in testata e magazzini operativi delle righe appartenenti a quella sede. Scelta della sede destinazione e trattamento dei riferimenti storici restano da progettare.
+- Criteri ulteriori di compatibilità per raggruppare documenti e righe. **D17 acquisita:** stessa sede per default; sedi diverse della stessa società solo con abilitazione nel customizing societario. **D15–D16:** società → sedi 1:N, sede → magazzini 1:N; sede unica in testata e magazzini operativi delle righe appartenenti a quella sede. MVP08 sceglie esplicitamente la sede destinazione e i suoi magazzini autorizzati; sito e magazzini originali restano provenienza storica, non assegnazioni operative da copiare.
 - Effetti di ogni passaggio e momento della loro esecuzione, evitando duplicazioni tra predecessore e successore.
 - Prezzi/sconti, unità di misura, arrotondamenti e gestione dei residui.
 - Eventuali automatismi, integrazioni e recupero degli errori.
