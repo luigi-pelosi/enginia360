@@ -30,12 +30,17 @@ The routine selector remains `python3 scripts/select-ci-impact.py --base BASE40 
 After the parent has pushed the exact validated candidate, the existing workflow accepts:
 
 ```sh
-gh workflow run ci.yml --ref EXACT_CANDIDATE_SHA -f comparison_base=b00fdbafd3f91f6526caf18e75b79476ab02660f -f full_architecture=false
-# Only at the explicitly named final exceptional acceptance phase:
-gh workflow run ci.yml --ref EXACT_CANDIDATE_SHA -f comparison_base=b00fdbafd3f91f6526caf18e75b79476ab02660f -f full_architecture=true
+# GitHub workflow dispatch accepts a branch/tag name, not a raw commit SHA.
+# Fail closed on the exact pushed head before dispatch; never move this branch
+# during acceptance. Read the resulting run's head_sha and checkout tree too.
+test "$(gh api repos/luigi-pelosi/enginia360/git/ref/heads/feat/mvp-integrated-acceptance --jq .object.sha)" = "$EXACT_CANDIDATE_SHA" &&
+  gh workflow run ci.yml --ref feat/mvp-integrated-acceptance -f comparison_base=b00fdbafd3f91f6526caf18e75b79476ab02660f -f full_architecture=false
+# Only the PARENT at the explicitly named final exceptional acceptance phase:
+test "$(gh api repos/luigi-pelosi/enginia360/git/ref/heads/feat/mvp-integrated-acceptance --jq .object.sha)" = "$EXACT_CANDIDATE_SHA" &&
+  gh workflow run ci.yml --ref feat/mvp-integrated-acceptance -f comparison_base=b00fdbafd3f91f6526caf18e75b79476ab02660f -f full_architecture=true
 ```
 
-`EXACT_CANDIDATE_SHA` is a parent-resolved 40-character actual pushed commit, not a literal value or permission to dispatch now. No new workflow flags have been invented. Default remains false; automatic trigger remains pull_request only.
+`EXACT_CANDIDATE_SHA` is a parent-resolved 40-character actual pushed commit assigned to the shell variable, not a literal value or permission to dispatch now. Raw-SHA dispatch was actually refused with HTTP422 during final validation; no runtime campaign started from that refused request. The guarded existing branch ref and subsequent exact run-head/checkout-tree readback preserve exact-head acceptance without new flags or tags. Default remains false; automatic trigger remains pull_request only.
 
 ## Actual exceptional mode and additive scope
 
