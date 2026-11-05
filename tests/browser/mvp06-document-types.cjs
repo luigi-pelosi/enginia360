@@ -4,6 +4,13 @@ const {chromium}=require('playwright');
 const fixture=JSON.parse(fs.readFileSync('/run/fixture.json','utf8'));
 const origin='https://app.r00.test:8443';
 const path='/api/v1/platform/tenants';
+const pagingReads=[];
+async function followNativeRead(page,name){
+ const link=page.getByRole('link',{name,exact:true});const href=await link.getAttribute('href');assert.ok(href);const expected=new URL(href,origin).href;
+ const [response]=await Promise.all([page.waitForResponse(r=>r.request().isNavigationRequest()&&r.url()===expected),link.click()]);
+ assert.equal(response.status(),200);assert.match(response.headers()['cache-control'],/no-store/);assert.equal(await response.finished(),null);
+ pagingReads.push({url:response.url(),status:response.status(),cacheControl:response.headers()['cache-control']});fs.writeFileSync('/evidence/mvp06-paging-http-reads.json',JSON.stringify(pagingReads,null,2));
+}
 async function control(action){
  try{fs.unlinkSync('/run/control/ack');}catch{}
  fs.writeFileSync('/run/control/request',action);
@@ -46,7 +53,7 @@ async function login(browser,index,pending=false,invitation=null){
   const second=await post(owner.page,path+'/'+tenant+'/commands',{commandId:uuid(),operation:'create',kind:'company',tenantId:tenant,resourceId:null,parentId:tenant,name:'Synthetic second company',expectedRevision:0});
   assert.equal(second.status,200);const other=second.value.snapshot.resourceId;
   let directory=(await request(owner.page,roles)).value;
-  assert.deepEqual(directory.actions,['organization-context.read','organization-context.write','counterparties.shared.read','counterparties.shared.create','counterparties.shared.edit','counterparties.business-roles.write','counterparties.extensions.read','counterparties.extensions.write','catalog.shared.read','catalog.shared.create','catalog.shared.edit','document-types.read','document-types.create','document-types.edit','documents.read','documents.save','documents.confirm','inventory.document-effects.apply','inventory.quantities.read','inventory.policy.read','inventory.policy.manage']);
+  assert.deepEqual(directory.actions,['organization-context.read','organization-context.write','counterparties.shared.read','counterparties.shared.create','counterparties.shared.edit','counterparties.business-roles.write','counterparties.extensions.read','counterparties.extensions.write','catalog.shared.read','catalog.shared.create','catalog.shared.edit','document-types.read','document-types.create','document-types.edit','documents.read','documents.save','documents.confirm','inventory.document-effects.apply','inventory.quantities.read','inventory.policy.read','inventory.policy.manage','documents.develop','document-types.paths.manage']);
   const member=directory.memberships.find(m=>m.membershipId===fixture.grantTargetMembershipId);assert.ok(member);
   const permissions=[];
   await owner.page.goto(origin+'/users?tenant='+tenant);
@@ -89,9 +96,9 @@ async function login(browser,index,pending=false,invitation=null){
    assert.match(headers['cache-control'],/private/);assert.match(headers['cache-control'],/no-store/);assert.match(html,new RegExp('Synthetic edited '+effect));assert.match(html,new RegExp(italian));
    await np.getByRole('heading',{name:'Versione selezionata: 1',exact:true}).waitFor();
    fs.writeFileSync('/evidence/mvp06-'+effect+'-nojs.html',html);fs.writeFileSync('/evidence/mvp06-'+effect+'-nojs-headers.json',JSON.stringify(headers,null,2));
-   await np.getByLabel('Cerca tipologie').fill('edited '+effect);await np.getByRole('button',{name:'Cerca',exact:true}).click();await np.getByRole('link',{name:'Synthetic edited '+effect,exact:true}).click();
-   await np.getByRole('link',{name:'Versione 1: Synthetic '+effect,exact:true}).click();await np.getByRole('heading',{name:'Versione selezionata: 1',exact:true}).waitFor();
-   for(const viewport of [{width:390,height:844},{width:1920,height:1080}]){await np.setViewportSize(viewport);assert.equal(await np.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await np.screenshot({path:'/evidence/mvp06-'+effect+'-nojs-'+viewport.width+'.png',fullPage:true});}
+   await np.getByLabel('Cerca tipologie').fill('edited '+effect);await np.getByRole('button',{name:'Cerca',exact:true}).click();await followNativeRead(np,'Synthetic edited '+effect);
+   await followNativeRead(np,'Versione 1: Synthetic '+effect);await np.waitForLoadState('load');await np.getByRole('heading',{name:'Versione selezionata: 1',exact:true}).waitFor();
+   for(const viewport of [{width:390,height:844},{width:1920,height:1080}]){await np.setViewportSize(viewport);const geometry=await np.evaluate(()=>({url:location.href,readyState:document.readyState,width:innerWidth,scrollWidth:document.documentElement.scrollWidth,styles:[...document.styleSheets].map(s=>({href:s.href,disabled:s.disabled})),overflow:[...document.querySelectorAll('body *')].map(e=>{const b=e.getBoundingClientRect();return{tag:e.tagName,text:e.textContent.slice(0,100),x:b.x,right:b.right};}).filter(e=>e.x< -1||e.right>innerWidth+1)}));fs.writeFileSync('/evidence/mvp06-'+effect+'-nojs-'+viewport.width+'-geometry.json',JSON.stringify(geometry,null,2));assert.equal(await np.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await np.screenshot({path:'/evidence/mvp06-'+effect+'-nojs-'+viewport.width+'.png',fullPage:true});}
    await nojs.close();
   }
   // Same customer, second company: directory remains permission-minimized until
@@ -180,12 +187,12 @@ async function login(browser,index,pending=false,invitation=null){
   for(const javaScriptEnabled of [false,true]){
    const context=await browser.newContext({javaScriptEnabled});await context.addCookies(await pagingUser.context.cookies());const pp=await context.newPage();
    const response=await pp.goto(origin+'/document-types?legalEntityId='+company+'&search=Synthetic%20paging');assert.match(response.headers()['cache-control'],/no-store/);
-   assert.equal(await pp.getByRole('link',{name:/^Synthetic paging /}).count(),20);await pp.getByRole('link',{name:'Pagina successiva',exact:true}).click();assert.equal(await pp.getByRole('link',{name:/^Synthetic paging /}).count(),1);
-   await pp.getByRole('link',{name:'Torna alla prima pagina',exact:true}).click();assert.equal(await pp.getByRole('link',{name:/^Synthetic paging /}).count(),20);
+   assert.equal(await pp.getByRole('link',{name:/^Synthetic paging /}).count(),20);await followNativeRead(pp,'Pagina successiva');await pp.getByRole('link',{name:/^Synthetic paging /}).waitFor();assert.equal(await pp.getByRole('link',{name:/^Synthetic paging /}).count(),1);
+   await followNativeRead(pp,'Torna alla prima pagina');await pp.getByRole('link',{name:'Pagina successiva',exact:true}).waitFor();assert.equal(await pp.getByRole('link',{name:/^Synthetic paging /}).count(),20);
    await pp.goto(origin+'/document-types?legalEntityId='+company+'&id='+paging[0].id);assert.equal(await pp.getByRole('link',{name:/^Versione [0-9]+:/}).count(),20);
-   await pp.getByRole('link',{name:'Versioni precedenti',exact:true}).click();assert.equal(await pp.getByRole('link',{name:/^Versione [0-9]+:/}).count(),4);
-   await pp.getByRole('link',{name:'Versione 1: Synthetic paging 0',exact:true}).click();await pp.getByRole('heading',{name:'Versione selezionata: 1',exact:true}).waitFor();
-   await pp.getByRole('link',{name:'Versioni più recenti',exact:true}).click();assert.equal(await pp.getByRole('link',{name:/^Versione [0-9]+:/}).count(),20);
+   await followNativeRead(pp,'Versioni precedenti');await pp.getByRole('link',{name:'Versione 1: Synthetic paging 0',exact:true}).waitFor();assert.equal(await pp.getByRole('link',{name:/^Versione [0-9]+:/}).count(),4);
+   await followNativeRead(pp,'Versione 1: Synthetic paging 0');await pp.getByRole('heading',{name:'Versione selezionata: 1',exact:true}).waitFor();
+   await followNativeRead(pp,'Versioni più recenti');await pp.getByRole('link',{name:'Versione 24: Synthetic paging 0 revision 23',exact:true}).waitFor();assert.equal(await pp.getByRole('link',{name:/^Versione [0-9]+:/}).count(),20);
    fs.writeFileSync('/evidence/mvp06-paging-'+javaScriptEnabled+'.html',await pp.content());pagingResults.push({javaScriptEnabled,listPages:[20,1],historyPages:[20,4],selectedHistoricalVersion:1});await context.close();
   }
   fs.writeFileSync('/evidence/mvp06-paging-results.json',JSON.stringify(pagingResults,null,2));

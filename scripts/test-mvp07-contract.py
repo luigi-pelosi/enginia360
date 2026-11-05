@@ -17,12 +17,13 @@ def current_status(root):
  items={i['id']:i for i in json.loads((root/'docs/mvp-backlog.json').read_text())['items']}
  before=items['MVP-06'];now=items['MVP-07']
  assert (before['status'],before['runtimeDelivered'],before['pr'],before['mergedMain'],before['prCi'],before['runtimeDispatch'])==('done',True,170,BASE,41881635998,41881398306)
- assert now['status']=='in_progress' and now['runtimeDelivered'] is False and now['validationStatus']=='LOCAL_VERIFIED_PENDING_EXACT_HEAD'
+ assert (now['status'],now['runtimeDelivered'],now['pr'],now['mergedMain'],now['prCi'],now['runtimeDispatch'])==('done',True,171,'7d505db049880ef6fc4a2307dcd4575165c08923',41945630168,41945650853)
  assert now['negativeStockPolicy']==dict(decision='D99',ownerAnswer='Configurabile per società, con blocco predefinito',scope='company',defaultAllowNegative=False)
- assert all(items[f'MVP-{n:02}']['status']=='backlog' for n in range(8,11))
+ assert items['MVP-08']['status']=='in_progress' and items['MVP-08']['runtimeDelivered'] is False
+ assert all(items[f'MVP-{n:02}']['status']=='backlog' for n in range(9,11))
  for path in CURRENT:
   text=(root/path).read_text()
-  for token in ('MVP-06/#145 COMPLETATO: PR #170',BASE,'41881635998','41881398306','6e002f5cdce3769f8fedf1032b135f009ca33dd2','MVP-07/#146 IN CORSO'):
+  for token in ('7d505db049880ef6fc4a2307dcd4575165c08923','41945630168','41945650853','5a58e881d71e5d4b12fdb42ea1829d49790b7e0e'):
    assert token in text,(path,token)
  for path in CURRENT[:-1]:
   text=(root/path).read_text();start='<!-- d99-current:start -->';end='<!-- d99-current:end -->'
@@ -32,10 +33,10 @@ def current_status(root):
 class ContractTests(unittest.TestCase):
  def test_all44_published_sql_and_every_previous_inventory_entry_unchanged(self):
   before=json.loads(original('database/runtime/manifest.json'));after=json.loads((ROOT/'database/runtime/manifest.json').read_text())
-  self.assertEqual(len(before),44);self.assertEqual(after[:44],before);self.assertEqual(len(after),45);self.assertEqual(after[44]['id'],'0045_documents_inventory')
+  self.assertEqual(len(before),44);self.assertEqual(after[:44],before);self.assertEqual(len(after),46);self.assertEqual(after[44]['id'],'0045_documents_inventory');self.assertEqual(after[45]['id'],'0046_document_development')
   for row in before:
    path='database/runtime/'+row['path'];self.assertEqual((ROOT/path).read_bytes(),original(path),path)
-  old=json.loads(original('docs/r06-migration-inventory.json'));new=json.loads((ROOT/'docs/r06-migration-inventory.json').read_text());self.assertEqual(new[:len(old)],old);self.assertEqual({r['table'] for r in new[len(old):]},TABLES)
+  old=json.loads(original('docs/r06-migration-inventory.json'));new=json.loads((ROOT/'docs/r06-migration-inventory.json').read_text());self.assertEqual(new[:len(old)],old);self.assertEqual({r['table'] for r in new[len(old):]},TABLES|{'document_types.passages','document_types.passage_versions','documents.origins'})
   spec=importlib.util.spec_from_file_location('inventory',ROOT/'scripts/r06_inventory.py');assert spec and spec.loader
   m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);m.verify(ROOT,new)
  def test_first_boot_retains_every_original_assertion_with_one_exact_new_technical_witness(self):
@@ -52,7 +53,9 @@ class ContractTests(unittest.TestCase):
   self.assertEqual(normalized,before,'only the named exact new technical witness can differ; no schema-wide emptiness waiver or security/lifecycle change')
  def test_historical_inventory_workshop_billing_integrations_and_canonical_catalog_unmodified(self):
   for directory in ('src/Modules/Inventory','src/Modules/Workshop','src/Modules/Billing','src/Modules/Integrations','src/Modules/Catalog','src/Modules/DocumentTypes'):
-   for path in subprocess.check_output(['git','ls-tree','-r','--name-only',BASE,directory],cwd=ROOT,text=True).splitlines():self.assertEqual((ROOT/path).read_bytes(),original(path),path)
+   for path in subprocess.check_output(['git','ls-tree','-r','--name-only',BASE,directory],cwd=ROOT,text=True).splitlines():
+    if path in {'src/Modules/DocumentTypes/Enginia360.DocumentTypes/ManagementEndpoints.cs','src/Modules/DocumentTypes/Enginia360.DocumentTypes.Contracts/Contracts.cs'}:continue  # MVP08 finite path command ingress
+    self.assertEqual((ROOT/path).read_bytes(),original(path),path)
   sql=(ROOT/'database/runtime/migrations/0045_documents_inventory.sql').read_text()
   for bad in ('INSERT INTO inventory.','UPDATE inventory.','INSERT INTO workshop.','UPDATE catalog.items','GRANT ALL','DISABLE ROW LEVEL SECURITY'):
    self.assertNotIn(bad,sql)
@@ -77,12 +80,12 @@ class ContractTests(unittest.TestCase):
     p=root/path;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes((ROOT/path).read_bytes())
    for path in CURRENT:
     p=root/path;text=p.read_text()
-    for token in ('41881635998','41881398306','MVP-07/#146 IN CORSO'):
+    for token in ('41945630168','41945650853','7d505db049880ef6fc4a2307dcd4575165c08923'):
      p.write_text(text.replace(token,'REMOVED'))
      with self.assertRaises(AssertionError):current_status(root)
      p.write_text(text)
    p=root/'docs/mvp-backlog.json';text=p.read_text()
-   for id,key,value in [('MVP-06','runtimeDelivered',False),('MVP-07','status','done'),('MVP-07','runtimeDelivered',True),('MVP-07','validationStatus','UNEXECUTED'),('MVP-08','status','in_progress')]:
+   for id,key,value in [('MVP-06','runtimeDelivered',False),('MVP-07','status','in_progress'),('MVP-07','runtimeDelivered',False),('MVP-07','prCi',0),('MVP-08','status','done')]:
     data=json.loads(text);next(i for i in data['items'] if i['id']==id)[key]=value;p.write_text(json.dumps(data))
     with self.assertRaises(AssertionError):current_status(root)
     p.write_text(text)

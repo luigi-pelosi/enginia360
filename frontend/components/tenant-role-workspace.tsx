@@ -162,9 +162,9 @@ export function TenantRoleWorkspace({
       );
       const action = text("action");
       const shared = ["counterparties.shared.read", "counterparties.shared.create", "counterparties.shared.edit", "counterparties.business-roles.write", "catalog.shared.read", "catalog.shared.create", "catalog.shared.edit"].includes(action);
-      const extension = ["counterparties.extensions.read", "counterparties.extensions.write", "document-types.read", "document-types.create", "document-types.edit", "inventory.policy.read", "inventory.policy.manage"].includes(action);
+      const extension = ["counterparties.extensions.read", "counterparties.extensions.write", "document-types.read", "document-types.create", "document-types.edit", "inventory.policy.read", "inventory.policy.manage", "document-types.paths.manage"].includes(action);
       const company = data.companies?.find(c => c.legalEntityId === text("legalEntityId"));
-      const siteScoped = ["documents.read", "documents.save", "documents.confirm"].includes(action);
+      const siteScoped = ["documents.read", "documents.save", "documents.confirm", "documents.develop"].includes(action);
       const site = data.sites?.find(s => s.siteId === text("siteId"));
       if ((!shared && !extension && !siteScoped && !scope) || (extension && !company) || (siteScoped && !site)) return;
       payload = {

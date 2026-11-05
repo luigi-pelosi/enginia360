@@ -3596,5 +3596,131 @@
         "Singleton"
       ]
     }
+  },
+  {
+    "table": "document_types.passages",
+    "owner": "document_types",
+    "category": "business_configuration",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": {
+      "source": "src/Modules/DocumentTypes/Enginia360.DocumentTypes/ManagementEndpoints.cs",
+      "registration": "routes.MapPost(\"/commands\", Command);",
+      "purpose": "EXISTING_OPERATION_NOT_IMPORT_AUTHORIZATION"
+    },
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "SourceTypeId",
+      "DestinationTypeId"
+    ],
+    "definition": {
+      "migration": "0046_document_development",
+      "path": "database/runtime/migrations/0046_document_development.sql",
+      "file_sha256": "d2d9d0d62975263142683aab2c3d22a606cf4e19c44c634380b66b5a56fa5c3f",
+      "create_sql": "CREATE TABLE document_types.passages (\n \"TenantId\" uuid NOT NULL, \"LegalEntityId\" uuid NOT NULL,\n \"SourceTypeId\" uuid NOT NULL, \"DestinationTypeId\" uuid NOT NULL,\n \"Revision\" integer NOT NULL CHECK (\"Revision\">0),\n PRIMARY KEY(\"TenantId\",\"LegalEntityId\",\"SourceTypeId\",\"DestinationTypeId\"),\n FOREIGN KEY(\"TenantId\",\"LegalEntityId\",\"SourceTypeId\") REFERENCES document_types.definitions(\"TenantId\",\"LegalEntityId\",\"Id\"),\n FOREIGN KEY(\"TenantId\",\"LegalEntityId\",\"DestinationTypeId\") REFERENCES document_types.definitions(\"TenantId\",\"LegalEntityId\",\"Id\")\n);",
+      "columns": [
+        "TenantId",
+        "LegalEntityId",
+        "SourceTypeId",
+        "DestinationTypeId",
+        "Revision"
+      ],
+      "primary_key": [
+        "TenantId",
+        "LegalEntityId",
+        "SourceTypeId",
+        "DestinationTypeId"
+      ]
+    }
+  },
+  {
+    "table": "document_types.passage_versions",
+    "owner": "document_types",
+    "category": "audit_history",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": {
+      "source": "src/Modules/DocumentTypes/Enginia360.DocumentTypes/ManagementEndpoints.cs",
+      "registration": "routes.MapPost(\"/commands\", Command);",
+      "purpose": "EXISTING_OPERATION_NOT_IMPORT_AUTHORIZATION"
+    },
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "SourceTypeId",
+      "DestinationTypeId",
+      "Revision"
+    ],
+    "definition": {
+      "migration": "0046_document_development",
+      "path": "database/runtime/migrations/0046_document_development.sql",
+      "file_sha256": "d2d9d0d62975263142683aab2c3d22a606cf4e19c44c634380b66b5a56fa5c3f",
+      "create_sql": "CREATE TABLE document_types.passage_versions (\n \"TenantId\" uuid NOT NULL, \"LegalEntityId\" uuid NOT NULL,\n \"SourceTypeId\" uuid NOT NULL, \"DestinationTypeId\" uuid NOT NULL,\n \"Revision\" integer NOT NULL CHECK (\"Revision\">0), \"Enabled\" boolean NOT NULL,\n \"AllowCrossSite\" boolean NOT NULL DEFAULT false, \"OccurredAt\" timestamptz NOT NULL DEFAULT clock_timestamp(),\n PRIMARY KEY(\"TenantId\",\"LegalEntityId\",\"SourceTypeId\",\"DestinationTypeId\",\"Revision\"),\n FOREIGN KEY(\"TenantId\",\"LegalEntityId\",\"SourceTypeId\",\"DestinationTypeId\") REFERENCES document_types.passages\n);",
+      "columns": [
+        "TenantId",
+        "LegalEntityId",
+        "SourceTypeId",
+        "DestinationTypeId",
+        "Revision",
+        "Enabled",
+        "AllowCrossSite",
+        "OccurredAt"
+      ],
+      "primary_key": [
+        "TenantId",
+        "LegalEntityId",
+        "SourceTypeId",
+        "DestinationTypeId",
+        "Revision"
+      ]
+    }
+  },
+  {
+    "table": "documents.origins",
+    "owner": "documents",
+    "category": "operational_fact",
+    "migration_eligibility": "UNDECIDED",
+    "handling_constraint": "NO_LEGACY_IMPORT_APPROVED",
+    "available_command": {
+      "source": "src/Modules/Documents/Enginia360.Documents/DocumentEndpoints.cs",
+      "registration": "routes.MapPost(\"/commands\", Command);",
+      "purpose": "EXISTING_OPERATION_NOT_IMPORT_AUTHORIZATION"
+    },
+    "reconcile_keys": [
+      "TenantId",
+      "LegalEntityId",
+      "DocumentId",
+      "LineId",
+      "SourceDocumentId",
+      "SourceLineId"
+    ],
+    "definition": {
+      "migration": "0046_document_development",
+      "path": "database/runtime/migrations/0046_document_development.sql",
+      "file_sha256": "d2d9d0d62975263142683aab2c3d22a606cf4e19c44c634380b66b5a56fa5c3f",
+      "create_sql": "CREATE TABLE documents.origins (\n \"TenantId\" uuid NOT NULL, \"LegalEntityId\" uuid NOT NULL, \"DocumentId\" uuid NOT NULL, \"LineId\" uuid NOT NULL,\n \"SourceDocumentId\" uuid NOT NULL, \"SourceLineId\" uuid NOT NULL, \"SourceTypeId\" uuid NOT NULL, \"DestinationTypeId\" uuid NOT NULL,\n \"Quantity\" numeric(24,6) NOT NULL CHECK (\"Quantity\">0), \"SourceSnapshot\" jsonb NOT NULL, \"Rule\" jsonb NOT NULL,\n PRIMARY KEY(\"TenantId\",\"LegalEntityId\",\"DocumentId\",\"LineId\",\"SourceDocumentId\",\"SourceLineId\"),\n FOREIGN KEY(\"TenantId\",\"LegalEntityId\",\"DocumentId\",\"LineId\") REFERENCES documents.lines DEFERRABLE INITIALLY DEFERRED,\n FOREIGN KEY(\"TenantId\",\"LegalEntityId\",\"SourceDocumentId\",\"SourceLineId\") REFERENCES documents.lines,\n FOREIGN KEY(\"TenantId\",\"LegalEntityId\",\"SourceTypeId\",\"DestinationTypeId\") REFERENCES document_types.passages,\n CHECK(\"DocumentId\"<>\"SourceDocumentId\")\n);",
+      "columns": [
+        "TenantId",
+        "LegalEntityId",
+        "DocumentId",
+        "LineId",
+        "SourceDocumentId",
+        "SourceLineId",
+        "SourceTypeId",
+        "DestinationTypeId",
+        "Quantity",
+        "SourceSnapshot",
+        "Rule"
+      ],
+      "primary_key": [
+        "TenantId",
+        "LegalEntityId",
+        "DocumentId",
+        "LineId",
+        "SourceDocumentId",
+        "SourceLineId"
+      ]
+    }
   }
 ]

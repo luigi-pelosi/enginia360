@@ -229,7 +229,7 @@
       "dependsOn": [
         "MVP-06"
       ],
-      "status": "in_progress",
+      "status": "done",
       "issueNumber": 146,
       "acceptance": [
         "Documento persistito con testata e righe coerenti con la tipologia",
@@ -240,14 +240,18 @@
       ],
       "contract": "docs/mvp07-documents-inventory-contract.md",
       "implementationStatus": "source_complete",
-      "validationStatus": "LOCAL_VERIFIED_PENDING_EXACT_HEAD",
-      "runtimeDelivered": false,
+      "validationStatus": "verified_parent_exact_head_artifacts",
+      "runtimeDelivered": true,
       "negativeStockPolicy": {
         "decision": "D99",
         "ownerAnswer": "Configurabile per società, con blocco predefinito",
         "scope": "company",
         "defaultAllowNegative": false
-      }
+      },
+      "pr": 171,
+      "mergedMain": "7d505db049880ef6fc4a2307dcd4575165c08923",
+      "prCi": 41945630168,
+      "runtimeDispatch": 41945650853
     },
     {
       "id": "MVP-08",
@@ -260,7 +264,7 @@
       "dependsOn": [
         "MVP-07"
       ],
-      "status": "backlog",
+      "status": "in_progress",
       "issueNumber": 147,
       "acceptance": [
         "Righe o quantita' selezionate sviluppate mantenendo origine e residuo",
@@ -268,7 +272,19 @@
         "Residui per passaggio documentale, non unico contatore globale",
         "Compatibilita', momento di impegno e correzioni esplicitati prima del codice",
         "Concorrenza multi-sorgente e retry non sovrasviluppano o duplicano effetti"
-      ]
+      ],
+      "contract": "docs/mvp08-document-development-contract.md",
+      "implementationStatus": "source_complete",
+      "validationStatus": "UNEXECUTED",
+      "runtimeDelivered": false,
+      "developmentPolicy": {
+        "commitDecision": "D100",
+        "commitAt": "destination_confirmation",
+        "sourcesDecision": "D101",
+        "confirmedSourcesOnly": true,
+        "mixedSourceTypesIfEveryPathEnabled": true,
+        "draftReservesCapacity": false
+      }
     },
     {
       "id": "MVP-09",

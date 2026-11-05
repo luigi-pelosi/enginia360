@@ -3,11 +3,16 @@ import React, { useEffect, useRef, useState, type FormEvent } from "react";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { HttpFailure, readJson } from "../lib/organization";
-import { documentsPath, documentsReadPath, type DocumentsData, type DocumentsQuery, type DocumentLine, type CatalogChoice } from "../lib/documents";
+import { documentsPath, documentsReadPath, type DocumentsData, type DocumentsQuery, type DocumentLine, type CatalogChoice, type DocumentSnapshot, type DocumentOrigin, originTotal } from "../lib/documents";
 import { effectLabels, type DocumentTypeVersion } from "../lib/document-types";
 
 type Frozen = { readonly path: string; readonly body: string; readonly operation: string; readonly query: DocumentsQuery; uncertain: boolean };
 const refusalMessages: Readonly<Record<string,string>> = {
+ insufficient_residual: "Conferma rifiutata: residuo del passaggio insufficiente. Un’altra bozza può essere stata confermata. Nessuna riduzione automatica; bozza conservata senza effetti parziali.",
+ path_forbidden: "Percorso non abilitato o raggruppamento tra sedi non consentito. Nessuna modifica parziale.",
+ origin_quantity_mismatch: "Le quantità delle origini non coincidono con la riga. Correggi il piano di sviluppo.",
+ development_plan_required: "Usa l’editor del piano di sviluppo: il salvataggio ordinario non può rimuovere le provenienze.",
+ incompatible_origins: "Le origini hanno identità o snapshot incompatibili: mantieni righe distinte.",
  insufficient_stock: "Conferma rifiutata: quantità insufficienti. La bozza è conservata e nessuna riga è stata movimentata.",
  config_changed: "La configurazione del tipo o della società è cambiata. Rileggi e verifica il nuovo effetto prima di confermare nuovamente.",
  catalog_changed: "Un articolo o servizio è cambiato. Seleziona la versione corrente e salva esplicitamente la bozza.",
@@ -24,6 +29,9 @@ export function DocumentsWorkspace({initial}:{initial:{status:number;data:Docume
  const [lines,setLines]=useState<ReadonlyArray<DocumentLine>>(initial.data?.detail?.lines || []);
  const [catalog,setCatalog]=useState<ReadonlyArray<CatalogChoice>>(initial.data?.catalog || []);
  const [types,setTypes]=useState<ReadonlyArray<DocumentTypeVersion>>(initial.data?.types || []);
+ const [developmentMode,setDevelopmentMode]=useState(!!initial.data?.detail?.lines.some(l=>l.origins?.length));
+ const [sources,setSources]=useState<ReadonlyArray<DocumentSnapshot>>(initial.data?.sources||[]);
+ const [sourceSearch,setSourceSearch]=useState("");
  const [catalogSearch,setCatalogSearch]=useState(""); const [typeSearch,setTypeSearch]=useState("");
  const [catalogAfter,setCatalogAfter]=useState<string|undefined>(); const [typeAfter,setTypeAfter]=useState<string|undefined>();
  useEffect(()=>{setHydrated(true);},[]);
@@ -35,6 +43,7 @@ export function DocumentsWorkspace({initial}:{initial:{status:number;data:Docume
  },[]);
  function resetEditor(current:DocumentsData) {
   setTitle(current.detail?.title || "");setTypeId(current.detail?.documentTypeId || "");setLines(current.detail?.lines || []);
+  setDevelopmentMode(!!current.detail?.lines.some(l=>l.origins?.length));setSources(current.sources||[]);
   setCatalog(current.catalog);setTypes(current.types);setCatalogAfter(undefined);setTypeAfter(undefined);
  }
  async function login(){try{const csrf=await readJson("/auth/csrf");const form=document.createElement("form");form.method="POST";form.action="/auth/login";const input=document.createElement("input");input.name="__RequestVerificationToken";input.value=csrf.requestToken;form.append(input);document.body.append(form);form.submit();}catch{setMessage("Accesso temporaneamente non disponibile.");}}
@@ -60,22 +69,45 @@ export function DocumentsWorkspace({initial}:{initial:{status:number;data:Docume
    setMessage("Esito da verificare: riprova lo stesso comando. UUID, destinatario e contenuto restano congelati anche dopo una rilettura fallita. Un ricaricamento forzato non conserva il tentativo.");
   }finally{setBusy(false);}
  }
- function submit(operation:"create"|"save"|"confirm"|"policy",allowNegative?:boolean) {
+ function submit(operation:"create"|"save"|"confirm"|"policy"|"develop"|"develop-save",allowNegative?:boolean) {
   if(!data || !query.legalEntityId || !hydrated || fence.current || busy)return;
+  const create=operation==="create"||operation==="develop";
+  const development=operation==="develop"||operation==="develop-save";
   const base={commandId:crypto.randomUUID(),operation,legalEntityId:query.legalEntityId};
   const selected=types.find(t=>t.id===typeId);
   const request=operation==="policy"?{...base,expectedRevision:data.policy?.revision,allowNegative:!!allowNegative}
    :operation==="confirm"?{...base,siteId:query.siteId,documentId:data.detail?.id,expectedRevision:data.detail?.revision,expectedTypeRevision:types.find(t=>t.id===data.detail?.documentTypeId)?.revision,expectedPolicyRevision:data.policy?.revision}
-   :{...base,siteId:query.siteId,documentId:operation==="create"?null:data.detail?.id,expectedRevision:operation==="create"?0:data.detail?.revision,documentTypeId:typeId,expectedTypeRevision:selected?.revision,title,
-    lines:lines.map(l=>({id:l.id,itemId:l.itemId,catalogRevision:l.catalogRevision,quantity:l.quantity,warehouseId:l.warehouseId,destinationWarehouseId:l.destinationWarehouseId}))};
-  const command={path:documentsPath+"/commands",body:JSON.stringify(request),operation,query:{legalEntityId:query.legalEntityId,siteId:query.siteId,warehouseId:operation==="policy"?query.warehouseId:undefined,id:operation==="create"?undefined:data.detail?.id},uncertain:false};
+   :{...base,siteId:query.siteId,documentId:create?null:data.detail?.id,expectedRevision:create?0:data.detail?.revision,documentTypeId:typeId,expectedTypeRevision:selected?.revision,title,
+    lines:lines.map(l=>({id:l.id,itemId:l.itemId,catalogRevision:l.catalogRevision,quantity:l.quantity,warehouseId:l.warehouseId,destinationWarehouseId:l.destinationWarehouseId,...(development?{origins:(l.origins||[]).map(o=>({sourceDocumentId:o.sourceDocumentId,sourceLineId:o.sourceLineId,quantity:o.quantity,expectedPathRevision:o.expectedPathRevision}))}:{})}))};
+  const command={path:documentsPath+"/commands",body:JSON.stringify(request),operation,query:{legalEntityId:query.legalEntityId,siteId:query.siteId,warehouseId:operation==="policy"?query.warehouseId:undefined,id:create?undefined:data.detail?.id},uncertain:false};
   fence.current=command;setPending(command);void send(command);
  }
- async function choices(selection:"catalog"|"types",after?:string) {
+ async function choices(selection:"catalog"|"types"|"sources",after?:string) {
   if(fence.current || busy)return;setBusy(true);
-  try{const current=await readJson(documentsReadPath({legalEntityId:query.legalEntityId,siteId:query.siteId,selection,search:selection==="catalog"?catalogSearch:typeSearch,selectionAfter:after}));
-   if(selection==="catalog"){setCatalog(current.catalog);setCatalogAfter(after);}else{setTypes(current.types);setTypeAfter(after);}
+  try{const current=await readJson(documentsReadPath({legalEntityId:query.legalEntityId,siteId:query.siteId,selection,search:selection==="catalog"?catalogSearch:selection==="sources"?sourceSearch:typeSearch,selectionAfter:after}));
+   if(selection==="sources"){setSources(current.sources||[]);}else if(selection==="catalog"){setCatalog(current.catalog);setCatalogAfter(after);}else{setTypes(current.types);setTypeAfter(after);}
   }catch{setMessage("Selezione non disponibile o permesso revocato.");}finally{setBusy(false);}
+ }
+ function addSource(source:DocumentSnapshot,line:DocumentLine) {
+  const rule=data?.paths?.find(p=>p.sourceTypeId===source.documentTypeId&&p.destinationTypeId===typeId&&p.enabled&&(source.siteId===query.siteId||p.allowCrossSite));
+  if(!rule||fence.current)return;
+  const origin:DocumentOrigin={sourceDocumentId:source.id,sourceLineId:line.id,quantity:"1.000000",expectedPathRevision:rule.revision,rule,canReadSource:true,source:{itemId:line.itemId,catalogRevision:line.catalogRevision,kind:line.kind,label:line.label,siteId:source.siteId,warehouseId:line.warehouseId,destinationWarehouseId:line.destinationWarehouseId,sourceQuantity:line.quantity,documentTypeId:source.documentTypeId}};
+  setLines(old=>[...old,{...line,id:crypto.randomUUID(),quantity:"1.000000",warehouseId:null,destinationWarehouseId:null,origins:[origin]}]);
+ }
+ function editOrigin(id:string,index:number,quantity:string) {
+  setLines(old=>old.map(l=>{if(l.id!==id)return l;const origins=(l.origins||[]).map((o,i)=>i===index?{...o,quantity}:o);return {...l,origins,quantity:originTotal(origins)||""};}));
+ }
+ function removeOrigin(id:string,index:number) {
+  setLines(old=>old.flatMap(l=>{if(l.id!==id)return [l];const origins=(l.origins||[]).filter((_,i)=>i!==index);return origins.length?[{...l,origins,quantity:originTotal(origins)||""}]:[];}));
+ }
+ function mergeCompatible() {
+  setLines(old=>{const merged:DocumentLine[]=[];for(const l of old){
+   const at=merged.findIndex(m=>m.itemId===l.itemId&&m.kind===l.kind&&m.catalogRevision===l.catalogRevision&&m.label===l.label&&m.warehouseId===l.warehouseId&&m.destinationWarehouseId===l.destinationWarehouseId&&!!m.origins?.length&&!!l.origins?.length&&!m.origins.some(a=>l.origins?.some(b=>a.sourceDocumentId===b.sourceDocumentId&&a.sourceLineId===b.sourceLineId)));
+   if(at<0){merged.push(l);continue;}const origins=[...(merged[at].origins||[]),...(l.origins||[])];const quantity=originTotal(origins);if(!quantity){merged.push(l);continue;}merged[at]={...merged[at],origins,quantity};
+  }return merged;});
+ }
+ function refreshPlanRules() {
+  setLines(old=>old.map(l=>({...l,origins:l.origins?.map(o=>{const rule=data?.paths?.find(p=>p.sourceTypeId===o.source?.documentTypeId&&p.destinationTypeId===typeId);return rule?{...o,rule,expectedPathRevision:rule.revision}:o;})})));setMessage("Versioni correnti riportate nel piano. Verifica i percorsi e salva esplicitamente; nessuna capacità riservata.");
  }
  function editLine(id:string,change:Partial<DocumentLine>){setLines(old=>old.map(l=>l.id===id?{...l,...change}:l));}
  function addItem(item:CatalogChoice){setLines(old=>[...old,{id:crypto.randomUUID(),itemId:item.id,catalogRevision:item.revision,kind:item.kind,label:item.label,quantity:"1",warehouseId:null,destinationWarehouseId:null}]);}
@@ -108,38 +140,52 @@ export function DocumentsWorkspace({initial}:{initial:{status:number;data:Docume
     {site && <><h2>Sede: {site.name}</h2>
      {site.canReadDocuments && <>
       <form method="get" action="/documents"><fieldset disabled={!!pending || busy}><input type="hidden" name="legalEntityId" value={company.id}/><input type="hidden" name="siteId" value={site.id}/><label>Cerca documenti<input name="search" defaultValue={query.search || ""}/></label><Button type="submit">Cerca</Button></fieldset></form>
+      <form method="get" action="/documents"><fieldset disabled={!!pending||busy}><input type="hidden" name="legalEntityId" value={company.id}/><input type="hidden" name="siteId" value={site.id}/><input type="hidden" name="selection" value="sources"/><label>Ricerca nativa sorgenti confermate<input name="search" defaultValue={query.selection==="sources"?query.search||"":""}/></label><Button type="submit">Consulta sorgenti confermate</Button></fieldset></form>
+      {query.selection==="sources"&&<Card className="role-panel"><h2>Sorgenti confermate autorizzate</h2><ul>{(data.sources||[]).slice(0,20).map(s=><li key={s.id}><a href={link({legalEntityId:company.id,siteId:s.siteId,id:s.id})}>{s.title}</a> · {s.lines.length} righe</li>)}</ul>{(data.sources?.length||0)>20&&<a href={link({...query,selectionAfter:data.sources![19].id})}>Pagina sorgenti successiva</a>}</Card>}
       <Card className="role-panel"><h2>Documenti della sede</h2><ul>{data.items.slice(0,20).map(d=><li key={d.id}><a href={link({legalEntityId:company.id,siteId:site.id,id:d.id})}>{d.title}</a> · {d.state==="Draft"?"Bozza":"Confermato"} · revisione {d.revision}</li>)}</ul>{!data.items.length && <p>Nessun documento trovato.</p>}
        {data.items.length>20 && <a href={link({legalEntityId:company.id,siteId:site.id,search:query.search,after:data.items[19].id})}>Pagina documenti successiva</a>}
        {query.after && !query.warehouseId && <a href={link({legalEntityId:company.id,siteId:site.id})}>Prima pagina documenti</a>}
-       <Button className="document-command" disabled={locked || creating || hasUnsavedChanges || !data.canSave} onClick={()=>{setCreating(true);setTitle("");setTypeId("");setLines([]);}}>Nuovo documento</Button>
+       <Button className="document-command" disabled={locked || creating || hasUnsavedChanges || !data.canSave} onClick={()=>{setCreating(true);setDevelopmentMode(false);setTitle("");setTypeId("");setLines([]);}}>Nuovo documento</Button>
+       <Button className="document-command" disabled={locked||creating||hasUnsavedChanges||!data.canSave||!data.canDevelop} onClick={()=>{setCreating(true);setDevelopmentMode(true);setTitle("");setTypeId("");setLines([]);}}>Sviluppa da sorgenti confermate</Button>
       </Card>
       {(creating || detail) && <Card className="role-panel"><h2>{creating?"Nuovo documento":detail?.title}</h2>
        {detail && !creating && <p>Stato: {detail.state==="Draft"?"Bozza":"Confermato"} · revisione {detail.revision} · {detail.confirmedAt}</p>}
-       {editable && <form className="document-command" onSubmit={(e:FormEvent)=>{e.preventDefault();submit(creating?"create":"save");}}><fieldset disabled={locked}>
+       {editable&&!creating&&!developmentMode&&<Button className="document-command" disabled={locked||!data.canDevelop} onClick={()=>setDevelopmentMode(true)}>Aggiungi provenienze al piano bozza</Button>}
+       {editable && <form className="document-command" onSubmit={(e:FormEvent)=>{e.preventDefault();submit(developmentMode?(creating?"develop":"develop-save"):(creating?"create":"save"));}}><fieldset disabled={locked}>
         <label>Titolo documento<input required value={title} onChange={e=>setTitle(e.target.value)}/></label>
         <label>Tipologia della società<select required value={typeId} onChange={e=>setTypeId(e.target.value)}><option value="">Seleziona tipologia</option>{dedupTypes.map(t=><option key={t.id} value={t.id}>{t.label} · {effectLabels[t.effect]} · v{t.revision}</option>)}</select></label>
         <p>Effetto corrente: {type?effectLabels[type.effect]:"scegli tipologia"}. Un cambio non riassegna né cancella i magazzini delle righe.</p>
         <label>Cerca tipologie<input value={typeSearch} onChange={e=>setTypeSearch(e.target.value)}/></label><Button type="button" onClick={()=>void choices("types")}>Cerca tipologie</Button>
         {types.length>20 && <Button type="button" onClick={()=>void choices("types",types[19].id)}>Altre tipologie</Button>}{typeAfter && <Button type="button" onClick={()=>void choices("types")}>Prime tipologie</Button>}
+        {developmentMode&&<><h3>Piano di sviluppo · bozze non riservate</h3><p>Seleziona prima la tipologia destinazione. Sono ammesse soltanto sorgenti confermate; ogni percorso deve consentire la destinazione e la sede. I magazzini operativi vanno scelti qui, non copiati dalla provenienza.</p>
+         <label>Cerca sorgenti confermate<input value={sourceSearch} onChange={e=>setSourceSearch(e.target.value)}/></label><Button type="button" onClick={()=>void choices("sources")}>Cerca sorgenti confermate</Button>
+         <ul>{sources.slice(0,20).map(s=><li key={s.id}><a href={link({legalEntityId:company.id,siteId:s.siteId,id:s.id})}>{s.title}</a> · confermato · sede {s.siteId}<ul>{s.lines.map(l=><li key={l.id}>{l.label} · quantità sorgente {l.quantity}<Button type="button" disabled={!data.paths?.some(p=>p.sourceTypeId===s.documentTypeId&&p.destinationTypeId===typeId&&p.enabled&&(s.siteId===site.id||p.allowCrossSite))} onClick={()=>addSource(s,l)}>Aggiungi origine {s.title}: {l.label}</Button></li>)}</ul></li>)}</ul>
+         {sources.length>20&&<Button type="button" onClick={()=>void choices("sources",sources[19].id)}>Altre sorgenti confermate</Button>}
+         <Button type="button" onClick={mergeCompatible}>Unisci righe con origini e contesto compatibili</Button><Button type="button" onClick={refreshPlanRules}>Aggiorna versioni dei percorsi nel piano</Button>
+        </>}
         <label>Cerca articoli o servizi<input value={catalogSearch} onChange={e=>setCatalogSearch(e.target.value)}/></label><Button type="button" onClick={()=>void choices("catalog")}>Cerca catalogo</Button>
         <ul>{catalog.slice(0,20).map(item=><li key={item.id}>{item.label} · {item.kind==="Article"?"Articolo":"Servizio"} · versione {item.revision} <Button type="button" onClick={()=>addItem(item)}>Aggiungi {item.label}</Button></li>)}</ul>
         {catalog.length>20 && <Button type="button" onClick={()=>void choices("catalog",catalog[19].id)}>Altri articoli e servizi</Button>}{catalogAfter && <Button type="button" onClick={()=>void choices("catalog")}>Prima pagina catalogo</Button>}
         <h3>Righe modificabili</h3>{!lines.length && <p>Aggiungi almeno una riga dal catalogo.</p>}
         {lines.map((line,index)=><fieldset className="document-line" key={line.id}><legend>Riga {index+1}: {line.label} · versione {line.catalogRevision}</legend>
-         <label>Quantità riga {index+1}<input inputMode="decimal" required value={line.quantity} onChange={e=>editLine(line.id,{quantity:e.target.value})}/></label>
+         <label>Quantità riga {index+1}<input disabled={!!line.origins?.length} inputMode="decimal" required value={line.quantity} onChange={e=>editLine(line.id,{quantity:e.target.value})}/></label>
+         {!!line.origins?.length&&<><p>Quantità derivata esattamente dalle origini; modificare le singole quote. Bozza: nessun impegno del residuo.</p><ul>{line.origins.map((o,i)=><li key={String(o.sourceDocumentId)+o.sourceLineId+i}>{o.restricted?<p>Origine non consultabile con i permessi correnti; il piano non può essere modificato.</p>:<><label>Quota origine {index+1}.{i+1}<input required inputMode="decimal" value={o.quantity} onChange={e=>editOrigin(line.id,i,e.target.value)}/></label><span>Quantità sorgente immutabile {o.source?.sourceQuantity} · sede originale {o.source?.siteId} · magazzino storico {o.source?.warehouseId||"nessuno"}</span><Button type="button" onClick={()=>removeOrigin(line.id,i)}>Rimuovi origine {index+1}.{i+1}</Button></>}</li>)}</ul></>}
          {line.kind==="Service"?<p>Servizio: nessun magazzino o movimento fisico.</p>:<>
           <label>Magazzino riga {index+1}<select value={line.warehouseId || ""} onChange={e=>editLine(line.id,{warehouseId:e.target.value || null})}><option value="">Nessun magazzino</option>{data.warehouses.filter(w=>w.canApply).map(w=><option key={w.id} value={w.id}>{w.name}</option>)}</select></label>
           <label>Destinazione trasferimento riga {index+1}<select value={line.destinationWarehouseId || ""} onChange={e=>editLine(line.id,{destinationWarehouseId:e.target.value || null})}><option value="">Nessuna destinazione</option>{data.warehouses.filter(w=>w.canApply).map(w=><option key={w.id} value={w.id}>{w.name}</option>)}</select></label>
          </>}
          <Button type="button" onClick={()=>setLines(old=>old.filter(l=>l.id!==line.id))}>Rimuovi riga {index+1}</Button>
         </fieldset>)}
-        <p>Quantità decimali con punto, fino a sei decimali; nessun prezzo o dato fiscale richiesto.</p><Button type="submit">{creating?"Crea bozza":"Salva bozza"}</Button>
+        <p>Quantità decimali con punto, fino a sei decimali; nessun prezzo o dato fiscale richiesto.</p><Button disabled={lines.some(l=>l.origins?.some(o=>o.restricted))} type="submit">{developmentMode?"Salva piano di sviluppo":creating?"Crea bozza":"Salva bozza"}</Button>
        </fieldset></form>}
        {detail && !creating && <>
         <h3>Righe salvate</h3><ol>{detail.lines.map((line,index)=><li key={line.id} id={"line-"+line.id}>{line.label} · {line.kind==="Article"?"Articolo":"Servizio"} · quantità {line.quantity} · catalogo v{line.catalogRevision}
          {line.warehouseId && <> · {warehouseName(line.warehouseId)}</>}{line.destinationWarehouseId && <> → {warehouseName(line.destinationWarehouseId)}</>}
          <a href={link({legalEntityId:company.id,siteId:site.id,id:detail.id})+"#line-"+line.id}>Riga {index+1}</a>
+         {!!line.origins?.length&&<ul aria-label={"Provenienza quantitativa riga "+(index+1)}>{line.origins.map((o,i)=><li key={i}>Quota {o.quantity} · {detail.state==="Draft"?"proposta non riservata":"impegnata alla conferma"}{o.canReadSource&&o.source&&o.sourceDocumentId?<><a href={link({legalEntityId:company.id,siteId:o.source.siteId,id:o.sourceDocumentId})+"#line-"+o.sourceLineId}>Documento e riga di origine {o.sourceDocumentId}</a><span>Quantità sorgente {o.source.sourceQuantity} · sede storica {o.source.siteId} · magazzino storico {o.source.warehouseId||"nessuno"} · percorso v{o.expectedPathRevision}</span></>:<span>Origine riservata: permesso corrente assente</span>}</li>)}</ul>}
         </li>)}</ol>
+        {!!data.stages?.length&&<><h3>Residui per passaggio</h3><p>Le bozze sono soltanto proposte, non quantità prenotate. Ogni passaggio ha capacità indipendente.</p><ul>{data.stages.map(s=><li key={s.lineId+s.destinationTypeId}>Riga {s.lineId} → tipo {s.destinationTypeId} · sorgente {s.sourceQuantity} · confermato {s.committed} · proposto in bozze non riservato {s.plannedNotReserved} · residuo {s.residual} · percorso v{s.rule.revision}</li>)}</ul></>}
+        {detail.state==="Confirmed"&&<p>Fatto immutabile. Nessun annullamento, riapertura automatica del residuo o storno indiscriminato: le rettifiche confermate richiedono un futuro percorso compensativo guidato.</p>}
         {detail.appliedConfiguration?<p>Configurazione applicata e immutabile: {detail.appliedConfiguration.documentType.label} · {effectLabels[detail.appliedConfiguration.documentType.effect]} · tipo v{detail.appliedConfiguration.documentType.revision} · policy v{detail.appliedConfiguration.policy.revision} ({detail.appliedConfiguration.policy.allowNegative?"negativo consentito":"blocco insufficienza"}).</p>
          :<><p>Prossima conferma delle sole righe salvate: {currentType?effectLabels[currentType.effect]:"tipo da rileggere"}, versione tipo {currentType?.revision}, policy {data.policy?.revision}. Tutte le righe oppure nessuna. Per avviare una nuova giacenza usa un carico documentato e confermato.</p>
           {hasUnsavedChanges && <p role="note">Modifiche non salvate: salva la bozza prima di confermare le righe.</p>}

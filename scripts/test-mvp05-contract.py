@@ -13,7 +13,7 @@ def original(path):return subprocess.check_output(['git','show',BASE+':'+path],c
 class ContractTests(unittest.TestCase):
  def test_all_42_published_migrations_and_old_inventory_records_are_unchanged(self):
   old=json.loads(original('database/runtime/manifest.json'));new=json.loads((ROOT/'database/runtime/manifest.json').read_text())
-  self.assertEqual(len(old),42);self.assertEqual(new[:42],old);self.assertEqual(len(new),45);self.assertEqual(new[42]['id'],'0043_catalog_management');self.assertEqual(new[43]['id'],'0044_document_types')
+  self.assertEqual(len(old),42);self.assertEqual(new[:42],old);self.assertEqual(len(new),46);self.assertEqual(new[44]['id'],'0045_documents_inventory');self.assertEqual(new[45]['id'],'0046_document_development');self.assertEqual(new[42]['id'],'0043_catalog_management');self.assertEqual(new[43]['id'],'0044_document_types')
   for entry in old:
    path='database/runtime/'+entry['path'];self.assertEqual((ROOT/path).read_bytes(),original(path),path)
   before=json.loads(original('docs/r06-migration-inventory.json'));after=json.loads((ROOT/'docs/r06-migration-inventory.json').read_text())

@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState, type FormEvent } from "react";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { HttpFailure, readJson } from "../lib/organization";
-import { documentTypesPath, documentTypesReadPath, effectLabels, type DocumentTypesData, type DocumentTypesQuery, type QuantityEffect } from "../lib/document-types";
+import { documentTypesPath, documentTypesReadPath, effectLabels, type DocumentTypesData, type DocumentTypesQuery, type QuantityEffect, type DocumentTypeVersion } from "../lib/document-types";
 
 type Frozen = { readonly path: string; readonly body: string; readonly operation: string; readonly query: DocumentTypesQuery; uncertain: boolean };
 export function DocumentTypesWorkspace({ initial }: { initial: { status: number; data: DocumentTypesData | null; query: DocumentTypesQuery } }) {
@@ -11,6 +11,9 @@ export function DocumentTypesWorkspace({ initial }: { initial: { status: number;
   const [query, setQuery] = useState(initial.query); const [creating, setCreating] = useState(false);
   const [pending, setPending] = useState<Frozen | null>(null); const [busy, setBusy] = useState(false); const [message, setMessage] = useState("");
   const fence = useRef<Frozen | null>(null);
+  const [targets,setTargets]=useState<ReadonlyArray<DocumentTypeVersion>>(initial.data?.items || []);
+  const [targetSearch,setTargetSearch]=useState("");
+  const [targetId,setTargetId]=useState("");
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => { setHydrated(true); }, []);
   useEffect(() => {
@@ -31,7 +34,7 @@ export function DocumentTypesWorkspace({ initial }: { initial: { status: number;
       const csrf = await readJson("/auth/csrf");
       const result = await readJson(command.path, { method: "POST", headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": csrf.requestToken }, body: command.body });
       command.uncertain = true;
-      const currentQuery = { legalEntityId: command.query.legalEntityId, search: command.query.search, id: result.snapshot.id };
+      const currentQuery = { legalEntityId: command.query.legalEntityId, search: command.query.search, id: command.operation === "path" ? command.query.id : result.snapshot.id };
       const current = await readJson(documentTypesReadPath(currentQuery));
       setData(current); setQuery(currentQuery); setCreating(false); setStatus(200); setPending(null); fence.current = null;
       setMessage("Versione accettata; stato corrente riletto. Nessun documento o movimento di magazzino creato.");
@@ -55,6 +58,16 @@ export function DocumentTypesWorkspace({ initial }: { initial: { status: number;
     const command = { path: documentTypesPath + "/commands", body: JSON.stringify(request), operation,
       query: { legalEntityId: data.selectedCompanyId, search: query.search, id: data.detail?.id }, uncertain: false };
     fence.current = command; setPending(command); void send(command);
+  }
+  async function targetChoices(after?:string) {
+    if(fence.current||busy||!data?.selectedCompanyId)return;setBusy(true);
+    try{const current=await readJson(documentTypesReadPath({legalEntityId:data.selectedCompanyId,search:targetSearch,after}));setTargets(current.items);}catch{setMessage("Destinazioni non disponibili o permesso revocato.");}finally{setBusy(false);}
+  }
+  function savePath(event:FormEvent<HTMLFormElement>) {
+    event.preventDefault();if(!data?.detail||!data.selectedCompanyId||fence.current||busy||!hydrated||!targetId)return;
+    const values=new FormData(event.currentTarget);const prior=data.paths?.find(p=>p.sourceTypeId===data.detail?.id&&p.destinationTypeId===targetId);
+    const request={commandId:crypto.randomUUID(),operation:"path",legalEntityId:data.selectedCompanyId,sourceTypeId:data.detail.id,destinationTypeId:targetId,expectedRevision:prior?.revision||0,enabled:values.get("enabled")==="on",allowCrossSite:values.get("allowCrossSite")==="on"};
+    const command={path:documentTypesPath+"/commands",body:JSON.stringify(request),operation:"path",query:{legalEntityId:data.selectedCompanyId,id:data.detail.id},uncertain:false};fence.current=command;setPending(command);void send(command);
   }
   function link(values: DocumentTypesQuery) { return "/document-types" + documentTypesReadPath(values).slice(documentTypesPath.length); }
   const detail = data?.detail; const version = data?.selectedVersion;
@@ -100,6 +113,15 @@ export function DocumentTypesWorkspace({ initial }: { initial: { status: number;
             <label>Effetto sulle quantità<select name="effect" required defaultValue={detail.effect}>{options}</select></label>
             <Button type="submit">Salva nuova versione</Button>
           </fieldset></form>}
+          <h3>Percorsi di sviluppo dalla tipologia</h3><p>Identità stabile sorgente → destinazione: disabilitare e riabilitare non azzera i residui. Stessa sede per default; niente ereditarietà tenant o override sede. La creazione diretta resta disponibile.</p>
+          <ul>{(data.paths||[]).map(p=><li key={p.destinationTypeId}>Destinazione {p.destinationTypeId} · versione {p.revision} · {p.enabled?"abilitato":"disabilitato"} · {p.allowCrossSite?"sedi diverse della stessa società ammesse":"solo stessa sede"}<Button className="document-type-command" disabled={!hydrated||!!pending||busy||!data.canManagePaths} onClick={()=>setTargetId(p.destinationTypeId)}>Modifica percorso {p.destinationTypeId}</Button></li>)}</ul>
+          <form className="document-type-command" onSubmit={savePath}><fieldset disabled={!hydrated||!!pending||busy||!data.canManagePaths}>
+           <label>Cerca tipologia destinazione<input value={targetSearch} onChange={e=>setTargetSearch(e.target.value)}/></label><Button type="button" onClick={()=>void targetChoices()}>Cerca destinazioni</Button>
+           <label>Tipologia destinazione<select required value={targetId} onChange={e=>setTargetId(e.target.value)}><option value="">Scegli destinazione</option>{targets.slice(0,20).map(t=><option key={t.id} value={t.id}>{t.label}</option>)}{targetId&&!targets.some(t=>t.id===targetId)&&<option value={targetId}>Destinazione configurata {targetId}</option>}</select></label>
+           {targets.length>20&&<Button type="button" onClick={()=>void targetChoices(targets[19].id)}>Altre destinazioni</Button>}
+           <div key={targetId+":"+(data.paths?.find(p=>p.destinationTypeId===targetId)?.revision||0)}><label><input type="checkbox" name="enabled" defaultChecked={data.paths?.find(p=>p.destinationTypeId===targetId)?.enabled??true}/>Percorso abilitato</label><label><input type="checkbox" name="allowCrossSite" defaultChecked={data.paths?.find(p=>p.destinationTypeId===targetId)?.allowCrossSite??false}/>Consenti sedi diverse nella stessa società</label></div>
+           <Button type="submit">Salva percorso versionato</Button>
+          </fieldset></form>
           <h3>Storico delle versioni</h3><p>Versioni applicate alla configurazione, non conferme di documenti.</p>
           <ul>{data.history.slice(0, 20).map(v => <li key={v.revision}><a href={link({ legalEntityId: company.id, id: detail.id, revision: String(v.revision), beforeRevision: query.beforeRevision })}>Versione {v.revision}: {v.label}</a> · {effectLabels[v.effect]}</li>)}</ul>
           {data.history.length > 20 && <a href={link({ legalEntityId: company.id, id: detail.id, beforeRevision: String(data.history[19].revision) })}>Versioni precedenti</a>}
