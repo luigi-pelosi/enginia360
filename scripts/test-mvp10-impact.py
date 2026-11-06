@@ -70,6 +70,9 @@ class ImpactTests(unittest.TestCase):
         trigger=source.split('concurrency:',1)[0]
         self.assertIn('  pull_request:',trigger);self.assertNotIn('  push:',trigger)
         block=source.split('  affected-mvp-offline:',1)[1].split('  affected-r05a8-offline:',1)[0]
+        # These real base-to-candidate and published-byte checks require history;
+        # a successful shallow checkout cannot prove those identities.
+        self.assertIn('- uses: actions/checkout@v4\n        with: {fetch-depth: 0}',block)
         for token in ("if: needs.impact.outputs.mvp_offline == 'true'",'needs: impact',
                       'python3 -I scripts/test-mvp10-release.py && python3 -I scripts/test-mvp10-impact.py',
                       'python3 -I scripts/test-mvp-baseline.py','python3 -I scripts/test-d97-policy.py','python3 -I scripts/test-d98-policy.py'):

@@ -544,6 +544,7 @@ jobs:
     timeout-minutes: 3
     steps:
       - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
       - name: Initialize private MVP guard scratch directory
         run: printf 'TMPDIR=%s\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
       - name: Offline D96 authorization, backlog and impact guards (not runtime acceptance)
