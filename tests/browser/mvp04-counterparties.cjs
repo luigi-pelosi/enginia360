@@ -34,6 +34,7 @@ async function login(browser,index,pending=false,invitation=null){
 }
 (async()=>{
  const browser=await chromium.launch({headless:true});
+ let diagnosticPage;const diagnosticRequests=[];const diagnosticErrors=[];
  try {
   const anonymous=await browser.newPage();
   for(let i=0;i<60;i++){try{await anonymous.goto(origin+'/auth/session');break;}catch(e){if(i===59)throw e;await new Promise(r=>setTimeout(r,500));}}
@@ -79,7 +80,10 @@ async function login(browser,index,pending=false,invitation=null){
   const role=(await post(owner.page,roles,roleBody)).value.snapshot;
   const assignment=env('assignment',{roleId:role.resourceId,membershipId:member.membershipId,internalIdentityId:member.internalIdentityId,bindingHash:member.bindingHash,active:true});
   const assigned=await post(owner.page,roles,assignment);assert.equal(assigned.status,200);
-  const operator=await login(browser,5);const page=operator.page;
+  const operator=await login(browser,5);const page=operator.page;diagnosticPage=page;
+  page.on('pageerror',error=>diagnosticErrors.push(String(error)));
+  page.on('response',response=>{if(response.url().startsWith(origin+'/api/v1/counterparties/management'))diagnosticRequests.push({url:response.url(),status:response.status(),method:response.request().method()});});
+  page.on('framenavigated',frame=>{if(frame===page.mainFrame()&&frame.url().startsWith(origin+'/counterparties'))diagnosticRequests.push({navigation:frame.url()});});
   assert.equal((await request(page,cp)).status,200);
   assert.equal((await request(page,roles)).status,403,'operative roles do not grant administration');
   await control('master-setup');
@@ -202,5 +206,12 @@ async function login(browser,index,pending=false,invitation=null){
   await control('counterparty-audit-readback');
   fs.writeFileSync('/evidence/mvp04-browser-result.json',JSON.stringify({oidc:true,jwt:true,noJs:true,csfrRefusal:true,exactRetry:true,currentRoleRevoke:true,currentDisable:true,standalone:true},null,2));
   console.log('PASS MVP04 real OIDC/JWT SSR/noJS tenant/company isolation role enforcement create edit supplier destination and uncertainty');
+ }catch(error){
+  if(diagnosticPage){try{
+   fs.writeFileSync('/evidence/mvp04-failure.html',await diagnosticPage.content());
+   fs.writeFileSync('/evidence/mvp04-failure.json',JSON.stringify({url:diagnosticPage.url(),error:String(error),responsesAndNavigations:diagnosticRequests,pageErrors:diagnosticErrors,dom:await diagnosticPage.evaluate(()=>({statuses:[...document.querySelectorAll('[role="status"]')].map(x=>x.textContent),forms:[...document.forms].map(f=>({method:f.method,action:f.action,controls:[...f.elements].map(e=>({tag:e.tagName,name:e.name,type:e.type,disabled:e.matches(':disabled')}))}))}))},null,2));
+   await diagnosticPage.screenshot({path:'/evidence/mvp04-failure.png',fullPage:false});
+  }catch{}}
+  throw error;
  }finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});

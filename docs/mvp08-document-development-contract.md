@@ -1,5 +1,11 @@
 # MVP08 / #147 — sviluppo parziale e raggruppamento quantitativo
 
+Stato corrente: MVP08 COMPLETATO via PR172 / main `b00fdbafd3f91f6526caf18e75b79476ab02660f`; [stato e prove parent](mvp-delivery-plan.md). MVP09/#148 è il punto corrente, non ancora verificato.
+
+## Checkpoint storico source-only, precedente alla validazione di PR172
+
+Il testo seguente conserva la cronologia della preparazione; UNVERIFIED/UNEXECUTED e i futuri #148/#149 descrivono quel momento, non lo stato corrente.
+
 Stato: CONTRATTO FINITO, sorgenti dell'intero punto COMPLETI / UNVERIFIED; [mappa implementazione e prove preparate](mvp08-implementation.md). READY_FOR_FINAL_VALIDATION soltanto come completezza sorgente, non consegna verificata. Intero #147 (SQL/API/UI/test/runner/CI) prima di qualsiasi esecuzione di validazione. Nessun nuovo ambiente, deployment o scrittura remota. #148 e #149 restano futuri.
 
 ## Decisioni del proprietario (prima del codice dipendente)

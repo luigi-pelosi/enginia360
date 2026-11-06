@@ -19,7 +19,8 @@ class ImpactTests(unittest.TestCase):
   for paths in (sorted(m.DOCUMENTS_SCOPE),sorted(actual)):
    if not paths:continue
    result=m.selection(paths);self.assertTrue(result['documents']);self.assertFalse(result['full_architecture'])
-   for key in ('r03a','r03b','r03c','r04a','r04b2b3','r06b1'):self.assertFalse(result.get(key),key)
+   for key in ('r03a','r03b','r03c','r04a','r04b2b3'):self.assertFalse(result.get(key),key)
+   self.assertEqual(result['r06b1'],bool(set(paths)&{'scripts/run-r06b1-tests.py','scripts/test-r06b1-guards.py','scripts/test-r06b1-lifecycle.py'}))
  def test_whole_point_plus_exact_d99_historical_register_guard_remains_bounded(self):
   paths=m.DOCUMENTS_SCOPE|{'scripts/test-c00-consistency.py'}
   result=m.selection(sorted(paths))

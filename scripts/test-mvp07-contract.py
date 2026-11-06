@@ -19,8 +19,8 @@ def current_status(root):
  assert (before['status'],before['runtimeDelivered'],before['pr'],before['mergedMain'],before['prCi'],before['runtimeDispatch'])==('done',True,170,BASE,41881635998,41881398306)
  assert (now['status'],now['runtimeDelivered'],now['pr'],now['mergedMain'],now['prCi'],now['runtimeDispatch'])==('done',True,171,'7d505db049880ef6fc4a2307dcd4575165c08923',41945630168,41945650853)
  assert now['negativeStockPolicy']==dict(decision='D99',ownerAnswer='Configurabile per società, con blocco predefinito',scope='company',defaultAllowNegative=False)
- assert items['MVP-08']['status']=='in_progress' and items['MVP-08']['runtimeDelivered'] is False
- assert all(items[f'MVP-{n:02}']['status']=='backlog' for n in range(9,11))
+ assert items['MVP-08']['status']=='done' and items['MVP-08']['runtimeDelivered'] is True
+ assert items['MVP-09']['status']=='in_progress' and items['MVP-10']['status']=='backlog'
  for path in CURRENT:
   text=(root/path).read_text()
   for token in ('7d505db049880ef6fc4a2307dcd4575165c08923','41945630168','41945650853','5a58e881d71e5d4b12fdb42ea1829d49790b7e0e'):
@@ -85,7 +85,7 @@ class ContractTests(unittest.TestCase):
      with self.assertRaises(AssertionError):current_status(root)
      p.write_text(text)
    p=root/'docs/mvp-backlog.json';text=p.read_text()
-   for id,key,value in [('MVP-06','runtimeDelivered',False),('MVP-07','status','in_progress'),('MVP-07','runtimeDelivered',False),('MVP-07','prCi',0),('MVP-08','status','done')]:
+   for id,key,value in [('MVP-06','runtimeDelivered',False),('MVP-07','status','in_progress'),('MVP-07','runtimeDelivered',False),('MVP-07','prCi',0),('MVP-08','status','in_progress')]:
     data=json.loads(text);next(i for i in data['items'] if i['id']==id)[key]=value;p.write_text(json.dumps(data))
     with self.assertRaises(AssertionError):current_status(root)
     p.write_text(text)

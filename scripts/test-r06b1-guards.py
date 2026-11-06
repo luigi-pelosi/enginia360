@@ -144,6 +144,22 @@ class DumpIntegrityTests(unittest.TestCase):
 
 
 class ComparisonTests(unittest.TestCase):
+    def test_initial_business_rows_zero_except_exact_published_singletons(self):
+        runner = load('r06b1_initial_tables', 'scripts/run-r06b1-tests.py')
+        tables = {name: {'rows': rows} for name, rows in (
+            ('runtime_migrations.applied', 46),
+            ('organization_access.membership_access_snapshot_fence', 1),
+            ('documents.snapshot_fence', 1), ('documents.headers', 0), ('organization_access.memberships', 0))}
+        runner.assert_initial_table_counts(tables)
+        for name in tables.keys() - {'runtime_migrations.applied'}:
+            changed = json.loads(json.dumps(tables))
+            changed[name]['rows'] += 1
+            with self.subTest(name=name), self.assertRaises(AssertionError):
+                runner.assert_initial_table_counts(changed)
+        for name in ('documents.other_fence', 'documents.arbitrary', 'organization_access.arbitrary'):
+            with self.subTest(unknown=name), self.assertRaises(AssertionError):
+                runner.assert_initial_table_counts(dict(tables, **{name: {'rows': 1}}))
+
     base = {'workshop.orders': {'rows': 2, 'sha256': 'a' * 64}, 'runtime_migrations.applied': {'rows': 24, 'sha256': 'b' * 64},
             'pgx_legacy.t': {'rows': 0, 'sha256': 'c' * 64}}
 

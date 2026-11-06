@@ -38,7 +38,15 @@ test("HTTP returns real uncached Italian SSR with all seven domain pages and no 
         }
         expect(html).toContain('<html lang="it"');
         expect(html).toContain("Navigazione principale");
-        expect(html).toContain("Nessun contesto aziendale attivo");
+        const finalPath = new URL(response.url()).pathname;
+        if (["/counterparties", "/catalog", "/document-types", "/documents"].includes(finalPath)) {
+            expect(html).toContain("Contesto del modulo");
+            expect(html).toContain("Il contesto si seleziona nel modulo aperto. La shell non assegna accessi.");
+            expect(html).not.toContain("Nessun contesto aziendale attivo");
+        } else {
+            expect(html).toContain("Nessun contesto aziendale attivo");
+            expect(html).toContain("La shell non seleziona tenant, società o utente.");
+        }
         expect(html).not.toContain("untrusted");
         expect(html).not.toContain("SUPER_ADMIN");
         expect(html).not.toMatch(/<form|type="password"/);

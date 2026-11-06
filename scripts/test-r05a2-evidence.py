@@ -9,6 +9,7 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+from runpy import run_path
 import tempfile
 import unittest
 ROOT = Path(__file__).resolve().parents[1]
@@ -95,8 +96,7 @@ class EvidenceTests(unittest.TestCase):
         for token in ('D83','NOT_ESTABLISHED','3 ordinati / 2 ricevuti','D79','nessun adapter','osservazione sandbox','garanzia provider','zero oggetti'):
             self.assertIn(token.lower(), text.lower())
         decisions = (ROOT/'docs/foundation/01-glossary-and-domain-boundaries.md').read_text()
-        ids = list(map(int,re.findall(r'^### D(\d+) —',decisions,re.M)))
-        self.assertEqual(sorted(ids), list(range(1,95)))
+        run_path(str(ROOT/'scripts/test-r04-authority.py'))['validate_decision_register'](decisions)
         d83 = decisions.split('### D83 —')[-1].split('### D84 —')[0]
         for token in ('27 ottobre 2026','api-server','sandbox','SdI','D82','nessun invio esterno'):
             self.assertIn(token,d83)

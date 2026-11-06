@@ -214,6 +214,13 @@ def apply_migrator(rig, extra=()):
     return attempt(rig.command + ['run', '--rm', '--no-deps', '-T'] + list(extra) + ['migrator'], timeout=120)
 
 
+def assert_initial_table_counts(tables):
+    witnesses = {'organization_access.membership_access_snapshot_fence', 'documents.snapshot_fence'}
+    assert all(tables[name]['rows'] == 1 for name in witnesses), 'exact singleton witnesses required'
+    unexpected = {name: value['rows'] for name, value in tables.items() if name not in witnesses | {'runtime_migrations.applied'} and value['rows'] != 0}
+    assert not unexpected, 'post-migration unexpected nonempty relations/counts: ' + json.dumps(unexpected, sort_keys=True)
+
+
 def populate_cluster(rig):
     """A: init-only roles -> real migrator on the exact manifest -> fixtures -> real browser/API commands."""
     command, state = rig.command, rig.state
@@ -234,7 +241,20 @@ def populate_cluster(rig):
         witness = 'organization_access.membership_access_snapshot_fence'
         assert empty[witness]['rows'] == 1
         assert sql(rig, 'SELECT row_to_json(f) FROM organization_access.membership_access_snapshot_fence f') == '{"Singleton":true,"Token":false}'
-        assert all(v['rows'] == 0 for name, v in empty.items() if name not in ('runtime_migrations.applied', witness))
+        # Published 0045 seeds exactly this private MVCC witness, never business stock.
+        document_witness = 'documents.snapshot_fence'
+        assert empty[document_witness]['rows'] == 1
+        assert sql(rig, 'SELECT row_to_json(f) FROM documents.snapshot_fence f') == '{"Singleton":true,"Token":false}'
+        assert sql(rig, """SELECT relrowsecurity AND relforcerowsecurity AND relowner='runtime_owner'::regrole
+            AND NOT EXISTS (SELECT 1 FROM aclexplode(coalesce(relacl,acldefault('r',relowner))) a WHERE a.grantee<>relowner OR a.is_grantable)
+            FROM pg_class WHERE oid='documents.snapshot_fence'::regclass""") == 't'
+        assert sql(rig, """SELECT count(*)=1 AND bool_and(policyname='owner_only' AND roles=ARRAY['runtime_owner']::name[] AND permissive='PERMISSIVE' AND cmd='ALL' AND qual='true' AND with_check='true') FROM pg_policies WHERE schemaname='documents' AND tablename='snapshot_fence'""") == 't'
+        assert sql(rig, 'BEGIN; SET LOCAL ROLE runtime_owner; SELECT row_to_json(f) FROM documents.snapshot_fence f FOR SHARE; ROLLBACK;') == '{"Singleton":true,"Token":false}'
+        for statement in ('SELECT * FROM documents.snapshot_fence', 'UPDATE documents.snapshot_fence SET "Token"=true', 'DELETE FROM documents.snapshot_fence', 'TRUNCATE documents.snapshot_fence', 'INSERT INTO documents.snapshot_fence VALUES(false,false)'):
+            refused = attempt(rig.command + ['exec', '-T', 'postgres', 'psql', '-X', '-qAt', '-U', 'runtime_app', '-d', 'runtime', '-v', 'ON_ERROR_STOP=1', '-c', statement])
+            assert refused.returncode != 0, 'private document witness exposed to runtime_app'
+        assert_initial_table_counts(empty)
+        rig.check('exact documents.snapshot_fence singleton from published0045; FORCE RLS/owner-only ACL/policy, real owner positive and app SELECT/write/TRUNCATE refusals; all business tables zero')
         assert apply_migrator(rig).returncode == 0
         assert ledger_rows(rig) == ledger, 'second apply must be a no-op including applied_at'
         rig.evidence['manifest_units'] = len(manifest)

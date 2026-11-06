@@ -24,9 +24,9 @@ def decisions(root):
 def current_status(root):
  items={i['id']:i for i in json.loads((root/'docs/mvp-backlog.json').read_text())['items']}
  assert items['MVP-07']['status']=='done' and items['MVP-07']['pr']==171 and items['MVP-07']['mergedMain']==BASE
- now=items['MVP-08'];assert now['status']=='in_progress' and now['runtimeDelivered'] is False
+ now=items['MVP-08'];assert now['status']=='done' and now['runtimeDelivered'] is True
  assert now['developmentPolicy']=={'commitDecision':'D100','commitAt':'destination_confirmation','sourcesDecision':'D101','confirmedSourcesOnly':True,'mixedSourceTypesIfEveryPathEnabled':True,'draftReservesCapacity':False}
- assert all(items[key]['status']=='backlog' for key in ('MVP-09','MVP-10'))
+ assert items['MVP-09']['status']=='in_progress' and items['MVP-10']['status']=='backlog'
 class ContractTests(unittest.TestCase):
  def test_exact_owner_answers_before_dependent_code_and_negative_mutations(self):
   decisions(ROOT)

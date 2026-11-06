@@ -31,7 +31,20 @@ def load_runner(hold=''):
     return module
 
 
+def assert_network_identity(before, after):
+    # Retained fixtures may share the historical prefix. Preserve their IDs and
+    # reject any new/missing/replaced network; a prefix is never ownership proof.
+    assert set(after) == set(before), 'network inventory changed or ephemeral network leaked'
+
+
 class GuardTests(unittest.TestCase):
+    def test_network_guard_preserves_retained_ids_and_refuses_every_leak_or_replacement(self):
+        before = {'retained-membership-network-id', 'unrelated-protected-network-id'}
+        assert_network_identity(before, set(before))
+        for after in (before | {'owned-leak-id'}, before - {'retained-membership-network-id'}, {'replacement-id', 'unrelated-protected-network-id'}):
+            with self.subTest(after=after), self.assertRaises(AssertionError):
+                assert_network_identity(before, after)
+
     @classmethod
     def setUpClass(cls):
         cls.runner = load_runner()
@@ -90,7 +103,8 @@ class GuardTests(unittest.TestCase):
 def actual_term_probe(phase):
     runner = load_runner(phase)
     before = {'volumes': runner.r00.inventory('volume'), 'running': set(runner.run(['docker', 'ps', '-q', '--no-trunc']).splitlines()),
-              'all': set(runner.run(['docker', 'ps', '-aq', '--no-trunc']).splitlines())}
+              'all': set(runner.run(['docker', 'ps', '-aq', '--no-trunc']).splitlines()),
+              'networks': set(runner.run(['docker', 'network', 'ls', '-q', '--no-trunc']).splitlines())}
     env = dict(os.environ, R06B1_HOLD=phase)
     process = subprocess.Popen([sys.executable, str(RUNNER)], cwd=ROOT, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0)
     deadline = time.monotonic() + PROBE_DEADLINE_SECONDS
@@ -122,10 +136,11 @@ def actual_term_probe(phase):
                 process.communicate(timeout=10)
                 raise RuntimeError('runner failed bounded TERM cleanup')
     after = {'volumes': runner.r00.inventory('volume'), 'running': set(runner.run(['docker', 'ps', '-q', '--no-trunc']).splitlines()),
-             'all': set(runner.run(['docker', 'ps', '-aq', '--no-trunc']).splitlines())}
+             'all': set(runner.run(['docker', 'ps', '-aq', '--no-trunc']).splitlines()),
+              'networks': set(runner.run(['docker', 'network', 'ls', '-q', '--no-trunc']).splitlines())}
     assert after == before, 'protected inventory or leaked containers differ after TERM'
     assert not runner.run(['docker', 'ps', '-aq', '--filter', 'label=com.docker.compose.project.config_files=' + str(runner.CONFIG)]).strip()
-    assert not runner.run(['docker', 'network', 'ls', '-q', '--filter', 'name=enginia360-r00b-']).strip(), 'ephemeral network leaked'
+    assert_network_identity(before['networks'], after['networks'])
     leftovers = subprocess.run(['pgrep', '-af', 'compose.*r06b1-test'], capture_output=True, text=True).stdout
     assert 'r06b1' not in leftovers.replace('pgrep', ''), 'orphan compose child: ' + leftovers
     print('PASS actual R06.b.1 TERM while %s in flight in %.1fs; children and exact ephemeral resources removed; protected inventory unchanged.' % (phase, elapsed))

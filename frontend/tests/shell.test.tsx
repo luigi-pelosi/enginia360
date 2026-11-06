@@ -52,3 +52,16 @@ test("SSR session footer distinguishes protected administration from isolated pe
         assert.match(renderToStaticMarkup(<SessionBoundary pathname={pathname} />), /Contesto non selezionato/);
     }
 });
+
+
+test("module context wording does not contradict an operator selection; aliases have one current page", async () => {
+    const { ContextBoundary, domainIsCurrent } = await import(shellUrl.href);
+    const html = renderToStaticMarkup(<ContextBoundary pathname="/documents" />);
+    assert.match(html, /Contesto del modulo/);
+    assert.doesNotMatch(html, /Nessun contesto aziendale attivo/);
+    assert.match(html, /La shell non assegna accessi/);
+    const domains = ["identity", "organization", "counterparties", "catalog", "inventory", "document-types", "documents"];
+    assert.deepEqual(domains.filter(id => domainIsCurrent(id, "/documents")), ["documents"]);
+    assert.deepEqual(domains.filter(id => domainIsCurrent(id, "/catalog")), ["catalog"]);
+    assert.equal(domainIsCurrent("documents", "/documents-unknown"), false);
+});
