@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Explicit exceptional final campaign adapter, not routine impact selection.
 Runs the actual existing workflow commands serially per finite consumer group.
-The two historical full-architecture jobs remain unchanged in ci.yml.
+The historical full-architecture jobs remain unchanged and separately opt-in.
 """
 import argparse
 import hashlib
@@ -15,25 +15,60 @@ import subprocess
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
-# API/UI full fast coverage is already in the retained legacy verify job; impact
-# selection itself is not a test. Every other current affected consumer is kept.
-EXCLUDED = {'affected-api', 'affected-ui'}
+# Finite seven-domain MVP consumers plus evidenced shared producers.
+# This is not a requirement to repair every retained historical workflow.
 GROUPS = (
-    'impact', 'affected-integrated-acceptance', 'affected-document-development',
-    'affected-documents', 'affected-document-types', 'affected-catalog-management',
-    'affected-counterparty-management', 'affected-federated-onboarding',
-    'affected-membership-access', 'affected-tenant-roles', 'affected-platform-offline',
-    'affected-platform-authority', 'affected-organization-administration',
-    'affected-authenticated-organization', 'affected-frontend', 'affected-frontend-runtime',
-    'affected-mvp-offline', 'affected-r05a8-offline', 'affected-r05a7-offline',
-    'affected-r05a6-offline', 'affected-r05a5-offline', 'affected-r05a4-offline',
-    'affected-r05a3-offline', 'affected-r05a2-offline', 'affected-r05a1-offline',
-    'affected-r06-offline', 'affected-migrations', 'affected-browser', 'affected-editor',
-    'affected-r03a', 'affected-r03a2', 'affected-r04a', 'affected-r04c1', 'affected-r04c2',
-    'affected-r06-restore', 'affected-r06-staging', 'affected-r03b', 'affected-r03c',
-    'affected-r05b0', 'affected-r05b1', 'affected-r04b2a', 'affected-r04b2b1',
-    'affected-r04b2b2', 'affected-r04b2b3',
+    'impact',
+    'affected-integrated-acceptance',
+    'affected-document-development',
+    'affected-documents',
+    'affected-document-types',
+    'affected-catalog-management',
+    'affected-counterparty-management',
+    'affected-federated-onboarding',
+    'affected-membership-access',
+    'affected-tenant-roles',
+    'affected-platform-offline',
+    'affected-platform-authority',
+    'affected-organization-administration',
+    'affected-authenticated-organization',
+    'affected-frontend',
+    'affected-frontend-runtime',
+    'affected-mvp-offline',
+    'affected-r05a2-offline',
+    'affected-r05a3-offline',
+    'affected-r06-offline',
+    'affected-migrations',
+    'affected-browser',
+    'affected-r06-restore',
 )
+# API fast tests/build/audit have their own explicit final job (no impact filter).
+SEPARATE_FINAL = {'affected-api'}
+# Retained and available; not MVP final prerequisites absent a concrete impact.
+RETAINED_LEGACY = {
+    'affected-editor',
+    'affected-r03a',
+    'affected-r03a2',
+    'affected-r03b',
+    'affected-r03c',
+    'affected-r04a',
+    'affected-r04b2a',
+    'affected-r04b2b1',
+    'affected-r04b2b2',
+    'affected-r04b2b3',
+    'affected-r04c1',
+    'affected-r04c2',
+    'affected-r05a1-offline',
+    'affected-r05a4-offline',
+    'affected-r05a5-offline',
+    'affected-r05a6-offline',
+    'affected-r05a7-offline',
+    'affected-r05a8-offline',
+    'affected-r05b0',
+    'affected-r05b1',
+    'affected-r06-staging',
+    'affected-ui',
+}
 
 
 def jobs(text):
@@ -44,7 +79,7 @@ def plan(text, group):
     if group not in GROUPS:
         raise ValueError('unmapped exceptional consumer group')
     blocks = jobs(text)
-    if {name for name in blocks if name.startswith('affected-')} != set(GROUPS)-{'impact'} | EXCLUDED:
+    if {name for name in blocks if name.startswith('affected-')} != set(GROUPS)-{'impact'} | SEPARATE_FINAL | RETAINED_LEGACY:
         raise ValueError('new or lost consumer: map explicitly, never silently skip')
     block = blocks[group]
     budget = re.search(r'^    timeout-minutes: ([1-9][0-9]*)$', block, re.M)

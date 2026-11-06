@@ -18,7 +18,10 @@ class ImpactTests(unittest.TestCase):
   actual=set(subprocess.check_output(['git','diff','--name-only','7d505db049880ef6fc4a2307dcd4575165c08923'],cwd=ROOT,text=True).splitlines())|set(subprocess.check_output(['git','ls-files','--others','--exclude-standard'],cwd=ROOT,text=True).splitlines())
   for paths in (m.DEVELOPMENT_SCOPE,actual):
    result=m.selection(sorted(paths));self.assertTrue(result['document_development']);self.assertFalse(result['full_architecture'])
-   for key in ('r03a','r03b','r03c','r04a','r04b2b3','r06b1'):self.assertFalse(result.get(key),(key,sorted(paths)))
+   for key in ('r03a','r03b','r03c','r04a','r04b2b3'):self.assertFalse(result.get(key),(key,sorted(paths)))
+   # The current whole point can explicitly correct the shared restore runner;
+   # the historical pure MVP08 scope still must not acquire that consumer.
+   self.assertEqual(result['r06b1'],bool(set(paths)&{'scripts/run-r06b1-tests.py','scripts/test-r06b1-guards.py','scripts/test-r06b1-lifecycle.py'}))
  def test_unknown_and_near_prefix_executable_fail_closed(self):
   for path in ('src/Modules/Documents/Enginia360.Documents/Unknown.cs','frontend/app/documents/unknown.ts','scripts/run-mvp08-copy.py','docs/workflow.py'):
    with self.assertRaises(ValueError):m.selection(['database/runtime/migrations/0046_document_development.sql',path])

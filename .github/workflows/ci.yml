@@ -8,6 +8,11 @@ on:
         type: string
         required: false
         default: ''
+      mvp_final:
+        description: Explicit finite seven-domain MVP FINAL (keep full_architecture false); not legacy acceptance
+        type: boolean
+        required: false
+        default: false
       full_architecture:
         description: Explicit exceptional architecture-wide run, not a routine delivery gate
         type: boolean
@@ -20,7 +25,7 @@ permissions:
   contents: read
 jobs:
   impact:
-    if: ${{ !inputs.full_architecture }}
+    if: ${{ !inputs.full_architecture && !inputs.mvp_final }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
@@ -997,15 +1002,25 @@ jobs:
         run: timeout 420 python3 scripts/test-r04b3-lifecycle.py
       - name: Actual TERM with held claim lock and Chromium
         run: timeout 420 python3 scripts/test-r04b2b3-lifecycle.py
+  architecture-mvp-api:
+    if: github.event_name == 'workflow_dispatch' && inputs.mvp_final && !inputs.full_architecture
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - name: Fast API shared composition tests locked build and dependency audit
+        run: docker run --rm -v "$PWD:/source" -w /source mcr.microsoft.com/dotnet/sdk:10.0.402-alpine3.24@sha256:230c3fbae0ceedc70bca04eed2bfb5694e8b248cadbb81010f41b7a993601f55 sh -c 'dotnet restore tests/Enginia360.Api.Tests --locked-mode && dotnet test tests/Enginia360.Api.Tests -c Release --no-restore && dotnet publish src/Enginia360.Api -c Release --no-restore -o /proof /p:UseAppHost=false && dotnet list src/Enginia360.Api package --vulnerable --include-transitive && dotnet list tests/Enginia360.Api.Tests package --vulnerable --include-transitive'
   architecture-current-contracts:
-    if: github.event_name == 'workflow_dispatch' && inputs.full_architecture
+    if: github.event_name == 'workflow_dispatch' && inputs.mvp_final && !inputs.full_architecture
     runs-on: ubuntu-24.04
     timeout-minutes: 65
     strategy:
       fail-fast: false
       max-parallel: 4
       matrix:
-        consumer: ["impact", "affected-integrated-acceptance", "affected-document-development", "affected-documents", "affected-document-types", "affected-catalog-management", "affected-counterparty-management", "affected-federated-onboarding", "affected-membership-access", "affected-tenant-roles", "affected-platform-offline", "affected-platform-authority", "affected-organization-administration", "affected-authenticated-organization", "affected-frontend", "affected-frontend-runtime", "affected-mvp-offline", "affected-r05a8-offline", "affected-r05a7-offline", "affected-r05a6-offline", "affected-r05a5-offline", "affected-r05a4-offline", "affected-r05a3-offline", "affected-r05a2-offline", "affected-r05a1-offline", "affected-r06-offline", "affected-migrations", "affected-browser", "affected-editor", "affected-r03a", "affected-r03a2", "affected-r04a", "affected-r04c1", "affected-r04c2", "affected-r06-restore", "affected-r06-staging", "affected-r03b", "affected-r03c", "affected-r05b0", "affected-r05b1", "affected-r04b2a", "affected-r04b2b1", "affected-r04b2b2", "affected-r04b2b3"]
+        consumer: ["impact", "affected-integrated-acceptance", "affected-document-development", "affected-documents", "affected-document-types", "affected-catalog-management", "affected-counterparty-management", "affected-federated-onboarding", "affected-membership-access", "affected-tenant-roles", "affected-platform-offline", "affected-platform-authority", "affected-organization-administration", "affected-authenticated-organization", "affected-frontend", "affected-frontend-runtime", "affected-mvp-offline", "affected-r05a2-offline", "affected-r05a3-offline", "affected-r06-offline", "affected-migrations", "affected-browser", "affected-r06-restore"]
     steps:
       - uses: actions/checkout@v4
         with:

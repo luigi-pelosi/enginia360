@@ -1,13 +1,13 @@
 # MVP09 — prepared final acceptance, NOT executed
 
-Status: SOURCE_COMPLETE_UNVERIFIED / all commands below UNEXECUTED for MVP09. Parent owns final validation, corrective rechecks, commit/PR/merge and issue/Project readback. This source-only worker must not execute these commands or open a PR.
+Status: SOURCE_COMPLETE_UNVERIFIED / all commands below UNEXECUTED for the corrected source point. Earlier executions are historical only, as disclosed below. Parent owns final validation, corrective rechecks, commit/PR/merge and issue/Project readback. This source-only worker must not execute these commands or open a PR.
 
 ## Phase order
 
 1. Freeze the whole source point and durable source checkpoint, including all tracked/untracked hashes against `b00fdbafd3f91f6526caf18e75b79476ab02660f`.
 2. Parent executes final offline contract/impact guards, selected API/frontend tests/build/audits, foundation/security/migration consumers and isolated runtime acceptance. Correct failures and recheck affected consumers without fabricating RED or losing NONPASS logs. Serialize Docker --rm helpers on any host taking pre-existing runtime snapshots.
 3. Commit/push only the verified source, then PR-only exact-head impact checks and targeted dispatch with `full_architecture=false`. Derive required jobs from the actual whole-point changed paths, never dirty overlay alone. Skip is not pass.
-4. Only after whole-point functional/source completion, parent executes ONE explicitly authorized exceptional final campaign on the exact candidate SHA with `full_architecture=true`. Read actual required jobs/steps/artifacts, hashes and checkout trees. Any skipped required matrix consumer or missing runtime artifact is NONPASS, not acceptance.
+4. Only after whole-point functional/source completion, parent executes ONE explicitly authorized exceptional FINAL MVP campaign on the exact candidate SHA with `mvp_final=true`, `full_architecture=false`. This is the seven-domain architecture and evidenced direct dependencies, not an acceptance claim for all retained repository history. Read actual required jobs/steps/artifacts, hashes and checkout trees. Any skipped required matrix consumer or missing runtime artifact is NONPASS, not acceptance.
 5. Parent guarded merge, tree equivalence/readback and #148/Project transition only after all five criteria have executed evidence. No automatic main CI is assumed. MVP10/#149 stays separate.
 
 ## Prepared commands (run only in final phase)
@@ -34,21 +34,64 @@ After the parent has pushed the exact validated candidate, the existing workflow
 # Fail closed on the exact pushed head before dispatch; never move this branch
 # during acceptance. Read the resulting run's head_sha and checkout tree too.
 test "$(gh api repos/luigi-pelosi/enginia360/git/ref/heads/feat/mvp-integrated-acceptance --jq .object.sha)" = "$EXACT_CANDIDATE_SHA" &&
-  gh workflow run ci.yml --ref feat/mvp-integrated-acceptance -f comparison_base=b00fdbafd3f91f6526caf18e75b79476ab02660f -f full_architecture=false
+  gh workflow run ci.yml --ref feat/mvp-integrated-acceptance -f comparison_base=b00fdbafd3f91f6526caf18e75b79476ab02660f -f full_architecture=false -f mvp_final=false
 # Only the PARENT at the explicitly named final exceptional acceptance phase:
 test "$(gh api repos/luigi-pelosi/enginia360/git/ref/heads/feat/mvp-integrated-acceptance --jq .object.sha)" = "$EXACT_CANDIDATE_SHA" &&
-  gh workflow run ci.yml --ref feat/mvp-integrated-acceptance -f comparison_base=b00fdbafd3f91f6526caf18e75b79476ab02660f -f full_architecture=true
+  gh workflow run ci.yml --ref feat/mvp-integrated-acceptance -f comparison_base=b00fdbafd3f91f6526caf18e75b79476ab02660f -f full_architecture=false -f mvp_final=true
 ```
 
-`EXACT_CANDIDATE_SHA` is a parent-resolved 40-character actual pushed commit assigned to the shell variable, not a literal value or permission to dispatch now. Raw-SHA dispatch was actually refused with HTTP422 during final validation; no runtime campaign started from that refused request. The guarded existing branch ref and subsequent exact run-head/checkout-tree readback preserve exact-head acceptance without new flags or tags. Default remains false; automatic trigger remains pull_request only.
+`EXACT_CANDIDATE_SHA` is a parent-resolved 40-character actual pushed commit assigned to the shell variable, not a literal value or permission to dispatch now. Raw-SHA dispatch was actually refused with HTTP422 during final validation; no runtime campaign started from that refused request. The guarded existing branch ref and subsequent exact run-head/checkout-tree readback preserve exact-head acceptance without raw-SHA dispatch or new tags; `mvp_final` is the explicit source-defined corrected final-mode input. Default remains false; automatic trigger remains pull_request only.
 
-## Actual exceptional mode and additive scope
+## Actual exceptional FINAL MVP scope (owner-corrected)
 
-Source inspection of the inherited workflow found `impact` gated by `!inputs.full_architecture`; existing `affected-*` jobs depend on it and therefore do not constitute full-mode evidence. Existing full-mode jobs `runtime-migrations` and `verify` are retained unchanged, including B02–B14 API/UI/security, race-controller lifecycle, fixture-free migrations/recovery, internal technical billing/accounting consumers and hardened Compose/HTTP smoke. Their original budgets are not enlarged.
+The inherited `full_architecture=true` lane still executes exactly the unchanged historical `runtime-migrations` and `verify` jobs. It is available for a separately requested legacy campaign, NOT required for MVP09 and NOT selected by `mvp_final=true` / `full_architecture=false`. Ordinary PR-only and targeted dispatch defaults remain false. Set only one exceptional mode; both true is not valid MVP acceptance because the required final jobs refuse that combination.
 
-Added `architecture-current-contracts` is final-dispatch-only with a finite 44-group matrix. Each group invokes `run-mvp09-architecture.py` under an explicit `MVP09_EXCEPTIONAL_FINAL=true` environment, reusing the actual named run commands and literal step environments from the current workflow, under each original job deadline. These include impact guards (not impact selection), new integrated journey, all current MVP auth/organization/RBAC/onboarding/master/document jobs, offline dossiers, browser/editor, Rxx security/lifecycle/restore and staging consumers. Full fast API/UI remain covered by the unchanged `verify` job rather than executing an empty impact filter. No legacy consumer is silently dropped; a new/unmapped affected job fails closed until explicitly mapped. Matrix jobs are on isolated hosted workers; commands inside each worker are serial.
+The new finite final lane has 23 explicit adapter consumers plus `architecture-mvp-api` (one fast API composition/test/locked publish/dependency-audit job, original10-minute budget). API tests run without an empty impact filter; this does not run historical B04–B14 fixture workflows. The final matrix does not automatically widen to every retained affected job: all groups are explicitly classified, unknown/lost groups fail closed until a concrete dependency is mapped. Current security/ownership/restoration checks are not skipped. [Actual dependency and owning-transaction trace](mvp09-cleanup-trace.md).
 
-Each step has a real command, start/end, exit, PASS/NONPASS and log. Shell pipefail is explicit even for older tee commands. Empty plans, unknown groups, unsupported executable YAML/expressions and missing expected original artifacts refuse. Timeout/interruption terminates the owned process group and retains NONPASS. It never prunes resources or infers task ownership by prefix. Original explicit MVP artifact directories are copied only after success, never arbitrary temporary fixture/credential files. Parent must inspect the original per-suite evidence, not only the wrapper's exit code.
+| Finite final consumer | Original budget | Concrete dependency / acceptance |
+| --- | --- | --- |
+| `impact` | 5 min | Ordinary selector/unknown/mixed and security wiring guards; selection step itself is not acceptance. |
+| `affected-integrated-acceptance` | 60 min | Same generated tenant and D98→enable→D97 operator→supplier/catalog/types/four effects→mixed-source partial development→multi-hop; pool4/1. |
+| `affected-document-development` | 60 min | Canonical changed shared MVP08 helper, original API/SQL/browser edge cases and pool4/1. |
+| `affected-documents` | 60 min | Documents owns confirmation/inventory transaction, race/replay/audit/negative-stock and RLS contract. |
+| `affected-document-types` | 60 min | Current company definitions/passages/versions and permissions feed Documents. |
+| `affected-catalog-management` | 60 min | Canonical Article/Service identity/revision/authority supplies document snapshots. |
+| `affected-counterparty-management` | 60 min | Tenant supplier identity and separate company extension; shared-master authority. |
+| `affected-federated-onboarding` | 60 min | D98 verified first binding, disabled membership, no automatic grants and audit. |
+| `affected-membership-access` | 60 min | Current-session revocation/suspension and owning-effect fences. |
+| `affected-tenant-roles` | 20 min | D97 role/permission creation/edit/assignment; immutable atomic audit and actual authorization. |
+| `affected-platform-offline` | 3 min | Direct inventory/readiness preservation; no operational promotion. |
+| `affected-platform-authority` | 15 min | Explicit global bootstrap/revocation, authenticated target and foundation RLS/pools. |
+| `affected-organization-administration` | 15 min | Actual tenant/company/site/warehouse ownership and separate delegation. |
+| `affected-authenticated-organization` | 15 min | Authenticated SSR and separate organization/users authorities. |
+| `affected-frontend` | 12 min | Current Next component tests/typecheck/locked build/dependency audit. |
+| `affected-frontend-runtime` | 15 min | Current shell SSR/noJS/hydration, private transport and bounded runtime cleanup. |
+| `affected-mvp-offline` | 3 min | D96/D97/D98 literal policy/backlog positive and negative guards. |
+| `affected-r05a2-offline` | 3 min | Changed exact historical decision-register guard consumer, documentary only. |
+| `affected-r05a3-offline` | 3 min | Changed exact historical decision-register guard consumer, documentary only. |
+| `affected-r06-offline` | 3 min | Changed shared decision-integrity consumer and conserved OPEN readiness, documentary only. |
+| `affected-migrations` | 15 min | Actual single46-migration catalog/ACLs and owning membership dependencies; foundation/purchasing/receipts and TERM. |
+| `affected-browser` | 15 min | Shared TLS/OIDC/cookie/CSRF/RLS/pool helper and real TERM cleanup. |
+| `affected-r06-restore` | 45 min | Same current migrator/full snapshots/ACLs; exact0045 private singleton and retained-network identity corrections; canonical plus dump/restore/browser TERM. |
+
+The following stay available but are NOT prerequisites without new concrete producer impact: legacy Vite fast UI/editor; R03 workshop workspace/material correction/own time/closure; R04 material reservations/picking/installations/returns and purchasing/price/dispatch connectors; R05 provider/sandbox/connector campaigns other than the two changed documentary consumers; R06 synthetic staging transfer. Their workflow commands, security tests and evidence are retained, not disabled or reported passed. A real later producer edit still selects its ordinary consumers through the unchanged fail-closed/mixed selection rules.
+
+Each selected group invokes `run-mvp09-architecture.py` with explicit `MVP09_EXCEPTIONAL_FINAL=true`, reusing actual named workflow commands and literal environments under the original group deadline. Commands inside each group are serial; hosted matrix workers are isolated. Empty plans/unknown groups/unsupported YAML or expressions/missing expected artifacts refuse. Each step records command, start/end, exit, PASS/NONPASS, log hash and whole-source manifest. Pipefail is enforced; timeout/interruption terminates its process group and preserves NONPASS. No prune or prefix-based ownership. Parent must inspect actual suite artifacts/logs, not only wrapper exit. Original artifact directories are copied only after success, never arbitrary fixture credentials.
+
+Parent-only local preparation for the SAME finite campaign, after the entire corrected source point is frozen (UNEXECUTED here):
+
+```sh
+# Set private durable FINAL_EVIDENCE and scratch TMPDIR/RUNNER_TEMP first.
+# Explicit finite list; do not replace with all affected jobs or legacy B04–B14.
+for consumer in impact affected-integrated-acceptance affected-document-development affected-documents affected-document-types affected-catalog-management affected-counterparty-management affected-federated-onboarding affected-membership-access affected-tenant-roles affected-platform-offline affected-platform-authority affected-organization-administration affected-authenticated-organization affected-frontend affected-frontend-runtime affected-mvp-offline affected-r05a2-offline affected-r05a3-offline affected-r06-offline affected-migrations affected-browser affected-r06-restore; do
+  MVP09_EXCEPTIONAL_FINAL=true python3 -I scripts/run-mvp09-architecture.py \
+    --job "$consumer" --evidence-dir "$FINAL_EVIDENCE/$consumer" || exit "$?"
+done
+# Separate fast API composition job uses this actual locked command:
+docker run --rm -v "$PWD:/source" -w /source mcr.microsoft.com/dotnet/sdk:10.0.402-alpine3.24@sha256:230c3fbae0ceedc70bca04eed2bfb5694e8b248cadbb81010f41b7a993601f55 sh -c 'dotnet restore tests/Enginia360.Api.Tests --locked-mode && dotnet test tests/Enginia360.Api.Tests -c Release --no-restore && dotnet publish src/Enginia360.Api -c Release --no-restore -o /proof /p:UseAppHost=false && dotnet list src/Enginia360.Api package --vulnerable --include-transitive && dotnet list tests/Enginia360.Api.Tests package --vulnerable --include-transitive'
+```
+
+No legacy `verify` or full-history matrix is part of that completion condition. Local execution is not remote exact-head CI; parent must bind the actual pushed source manifest and read all24 required final jobs/steps/evidence before criterion4 can pass.
 
 ## Integrated evidence map
 
@@ -60,6 +103,10 @@ Each step has a real command, start/end, exit, PASS/NONPASS and log. Shell pipef
 - Candidate/source manifest, all46 published hashes, before/after protected runtime/volumes and exact owned cleanup are inherited from the existing runner. No container, browser or migration ran during source implementation.
 
 ## Historical proof reuse and risks
+
+Owner correction source: `/root/.hermes/evidence/enginia360-mvp09-parent/owner-scope-correction.json`. Old exceptional `42116253372` is **FAILED**, not new green. Old B04 process `proc_a0c746d7a4a0` exit−15/agent_close is NONPASS_INTERRUPTED_NOT_SUCCESS; no restart is authorized for this correction.
+
+Parent independent ordinary proof references: PR CI `42112432604` (5 jobs/63 steps), targeted dispatch `42112473729` (19 jobs/175 steps), 13 ZIP/36 TRX/460 passed/0 skipped. These are HISTORICAL evidence of the earlier source, not execution or acceptance of the corrected manifest. Retain parent evidence and hashes outside checkout; do not replay those jobs merely to re-create history. New corrected final validation remains UNEXECUTED, and any actual applicable failure must be corrected and rechecked.
 
 MVP08 parent proof is historical: PR CI `42060851414` (5 jobs/62 successful steps), dispatch `42060851802` (18/166), 12 fresh ZIPs, 32 nonempty TRX and 420 executed/passed/zero runtime skip, candidate/tree equivalent to merged main. This is NOT a new MVP09 execution. Exact byte-preserved independent edge cases remain historical proof until the explicit final campaign executes current consumers.
 

@@ -31,7 +31,7 @@ def current_status(root):
         text=(root/path).read_text();start='<!-- mvp09-current:start -->';end='<!-- mvp09-current:end -->'
         assert text.count(start)==text.count(end)==1,path
         block=text.split(start)[1].split(end)[0]
-        for token in ('MVP00–08 completati','MVP-09/#148 IN CORSO','SOURCE_COMPLETE_UNVERIFIED','MVP-10/#149 Backlog',BASE,'42060851414','42060851802','5 job/62 step','18 job/166 step','420 eseguiti/passati','46 migrazioni','full_architecture=true','full_architecture=false','Nessun deployment/readiness operativo'):
+        for token in ('MVP00–08 completati','MVP-09/#148 IN CORSO','SOURCE_COMPLETE_UNVERIFIED','MVP-10/#149 Backlog',BASE,'42060851414','42060851802','5 job/62 step','18 job/166 step','420 eseguiti/passati','46 migrazioni','mvp_final=true','full_architecture=true','full_architecture=false','Nessun deployment/readiness operativo'):
             assert token in block,(path,token)
         assert 'MVP-08/#147 IN CORSO' not in block
 
@@ -44,7 +44,7 @@ class ContractTests(unittest.TestCase):
                 p=root/path;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes((ROOT/path).read_bytes())
             for path in CURRENT:
                 p=root/path;text=p.read_text()
-                for token in ('MVP00–08 completati','42060851414','42060851802','full_architecture=true','Nessun deployment/readiness operativo'):
+                for token in ('MVP00–08 completati','42060851414','42060851802','mvp_final=true','Nessun deployment/readiness operativo'):
                     start=text.index('<!-- mvp09-current:start -->');end=text.index('<!-- mvp09-current:end -->')
                     p.write_text(text[:start]+text[start:end].replace(token,'REMOVED')+text[end:])
                     with self.assertRaises(AssertionError):current_status(root)
@@ -102,6 +102,19 @@ class ContractTests(unittest.TestCase):
         for path in CURRENT:
             for line in original(path).decode().splitlines():
                 if line.startswith(('MVP-03/#142 e #166 COMPLETATI:','Stato corrente: MVP-03/#142 e #166 COMPLETATI:')):self.assertIn(line,archived)
+    def test_owner_scope_correction_has_evidenced_dependencies_and_no_legacy_prerequisite(self):
+        contract=(ROOT/'docs/mvp09-integrated-acceptance-contract.md').read_text()
+        trace=(ROOT/'docs/mvp09-cleanup-trace.md').read_text()
+        for token in ('Non puoi bypassare questa trafila inutile?','mvp_final=true','full_architecture=false','B04–B14','42116253372','FAILED'):
+            self.assertIn(token,contract)
+        for token in ('DocumentsModule.cs','DocumentEndpoints.cs','private-backend.ts','documents.snapshot_fence','membership_access_snapshot_fence','test-r05a2-evidence.py','test-r05a3-evidence.py'):
+            self.assertIn(token,trace)
+        data=json.loads((ROOT/'docs/mvp-backlog.json').read_text())
+        criterion=next(row for row in data['items'] if row['id']=='MVP-09')['acceptance'][3]
+        self.assertIn('sette domini',criterion)
+        self.assertIn('dipendenze dirette',criterion)
+        self.assertNotIn('intero repository',criterion)
+
     def test_final_campaign_limits_and_original_deadlines_resources_preserved(self):
         runner=(ROOT/'scripts/run-mvp08-tests.py').read_text()
         for token in ('timeout=240','timeout=360','time.monotonic() + 420','r00.cleanup(command, project)','capture_protected_runtime','verify_protected_runtime','before_volumes','candidate_source_hashes','46 if acceptance is not None else 45'):
@@ -110,7 +123,7 @@ class ContractTests(unittest.TestCase):
         for token in ('NONPASS','start_new_session=True','os.killpg','pipefail','MVP09_EXCEPTIONAL_FINAL','new or lost consumer','empty campaign consumer is not pass'):
             self.assertIn(token,a)
         limits=(ROOT/'docs/mvp09-final-acceptance.md').read_text()
-        for token in ('UNEXECUTED','42060851414','full_architecture=true','full_architecture=false','MVP10','RPO/RTO','NONPASS'):
+        for token in ('UNEXECUTED','42060851414','mvp_final=true','full_architecture=true','full_architecture=false','MVP10','RPO/RTO','NONPASS','42116253372','FAILED','42112432604','42112473729'):
             self.assertIn(token,limits)
 
 if __name__=='__main__':unittest.main()

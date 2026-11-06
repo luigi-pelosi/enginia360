@@ -583,6 +583,34 @@ def validate_d94(docs):
         raise ValueError('D94: unsafe receiving capacity, authority or runtime claim')
 
 
+def validate_decision_ids(text):
+    # D96–D98 live in the charter/contracts, NOT headings in this historical register.
+    ids = [int(x) for x in re.findall(r'^### D(\d+) —', text, re.M)]
+    if sorted(ids) != [*range(1, 96), 99, 100, 101]:
+        raise ValueError('decision register: exact unique D1–D95 + D99/D100/D101 required')
+
+
+def validate_decision_register(text):
+    """Finite append-only version boundary shared by the historical dossier guards."""
+    validate_decision_ids(text)
+    history = text[text.index('### D1 —'):text.index('### D99 —')].encode()
+    if len(history) != 171293 or hashlib.sha256(history).hexdigest() != '80bcd9bf7c63bb31bad57e3f3351f9700ff0d84c5ea29473ec011d60a773bf3d':
+        raise ValueError('decision register: D1–D95 historical bytes changed')
+    # Exact approved sections, not a count/superset gate or arbitrary future decisions.
+    approved = {
+        99: 'd7ea7e8cd3fc0287acccfd59557ce751e9f5cd93b925ebff93afe104327c0160',
+        100: '81f1e3abdf42e56499aa4d466b7148403ee5ed6e9db276d48c3b7bbfa3413693',
+        101: '6c5f758e7c7371c7717ea1461555a4fd41ece3dbd695372c28d478bf980dbd88',
+    }
+    for number, expected in approved.items():
+        section = text[text.index('### D%d —' % number):]
+        following = re.search(r'^### D\d+ —', section[1:], re.M)
+        if following:
+            section = section[:following.start()+1]
+        if hashlib.sha256(section.encode()).hexdigest() != expected:
+            raise ValueError('decision register: approved D%d scope changed' % number)
+
+
 def validate(root):
     docs = {path: (root/path).read_text() for path in PATHS}
     priority_scope = '\n'.join(docs.values())
@@ -673,10 +701,8 @@ def validate(root):
     require(active, ('D80/D81 consegnate',), 'active delivery')
     if 'Implementazione e prove ancora necessarie' in active or 'implementazione e prove ancora necessarie' in active:
         raise ValueError('active delivery: stale D80/D81 status')
-    # Historical decisions remain untouched; the new decision must be unique and next.
-    ids = [int(x) for x in re.findall(r'^### D(\d+) —', docs[GLOSSARY], re.M)]
-    if sorted(ids) != list(range(1, 96)):
-        raise ValueError('decision register: retain unique D1–D94 and append D95')
+    # Preserve the historical diagnostics below before the final whole-history hash.
+    validate_decision_ids(docs[GLOSSARY])
     prefix = docs[GLOSSARY].encode()
     prefix = prefix[prefix.index(b'### D1 \xe2\x80\x94'):][:D1_D84_BYTES]
     if hashlib.sha256(prefix).hexdigest() != D1_D84_SHA256:
@@ -751,6 +777,7 @@ def validate(root):
     validate_d93(docs)
     validate_d94(docs)
     validate_d95(docs)
+    validate_decision_register(docs[GLOSSARY])
 
 
 D92_TOKENS = (
@@ -950,6 +977,26 @@ D95_FORBIDDEN = (
 
 
 class AuthorityTests(unittest.TestCase):
+    def test_current_register_has_only_explicit_approved_appends(self):
+        text = (ROOT/GLOSSARY).read_text()
+        validate_decision_register(text)
+        # Both old and new IDs: missing, duplicate, edited, unknown are independent refusals.
+        for number in (1, 84, 93, 94, 95, 99, 100, 101):
+            heading = '### D%d —' % number
+            start = text.index(heading)
+            following = re.search(r'^### D\d+ —', text[start+1:], re.M)
+            end = start+1+following.start() if following else len(text)
+            for label, changed in (
+                ('missing', text[:start]+text[end:]),
+                ('duplicate', text+'\n'+heading+' duplicate\n'),
+                ('edited', text[:start]+text[start:].replace(' —', ' — EDITED', 1)),
+            ):
+                with self.subTest(number=number, mutation=label), self.assertRaisesRegex(ValueError, 'decision register:'):
+                    validate_decision_register(changed)
+        for number in (0, 96, 97, 98, 102, 999):
+            with self.subTest(unknown=number), self.assertRaisesRegex(ValueError, 'exact unique'):
+                validate_decision_register(text+'\n### D%d — unapproved\n' % number)
+
     def test_d95_exact_answer_context_history_and_active_boundaries(self):
         text = (ROOT/GLOSSARY).read_text()
         self.assertEqual(text.count('### D95 —'), 1, 'missing next D95 owner decision')

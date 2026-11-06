@@ -9,6 +9,7 @@ import json
 import re
 import subprocess
 import sys
+from runpy import run_path
 import tempfile
 import os
 from pathlib import Path
@@ -105,8 +106,7 @@ class EvidenceTests(unittest.TestCase):
         register=(ROOT/'docs/foundation/01-glossary-and-domain-boundaries.md').read_bytes()
         start=register.index('### D1 —'.encode());prefix=register[start:start+d['historical_decisions_d1_d83_bytes']]
         self.assertEqual(hashlib.sha256(prefix).hexdigest(),d['historical_decisions_d1_d83_sha256'])
-        ids=list(map(int,re.findall(r'^### D(\d+) —',register.decode(),re.M)))
-        self.assertEqual(sorted(ids),list(range(1,95)))
+        run_path(str(ROOT/'scripts/test-r04-authority.py'))['validate_decision_register'](register.decode())
     def test_cli_mutations_reject_false_promotion(self):
         if NO_MUTATIONS:return
         mutations=[lambda d:d['claims'].__setitem__('positive_adapter',True),

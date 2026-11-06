@@ -25,7 +25,8 @@ class ImpactTests(unittest.TestCase):
    manifests.append(sorted(actual))
   for paths in manifests:
    result=m.selection(paths);self.assertTrue(result['document_types'])
-   for key in ('r04a','r03a','r03b','r03c','r04b2b3','r06b1','full_architecture'):self.assertFalse(result.get(key),key)
+   for key in ('r04a','r03a','r03b','r03c','r04b2b3','full_architecture'):self.assertFalse(result.get(key),key)
+   self.assertEqual(result['r06b1'],bool(set(paths)&{'scripts/run-r06b1-tests.py','scripts/test-r06b1-guards.py','scripts/test-r06b1-lifecycle.py'}))
  def test_committed_point_is_retained_for_a_dirty_shared_fixture_only_overlay(self):
   calls=[]
   def output(command,**kwargs):

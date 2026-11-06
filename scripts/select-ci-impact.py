@@ -618,11 +618,23 @@ INTEGRATED_DIRECT = DEVELOPMENT_FILES | DEVELOPMENT_DIRECT | {
  'frontend/lib/private-backend.ts',
 }
 
+# Exact MVP09 corrective consumers: historical decision integrity is consumed by
+# the active documentary guards; the restore harness consumes the published
+# documents.snapshot_fence and retained resource identities. No B04 fixture lane.
+INTEGRATED_CORRECTIVE_FILES = {
+    'scripts/test-r04-authority.py', 'scripts/test-r05a2-evidence.py',
+    'scripts/test-r05a3-evidence.py', 'scripts/run-r06b1-tests.py',
+    'scripts/test-r06b1-guards.py', 'scripts/test-r06b1-lifecycle.py',
+}
+
+
 def _selection(paths):
     paths = sorted(set(paths))
     if set(paths) & INTEGRATED_FILES:
         remaining = set(paths) - INTEGRATED_FILES
-        if set(paths) <= INTEGRATED_SCOPE:
+        if set(paths) <= INTEGRATED_SCOPE | INTEGRATED_CORRECTIVE_FILES:
+            # Keep each new corrective consumer in remaining; only the already
+            # composed MVP09 shared producers use the existing finite narrowing.
             remaining -= INTEGRATED_SHARED
         result = selection(sorted(remaining | {'scripts/test-mvp08-impact.py'}))
         result.update(changed_paths=paths, integrated_acceptance=True)
