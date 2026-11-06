@@ -1,4 +1,13 @@
-# MVP09 / #148 — source checkpoint
+# MVP09 / #148 — verified delivery and historical source checkpoint
+
+## Current verified outcome — PR173 (6 November 2026)
+
+MVP09/#148 COMPLETED. Parent independently verified candidate `e36697723d9d8ae96022cd0779bcc83958fc7f9f`, merged main `9326d19abc97d1eb249d0a1abecdc1ffd4cd3289`, same TREE `8e2230c67865f1199a47a2d75c58cef0fa9caf52` (not new main CI). Ordinary CI42191323014 and dispatch42191747586 passed. Criterion4 completed via scoped FINAL42194906237: `mvp_final=true`, `full_architecture=false`, 23 groups +1 API,24 required jobs/166 steps,104 commands,23 artifact ZIPs/947 source hashes;36 runtime TRX/460 passed/zero runtime skip. All five criteria have parent readback proof; [sanitized provenance](mvp10-functional-baseline.json). No operational readiness/deployment. MVP10/#149 active SOURCE_COMPLETE_UNVERIFIED; artifact publication PENDING, readiness OPEN.
+
+The following is an **archived source-phase contract/procedure**, preserved as written. Its UNEXECUTED/SOURCE_COMPLETE_UNVERIFIED and “MVP10 Backlog” statements are historical, NOT current delivery state. Old42116253372 remains FAILED and interrupted B04 remains NONPASS; no full legacy campaign pass is claimed. Do not rerun this historical procedure as an automatic MVP10 prerequisite.
+
+<details><summary>Historical MVP09 source preparation (superseded by verified outcome above)</summary>
+
 
 **SOURCE_COMPLETE_UNVERIFIED.** Entire point source/test/harness/CI prepared on exclusive `feat/mvp-integrated-acceptance`, base `b00fdbafd3f91f6526caf18e75b79476ab02660f`. No validation command, container/browser/migration execution, install, build, audit, CI, commit/push/PR, remote tracking mutation or deployment was performed by this worker. Automatic file-editor syntax diagnostics are not acceptance. Parent owns final validation and delivery.
 
@@ -29,3 +38,5 @@ Latest owner clarification is `/root/.hermes/evidence/enginia360-mvp09-parent/ow
 New exact executable files are mapped by `INTEGRATED_FILES`, shared composition by finite `INTEGRATED_SHARED`/`INTEGRATED_DIRECT`. Prepared positive/negative/mixed/unknown-fail-closed tests preserve original producer flags and API filters and keep routine `full_architecture=false`. Current-state guards advance MVP08 only; D97/D98 historical runtimefalse policy fields and D100/D101 literal blocks remain byte-exact. Archived source gates are historical, never rewritten as retrospective passes.
 
 Durable complete content manifest: `/root/.hermes/evidence/enginia360-mvp09/scope-reconciliation/source-checkpoint.json`. It includes all tracked/untracked hashes, changed paths, base/head, prepared criteria, entrypoints and risks. No source checkpoint is a runtime pass, verified delivery or permission to close #148.
+
+</details>

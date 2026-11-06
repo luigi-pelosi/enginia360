@@ -26,7 +26,9 @@ def current_status(root):
  assert items['MVP-07']['status']=='done' and items['MVP-07']['pr']==171 and items['MVP-07']['mergedMain']==BASE
  now=items['MVP-08'];assert now['status']=='done' and now['runtimeDelivered'] is True
  assert now['developmentPolicy']=={'commitDecision':'D100','commitAt':'destination_confirmation','sourcesDecision':'D101','confirmedSourcesOnly':True,'mixedSourceTypesIfEveryPathEnabled':True,'draftReservesCapacity':False}
- assert items['MVP-09']['status']=='in_progress' and items['MVP-10']['status']=='backlog'
+ assert items['MVP-09']['status']=='done' and items['MVP-09']['runtimeDelivered'] is True
+ assert items['MVP-09']['pr']==173 and items['MVP-09']['finalMvpRun']==42194906237
+ assert items['MVP-10']['status']=='in_progress' and items['MVP-10']['operationalReady'] is False
 class ContractTests(unittest.TestCase):
  def test_exact_owner_answers_before_dependent_code_and_negative_mutations(self):
   decisions(ROOT)

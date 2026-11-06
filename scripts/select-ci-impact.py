@@ -628,8 +628,34 @@ INTEGRATED_CORRECTIVE_FILES = {
 }
 
 
+# MVP10: source-only packaging and exact documentary reconciliation, not a new
+# business producer. No prefix exemptions; mixed real producers recurse intact.
+RELEASE_FILES = {
+    'scripts/mvp10_release.py', 'scripts/test-mvp10-release.py',
+    'scripts/test-mvp10-impact.py', 'docs/mvp10-release-contract.md',
+    'docs/mvp10-source-release.md', 'docs/mvp10-source-policy.json',
+    'docs/mvp10-functional-baseline.json', 'docs/mvp10-readiness.json',
+}
+RELEASE_SHARED = MVP_OFFLINE_FILES | {
+    'README.md', 'docs/archive/mvp09-source-checkpoints.md',
+    'docs/mvp09-implementation.md', 'docs/mvp09-final-acceptance.md',
+    'docs/mvp09-integrated-acceptance-contract.md', 'docs/mvp09-cleanup-trace.md',
+    'scripts/test-mvp06-contract.py', 'scripts/test-mvp07-contract.py',
+    'scripts/test-mvp08-contract.py', 'scripts/test-mvp09-contract.py',
+    'scripts/test-mvp09-impact.py', 'scripts/test-mvp06-impact.py',
+    'scripts/test-mvp07-impact.py', 'scripts/test-mvp08-impact.py',
+}
+RELEASE_SCOPE = RELEASE_FILES | RELEASE_SHARED
+
 def _selection(paths):
     paths = sorted(set(paths))
+    if set(paths) & RELEASE_FILES:
+        remaining = set(paths) - RELEASE_FILES
+        if set(paths) <= RELEASE_SCOPE:
+            remaining -= RELEASE_SHARED
+        result = selection(sorted(remaining))
+        result.update(changed_paths=paths, mvp_offline=True)
+        return result
     if set(paths) & INTEGRATED_FILES:
         remaining = set(paths) - INTEGRATED_FILES
         if set(paths) <= INTEGRATED_SCOPE | INTEGRATED_CORRECTIVE_FILES:
@@ -961,6 +987,12 @@ def selection(paths):
     unknown_integrated = [path for path in paths if path.startswith('tests/browser/mvp09-') and path not in INTEGRATED_FILES]
     if unknown_integrated:
         raise ValueError('extend and test direct-dependency impact mapping for: '+', '.join(unknown_integrated))
+    if any(path.startswith('tests/browser/mvp10-') for path in paths):
+        raise ValueError('MVP10 has no browser fixture mapping; extend and test actual direct dependencies')
+    # Exact release/status-only composition has no business producer. Do not let
+    # historical guard-file membership re-add a runtime after finite recursion.
+    if set(paths) & RELEASE_FILES and set(paths) <= RELEASE_SCOPE:
+        return _selection(paths)
     # Add the new direct consumer without suppressing any existing producer flags.
     result = _selection(paths)
     if set(paths) & AUTHENTICATED_ORGANIZATION_DIRECT:

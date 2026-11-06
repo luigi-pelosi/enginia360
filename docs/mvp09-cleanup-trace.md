@@ -1,5 +1,9 @@
 # MVP09 — bounded cleanup and consumer/replacement trace
 
+Current: MVP09/#148 verified and completed via PR173, merged main `9326d19abc97d1eb249d0a1abecdc1ffd4cd3289`, candidate `e36697723d9d8ae96022cd0779bcc83958fc7f9f`, same tree `8e2230c67865f1199a47a2d75c58cef0fa9caf52`. Parent scoped FINAL42194906237 passed 23+1 required jobs, not a full-history campaign or operational readiness. [Current provenance](mvp10-functional-baseline.json); MVP10 source release PENDING/UNVERIFIED, operations OPEN.
+
+<details><summary>Historical source inspection/preparation — UNEXECUTED statements below are not current status</summary>
+
 Status: SOURCE_COMPLETE_UNVERIFIED. This is source inspection and prepared final acceptance, not observed runtime success. NO deletion quota.
 
 ## Active composition actually read
@@ -55,3 +59,5 @@ Protected boundary remains the parent-recorded 11 retained containers, 28 volume
 - All retained services/volumes and Tailscale443→localhost9119. Older membership fixture `enginia360-r00b-5b070b47257f` / `d5c8d55bebcf` remains protected, never classified disposable by its prefix. Final runtime captures exact IDs/start/mounts/config labels before cleanup; no cleanup was executed in this source phase.
 
 The active-path cleanup is intentionally documentation/composition-only. Its final direct-consumer checks remain UNEXECUTED; no assertion here grants authority to delete a still-used runtime surface.
+
+</details>

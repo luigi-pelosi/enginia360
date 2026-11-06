@@ -22,6 +22,11 @@ class ImpactTests(unittest.TestCase):
    # Include the already-committed part of this whole point when correcting a
    # shared fixture; dirty-only paths are not the entire MVP06 change manifest.
    actual |= set(subprocess.check_output(['git','diff','--name-only','43a4ff836d67bf1b4f01eb27ccc318171ee45f8d','HEAD'],cwd=ROOT,text=True).splitlines())
+   # Later MVP10 packaging/status changes are a separate bounded point.
+   # Keep this historical journey manifest fixed; new release tests check
+   # current base + committed + dirty/untracked paths and mixed producers.
+   if actual & m.RELEASE_FILES:
+    actual=set(subprocess.check_output(['git','diff','--name-only','43a4ff836d67bf1b4f01eb27ccc318171ee45f8d','e36697723d9d8ae96022cd0779bcc83958fc7f9f'],cwd=ROOT,text=True).splitlines())
    manifests.append(sorted(actual))
   for paths in manifests:
    result=m.selection(paths);self.assertTrue(result['document_types'])

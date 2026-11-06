@@ -1,5 +1,14 @@
 # MVP09 / #148 — finite integrated acceptance
 
+## Current verified outcome — PR173 (6 November 2026)
+
+MVP09/#148 COMPLETED. Parent independently verified candidate `e36697723d9d8ae96022cd0779bcc83958fc7f9f`, merged main `9326d19abc97d1eb249d0a1abecdc1ffd4cd3289`, same TREE `8e2230c67865f1199a47a2d75c58cef0fa9caf52` (not new main CI). Ordinary CI42191323014 and dispatch42191747586 passed. Criterion4 completed via scoped FINAL42194906237: `mvp_final=true`, `full_architecture=false`, 23 groups +1 API,24 required jobs/166 steps,104 commands,23 artifact ZIPs/947 source hashes;36 runtime TRX/460 passed/zero runtime skip. All five criteria have parent readback proof; [sanitized provenance](mvp10-functional-baseline.json). No operational readiness/deployment. MVP10/#149 active SOURCE_COMPLETE_UNVERIFIED; artifact publication PENDING, readiness OPEN.
+
+The following is an **archived source-phase contract/procedure**, preserved as written. Its UNEXECUTED/SOURCE_COMPLETE_UNVERIFIED and “MVP10 Backlog” statements are historical, NOT current delivery state. Old42116253372 remains FAILED and interrupted B04 remains NONPASS; no full legacy campaign pass is claimed. Do not rerun this historical procedure as an automatic MVP10 prerequisite.
+
+<details><summary>Historical MVP09 source preparation (superseded by verified outcome above)</summary>
+
+
 Status: SOURCE_COMPLETE_UNVERIFIED (prepared source checkpoint, no runtime acceptance). Base: `b00fdbafd3f91f6526caf18e75b79476ab02660f`; exclusive branch `feat/mvp-integrated-acceptance`.
 
 ## Authority and phase boundary
@@ -38,3 +47,5 @@ Existing exceptional run `42116253372` remains **FAILED**; old B04 process `proc
 ## Source checkpoint and completion condition
 
 Durable `/root/.hermes/evidence/enginia360-mvp09/scope-reconciliation/source-checkpoint.json` must bind base/HEAD, all tracked and untracked path content hashes, changed paths, this contract, criterion preparation, actual final commands and known risks. `SOURCE_COMPLETE_UNVERIFIED` is allowed only after every required source/test/harness/CI path is implemented, not a placeholder or partial handoff. No runtime pass is claimed before real final execution.
+
+</details>

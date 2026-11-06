@@ -305,7 +305,7 @@
       "dependsOn": [
         "MVP-08"
       ],
-      "status": "in_progress",
+      "status": "done",
       "issueNumber": 148,
       "acceptance": [
         "Percorso integrato dei sette domini realmente eseguito",
@@ -316,8 +316,24 @@
       ],
       "contract": "docs/mvp09-integrated-acceptance-contract.md",
       "implementationStatus": "source_complete",
-      "validationStatus": "UNEXECUTED",
-      "runtimeDelivered": false
+      "validationStatus": "verified_parent_exact_head_artifacts",
+      "runtimeDelivered": true,
+      "pr": 173,
+      "mergedMain": "9326d19abc97d1eb249d0a1abecdc1ffd4cd3289",
+      "candidate": "e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "tree": "8e2230c67865f1199a47a2d75c58cef0fa9caf52",
+      "prCi": 42191323014,
+      "runtimeDispatch": 42191747586,
+      "finalMvpRun": 42194906237,
+      "finalMvpScope": {
+        "mvp_final": true,
+        "full_architecture": false,
+        "groups": 23,
+        "apiJobs": 1,
+        "requiredJobs": 24,
+        "requiredSteps": 166
+      },
+      "newMainCi": false
     },
     {
       "id": "MVP-10",
@@ -334,7 +350,7 @@
       "dependsOn": [
         "MVP-09"
       ],
-      "status": "backlog",
+      "status": "in_progress",
       "issueNumber": 149,
       "acceptance": [
         "Release identifica commit e artefatti provati con istruzioni ripetibili",
@@ -342,7 +358,15 @@
         "Identita'/revoca, recupero, privacy e manutenzione non dichiarati provati da soli test sintetici",
         "Nessun accesso pubblico, dato reale, acquisto o nuovo ambiente persistente implicito",
         "Target operativo e accesso espliciti prima di azioni di deployment; servizi protetti invariati"
-      ]
+      ],
+      "contract": "docs/mvp10-release-contract.md",
+      "implementationStatus": "source_complete",
+      "validationStatus": "UNEXECUTED",
+      "runtimeDelivered": false,
+      "publicationStatus": "PENDING",
+      "operationalReady": false,
+      "readiness": "docs/mvp10-readiness.json",
+      "publicationMilestone": "proposed software-publication criterion1 only; parent issue remains open for operational proof"
     }
   ]
 }
