@@ -544,6 +544,7 @@ jobs:
     timeout-minutes: 3
     steps:
       - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
       - name: Initialize private MVP guard scratch directory
         run: printf 'TMPDIR=%s\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
       - name: Offline D96 authorization, backlog and impact guards (not runtime acceptance)
@@ -552,6 +553,8 @@ jobs:
         run: python3 -I scripts/test-d97-policy.py && python3 -I scripts/test-d97-impact.py
       - name: Offline D98 first federated membership policy and mutation guards (not runtime acceptance)
         run: python3 -I scripts/test-d98-policy.py && python3 -I scripts/test-d98-impact.py
+      - name: Offline MVP10 source packaging integrity and release scope (not publication or readiness)
+        run: python3 -I scripts/test-mvp10-release.py && python3 -I scripts/test-mvp10-impact.py
   affected-r05a8-offline:
     needs: impact
     if: needs.impact.outputs.r05a8_offline == 'true'

@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "issue": 149,
+  "sourceStatus": "SOURCE_COMPLETE_UNVERIFIED",
+  "operationalReady": false,
+  "functional": {
+    "status": "VERIFIED_MVP09",
+    "pr": 173,
+    "candidate": "e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+    "mergedMain": "9326d19abc97d1eb249d0a1abecdc1ffd4cd3289",
+    "tree": "8e2230c67865f1199a47a2d75c58cef0fa9caf52",
+    "run": 42194906237,
+    "mvp_final": true,
+    "full_architecture": false,
+    "newMainCi": false,
+    "operationalProof": false
+  },
+  "publication": {
+    "status": "PENDING",
+    "kind": "source-supported-prerelease",
+    "assets": ["enginia360-source.tar.gz", "provenance.json", "SHA256SUMS"],
+    "releaseTag": null,
+    "releaseUrl": null,
+    "finalCandidate": null,
+    "finalMergedMain": null,
+    "finalTree": null,
+    "owner": "parent orchestrator after exact-head validation and merge readback"
+  },
+  "gates": [
+    {
+      "id": "target-access",
+      "status": "OPEN",
+      "target": null,
+      "proofs": [],
+      "ownerInput": "Luigi Pelosi identifies the exact already-authorized target and private access boundary, EU jurisdiction/provider responsibility and capacity/cost limits. No new resource, domain or purchase is presumed.",
+      "requiredProof": "Target-specific access/TLS/network and capacity/contract readback under a separate bounded commissioning authorization; protected services and Tailscale unchanged unless separately authorized.",
+      "references": ["OPE01", "OPE05", "PROJECT_CHARTER.md#42-d96"]
+    },
+    {
+      "id": "identity",
+      "status": "OPEN",
+      "target": null,
+      "proofs": [],
+      "ownerInput": "Owner with technical operator confirms actual provider adoption, issuer/audience/client/redirect scope, MFA, identity-verified SUPER ADMIN bootstrap and responsible revocation/recovery operator. No credentials through chat or repository.",
+      "requiredProof": "Real target federated authentication and explicit bootstrap plus current-session/binding/membership/grant revocation and recovery, with minimized audit. Synthetic Keycloak and fixture passwords are not adoption or real-user identity proof.",
+      "references": ["OPE02", "D97", "D98", "docs/mvp02a-platform-authority.md"]
+    },
+    {
+      "id": "recovery",
+      "status": "OPEN",
+      "target": null,
+      "proofs": [],
+      "ownerInput": "Owner supplies independent backup resource/destination/quotas, key recovery and retention, names backup operator and confirms target applicability of D49 previous-day RPO and maximum one-hour initial RTO. These are objectives, not measured guarantees.",
+      "requiredProof": "Encrypted off-host checkpoint/transfer with failure monitoring and end-to-end target recovery of data, identity/keys/configuration and usable service. Measure detection through response/reprovision/restore/readback; database loss and node loss distinguished. No implicit 24-hour rolling RPO or clock suspension.",
+      "references": ["OPE03", "D48", "D49", "docs/r06-recovery-runbook.md"]
+    },
+    {
+      "id": "privacy",
+      "status": "OPEN",
+      "target": null,
+      "proofs": [],
+      "ownerInput": "Owner and pertinent privacy/contract competence confirm actual data destinations/processors, access responsibility, retention/erasure and incident contact for the chosen use. No invented legal or retention values.",
+      "requiredProof": "Target-specific reviewed data-flow/contract/retention evidence before any real-data onboarding; synthetic acceptance is not compliance approval. Fiscal/accounting validation is separate if later in scope.",
+      "references": ["OPE05", "PROJECT_CHARTER.md#9-regole-di-affidabilita-e-sicurezza"]
+    },
+    {
+      "id": "monitoring-maintenance",
+      "status": "OPEN",
+      "target": null,
+      "proofs": [],
+      "ownerInput": "Owner assigns residual host/container/IdP patch and backup-check roles, timezone/holidays/end-of-coverage/escalation and SMTP recipient. D50 Luigi receives alerts/initial restores; D51 Monday-Saturday 09:00-18:00 is not 24/7 or assignment of every maintenance role.",
+      "requiredProof": "Received protected SMTP alert, monitored backup failure, actual maintenance/recovery drill on the target with timing boundaries; restart policies do not repair every unhealthy process.",
+      "references": ["OPE04", "D50", "D51", "D52", "D53", "docs/r06-recovery-runbook.md"]
+    }
+  ],
+  "trackingBoundary": {
+    "keepIssue149Open": true,
+    "proposedDeliveryMilestone": "Verified source software publication (criterion 1 only); create/read back only by parent at final delivery if useful",
+    "readyForUseChecked": false,
+    "nextBoundedDecision": "When commissioning is next: identify exact target plus private access boundary and responsible operator; do not reopen settled business policy or ask a whole-policy questionnaire now."
+  },
+  "notAuthorized": ["purchases", "public service exposure", "real data", "real-user onboarding", "new persistent environment", "deployment", "protected service restart", "legacy migration"],
+  "unchangedPolicy": ["D97", "D98", "D99", "D100", "D101"],
+  "legacyOpeRegistryUnchanged": "docs/r06-readiness-registry.json"
+}

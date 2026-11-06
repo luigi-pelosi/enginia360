@@ -17,21 +17,26 @@ def original(path):return subprocess.check_output(['git','show',BASE+':'+path],c
 
 def current_status(root):
     data=json.loads((root/'docs/mvp-backlog.json').read_text());items={row['id']:row for row in data['items']}
-    assert all(items[f'MVP-{n:02}']['status']=='done' for n in range(9))
+    assert all(items[f'MVP-{n:02}']['status']=='done' for n in range(10))
     previous=items['MVP-08'];current=items['MVP-09']
     assert (previous['runtimeDelivered'],previous['pr'],previous['mergedMain'],previous['prCi'],previous['runtimeDispatch'])==(True,172,BASE,42060851414,42060851802)
     assert previous['validationStatus']=='verified_parent_exact_head_artifacts'
-    assert current['status']=='in_progress' and current['runtimeDelivered'] is False
-    assert current['implementationStatus']=='source_complete' and current['validationStatus']=='UNEXECUTED'
+    assert current['status']=='done' and current['runtimeDelivered'] is True
+    assert current['implementationStatus']=='source_complete' and current['validationStatus']=='verified_parent_exact_head_artifacts'
+    assert (current['pr'],current['mergedMain'],current['candidate'],current['tree'],current['prCi'],current['runtimeDispatch'],current['finalMvpRun'])==(173,'9326d19abc97d1eb249d0a1abecdc1ffd4cd3289','e36697723d9d8ae96022cd0779bcc83958fc7f9f','8e2230c67865f1199a47a2d75c58cef0fa9caf52',42191323014,42191747586,42194906237)
+    assert current['finalMvpScope']==dict(mvp_final=True,full_architecture=False,groups=23,apiJobs=1,requiredJobs=24,requiredSteps=166)
+    assert current['newMainCi'] is False
     assert current['contract']=='docs/mvp09-integrated-acceptance-contract.md'
-    assert items['MVP-10']['status']=='backlog'
+    assert items['MVP-10']['status']=='in_progress'
+    assert items['MVP-10']['validationStatus']=='UNEXECUTED'
+    assert items['MVP-10']['publicationStatus']=='PENDING' and items['MVP-10']['operationalReady'] is False
     assert items['MVP-03']['userAdministrationPolicy']['runtimeDelivered'] is False
     assert items['MVP-03']['userOnboardingPolicy']['runtimeDelivered'] is False
     for path in CURRENT:
         text=(root/path).read_text();start='<!-- mvp09-current:start -->';end='<!-- mvp09-current:end -->'
         assert text.count(start)==text.count(end)==1,path
         block=text.split(start)[1].split(end)[0]
-        for token in ('MVP00–08 completati','MVP-09/#148 IN CORSO','SOURCE_COMPLETE_UNVERIFIED','MVP-10/#149 Backlog',BASE,'42060851414','42060851802','5 job/62 step','18 job/166 step','420 eseguiti/passati','46 migrazioni','mvp_final=true','full_architecture=true','full_architecture=false','Nessun deployment/readiness operativo'):
+        for token in ('MVP00–09 completati','MVP-09/#148 COMPLETATO','SOURCE_COMPLETE_UNVERIFIED','MVP-10/#149 IN CORSO','9326d19abc97d1eb249d0a1abecdc1ffd4cd3289','42191323014','42191747586','42194906237','23 gruppi +1 API','24 job/166 step','46 migrazioni','mvp_final=true','full_architecture=true','full_architecture=false','Nessun deployment/readiness operativo','PENDING','OPEN'):
             assert token in block,(path,token)
         assert 'MVP-08/#147 IN CORSO' not in block
 
@@ -44,13 +49,13 @@ class ContractTests(unittest.TestCase):
                 p=root/path;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes((ROOT/path).read_bytes())
             for path in CURRENT:
                 p=root/path;text=p.read_text()
-                for token in ('MVP00–08 completati','42060851414','42060851802','mvp_final=true','Nessun deployment/readiness operativo'):
+                for token in ('MVP00–09 completati','42191323014','42191747586','42194906237','mvp_final=true','Nessun deployment/readiness operativo'):
                     start=text.index('<!-- mvp09-current:start -->');end=text.index('<!-- mvp09-current:end -->')
                     p.write_text(text[:start]+text[start:end].replace(token,'REMOVED')+text[end:])
                     with self.assertRaises(AssertionError):current_status(root)
                     p.write_text(text)
             p=root/'docs/mvp-backlog.json';text=p.read_text()
-            for id,key,value in [('MVP-08','status','in_progress'),('MVP-08','runtimeDelivered',False),('MVP-08','prCi',0),('MVP-09','status','done'),('MVP-09','runtimeDelivered',True),('MVP-09','validationStatus','PASSED'),('MVP-10','status','done')]:
+            for id,key,value in [('MVP-08','status','in_progress'),('MVP-08','runtimeDelivered',False),('MVP-08','prCi',0),('MVP-09','status','in_progress'),('MVP-09','runtimeDelivered',False),('MVP-09','validationStatus','UNEXECUTED'),('MVP-09','finalMvpRun',0),('MVP-09','newMainCi',True),('MVP-10','status','done'),('MVP-10','operationalReady',True),('MVP-10','publicationStatus','PUBLISHED')]:
                 data=json.loads(text);next(row for row in data['items'] if row['id']==id)[key]=value;p.write_text(json.dumps(data))
                 with self.assertRaises(AssertionError):current_status(root)
                 p.write_text(text)

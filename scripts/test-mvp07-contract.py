@@ -20,7 +20,9 @@ def current_status(root):
  assert (now['status'],now['runtimeDelivered'],now['pr'],now['mergedMain'],now['prCi'],now['runtimeDispatch'])==('done',True,171,'7d505db049880ef6fc4a2307dcd4575165c08923',41945630168,41945650853)
  assert now['negativeStockPolicy']==dict(decision='D99',ownerAnswer='Configurabile per società, con blocco predefinito',scope='company',defaultAllowNegative=False)
  assert items['MVP-08']['status']=='done' and items['MVP-08']['runtimeDelivered'] is True
- assert items['MVP-09']['status']=='in_progress' and items['MVP-10']['status']=='backlog'
+ assert items['MVP-09']['status']=='done' and items['MVP-09']['runtimeDelivered'] is True
+ assert items['MVP-09']['pr']==173 and items['MVP-09']['finalMvpRun']==42194906237
+ assert items['MVP-10']['status']=='in_progress' and items['MVP-10']['operationalReady'] is False
  for path in CURRENT:
   text=(root/path).read_text()
   for token in ('7d505db049880ef6fc4a2307dcd4575165c08923','41945630168','41945650853','5a58e881d71e5d4b12fdb42ea1829d49790b7e0e'):

@@ -19,7 +19,9 @@ def current_status(root):
  assert items['MVP-07']['status']=='done' and items['MVP-07']['runtimeDelivered'] is True
  assert items['MVP-08']['status']=='done' and items['MVP-08']['runtimeDelivered'] is True
  assert items['MVP-06']['contract']=='docs/mvp06-document-types-contract.md'
- assert items['MVP-09']['status']=='in_progress' and items['MVP-10']['status']=='backlog'
+ assert items['MVP-09']['status']=='done' and items['MVP-09']['runtimeDelivered'] is True
+ assert items['MVP-09']['pr']==173 and items['MVP-09']['finalMvpRun']==42194906237
+ assert items['MVP-10']['status']=='in_progress' and items['MVP-10']['operationalReady'] is False
  for name in CURRENT:
   text=(root/name).read_text()
   for token in ('MVP-05/#144 COMPLETATO: PR #169',BASE,'41833394752','41833450699','2d5c06ae8c83e744a88e20abdcc0c34f0066ad81','MVP-06/#145 COMPLETATO: PR #170'):

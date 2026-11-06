@@ -1,4 +1,10 @@
-# Enginia360 — bootstrap e incrementi runtime bounded
+# Enginia360 — MVP a sette domini
+
+MVP00–09 verificati; MVP10/#149 in preparazione **SOURCE_COMPLETE_UNVERIFIED**. Release software PENDING, readiness operativa OPEN. [Piano corrente](docs/mvp-delivery-plan.md), [contratto release](docs/mvp10-release-contract.md), [istruzioni sorgenti/build/rollback](docs/mvp10-source-release.md), [gate operativi](docs/mvp10-readiness.json). Nessun artefatto precompilato, deployment o ready-for-use dichiarato.
+
+Le istruzioni bootstrap sotto sono **storiche**, non installazione del nuovo MVP Next/ASP.NET/PostgreSQL e non autorizzano porte pubbliche, dati reali o restart dei servizi protetti.
+
+<details><summary>Bootstrap storico e istruzioni precedenti — non percorso operativo MVP</summary>
 
 ## Stato corrente del codice
 
@@ -73,3 +79,5 @@ docker compose up -d --wait --wait-timeout 120
 Before updating, record `git rev-parse HEAD` and save known-good images (`docker image save enginia360-api enginia360-web -o /safe/path/enginia360-images.tar`). For rollback, restore the previously reviewed checkout without discarding uncommitted work, load the saved images (`docker image load -i /safe/path/enginia360-images.tar`) and run `docker compose up -d --no-build --wait`, then smoke-test. Keep the previous Compose configuration as well. Do not run blind `git reset --hard` or image/volume pruning. This bootstrap has no application volumes, migrations or database to back up; repository and image recovery are still required. Avoid `docker compose down` during routine updates: it intentionally removes the running services and interrupts access.
 
 Runtime controls: nonroot users, read-only filesystems, small tmpfs, all capabilities dropped, no-new-privileges, CPU/memory/PID bounds, health checks, rotated JSON container logs. Startup honors backend health. JSON API logs include correlation scope; nginx access logging is intentionally disabled. See ADR for absent TLS, monitoring, full telemetry, database, HA, identity and domain authorization. This single-host bootstrap is not production readiness or an availability SLA.
+
+</details>

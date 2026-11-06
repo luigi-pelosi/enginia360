@@ -1,0 +1,385 @@
+{
+  "schemaVersion": 1,
+  "kind": "inherited-functional-metadata-only",
+  "repository": "luigi-pelosi/enginia360",
+  "pr": 173,
+  "candidate": "e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+  "mergedMain": "9326d19abc97d1eb249d0a1abecdc1ffd4cd3289",
+  "tree": "8e2230c67865f1199a47a2d75c58cef0fa9caf52",
+  "newMainCi": false,
+  "run": 42194906237,
+  "mvp_final": true,
+  "full_architecture": false,
+  "requiredJobs": 24,
+  "requiredSteps": 166,
+  "wrapperCommands": 104,
+  "runtime": {
+    "trx": 36,
+    "passed": 460,
+    "skipped": 0
+  },
+  "parentResultSha256": "9008247a3d6ddb4fc97b9eaf9991f82a957a17722645908ca14c30efe88e49b1",
+  "parentManifestSha256": "413409512e4d3c122aee3cc6a8d1419887cb5e6733ea951cd4c6eff3b7fb5630",
+  "jobs": [
+    {
+      "id": 127815605865,
+      "name": "architecture-current-contracts (impact)",
+      "conclusion": "success",
+      "logSha256": "a5f3476d520c8844fdad8f2b987db621614a3244d0ae6c97efa740cedc3ce56f",
+      "checkoutCommit": "e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "checkoutTree": "8e2230c67865f1199a47a2d75c58cef0fa9caf52"
+    },
+    {
+      "id": 127815606016,
+      "name": "architecture-current-contracts (affected-integrated-acceptance)",
+      "conclusion": "success",
+      "logSha256": "a04514b1772163d8944d905150d4c765c5aa10a99f1acad0332d599c8ccdf61f",
+      "checkoutCommit": "e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "checkoutTree": "8e2230c67865f1199a47a2d75c58cef0fa9caf52"
+    },
+    {
+      "id": 127815605947,
+      "name": "architecture-current-contracts (affected-document-development)",
+      "conclusion": "success",
+      "logSha256": "ae0bbb27878ec127b9ac26ab2261c41e8ea927ebcfa7b082a9f4bc979f5c718d",
+      "checkoutCommit": "e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "checkoutTree": "8e2230c67865f1199a47a2d75c58cef0fa9caf52"
+    },
+    {
+      "id": 127815605634,
+      "name": "architecture-current-contracts (affected-documents)",
+      "conclusion": "success",
+      "logSha256": "36201ee42d173ec3e9994cfcc65fecd592f9a1545517d4ba8d0406a162f2dbac",
+      "checkoutCommit": "e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "checkoutTree": "8e2230c67865f1199a47a2d75c58cef0fa9caf52"
+    },
+    {
+      "id": 127815605785,
+      "name": "architecture-current-contracts (affected-document-types)",
+      "conclusion": "success",
+      "logSha256": "6c6012dafc403aab4db4f7c6239483562af23deb3b7346689f9ef53f268504b7",
+      "checkoutCommit": "e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "checkoutTree": "8e2230c67865f1199a47a2d75c58cef0fa9caf52"
+    },
+    {
+      "id": 127815605886,
+      "name": "architecture-current-contracts (affected-catalog-management)",
+      "conclusion": "success",
+      "logSha256": "5c51e59e9c752870c04b3864c1122bf4e2166c40a3a354c78fdd00b84e25258f",
+      "checkoutCommit": "e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "checkoutTree": "8e2230c67865f1199a47a2d75c58cef0fa9caf52"
+    },
+    {
+      "id": 127815605767,
+      "name": "architecture-current-contracts (affected-counterparty-management)",
+      "conclusion": "success",
+      "logSha256": "454bf427277be95092baf4043e74480b00ddc97ca7117b9cf914f5894f8a71c0",
+      "checkoutCommit": "e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "checkoutTree": "8e2230c67865f1199a47a2d75c58cef0fa9caf52"
+    },
+    {
+      "id": 127815605673,
+      "name": "architecture-current-contracts (affected-federated-onboarding)",
+      "conclusion": "success",
+      "logSha256": "7fffcdc154298588c4e15ef1bee56e1e22a96dfd1220d2311cb94adbf1d747ff",
+      "checkoutCommit": "e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "checkoutTree": "8e2230c67865f1199a47a2d75c58cef0fa9caf52"
+    },
+    {
+      "id": 127815605903,
+      "name": "architecture-current-contracts (affected-membership-access)",
+      "conclusion": "success",
+      "logSha256": "0330cdf344c8313c22bd4a1cdd0a86c6b2f0c6d041b4021f0aa478cc4cae4491",
+      "checkoutCommit": "e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "checkoutTree": "8e2230c67865f1199a47a2d75c58cef0fa9caf52"
+    },
+    {
+      "id": 127815605693,
+      "name": "architecture-current-contracts (affected-tenant-roles)",
+      "conclusion": "success",
+      "logSha256": "39b83548dc6d8911d0bfc2a3a43ee466d310b2e0d1c6bc600b620b173e6cfc68",
+      "checkoutCommit": "e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "checkoutTree": "8e2230c67865f1199a47a2d75c58cef0fa9caf52"
+    },
+    {
+      "id": 127815605829,
+      "name": "architecture-current-contracts (affected-platform-offline)",
+      "conclusion": "success",
+      "logSha256": "221c51eec3f38e2d815367087cec665d6ec93a334dd6d6afddb157a0503a5b0d",
+      "checkoutCommit": "e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "checkoutTree": "8e2230c67865f1199a47a2d75c58cef0fa9caf52"
+    },
+    {
+      "id": 127815605762,
+      "name": "architecture-current-contracts (affected-platform-authority)",
+      "conclusion": "success",
+      "logSha256": "07db3977147950f34575093901a8fc2554fe73ffc7c363c7201f077299805ea1",
+      "checkoutCommit": "e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "checkoutTree": "8e2230c67865f1199a47a2d75c58cef0fa9caf52"
+    },
+    {
+      "id": 127815605707,
+      "name": "architecture-current-contracts (affected-organization-administration)",
+      "conclusion": "success",
+      "logSha256": "bad45486eb86fc62cc58a1e5de86348b93c73f893349f271def053322baf71ba",
+      "checkoutCommit": "e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "checkoutTree": "8e2230c67865f1199a47a2d75c58cef0fa9caf52"
+    },
+    {
+      "id": 127815605757,
+      "name": "architecture-current-contracts (affected-authenticated-organization)",
+      "conclusion": "success",
+      "logSha256": "3b537310e866353d51f8fe0c84db894ee29fa12a278cda77c81f77c6ecf53da8",
+      "checkoutCommit": "e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "checkoutTree": "8e2230c67865f1199a47a2d75c58cef0fa9caf52"
+    },
+    {
+      "id": 127815607950,
+      "name": "architecture-current-contracts (affected-frontend)",
+      "conclusion": "success",
+      "logSha256": "f7905cb36fd50c195850bfe2e8a70cc5fb02ad701457dc9fb3c98bb7edee2e06",
+      "checkoutCommit": "e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "checkoutTree": "8e2230c67865f1199a47a2d75c58cef0fa9caf52"
+    },
+    {
+      "id": 127815608004,
+      "name": "architecture-current-contracts (affected-frontend-runtime)",
+      "conclusion": "success",
+      "logSha256": "2e7e3e8b0ab6aff7b99247dd7346984054e4764187829e7618046808c025109e",
+      "checkoutCommit": "e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "checkoutTree": "8e2230c67865f1199a47a2d75c58cef0fa9caf52"
+    },
+    {
+      "id": 127815607998,
+      "name": "architecture-current-contracts (affected-mvp-offline)",
+      "conclusion": "success",
+      "logSha256": "19b85ce2c0d0b1039d04c1b239cb4a91e4581fdadd7198418a4e737aa9051718",
+      "checkoutCommit": "e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "checkoutTree": "8e2230c67865f1199a47a2d75c58cef0fa9caf52"
+    },
+    {
+      "id": 127815608353,
+      "name": "architecture-current-contracts (affected-r05a2-offline)",
+      "conclusion": "success",
+      "logSha256": "b6d5efe6dae3bd56d06de07b56e55e678541082e805a1d3e7fe92d4313093690",
+      "checkoutCommit": "e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "checkoutTree": "8e2230c67865f1199a47a2d75c58cef0fa9caf52"
+    },
+    {
+      "id": 127815608173,
+      "name": "architecture-current-contracts (affected-r05a3-offline)",
+      "conclusion": "success",
+      "logSha256": "7aaadd26caa8dd31b1ddc50aafe58474f55ea688fef253558aeecf7e8e03ebfb",
+      "checkoutCommit": "e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "checkoutTree": "8e2230c67865f1199a47a2d75c58cef0fa9caf52"
+    },
+    {
+      "id": 127815608243,
+      "name": "architecture-current-contracts (affected-r06-offline)",
+      "conclusion": "success",
+      "logSha256": "093b4d4b89057edd0c6e62103c2bbcac5735d6a48125f35e7137e63fa33263eb",
+      "checkoutCommit": "e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "checkoutTree": "8e2230c67865f1199a47a2d75c58cef0fa9caf52"
+    },
+    {
+      "id": 127815608336,
+      "name": "architecture-current-contracts (affected-migrations)",
+      "conclusion": "success",
+      "logSha256": "2f2b2720241f625b8360219642e884695f016b6e0135e79532fddc490b8b2ab1",
+      "checkoutCommit": "e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "checkoutTree": "8e2230c67865f1199a47a2d75c58cef0fa9caf52"
+    },
+    {
+      "id": 127815608476,
+      "name": "architecture-current-contracts (affected-browser)",
+      "conclusion": "success",
+      "logSha256": "d0bf784328edf13f6ec4253b8267997e0433ce362fe74ed088c7959c11fedcc2",
+      "checkoutCommit": "e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "checkoutTree": "8e2230c67865f1199a47a2d75c58cef0fa9caf52"
+    },
+    {
+      "id": 127815608538,
+      "name": "architecture-current-contracts (affected-r06-restore)",
+      "conclusion": "success",
+      "logSha256": "54c083e45d9880f771187f50a9479be373651134c8a4305b1f15522b95a9a93a",
+      "checkoutCommit": "e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "checkoutTree": "8e2230c67865f1199a47a2d75c58cef0fa9caf52"
+    },
+    {
+      "id": 127815605640,
+      "name": "architecture-mvp-api",
+      "conclusion": "success",
+      "logSha256": "682b8b3e477d71874f1c8b128cb90b10a57ad2caca56c4f0a9393fb89851e8c0",
+      "checkoutCommit": "e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "checkoutTree": "8e2230c67865f1199a47a2d75c58cef0fa9caf52"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": 13493725611,
+      "name": "mvp09-architecture-affected-r06-offline-e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "sha256": "d20b3740631f36d2d67a8872225f1367719d519643503856258c1bfae762112c",
+      "bytes": 46942,
+      "expiresAt": "2026-11-13T09:46:02Z"
+    },
+    {
+      "id": 13493630470,
+      "name": "mvp09-architecture-affected-migrations-e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "sha256": "f310fce68e3cc9c96feb192be5678f8164d33d37257196932861e1ddc18b8391",
+      "bytes": 53008,
+      "expiresAt": "2026-11-13T09:51:28Z"
+    },
+    {
+      "id": 13493610626,
+      "name": "mvp09-architecture-affected-browser-e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "sha256": "29f4af57a37f1ca851462b043f1ea9e8d06e90efc74e83dff683ed013e54b0c5",
+      "bytes": 45924,
+      "expiresAt": "2026-11-13T09:49:10Z"
+    },
+    {
+      "id": 13493165190,
+      "name": "mvp09-architecture-affected-tenant-roles-e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "sha256": "ed9085fcab8c0dea7f2fc104149447dbe82c22fb4e94217e6c64b70a60d7246a",
+      "bytes": 1756900,
+      "expiresAt": "2026-11-13T09:41:43Z"
+    },
+    {
+      "id": 13493130451,
+      "name": "mvp09-architecture-affected-frontend-e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "sha256": "e12495987f18334575532a45ef868d8c0bada79061dd998a27f07aaa44ea7d38",
+      "bytes": 48096,
+      "expiresAt": "2026-11-13T09:43:37Z"
+    },
+    {
+      "id": 13492925634,
+      "name": "mvp09-architecture-affected-r05a2-offline-e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "sha256": "aca9e15c87091ac37f241882bf879cce769624c831c8854c9a209fb6f9496ce8",
+      "bytes": 44346,
+      "expiresAt": "2026-11-13T09:44:25Z"
+    },
+    {
+      "id": 13492826652,
+      "name": "mvp09-architecture-affected-r06-restore-e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "sha256": "d6f9854a2b5f7f567936c6e91b4562276351664efdb07ce00d73cc37cc18a6c6",
+      "bytes": 54139,
+      "expiresAt": "2026-11-13T09:51:58Z"
+    },
+    {
+      "id": 13492735267,
+      "name": "mvp09-architecture-affected-federated-onboarding-e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "sha256": "e8032fa7c42b4b48191c5022b2ad0fc564c00b6141f6c04458aaadc21903d199",
+      "bytes": 2981741,
+      "expiresAt": "2026-11-13T09:37:44Z"
+    },
+    {
+      "id": 13492566860,
+      "name": "mvp09-architecture-affected-r05a3-offline-e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "sha256": "f4c0e27e3f1fe4084a7ec029053fdc23a6e6f68a81d3f48f2b7bf3ecbaeb0278",
+      "bytes": 44349,
+      "expiresAt": "2026-11-13T09:44:37Z"
+    },
+    {
+      "id": 13492561286,
+      "name": "mvp09-architecture-affected-organization-administration-e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "sha256": "8d07a450024928333e5a7d6666026da955a297463b1a0078e52d3d89ad9ec20d",
+      "bytes": 52633,
+      "expiresAt": "2026-11-13T09:44:12Z"
+    },
+    {
+      "id": 13492511706,
+      "name": "mvp09-architecture-affected-membership-access-e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "sha256": "ec5afaed2ecae0f3434e40dc47c840975ddd4e89da6514990cbf331a37ce379e",
+      "bytes": 1697642,
+      "expiresAt": "2026-11-13T09:42:36Z"
+    },
+    {
+      "id": 13492332295,
+      "name": "mvp09-architecture-affected-counterparty-management-e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "sha256": "f7768001be68540b78ea446f406822484f84f4cd61fd1abfbe2872a706a7f702",
+      "bytes": 1944961,
+      "expiresAt": "2026-11-13T09:36:58Z"
+    },
+    {
+      "id": 13492212915,
+      "name": "mvp09-architecture-affected-authenticated-organization-e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "sha256": "a9a788480eea265cc553c159332983b505eb2c89bc860e389e4279b440eb12cb",
+      "bytes": 1158720,
+      "expiresAt": "2026-11-13T09:45:41Z"
+    },
+    {
+      "id": 13492108336,
+      "name": "mvp09-architecture-affected-mvp-offline-e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "sha256": "50425012a5218be227de74e13a27609f8b48996ecbbdf75c7c42efd20b0d9bfa",
+      "bytes": 45714,
+      "expiresAt": "2026-11-13T09:44:25Z"
+    },
+    {
+      "id": 13492063380,
+      "name": "mvp09-architecture-affected-document-development-e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "sha256": "2dccf5f4e7aae128ee031541546c86a3c42c5fe68cbb6770346321e9a0da6238",
+      "bytes": 16180625,
+      "expiresAt": "2026-11-13T09:34:56Z"
+    },
+    {
+      "id": 13491968665,
+      "name": "mvp09-architecture-affected-frontend-runtime-e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "sha256": "63bda14f14137793b603435408cf9f5c610ccb86ec17d4581469d1e5049b1514",
+      "bytes": 632018,
+      "expiresAt": "2026-11-13T09:45:24Z"
+    },
+    {
+      "id": 13491819882,
+      "name": "mvp09-architecture-affected-platform-authority-e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "sha256": "2e775b3e2a98f573e735733a7b1d8a85d731fd5d62921b8eafc339c8d861067f",
+      "bytes": 55266,
+      "expiresAt": "2026-11-13T09:44:03Z"
+    },
+    {
+      "id": 13491729015,
+      "name": "mvp09-architecture-affected-catalog-management-e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "sha256": "5a658d1fc5842308a09a4707d8809913d97a55ec2aa1f07709e38a014b77628f",
+      "bytes": 2190269,
+      "expiresAt": "2026-11-13T09:38:57Z"
+    },
+    {
+      "id": 13491417030,
+      "name": "mvp09-architecture-impact-e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "sha256": "e385ffd3794843d23f51b905f9468a5ed183a304a31dae4c517bf3bd621c0c99",
+      "bytes": 53290,
+      "expiresAt": "2026-11-13T09:25:46Z"
+    },
+    {
+      "id": 13491353064,
+      "name": "mvp09-architecture-affected-documents-e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "sha256": "b6c193f29711a4d156e60a22d471507fe9c45798f4779c0160890ce4b8a89c62",
+      "bytes": 10524367,
+      "expiresAt": "2026-11-13T09:32:35Z"
+    },
+    {
+      "id": 13491223662,
+      "name": "mvp09-architecture-affected-document-types-e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "sha256": "957522eb979c90f121800a5104a77208009b1e086b0059bbb385d7c72a69db04",
+      "bytes": 4128059,
+      "expiresAt": "2026-11-13T09:32:01Z"
+    },
+    {
+      "id": 13491164571,
+      "name": "mvp09-architecture-affected-platform-offline-e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "sha256": "59dc0f030a3e3382dd94b8d094a3dc4063437f5763761e2dd9b5f1b7f63aba7b",
+      "bytes": 45257,
+      "expiresAt": "2026-11-13T09:38:03Z"
+    },
+    {
+      "id": 13490599721,
+      "name": "mvp09-architecture-affected-integrated-acceptance-e36697723d9d8ae96022cd0779bcc83958fc7f9f",
+      "sha256": "04a66e33b8a7c74c4211f4496b9782f42d5c41a022db24a479ae0c3a5598fa4b",
+      "bytes": 17011606,
+      "expiresAt": "2026-11-13T09:32:55Z"
+    }
+  ],
+  "limitations": [
+    "No raw capture, credential, identity, proof contents or private filesystem path exported",
+    "Historical run only; URLs may expire; hashes are retained metadata, not new runtime tests",
+    "No operational readiness, deployment or accepted legacy full-history campaign"
+  ]
+}

@@ -1,4 +1,13 @@
-# MVP09 — prepared final acceptance, NOT executed
+# MVP09 — verified finite final acceptance and historical procedure
+
+## Current verified outcome — PR173 (6 November 2026)
+
+MVP09/#148 COMPLETED. Parent independently verified candidate `e36697723d9d8ae96022cd0779bcc83958fc7f9f`, merged main `9326d19abc97d1eb249d0a1abecdc1ffd4cd3289`, same TREE `8e2230c67865f1199a47a2d75c58cef0fa9caf52` (not new main CI). Ordinary CI42191323014 and dispatch42191747586 passed. Criterion4 completed via scoped FINAL42194906237: `mvp_final=true`, `full_architecture=false`, 23 groups +1 API,24 required jobs/166 steps,104 commands,23 artifact ZIPs/947 source hashes;36 runtime TRX/460 passed/zero runtime skip. All five criteria have parent readback proof; [sanitized provenance](mvp10-functional-baseline.json). No operational readiness/deployment. MVP10/#149 active SOURCE_COMPLETE_UNVERIFIED; artifact publication PENDING, readiness OPEN.
+
+The following is an **archived source-phase contract/procedure**, preserved as written. Its UNEXECUTED/SOURCE_COMPLETE_UNVERIFIED and “MVP10 Backlog” statements are historical, NOT current delivery state. Old42116253372 remains FAILED and interrupted B04 remains NONPASS; no full legacy campaign pass is claimed. Do not rerun this historical procedure as an automatic MVP10 prerequisite.
+
+<details><summary>Historical MVP09 source preparation (superseded by verified outcome above)</summary>
+
 
 Status: SOURCE_COMPLETE_UNVERIFIED / all commands below UNEXECUTED for the corrected source point. Earlier executions are historical only, as disclosed below. Parent owns final validation, corrective rechecks, commit/PR/merge and issue/Project readback. This source-only worker must not execute these commands or open a PR.
 
@@ -113,3 +122,5 @@ MVP08 parent proof is historical: PR CI `42060851414` (5 jobs/62 successful step
 Retain NONPASS incidents: old protected HTML `lang=it` failure is not candidate readiness; earlier live noJS geometry cause remains unproven; tall Chromium native capture failure has no proven OOM/root cause. Adjacent full-width CDP tiles plus focused viewport captures preserve bounded evidence, not a universal screenshot/skip-link fix. Passing reruns do not establish causality. Retry remains live-page-only, not persistent after reload.
 
 Operational provider adoption, real identity/revocation, target/access, off-host backup/recovery/RPO/RTO, alerts/maintenance, privacy/retention, fiscal/legal approval and production use remain open in MVP10. No deployment, real data, public exposure, paid service/purchase or new persistent environment is authorized. Protected Tailscale443→localhost9119 and all retained IDs/start/mounts/volumes must remain unchanged.
+
+</details>

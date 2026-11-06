@@ -29,7 +29,9 @@ class ImpactTests(unittest.TestCase):
             for name in ('DocumentDevelopmentTests','DocumentInventoryTests','DocumentTypeManagementTests','BusinessMembershipFenceTests'):
                 self.assertIn('FullyQualifiedName~'+name,result['api_filter'])
     def test_full_point_plus_committed_or_dirty_overlay_preserves_scope(self):
-        actual=set(subprocess.check_output(['git','diff','--name-only',BASE],cwd=ROOT,text=True).splitlines())|set(subprocess.check_output(['git','ls-files','--others','--exclude-standard'],cwd=ROOT,text=True).splitlines())
+        # Historical delivered MVP09 point only; current MVP10 whole-point overlay is
+        # tested by test-mvp10-impact.py without restarting this runtime campaign.
+        actual=set(subprocess.check_output(['git','diff','--name-only',BASE,'e36697723d9d8ae96022cd0779bcc83958fc7f9f'],cwd=ROOT,text=True).splitlines())
         for paths in (actual,m.INTEGRATED_SCOPE):
             result=m.selection(sorted(paths));self.assertTrue(result['integrated_acceptance']);self.assertFalse(result['full_architecture'])
             for key in ('r03a','r03b','r03c','r04a','r04b2b3'):
@@ -164,6 +166,11 @@ class ImpactTests(unittest.TestCase):
             # Guard source commands and step env through actual finite parser,
             # not another invented list of successful historical outcomes.
             before=a.plan(old.replace('  runtime-migrations:', '  affected-integrated-acceptance:\n    timeout-minutes: 60\n    steps: []\n  runtime-migrations:',1),group)
-            self.assertEqual(a.plan(source,group),before)
+            after=a.plan(source,group)
+            if group=='affected-mvp-offline':
+                extra=after['steps'].pop()
+                self.assertEqual(extra['command'],'python3 -I scripts/test-mvp10-release.py && python3 -I scripts/test-mvp10-impact.py')
+                self.assertIn('not publication or readiness',extra['name'])
+            self.assertEqual(after,before)
 
 if __name__=='__main__':unittest.main()
