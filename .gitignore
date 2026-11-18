@@ -1,0 +1,21 @@
+# Dipendenze e risultati di compilazione
+**/node_modules/
+**/.next/
+**/bin/
+**/obj/
+**/__pycache__/
+*.tsbuildinfo
+/frontend/audit-report.json
+
+# Configurazioni e credenziali locali
+.env
+.env.*
+!.env.example
+*.log
+*.pem
+*.key
+*.pfx
+*.p12
+
+# Chiavi API importate nelle impostazioni cifrate
+/geoapify.txt

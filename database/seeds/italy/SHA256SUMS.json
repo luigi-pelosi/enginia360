@@ -1,0 +1,16 @@
+{
+  "GARDA-NOTICE.txt": "3d78a06e5429ac248cf6ae2e9c4ceb4ba7b4ee6ca9873f0e4f5ab52065e13a63",
+  "ISTAT-LICENSE.html": "2d8a2587c811189d1596bcb6da7dbb2458d4c2f2ce56ebce41b7de5f0a823a1b",
+  "LICENSE-MIT.txt": "35920303d50899eb4ee459349f3e26580013e38d1e2e0e0b5f14f293d26e3539",
+  "README.md": "b9d82ac947613b9905689aef42540425deb4848d6cf7ac6cc955de6948f7cb3c",
+  "cities.json": "ec58c2dc3cbc837f74231164a69f70f42fe52296b53dbe241852382541730a73",
+  "countries.json": "a605aa2b204dd53d719052fe00b7748cb8c7935526056886dabd5f6fad77c3a3",
+  "garda.zip": "cbebcb433bbecd46bc5c398a2ca3d13161c8cd258f1e223a7f5d2120f8d6dcdf",
+  "import-validation.json": "56f1b1971691420d247bb6a9141a2cf844748cb25b0ca55af604141ddf54be57",
+  "istat-comuni.xlsx": "83842076860450f7e482daecea6b7a769f5f93d0bf5b0d48802b44896d7a26d5",
+  "istat-rows.json": "ad9a55d8d2915745e966abbf2031f5eb893569460e47f124070b2d1a94ce3e32",
+  "prepare_dataset.py": "6fdd1d4b78f5508d2224a0eab877890e88532d334a98b5cd4804c7d87d4652d5",
+  "result.json": "69dc80d83ba927115e6b85ab8c25c38bcaa60a8a9418e4f1613fd2ee7ee7ec6c",
+  "sources.json": "e62373d449933cb24515b0f95534b5f23a79677a94477b1b44278c1361c85e62",
+  "validation-details.json": "f6f1bf298da774b281bc9eaad79b100a8a344d5ca77179da5460ffd16b36917f"
+}

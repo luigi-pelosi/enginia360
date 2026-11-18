@@ -1,0 +1,90 @@
+[
+  {
+    "name": "garda-page",
+    "url": "https://www.gardainformatica.it/database-comuni-italiani",
+    "final_url": "https://www.gardainformatica.it/database-comuni-italiani",
+    "retrieved_at": "2026-11-18T16:18:17.084352+00:00",
+    "file": "garda-page.html",
+    "sha256": "3effe07e4c98aed00c7d18723c0d963ad1c1bd3a62991a2068c2b1d0468d354c"
+  },
+  {
+    "name": "istat-page",
+    "url": "https://www.istat.it/classificazione/codici-dei-comuni-delle-province-e-delle-regioni/",
+    "final_url": "https://www.istat.it/classificazione/codici-dei-comuni-delle-province-e-delle-regioni/",
+    "retrieved_at": "2026-11-18T16:18:17.289493+00:00",
+    "file": "istat-page.html",
+    "sha256": "5a78f8874e41664e962aadc2454553f4cf770b3b5bea037dc597316be3efe025"
+  },
+  {
+    "name": "garda.zip",
+    "url": "https://www.gardainformatica.it/gi_db_comuni/gi_db_comuni-2026-11-06-dd803.zip",
+    "final_url": "https://www.gardainformatica.it/gi_db_comuni/gi_db_comuni-2026-11-06-dd803.zip",
+    "retrieved_at": "2026-11-18T16:18:38.242655+00:00",
+    "file": "garda.zip",
+    "sha256": "cbebcb433bbecd46bc5c398a2ca3d13161c8cd258f1e223a7f5d2120f8d6dcdf",
+    "bytes": 5678042
+  },
+  {
+    "name": "istat-comuni.xlsx",
+    "url": "https://www.istat.it/storage/codici-unita-amministrative/Elenco-comuni-italiani.xlsx",
+    "final_url": "https://www.istat.it/storage/codici-unita-amministrative/Elenco-comuni-italiani.xlsx",
+    "retrieved_at": "2026-11-18T16:18:39.094360+00:00",
+    "file": "istat-comuni.xlsx",
+    "sha256": "83842076860450f7e482daecea6b7a769f5f93d0bf5b0d48802b44896d7a26d5",
+    "bytes": 1229843
+  },
+  {
+    "name": "istat-sardegna.zip",
+    "url": "https://www.istat.it/wp-content/uploads/2024/09/Codici-statistici-e-denominazioni-delle-unita-amministrative-della-Sardegna.zip",
+    "final_url": "https://www.istat.it/wp-content/uploads/2024/09/Codici-statistici-e-denominazioni-delle-unita-amministrative-della-Sardegna.zip",
+    "retrieved_at": "2026-11-18T16:18:39.298042+00:00",
+    "file": "istat-sardegna.zip",
+    "sha256": "6fb4b421a165c26ebc855d2793ef95ae1e65eceb9ea067aa51a4c3f613e503ca",
+    "bytes": 31795
+  },
+  {
+    "name": "mit-license.html",
+    "url": "https://opensource.org/license/mit/",
+    "final_url": "https://opensource.org/license/mit",
+    "retrieved_at": "2026-11-18T16:18:39.446057+00:00",
+    "file": "mit-license.html",
+    "sha256": "0e5b3416f00dc17937626aacfd583a38cea65b4b2c675a9b62e63bd4a50bdc95",
+    "bytes": 195964
+  },
+  {
+    "name": "sovizzo-official.html",
+    "url": "https://www.comune.sovizzo.vi.it/novita/nuovi-riferimenti-del-comune-di-sovizzo",
+    "final_url": "https://www.comune.sovizzo.vi.it/novita/nuovi-riferimenti-del-comune-di-sovizzo/",
+    "retrieved_at": "2026-11-18T16:20:09.593443+00:00",
+    "file": "sovizzo-official.html",
+    "sha256": "e1d05b7492f5040c8187708acdb33421f172dc951c864be7e0be77c5e65f078c",
+    "bytes": 155501
+  },
+  {
+    "name": "vallecrosia-official.xml",
+    "url": "https://comune.vallecrosia.im.it/RSSEventi",
+    "final_url": "https://comune.vallecrosia.im.it/RSSEventi",
+    "retrieved_at": "2026-11-18T16:20:10.197866+00:00",
+    "file": "vallecrosia-official.xml",
+    "sha256": "4d5d0ed305b62b20b6b277d8b71409f46e5dc3cb30861b8b0e663dbc980eac21",
+    "bytes": 534
+  },
+  {
+    "name": "castegnero-cap.pdf",
+    "url": "https://www.comune.castegneronanto.vi.it/myportal/17UW94ZL/api/content/download?id=6a575e5cc4dedd008dbf09a1",
+    "final_url": "https://www.comune.castegneronanto.vi.it/myportal/17UW94ZL/api/content/download?id=6a575e5cc4dedd008dbf09a1",
+    "retrieved_at": "2026-11-18T16:20:10.696463+00:00",
+    "file": "castegnero-cap.pdf",
+    "sha256": "27a8e764b74210a21c065b5a321811a253a32af170f22ec5b0e241444fa139f5",
+    "bytes": 103644
+  },
+  {
+    "name": "poste-cap.html",
+    "url": "https://www.poste.it/cap",
+    "final_url": "https://www.poste.it/cap",
+    "retrieved_at": "2026-11-18T16:20:11.009896+00:00",
+    "file": "poste-cap.html",
+    "sha256": "5ad2a406cf92a49d95d61e99a22ffa974f61b150c3a1e717716f82a04634a518",
+    "bytes": 197552
+  }
+]

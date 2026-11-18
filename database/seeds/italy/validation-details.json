@@ -1,0 +1,213 @@
+{
+  "name_mismatches": [
+    {
+      "istat_code": "008063",
+      "istat": "Vallecrosia",
+      "garda": "Vallecrosia al mare"
+    }
+  ],
+  "plate_mismatches": [
+    {
+      "istat_code": "119001",
+      "istat": "CI",
+      "garda": "SU"
+    },
+    {
+      "istat_code": "119002",
+      "istat": "CI",
+      "garda": "SU"
+    },
+    {
+      "istat_code": "119003",
+      "istat": "CI",
+      "garda": "SU"
+    },
+    {
+      "istat_code": "119004",
+      "istat": "CI",
+      "garda": "SU"
+    },
+    {
+      "istat_code": "119005",
+      "istat": "CI",
+      "garda": "SU"
+    },
+    {
+      "istat_code": "119006",
+      "istat": "CI",
+      "garda": "SU"
+    },
+    {
+      "istat_code": "119007",
+      "istat": "CI",
+      "garda": "SU"
+    },
+    {
+      "istat_code": "119008",
+      "istat": "CI",
+      "garda": "SU"
+    },
+    {
+      "istat_code": "119009",
+      "istat": "CI",
+      "garda": "SU"
+    },
+    {
+      "istat_code": "119010",
+      "istat": "CI",
+      "garda": "SU"
+    },
+    {
+      "istat_code": "119011",
+      "istat": "CI",
+      "garda": "SU"
+    },
+    {
+      "istat_code": "119012",
+      "istat": "CI",
+      "garda": "SU"
+    },
+    {
+      "istat_code": "119013",
+      "istat": "CI",
+      "garda": "SU"
+    },
+    {
+      "istat_code": "119014",
+      "istat": "CI",
+      "garda": "SU"
+    },
+    {
+      "istat_code": "119015",
+      "istat": "CI",
+      "garda": "SU"
+    },
+    {
+      "istat_code": "119016",
+      "istat": "CI",
+      "garda": "SU"
+    },
+    {
+      "istat_code": "119017",
+      "istat": "CI",
+      "garda": "SU"
+    },
+    {
+      "istat_code": "119018",
+      "istat": "CI",
+      "garda": "SU"
+    },
+    {
+      "istat_code": "119019",
+      "istat": "CI",
+      "garda": "SU"
+    },
+    {
+      "istat_code": "119020",
+      "istat": "CI",
+      "garda": "SU"
+    },
+    {
+      "istat_code": "119021",
+      "istat": "CI",
+      "garda": "SU"
+    },
+    {
+      "istat_code": "119022",
+      "istat": "CI",
+      "garda": "SU"
+    },
+    {
+      "istat_code": "119023",
+      "istat": "CI",
+      "garda": "SU"
+    },
+    {
+      "istat_code": "119024",
+      "istat": "CI",
+      "garda": "SU"
+    }
+  ],
+  "territory_mismatches": [],
+  "history_missing_active": [
+    "024128"
+  ],
+  "history_extra_active": [],
+  "sardinia_provinces": [
+    "Cagliari",
+    "Gallura Nord-Est Sardegna",
+    "Medio Campidano",
+    "Nuoro",
+    "Ogliastra",
+    "Oristano",
+    "Sassari",
+    "Sulcis Iglesiente"
+  ],
+  "sardinia_crosswalk_code_column_zero_based": 2,
+  "sardinia_crosswalk_preview": [
+    [
+      "Codici statistici e denominazioni delle unità amministrative rispondenti ai nuovi assetti territoriali della Sardegna. In vigore dal 1° gennaio 2026",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ],
+    [
+      "Denominazione Provincia/Città metropolitana",
+      "Codice Provincia/Città metropolitana",
+      "Codice Comune",
+      "Denominazione Comune",
+      "Codice Comune precedente",
+      "Codice Provincia/Città metropolitana precedente",
+      "Denominazione Provincia/Città metropolitana(ripartizione precedente)"
+    ],
+    [
+      "Città metropolitana di Sassari",
+      "312",
+      "112001",
+      "Alghero",
+      "090003",
+      "090",
+      "Provincia di Sassari"
+    ],
+    [
+      "Città metropolitana di Sassari",
+      "312",
+      "112002",
+      "Anela",
+      "090004",
+      "090",
+      "Provincia di Sassari"
+    ],
+    [
+      "Città metropolitana di Sassari",
+      "312",
+      "112003",
+      "Ardara",
+      "090005",
+      "090",
+      "Provincia di Sassari"
+    ]
+  ],
+  "excluded_raw_rows": 0,
+  "castegnero_nanto": [
+    {
+      "name": "Castegnero Nanto",
+      "postal_code": "36020",
+      "province": "Vicenza",
+      "region": "Veneto",
+      "country_iso_code": "IT",
+      "istat_code": "024129"
+    },
+    {
+      "name": "Castegnero Nanto",
+      "postal_code": "36024",
+      "province": "Vicenza",
+      "region": "Veneto",
+      "country_iso_code": "IT",
+      "istat_code": "024129"
+    }
+  ]
+}

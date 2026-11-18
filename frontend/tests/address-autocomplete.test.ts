@@ -1,0 +1,23 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {harness,find,session} from './workspace-harness.ts';
+import type {Resource} from '../lib/model.ts';
+const resource:Resource={key:'sites',fields:['address','city','province','postal_code','country_code'].map(name=>({name,type:'text',required:false}))};
+const props={resource,row:{id:'s',address:'Old street',city:'London',province:'London',postal_code:'OLD',country_code:'GB'},canWrite:true,session,scope:(p:string)=>p,load:async()=>[],onClose(){},onSaved:async()=>{},onError:()=> 'error'};
+const old={address:'Old street',city:'London',province:'London',postal_code:'OLD',country_code:'GB'};
+test('address inputs use reusable parent-draft autocomplete; selection clears incompatible absent children without guessing',()=>{
+ const h=harness('en');const tree=h.components.RecordEditor(props);
+ const city=find(tree,n=>n.type?.name==='AddressAutocomplete'&&n.props.field==='city');
+ assert.ok(city,'city autocomplete component');
+ city.props.onSelect({label:'Capua, Italia',address:'',city:'Capua',province:'CE',postalCode:'',countryCode:'IT'});
+ const draft=(h.updates[0] as Function)(old);
+ assert.deepEqual(JSON.parse(JSON.stringify(draft)),{address:'',city:'Capua',province:'CE',postal_code:'',country_code:'IT'});
+ assert.deepEqual(h.apiCalls,[]);
+ for(const field of ['address','city','province','postal_code']) assert.ok(find(tree,n=>n.type?.name==='AddressAutocomplete'&&n.props.field===field));
+ const locked=harness('en',{3:true});const lockedTree=locked.components.RecordEditor(props);
+ const input=find(lockedTree,n=>n.type?.name==='AddressAutocomplete'&&n.props.field==='city');
+ assert.equal(input.props.disabled,true);
+ input.props.onSelect({label:'Rome',city:'Rome',countryCode:'IT'});
+ input.props.onChange('Rome');
+ assert.equal(locked.updates[0],undefined);
+});

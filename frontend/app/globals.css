@@ -1,0 +1,158 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+:root {
+  --background: #ffffff;
+  --foreground: #0b1f43;
+  --card: #ffffff;
+  --card-foreground: #0b1f43;
+  --popover: #ffffff;
+  --popover-foreground: #0b1f43;
+  --primary: #0b1f43;
+  --primary-foreground: #ffffff;
+  --secondary: #eef4ff;
+  --secondary-foreground: #0b1f43;
+  --muted: #f3f6fb;
+  --muted-foreground: #5f6f89;
+  --accent: #e8f5fc;
+  --accent-foreground: #075fe8;
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: #dce5f1;
+  --input: #dce5f1;
+  --ring: #0878ed;
+  --chart-1: #0b1f43;
+  --chart-2: #075fe8;
+  --chart-3: #0878ed;
+  --chart-4: #09a9e0;
+  --chart-5: #7bc9eb;
+  --radius: 0.625rem;
+  --sidebar: #f7f9fc;
+  --sidebar-foreground: #0b1f43;
+  --sidebar-primary: #075fe8;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e8f5fc;
+  --sidebar-accent-foreground: #075fe8;
+  --sidebar-border: #dce5f1;
+  --sidebar-ring: #0878ed;
+}
+.dark {
+  --background: #08152c;
+  --foreground: #f1f6ff;
+  --card: #0d203e;
+  --card-foreground: #f1f6ff;
+  --popover: #0d203e;
+  --popover-foreground: #f1f6ff;
+  --primary: #3b82f6;
+  --primary-foreground: #ffffff;
+  --secondary: #142b4d;
+  --secondary-foreground: #e7f0ff;
+  --muted: #14233b;
+  --muted-foreground: #a4b4cc;
+  --accent: #123954;
+  --accent-foreground: #58c5ee;
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: #263d5d;
+  --input: #263d5d;
+  --ring: #38a9ef;
+  --chart-1: #3b82f6;
+  --chart-2: #2563eb;
+  --chart-3: #0878ed;
+  --chart-4: #09a9e0;
+  --chart-5: #7bc9eb;
+  --sidebar: #0d203e;
+  --sidebar-foreground: #f1f6ff;
+  --sidebar-primary: #3b82f6;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #123954;
+  --sidebar-accent-foreground: #58c5ee;
+  --sidebar-border: #263d5d;
+  --sidebar-ring: #38a9ef;
+}
+@layer base {
+  * { @apply border-border outline-ring/50; }
+  body { @apply bg-background text-foreground font-sans; }
+}
+@layer components {
+  .startup { @apply flex min-h-svh flex-col items-center justify-center gap-6; }
+  .topbar { @apply flex h-16 shrink-0 items-center justify-between gap-2 border-b px-4 md:px-6; }
+  .topbar-leading, .topbar-actions, .breadcrumb { @apply flex min-w-0 items-center gap-2; }
+  .breadcrumb { @apply hidden text-sm text-muted-foreground sm:flex; }
+  .breadcrumb strong { @apply truncate font-medium text-foreground; }
+  .tenant-bar { @apply flex flex-wrap items-center gap-3 border-b px-4 py-3 md:px-6; }
+  .workspace { @apply flex-1 space-y-4 p-4 outline-none md:p-6; }
+  .page-heading { @apply flex items-center justify-between gap-4; }
+  .page-heading h1 { @apply text-2xl font-semibold tracking-tight; }
+  .eyebrow { @apply mb-1 text-sm text-muted-foreground; }
+  .table-toolbar { @apply flex items-center gap-3 border-b p-4; }
+  .search-box { @apply flex min-w-0 max-w-sm flex-1 items-center gap-2; }
+  .search-box > svg { @apply shrink-0 text-muted-foreground; }
+  .table-count { @apply ml-auto whitespace-nowrap text-xs text-muted-foreground; }
+  .table-scroll { @apply min-h-72; }
+  .primary-cell { @apply font-medium; }
+  .actions-cell { @apply w-32 text-right; }
+  .row-actions { @apply flex justify-end gap-1; }
+  .pagination { @apply flex flex-wrap items-center justify-between gap-3 border-t p-4 text-sm text-muted-foreground; }
+  .pagination > div { @apply flex gap-2; }
+  .table-empty, .empty-state { @apply flex min-h-72 flex-col items-center justify-center gap-4 text-muted-foreground; }
+  .app-footer { @apply flex justify-between gap-4 border-t px-4 py-3 text-xs text-muted-foreground md:px-6; }
+  .success { @apply mb-4 flex items-center gap-2 rounded-lg border p-3 text-sm; }
+  .field { @apply mb-4 flex min-w-0 flex-col gap-2; }
+  .optional { @apply font-normal text-muted-foreground; }
+  .form-grid { @apply grid grid-cols-1 gap-x-5 sm:grid-cols-2; }
+  .field-wide { @apply col-span-full; }
+  .switch-field { @apply col-span-full flex-row items-center justify-between rounded-lg border p-3; }
+  .editor-scroll { @apply min-h-0 overflow-y-auto px-1; }
+  .relations-section { @apply mt-5 space-y-3 border-t pt-5; }
+  .relation-heading { @apply flex items-center gap-2 text-sm font-medium; }
+  .relation-options { @apply max-h-60 overflow-y-auto rounded-md border; }
+  .relation-option { @apply flex cursor-pointer items-center gap-3 border-b p-3 last:border-0; }
+  .relation-option > span { @apply flex-1; }
+  .relation-option strong { @apply text-sm font-medium; }
+  .relation-option small { @apply block text-xs text-muted-foreground; }
+  .relation-options > p, .relation-options > span { @apply block p-4 text-sm text-muted-foreground; }
+  .read-only { @apply mr-auto self-center text-xs text-muted-foreground; }
+  .password-form { @apply mt-3; }
+  .password-form > button { @apply w-full; }
+  .password-page { @apply grid min-h-svh place-items-center p-6; }
+  .password-page h1 { @apply text-xl font-semibold; }
+  .skip-link { @apply sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-background focus:p-3 focus:ring-2; }
+}
