@@ -29,7 +29,7 @@ for(const locale of ['it','en']) test(`settings contains the complete master dat
 test('settings intermediates preserve their state on metadata refresh without parent-data access',async()=>{
  for(const active of ['settings-master-data','settings-business-partners','business-partner-numbering']) {
   const h=harness('en',{0:reader,1:false,5:resources,6:active,7:'t'},(path:string)=>path==='/session'?reader:path==='/resources'?resources:{items:[],total:0});
-  h.components.default();h.effects[1]();await new Promise(resolve=>setImmediate(resolve));
+  h.components.default();h.effects[2]();await new Promise(resolve=>setImmediate(resolve));
   assert.equal((h.updates[6] as (current:string)=>string)(active),active);
  }
 });

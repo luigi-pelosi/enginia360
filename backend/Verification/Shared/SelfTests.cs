@@ -247,8 +247,8 @@ public static class SelfTests
             Reject(() => ResourceCatalog.Validate(r,JsonSerializer.SerializeToElement(new {name="Vendite"}),true));
             Reject(() => ResourceCatalog.Validate(r,JsonSerializer.SerializeToElement(new {company_id=company}),true));
         });
-        Test("commercial finite55 catalog and assign scope native isolation",() => {
-            if(PermissionCatalog.Codes.Length!=55 || !Allowed("purchasing-organizations.assign_scope",["purchasing-organizations.assign_scope"])) throw new Exception("55 codes including native assign_scope required.");
+        Test("commercial finite61 catalog and assign scope native isolation",() => {
+            if(PermissionCatalog.Codes.Length!=61 || !Allowed("purchasing-organizations.assign_scope",["purchasing-organizations.assign_scope"])) throw new Exception("61 codes including native assign_scope required.");
             foreach(var other in new[]{"read","create","update","delete"}) {
                 if(Allowed("purchasing-organizations.assign_scope",["purchasing-organizations."+other]) || Allowed("purchasing-organizations."+other,["purchasing-organizations.assign_scope"])) throw new Exception("Coverage and profile authority conflated.");
             }

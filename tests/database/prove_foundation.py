@@ -21,6 +21,9 @@ from dbbaseline import CONTAINER, SCOPE, sql, dump_schema, normalize_dump, norma
 from test_foundation import TABLES, table_schema
 
 ROOT=Path(__file__).resolve().parents[2]
+import sys
+sys.path.insert(0, str(ROOT))
+from database.sql_source import load_foundation_sql
 IMAGE='postgres:18.6-alpine3.24@sha256:123b17998ccaf47e53b502e8c6a1e79afd8f579c6f3eec83c563da026f957395'
 
 
@@ -33,7 +36,7 @@ def main():
     if 'CREATE SCHEMA foundation;' not in oracle or 'CREATE SCHEMA masterdata;' not in oracle or len(re.findall(r'^CREATE TABLE (?:foundation|masterdata)\.',oracle,re.M))!=len(TABLES):
         raise RuntimeError(f'Oracolo incompleto o non conforme: attese {len(TABLES)} tabelle foundation/masterdata')
     args.output.mkdir(parents=True,exist_ok=True)
-    baseline=(ROOT/'database/foundation.sql').read_text()
+    baseline=load_foundation_sql()
     (args.output/'foundation.sql').write_text(baseline)
     report={'image':IMAGE,'container':CONTAINER,'scope':SCOPE,
             'foundation_sha256':hashlib.sha256(baseline.encode()).hexdigest(),

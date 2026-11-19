@@ -21,7 +21,7 @@ test('read-only detail fields stay disabled and no Save appears', () => {
 test('global user detail does not load tenant user-role relations', async () => {
  const h = harness();
  h.components.RecordEditor({resource: {key: 'users', fields: []}, row: {id: 'u', tenant_id: null}, session: {...session, isSuperAdmin: true, tenantId: null}, canWrite: false, scope: (p:string) => p, load: async () => {throw Error('unexpected target load')}, onClose() {}, onSaved: async () => {}, onError: () => 'error'});
- h.effects[0]();
+ h.effects[1]();
  await new Promise(resolve => setTimeout(resolve, 0));
  assert.deepEqual(h.apiCalls, []);
  assert.deepEqual(Object.keys(h.updates[5] as object), []);
@@ -30,7 +30,7 @@ test('relation choices exclude global users while preserving the full Users list
  const options = [{id:'global',tenant_id:null},{id:'tenant',tenant_id:'t'}];
  const h = harness('it', {}, {ids: []});
  h.components.RecordEditor({resource: {key:'groups', fields:[]}, row:{id:'g',tenant_id:'t'}, session:{...session,permissions:['groups.read','users.read','groups.assign_users']}, canWrite:false, scope:(p:string)=>p, load:async()=>options,onClose(){},onSaved:async()=>{},onError:()=> 'error'});
- h.effects[0](); await new Promise(resolve=>setTimeout(resolve,0));
+ h.effects[1](); await new Promise(resolve=>setTimeout(resolve,0));
  assert.deepEqual(JSON.parse(JSON.stringify((h.updates[5] as Record<string, {options: unknown[]}>)['group-users'].options)), [options[1]]);
  assert.equal(options.length,2);
 });

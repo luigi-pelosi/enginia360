@@ -4,6 +4,12 @@ import {addressDriver} from './address-component-harness.ts';
 import {find} from './workspace-harness.ts';
 const settle=()=>new Promise(resolve=>setImmediate(resolve));
 const base={id:'field-country_code',value:'FR',scope:(p:string)=>p+'?tenantId=A',disabled:false,required:false,onChange(_value:string){}};
+test('country control preserves supplied field feedback alongside lookup failure',async()=>{
+ const d=addressDriver(async()=>{throw Error('unavailable');},'en','SiteCountrySelect');
+ const props={...base,'aria-invalid':true,'aria-describedby':'validation-message'};
+ d.render(props);await settle();const tree=d.render(props),trigger=find(tree,n=>n.props?.id===base.id);
+ assert.equal(trigger.props['aria-invalid'],true);assert.equal(trigger.props['aria-describedby'],'validation-message field-country_code-lookup-error');d.unmount();
+});
 test('site read-only details preserve legacy country label without requesting mutation-authorized countries endpoint',async()=>{
  const calls:any[]=[],changed:string[]=[];
  const d=addressDriver(async(...args)=>{calls.push(args);throw Error('forbidden');},'it','SiteCountrySelect');

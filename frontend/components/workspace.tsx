@@ -49,12 +49,13 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { ProfileDialog } from "@/components/profile-dialog";
-import { BusinessPartnerWorkspace } from "@/components/business-partner-workspace";
-import { BusinessPartnerNumbering } from "@/components/business-partner-numbering";
+import { BusinessPartnerWorkspace, clearBusinessPartnerRecoveries, resetBusinessPartnerRecovery } from "@/components/business-partner-workspace";
+import { BusinessPartnerNumbering, resetBusinessPartnerNumberingRecovery } from "@/components/business-partner-numbering";
 import { AddressAutocomplete, addressSelection, type AddressField } from "@/components/address-autocomplete";
 import { SiteCountrySelect } from "@/components/site-country-select";
 import { PermissionTree } from "@/components/permission-tree";
 import { PurchasingCoverageEditor, coverageChanged, coverageValid, type CoverageDraft, type CoverageEntry } from "@/components/purchasing-coverage-editor";
+import { RoleCompanyAccess } from "@/components/role-company-access";
 import { api, ApiError, refreshCsrf } from "@/lib/api";
 import { passwordValidation } from "@/lib/password";
 import it from "../messages/it.json";
@@ -64,6 +65,8 @@ import {
   permissionLabel,
   permissionMatches,
   navigationSections as sections,
+  settingsCatalogs,
+  partnerSettingsParents,
   canRelation,
   relations,
   relationOptions,
@@ -97,15 +100,65 @@ const icons: Record<string, typeof Building2> = {
   roles: ShieldCheck,
   permissions: KeyRound,
 };
-const settingsCatalogs = ["countries", "cities"];
-const partnerSettingsParents: Record<string, string> = {
-  "settings-master-data": "settings",
-  "settings-business-partners": "settings-master-data",
-  "business-partner-numbering": "settings-business-partners",
-};
 function canOpenResource(session: Session, key: string) {
   if (key in partnerSettingsParents) return can(session, "business-partner-numbering", "read");
   return key === "settings" || can(session, key, "read");
+}
+/* workspace-navigation-helpers */
+function workspaceRoute(search: string, allowed: string[]): string {
+  const values = new URLSearchParams(search).getAll("view");
+  return values.length === 1 && allowed.includes(values[0]) ? values[0] : "";
+}
+function workspaceTenantKey(session: {id: string}): string {
+  return `workspace-tenant:${encodeURIComponent(session.id)}`;
+}
+function workspaceTenant(session: Session, available: Row[]): string {
+  if (!session.isSuperAdmin) return session.tenantId || "";
+  let selected = session.selectedTenantId || "";
+  try { selected = sessionStorage.getItem(workspaceTenantKey(session)) ?? selected; }
+  catch { /* La selezione del login resta disponibile senza storage. */ }
+  return !selected || available.some(row => row.id === selected) ? selected : "";
+}
+function rememberWorkspaceTenant(session: Session, tenant: string) {
+  if (!session.isSuperAdmin) return;
+  try { sessionStorage.setItem(workspaceTenantKey(session), tenant); }
+  catch { /* La selezione resta utilizzabile nella pagina corrente. */ }
+}
+/* end-workspace-navigation-helpers */
+
+/* profile-recovery-helpers */
+function profileRecoveryKey(session: {id: string}, tenant: string) {
+  return session.id && tenant ? `profile-open:${encodeURIComponent(session.id)}:${encodeURIComponent(tenant)}` : null;
+}
+function clearProfileRecovery(session: {id: string}, tenant: string) {
+  const key = profileRecoveryKey(session, tenant);
+  if (!key) return;
+  try {
+    sessionStorage.removeItem(key);
+    sessionStorage.removeItem(`profile-draft:${encodeURIComponent(session.id)}:${encodeURIComponent(tenant)}`);
+  } catch { /* Storage is optional. */ }
+}
+function clearUserProfileRecoveries(session: {id: string}) {
+  try {
+    const id = encodeURIComponent(session.id);
+    for (let i = sessionStorage.length - 1; i >= 0; i--) {
+      const key = sessionStorage.key(i);
+      if (key?.startsWith(`profile-open:${id}:`) || key?.startsWith(`profile-draft:${id}:`)) sessionStorage.removeItem(key);
+    }
+  } catch { /* Storage is optional. */ }
+}
+/* end-profile-recovery-helpers */
+/* record-recovery-helpers */
+function recoverableValues(fields: {name: string; type: string}[], values: Record<string, unknown>) {
+  return Object.fromEntries(fields.filter(field => field.type !== "json" && field.type !== "password" && !/(password|secret|token|api.?key|credential)/i.test(field.name)).filter(field => Object.hasOwn(values, field.name)).map(field => [field.name, values[field.name]]));
+}
+/* end-record-recovery-helpers */
+function recordRecoveryKey(session: Session, tenant: string, resource: string) {return `workspace:${session.id}:${tenant}:record:${resource}`;}
+function recordPendingKey(session: Session, tenant: string, resource: string) {return `record-pending:${session.id}:${tenant}:${resource}`;}
+function clearRecordRecovery(session: Session, tenant: string, resource: string) {
+  try {
+    if (!sessionStorage.getItem(recordPendingKey(session, tenant, resource))) sessionStorage.removeItem(recordRecoveryKey(session, tenant, resource));
+  } catch { /* Preserve recovery if storage is unavailable. */ }
 }
 type Result = { items: Row[]; total: number; page: number; pageSize: number };
 const permissionMessages = [it, en];
@@ -190,6 +243,16 @@ export default function Workspace() {
   const [username, setUsername] = useState(""),
     [password, setPassword] = useState(""),
     [tenantCode, setTenantCode] = useState("");
+  const [partnerWorkspaceVersion, setPartnerWorkspaceVersion] = useState(0);
+  const [workspaceVersion, setWorkspaceVersion] = useState(0);
+  const [navigationReady, setNavigationReady] = useState(false);
+  const restoredNavigation = useRef(false);
+  useEffect(() => {
+    if (initial || !session || session.mustChangePassword || !tenant) { setProfileOpen(false); return; }
+    const key = profileRecoveryKey(session, tenant);
+    try { setProfileOpen(!!key && sessionStorage.getItem(key) === "1"); }
+    catch { setProfileOpen(false); }
+  }, [initial, session?.id, session?.mustChangePassword, tenant]);
   const translateError = useCallback(
     (e: unknown) => {
       const code = e instanceof ApiError ? e.code : "server_error";
@@ -230,13 +293,19 @@ export default function Workspace() {
     setTenants(result);
     return result;
   }, []);
+  const prepareSession = useCallback(async (s: Session): Promise<Session> => {
+    if (!s.isSuperAdmin || s.mustChangePassword) return s;
+    const available = await loadTenants();
+    return {...s, selectedTenantId: workspaceTenant(s, available)};
+  }, [loadTenants]);
   useEffect(() => {
     let mounted = true;
     api<Session>("/session")
+      .then(prepareSession)
       .then((s) => {
         if (mounted) {
           setSession(s);
-          setTenant(s.selectedTenantId || s.tenantId || "");
+          setTenant(s.selectedTenantId ?? s.tenantId ?? "");
         }
       })
       .catch((e) => {
@@ -249,7 +318,10 @@ export default function Workspace() {
     return () => {
       mounted = false;
     };
-  }, [translateError]);
+  }, [translateError, prepareSession]);
+  useEffect(() => {
+    if (!initial && session && !session.mustChangePassword) rememberWorkspaceTenant(session, tenant);
+  }, [initial, session?.id, session?.isSuperAdmin, session?.mustChangePassword, tenant]);
   useEffect(() => {
     if (!session || session.mustChangePassword) return;
     let alive = true;
@@ -257,10 +329,24 @@ export default function Workspace() {
       .then((data) => {
         if (!alive) return;
         setResources(data);
+        const allowed = [...data.map(item => item.key), ...Object.keys(partnerSettingsParents)].filter(key => canOpenResource(session, key));
+        const requested = typeof window === "undefined" ? "" : workspaceRoute(window.location.search, allowed);
+        const fallback = data.find(x => !settingsCatalogs.includes(x.key) && canOpenResource(session, x.key))?.key || "";
+        if (!restoredNavigation.current && typeof window !== "undefined") {
+          const route = requested || fallback;
+          try {
+            const stored = JSON.parse(sessionStorage.getItem(`workspace:${session.id}:${session.selectedTenantId || session.tenantId || ""}:${route}`) || "null");
+            if (stored && typeof stored.search === "string" && Number.isSafeInteger(stored.page) && stored.page > 0) {
+              setSearch(stored.search); setQuery(stored.search); setPage(stored.page);
+            }
+          } catch { /* Storage can be unavailable or contain invalid data. */ }
+          restoredNavigation.current = true;
+          setNavigationReady(true);
+        }
         setActive((current) =>
           (current in partnerSettingsParents && canOpenResource(session, current)) || data.some((x) => x.key === current && canOpenResource(session, x.key))
             ? current
-            : data.find((x) => !settingsCatalogs.includes(x.key) && canOpenResource(session, x.key))?.key || "",
+            : requested || fallback,
         );
       })
       .catch((e) => setError(translateError(e)));
@@ -273,7 +359,6 @@ export default function Workspace() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setQuery(search);
-      setPage(1);
     }, 300);
     return () => clearTimeout(timer);
   }, [search]);
@@ -319,7 +404,43 @@ export default function Workspace() {
       alive = false;
     };
   }, [session, active, tenant, page, query, version, scope, allRows, translateError]);
+  useEffect(() => {
+    if (!navigationReady || !session || !active || !canOpenResource(session, active)) return;
+    try {
+      sessionStorage.setItem(`workspace:${session.id}:${tenant}:${active}`, JSON.stringify({search, page}));
+      const url = `${window.location.pathname}?view=${encodeURIComponent(active)}`;
+      if (window.location.pathname + window.location.search !== url) window.history.replaceState(null, "", url);
+    } catch { /* Navigation remains usable when storage or history is blocked. */ }
+  }, [navigationReady, session, tenant, active, search, page]);
+  useEffect(() => {
+    if (!navigationReady || !session) return;
+    const onPopState = () => {
+      if (editor) clearRecordRecovery(session, tenant, editor.resource.key);
+      const allowed = [...resources.map(item => item.key), ...Object.keys(partnerSettingsParents)].filter(key => canOpenResource(session, key));
+      const route = workspaceRoute(window.location.search, allowed) || resources.find(item => !settingsCatalogs.includes(item.key) && canOpenResource(session, item.key))?.key || "";
+      setActive(route); setSearch(""); setQuery(""); setPage(1); setNotice(""); setEditor(null); setDeleting(null);
+      try {
+        const stored = JSON.parse(sessionStorage.getItem(`workspace:${session.id}:${tenant}:${route}`) || "null");
+        if (stored && typeof stored.search === "string" && Number.isSafeInteger(stored.page) && stored.page > 0) {
+          setSearch(stored.search); setQuery(stored.search); setPage(stored.page);
+        }
+      } catch { /* Ignore unavailable or invalid storage. */ }
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [navigationReady, session, resources, tenant, editor]);
   const resource = resources.find((x) => x.key === active);
+  const recoveryOpened = useRef("");
+  useEffect(() => {
+    if (!navigationReady || !session || !resource || !active) return;
+    const key = recordRecoveryKey(session, tenant, active);
+    if (recoveryOpened.current === key) return;
+    recoveryOpened.current = key;
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(key) || "null");
+      if (saved?.kind === "create" && !resource.readOnly && can(session, active, "create")) setEditor({resource, row: null});
+    } catch { /* Ignore invalid or unavailable storage. */ }
+  }, [navigationReady, session, tenant, active, resource]);
   const accessible = useMemo(
     () => resources.filter((x) => session && canOpenResource(session, x.key)),
     [resources, session],
@@ -357,6 +478,7 @@ export default function Workspace() {
         ...(tenantCode ? { tenantCode } : {}),
       });
       await refreshCsrf();
+      rememberWorkspaceTenant(s, s.selectedTenantId ?? s.tenantId ?? "");
       setPassword("");
       document.cookie = `locale=${s.preferredLanguage}; Path=/; Max-Age=31536000; SameSite=Strict`;
       if (s.preferredLanguage !== locale) {
@@ -364,7 +486,7 @@ export default function Workspace() {
         return;
       }
       setSession(s);
-      setTenant(s.selectedTenantId || s.tenantId || "");
+      setTenant(s.selectedTenantId ?? s.tenantId ?? "");
       setVersion((v) => v + 1);
     } catch (e) {
       setError(translateError(e));
@@ -376,6 +498,24 @@ export default function Workspace() {
     setBusy(true);
     try {
       await api("/auth/logout", "POST");
+      if (session) clearBusinessPartnerRecoveries(session);
+      if (session) clearUserProfileRecoveries(session);
+      setProfileOpen(false);
+      try {
+        if (session) sessionStorage.removeItem(workspaceTenantKey(session));
+        const prefix = `workspace:${session?.id}:`;
+        for (let i = sessionStorage.length - 1; i >= 0; i--) {
+          const key = sessionStorage.key(i);
+          if (key?.startsWith(prefix)) {
+            const match = key.match(/^workspace:([^:]+):([^:]+):record:(.+)$/);
+            if (!match || !sessionStorage.getItem(`record-pending:${match[1]}:${match[2]}:${match[3]}`)) sessionStorage.removeItem(key);
+          }
+        }
+        window.history.replaceState(null, "", window.location.pathname);
+      } catch { /* Storage may be disabled. */ }
+      restoredNavigation.current = false;
+      setNavigationReady(false);
+      setSearch(""); setQuery(""); setPage(1);
       setSession(null);
       setRows([]);
       setResources([]);
@@ -392,11 +532,27 @@ export default function Workspace() {
     }
   }
   function navigate(key: string) {
+    if (session && editor) clearRecordRecovery(session, tenant, editor.resource.key);
+    if (session) clearProfileRecovery(session, tenant);
+    if (key !== active && typeof window !== "undefined") {
+      try { window.history.pushState(null, "", `${window.location.pathname}?view=${encodeURIComponent(key)}`); } catch { /* History may be disabled. */ }
+    }
+    if (key === "business-partners") {
+      if (session) resetBusinessPartnerRecovery(session, tenant);
+      setPartnerWorkspaceVersion(current => current + 1);
+    }
+    if (key === "business-partner-numbering" && session) resetBusinessPartnerNumberingRecovery(session, tenant);
+    setWorkspaceVersion(current => current + 1);
     setActive(key);
+    setEditor(null);
+    setDeleting(null);
+    setProfileOpen(false);
+    setResetUser(null);
     setSearch("");
     setQuery("");
     setPage(1);
     setNotice("");
+    setError("");
   }
   async function saved(row: Row, key: string) {
     setEditor(null);
@@ -506,6 +662,13 @@ export default function Workspace() {
     : key === "business-partner-numbering" ? t("numbering") : r(key);
   const settingsTrail: string[] = [];
   for (let key = partnerSettingsParents[active]; key; key = partnerSettingsParents[key]) settingsTrail.unshift(key);
+  const heading = <div>
+    <div className="eyebrow">
+      {settingsTrail.length ? settingsTrail.map((key, index) => <span key={key}>{index > 0 && <span aria-hidden="true"> › </span>}<button type="button" onClick={() => navigate(key)}>{pageTitle(key)}</button></span>) : t(sections.find((s) => s.keys.includes(active))?.label || "administration")}
+    </div>
+    <h1>{active ? pageTitle(active) : t("noAccess")}</h1>
+  </div>;
+  const showPartnerWorkspace = active === "business-partners" && !needTenant && canOpenResource(session, active);
   const nextSettingsPage = Object.keys(partnerSettingsParents).find(key => partnerSettingsParents[key] === active);
   const settingsTile = nextSettingsPage && can(session, "business-partner-numbering", "read") && <button type="button" className="rounded-xl border bg-card p-6 text-left transition-colors hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={() => navigate(nextSettingsPage)}>
     {nextSettingsPage === "business-partner-numbering" ? <Settings className="mb-4 size-8 text-primary" /> : <UsersRound className="mb-4 size-8 text-primary" />}<h2 className="text-lg font-semibold">{pageTitle(nextSettingsPage)}</h2>
@@ -542,7 +705,11 @@ export default function Workspace() {
                   <span className="block font-medium">{session.displayName}</span><span className="block text-xs text-muted-foreground">{session.username}</span>
                 </DropdownMenu.Label>
                 <DropdownMenu.Separator className="my-1 h-px bg-border" />
-                <DropdownMenu.Item id="personal-profile-menu-item" onSelect={() => setProfileOpen(true)} className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-2 text-sm outline-none focus:bg-accent">
+                <DropdownMenu.Item id="personal-profile-menu-item" onSelect={() => {
+                  const key = profileRecoveryKey(session, tenant);
+                  try { if (key) sessionStorage.setItem(key, "1"); } catch { /* Storage is optional. */ }
+                  setProfileOpen(true);
+                }} className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-2 text-sm outline-none focus:bg-accent">
                   <UserRound size={16} />{t("personalProfile")}
                 </DropdownMenu.Item>
                 <DropdownMenu.Item id="user-logout-menu-item" disabled={busy} onSelect={() => { void logout(); }} className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-2 text-sm outline-none focus:bg-accent data-[disabled]:opacity-50">
@@ -557,6 +724,10 @@ export default function Workspace() {
             <Building2 size={17} />
             <Label htmlFor="tenant-select">{t("tenant")}</Label>
             <Select value={tenant || "__none__"} onValueChange={(value) => {
+              if (editor) clearRecordRecovery(session, tenant, editor.resource.key);
+              clearProfileRecovery(session, tenant);
+              setProfileOpen(false);
+              setEditor(null);
               setTenant(value === "__none__" ? "" : value);
               setPage(1); setSearch(""); setQuery(""); setNotice("");
             }}>
@@ -582,23 +753,15 @@ export default function Workspace() {
         <section id="main" className="workspace" tabIndex={-1}>
           {settingsCatalogs.includes(active) && <Button variant="outline" className="mb-4" onClick={() => navigate("settings")}>{t("backToSettings")}</Button>}
           {active in partnerSettingsParents && <Button variant="outline" className="mb-4" onClick={() => navigate(partnerSettingsParents[active])}>{t(active === "business-partner-numbering" ? "backToBusinessPartners" : active === "settings-business-partners" ? "backToMasterData" : "backToSettings")}</Button>}
-          <div className="page-heading">
-            <div>
-              <div className="eyebrow">
-                {settingsTrail.length ? settingsTrail.map((key, index) => <span key={key}>{index > 0 && <span aria-hidden="true"> › </span>}<button type="button" onClick={() => navigate(key)}>{pageTitle(key)}</button></span>) : t(
-                  sections.find((s) => s.keys.includes(active))?.label ||
-                    "administration",
-                )}
-              </div>
-              <h1>{active ? pageTitle(active) : t("noAccess")}</h1>
-            </div>
+          {!showPartnerWorkspace && <div className="page-heading">
+            {heading}
             {resource && !["settings", "business-partners", "business-partner-numbering"].includes(active) && !resource.readOnly && !needTenant && can(session, active, "create") && (
               <Button onClick={() => setEditor({ resource, row: null })}>
                 <Plus size={17} />
                 {t("new")}
               </Button>
             )}
-          </div>
+          </div>}
           <Notice message={error} />
           {notice && (
             <div className="success" role="status">
@@ -634,9 +797,9 @@ export default function Workspace() {
               )}
             </Card>
           ) : active === "business-partners" && canOpenResource(session, active) ? (
-            <BusinessPartnerWorkspace key={tenant} session={session} scope={scope} onError={translateError} />
+            <BusinessPartnerWorkspace key={`${tenant}:${partnerWorkspaceVersion}`} session={session} tenantId={tenant} scope={scope} onError={translateError} heading={heading} />
           ) : active === "business-partner-numbering" && can(session, active, "read") ? (
-            <BusinessPartnerNumbering key={tenant} session={session} scope={scope} onError={translateError} />
+            <BusinessPartnerNumbering key={`${tenant}:${workspaceVersion}`} session={session} tenantId={tenant} scope={scope} onError={translateError} />
           ) : resource ? (
             <Card id={active === "settings" ? "settings-panel-general" : undefined} role={active === "settings" ? "tabpanel" : undefined} aria-labelledby={active === "settings" ? "settings-tab-general" : undefined} className="gap-0 overflow-hidden py-0" aria-label={r(active)}>
               <div className="table-toolbar">
@@ -646,7 +809,7 @@ export default function Workspace() {
                     aria-label={t("search")}
                     value={search}
                     placeholder={t("search")}
-                    onChange={(e) => setSearch(e.target.value)}
+                    onChange={(e) => {setSearch(e.target.value); setPage(1);}}
                   />
                 </div>
                 <div className="table-count">
@@ -835,9 +998,10 @@ export default function Workspace() {
           row={editor.row}
           canWrite={!editor.resource.readOnly && can(session, editor.resource.key, editor.row ? "update" : "create", editor.row)}
           session={session}
+          tenant={tenant}
           scope={scope}
           load={allRows}
-          onClose={() => setEditor(null)}
+          onClose={() => {clearRecordRecovery(session, tenant, editor.resource.key); setEditor(null);}}
           onSaved={saved}
           onError={translateError}
         />
@@ -867,7 +1031,8 @@ export default function Workspace() {
         </AlertDialogContent>
       </AlertDialog>
       {profileOpen && <ProfileDialog
-        onClose={() => setProfileOpen(false)}
+        session={{...session, selectedTenantId: tenant, tenantId: tenant}}
+        onClose={() => { clearProfileRecovery(session, tenant); setProfileOpen(false); }}
         onError={translateError}
         onSaved={fresh => {
           setSession(fresh);
@@ -963,6 +1128,7 @@ function RecordEditor({
   row,
   canWrite,
   session,
+  tenant,
   scope,
   load,
   onClose,
@@ -973,6 +1139,7 @@ function RecordEditor({
   row: Row | null;
   canWrite: boolean;
   session: Session;
+  tenant: string;
   scope: (path: string) => string;
   load: (key: string) => Promise<Row[]>;
   onClose: () => void;
@@ -1021,6 +1188,24 @@ function RecordEditor({
   const editableRelations = visibleRelations.filter(relation => canRelation(session, resource.key, relation.key, "assign", owner));
   const canSave = canWrite || editableRelations.length > 0 || coverageEditable;
   const submitting = useRef(false);
+  const recoveryKey = recordRecoveryKey(session, tenant, resource.key);
+  const pendingKey = recordPendingKey(session, tenant, resource.key);
+  const [uncertainCreate, setUncertainCreate] = useState(false);
+  const recovery = useRef<any>(null);
+  const [recoveryReady, setRecoveryReady] = useState(false);
+  useEffect(() => {
+    if (!row && canWrite) {
+      try {
+        setUncertainCreate(!!sessionStorage.getItem(pendingKey));
+        const saved = JSON.parse(sessionStorage.getItem(recoveryKey) || "null");
+        if (saved?.kind === "create") {
+          recovery.current = saved;
+          if (saved.values && typeof saved.values === "object") setValues(old => ({...old, ...recoverableValues(resource.fields, saved.values)}));
+        }
+      } catch { /* Ignore invalid or unavailable storage. */ }
+    }
+    setRecoveryReady(true);
+  }, [recoveryKey, row, canWrite, resource.fields]);
   useEffect(() => {
     let alive = true;
     setRelationsLoading(true);
@@ -1032,7 +1217,10 @@ function RecordEditor({
       ]);
       return [relation.key, {options: relationOptions(relation.target, options), initialIds: data.ids, ids: data.ids}] as const;
     })).then(entries => {
-      if (alive) setDrafts(Object.fromEntries(entries));
+      if (alive) setDrafts(Object.fromEntries(entries.map(([key, draft]) => {
+        const saved = recovery.current?.links?.[key];
+        return [key, {...draft, ids: Array.isArray(saved) && saved.every((id: unknown) => typeof id === "string") ? saved : draft.ids}];
+      })));
     }).catch(e => {
       if (alive) setRelationsError(onError(e));
     }).finally(() => {
@@ -1072,11 +1260,18 @@ function RecordEditor({
       load("companies"), load("sites"),
       row ? api<{coverage: CoverageEntry[]}>(scope(`/data/purchasing-organizations/${row.id}/coverage`)) : Promise.resolve({coverage: [] as CoverageEntry[]}),
     ]).then(([companies, sites, data]) => {
-      if (alive) setCoverageDraft({companies, sites, initial: data.coverage, coverage: data.coverage});
+      if (alive) setCoverageDraft({companies, sites, initial: data.coverage, coverage: Array.isArray(recovery.current?.coverage) ? recovery.current.coverage : data.coverage});
     }).catch(e => {if (alive) setCoverageError(onError(e));})
       .finally(() => {if (alive) setCoverageLoading(false);});
     return () => {alive = false};
   }, [coverageVisible, row, load, scope, onError]);
+  useEffect(() => {
+    if (row || !canWrite || !recoveryReady || relationsLoading || relationsError || (coverageVisible && (coverageLoading || coverageError || !coverageDraft))) return;
+    try {
+      const links = Object.fromEntries(editableRelations.filter(relation => drafts[relation.key]).map(relation => [relation.key, drafts[relation.key].ids]));
+      sessionStorage.setItem(recoveryKey, JSON.stringify({kind: "create", values: recoverableValues(resource.fields, values), links, ...(coverageEditable && coverageDraft ? {coverage: coverageDraft.coverage} : {})}));
+    } catch { /* Storage is optional. */ }
+  }, [row, canWrite, recoveryReady, relationsLoading, relationsError, coverageVisible, coverageLoading, coverageError, coverageDraft, coverageEditable, drafts, values, recoveryKey, resource.fields]);
   const set = (name: string, value: unknown) =>
     setValues((old) => ({ ...old, [name]: value }));
   const missingRequired = resource.fields.some(field => {
@@ -1104,7 +1299,7 @@ function RecordEditor({
   const hasChanges = !row && canWrite || invalidValues || Object.keys(changedValues).length > 0 || Object.keys(changedLinks).length > 0 || changedCoverage;
   const fiscalFields = resource.key === "sites" && resource.fields.some(field => field.name === "vat_number") && resource.fields.some(field => field.name === "tax_code");
   const missingFiscal = fiscalFields && !String(values.vat_number ?? "").trim() && !String(values.tax_code ?? "").trim();
-  const blocked = missingFiscal || busy || (canWrite && (refsLoading || missingRequired || refsFailed)) || pendingRelations || pendingCoverage || !hasChanges;
+  const blocked = (!row && (!recoveryReady || uncertainCreate)) || missingFiscal || busy || (canWrite && (refsLoading || missingRequired || refsFailed)) || pendingRelations || pendingCoverage || !hasChanges;
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!canSave || blocked || submitting.current) return;
@@ -1115,17 +1310,33 @@ function RecordEditor({
       ...(Object.keys(changedLinks).length > 0 ? {links: changedLinks} : {}),
       ...(changedCoverage ? {coverage: coverageDraft!.coverage} : {}),
     };
+    if (!row) {
+      try {
+        if (sessionStorage.getItem(pendingKey)) {setUncertainCreate(true); return;}
+        const links = Object.fromEntries(editableRelations.filter(relation => drafts[relation.key]).map(relation => [relation.key, drafts[relation.key].ids]));
+        sessionStorage.setItem(recoveryKey, JSON.stringify({kind: "create", values: recoverableValues(resource.fields, values), links, ...(coverageEditable && coverageDraft ? {coverage: coverageDraft.coverage} : {})}));
+        sessionStorage.setItem(pendingKey, "pending");
+        if (sessionStorage.getItem(pendingKey) !== "pending") throw new Error("storage unavailable");
+      } catch {setError(t("createStorageUnavailable")); return;}
+    }
     submitting.current = true;
     setBusy(true);
     let result: Row;
     try {
       result = await api<Row>(scope(`/data/${resource.key}${row ? `/${row.id}` : ""}/save`), row ? "PUT" : "POST", body);
     } catch (e) {
-      setError(onError(e));
+      if (!row) {
+        const rejected = e instanceof ApiError && [400, 401, 403, 404, 409, 422].includes(e.status);
+        if (rejected) {
+          try {sessionStorage.removeItem(pendingKey);} catch {setUncertainCreate(true);}
+          setError(onError(e));
+        } else {setUncertainCreate(true); setError(t("createOutcomeUncertain"));}
+      } else setError(onError(e));
       submitting.current = false;
       setBusy(false);
       return;
     }
+    if (!row) {try {sessionStorage.removeItem(pendingKey);} catch { /* Keep the conservative lock. */ }}
     // Il commit è concluso: un refresh fallito non deve rendere ripetibile il salvataggio.
     referenceCache = new WeakMap();
     onClose();
@@ -1151,7 +1362,7 @@ function RecordEditor({
         </DialogHeader>
         <div className="editor-scroll">
           <form onSubmit={submit} id="record-form">
-            <Notice message={error} />
+            <Notice message={uncertainCreate ? t("createOutcomeUncertain") : error} />
 
             <fieldset disabled={!canWrite || busy} className="form-grid">
               {resource.fields.map((field) => {
@@ -1297,6 +1508,7 @@ function RecordEditor({
           </form>
           <Notice message={relationsError} />
           <Notice message={coverageError} />
+          {resource.key === "roles" && row?.id && can(session, "roles", "read") && can(session, "companies", "read") && <RoleCompanyAccess key={row.id} roleId={row.id} {...{session, scope, onError}} />}
           {coverageVisible && <PurchasingCoverageEditor draft={coverageDraft} editable={coverageEditable} loading={coverageLoading} busy={busy}
             onChange={coverage => {
               if (!coverageEditable || busy || coverageLoading || coverageError) return;

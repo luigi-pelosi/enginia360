@@ -44,7 +44,7 @@ class BaselineInvariantTests(unittest.TestCase):
         self.assertEqual(sql("""SELECT bool_and(has_table_privilege('enginia360_app',c.oid,'SELECT')
             AND has_table_privilege('enginia360_app',c.oid,'INSERT')
             AND has_table_privilege('enginia360_app',c.oid,'UPDATE')
-            AND has_table_privilege('enginia360_app',c.oid,'DELETE') = (c.relname NOT IN ('business_partner','numbering_series','numbering_counter'))
+            AND has_table_privilege('enginia360_app',c.oid,'DELETE') = (c.relname NOT IN ('business_partner','numbering_series','numbering_counter','company_business_partner','company_business_partner_role'))
             AND NOT has_table_privilege('enginia360_app',c.oid,'TRUNCATE'))
             FROM pg_class c WHERE relnamespace IN ('foundation'::regnamespace,'masterdata'::regnamespace)
             AND relkind='r' AND relname<>'audit_event'""").stdout.strip(),'t')
@@ -65,7 +65,10 @@ class BaselineInvariantTests(unittest.TestCase):
                 'roles.assign_permissions','purchasing-organizations.assign_scope']
         codes+=['business-partners.read','business-partners.create','business-partners.update',
                 'business-partner-numbering.read','business-partner-numbering.update']
-        self.assertEqual(len(set(codes)),55)
+        codes+=['roles.assign_companies','business-partner-companies.read',
+                'business-partner-companies.create','business-partner-companies.update',
+                'business-partner-companies.use_customer','business-partner-companies.use_supplier']
+        self.assertEqual(len(set(codes)),61)
         base="BEGIN;INSERT INTO foundation.tenant(id,code,name) VALUES('95000000-0000-0000-0000-000000000001','catalog-proof','Verifica');"
         values=','.join("('95000000-0000-0000-0000-000000000001','"+c+"','Operazione',true)" for c in codes)
         result=sql(base+'INSERT INTO foundation.permission(tenant_id,code,name,is_system) VALUES '+values+';SELECT count(*) FROM foundation.role_permission;ROLLBACK;',role='enginia360_app')

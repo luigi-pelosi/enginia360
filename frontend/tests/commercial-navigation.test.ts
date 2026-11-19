@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
-import {can, navigationSections, permissionLabel, groupPermissions} from "../lib/model.ts";
+import {can, navigationSections, permissionLabel, groupPermissions, permissionRows} from "../lib/model.ts";
 import {workspace, session} from "./workspace-harness.ts";
 import {catalog} from "./permission-catalog.ts";
 for (const locale of ["it", "en"]) test(`commercial navigation and precise authorities ${locale}`, () => {
@@ -19,6 +19,6 @@ for (const locale of ["it", "en"]) test(`commercial navigation and precise autho
   assert.equal(permissionLabel({id: "scope", code: "purchasing-organizations.assign_scope"}, messages), `${messages.resources["purchasing-organizations"]} · ${messages.permissionActions.assign_scope}`);
 });
 test("commercial catalog is finite and grouped by the shared taxonomy", () => {
-  assert.equal(catalog.length, 55);
-  assert.deepEqual(groupPermissions(catalog).map(d => [d.key, d.resources.reduce((n,r) => n + r.rows.length, 0)]), [["masterData",5],["organization",17],["warehouse",12],["administration",21]]);
+  assert.equal(catalog.length, 61);
+  assert.deepEqual(groupPermissions(catalog).map(d => [d.key, d.resources.flatMap(permissionRows).length]), [["masterData",8],["organization",17],["warehouse",12],["administration",24]]);
 });

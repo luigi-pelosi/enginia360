@@ -1,7 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {createElement} from 'react';
 import {partnerHarness,find,session} from './business-partner-harness.ts';
 const props={session:{...session,permissions:['business-partners.read','business-partners.create','business-partners.update']},scope:(p:string)=>p+(p.includes('?')?'&':'?')+'tenantId=t',onError:()=> 'Error'};
+test('partner create action shares the page heading and disappears while editing',()=>{
+ const h=partnerHarness('business-partner-workspace','it');
+ const pageProps={...props,heading:createElement('h1',null,'Business Partner')};
+ let tree=h.tree('BusinessPartnerWorkspace',pageProps);
+ const header=find(tree,n=>n.props?.className?.includes('page-heading'));
+ assert.ok(header);
+ assert.ok(find(header,n=>n.type==='h1'));
+ find(header,n=>Array.isArray(n.props?.children)&&n.props.children.includes('Nuovo Business Partner')).props.onClick();
+ tree=h.tree('BusinessPartnerWorkspace',pageProps);
+ assert.ok(find(tree,n=>n.type==='h1'));
+ assert.equal(find(tree,n=>Array.isArray(n.props?.children)&&n.props.children.includes('Nuovo Business Partner')),undefined);
+});
 test('main BP list fetches tenant-scoped data, navigates to dedicated create/details and back without writes',async()=>{
  const row={id:'bp1',code:'BP-000001',kind:'ORGANIZATION',status:'ACTIVE',legal_name:'Officina Uno'};
  const h=partnerHarness('business-partner-workspace','it',()=>({items:[row],total:1,page:1,pageSize:25}));

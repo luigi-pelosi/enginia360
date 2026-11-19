@@ -40,7 +40,7 @@ test("creation offers preliminary associations and submits a single POST without
   const events: string[] = [];
   const h = harness("it", {}, () => {throw Error("new record must not read links")});
   h.components.RecordEditor({...groupProps, row: null, load: async (key: string) => {events.push(key); return [{id: key}]}});
-  h.effects[0](); await new Promise(resolve => setTimeout(resolve, 0));
+  h.effects[0](); h.effects[1](); await new Promise(resolve => setTimeout(resolve, 0));
   assert.deepEqual(events.sort(), ["roles", "users"]);
   assert.deepEqual(h.apiCalls, []);
   const loaded = JSON.parse(JSON.stringify(h.updates[5]));
@@ -50,7 +50,7 @@ test("creation offers preliminary associations and submits a single POST without
   find(tree, n => n.props?.relation === "group-users").props.onIdsChange(["users"]);
   assert.deepEqual(choose.apiCalls, [], "choices stay local");
   const selected = (choose.updates[5] as Function)(loaded);
-  const save = harness("it", {0: {name: "New"}, 5: selected, 6: false}, {id: "new"});
+  const save = harness("it", {0: {name: "New"}, 5: selected, 6: false, 13: true}, {id: "new"});
   await find(save.components.RecordEditor({...groupProps, row: null}), n => n.props?.id === "record-form").props.onSubmit({preventDefault() {}});
   assert.deepEqual(save.apiCalls, ["/data/groups/save"]);
   assert.deepEqual(JSON.parse(JSON.stringify(save.apiPayloads)), [{values: {name: "New"}, links: {"group-users": ["users"]}}]);

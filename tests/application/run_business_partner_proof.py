@@ -16,6 +16,9 @@ import urllib.request
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))
+from database.sql_source import read_sql
+
 SCOPE = 'enginia360-business-partner-proof'
 DB = SCOPE+'-db'
 API = SCOPE+'-api'
@@ -89,7 +92,7 @@ def start(args):
     else:
         raise RuntimeError('PostgreSQL di prova non pronto')
     sql('CREATE ROLE enginia360_app LOGIN;')
-    sql(Path(args.schema).read_text())
+    sql(read_sql(args.schema))
     for migration in args.migration or []:
         sql(Path(migration).read_text())
     app_uid = docker('run', '--rm', '--entrypoint', 'id', args.backend_image, '-u').stdout.strip()

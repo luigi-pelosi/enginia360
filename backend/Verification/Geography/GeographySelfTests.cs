@@ -24,7 +24,7 @@ public static class GeographySelfTests
                 var ctx=new DefaultHttpContext(); ctx.Request.QueryString=new QueryString("?tenantId=ignored");
                 Assert(state.Tenant(ctx,key)==null);
             }
-            Assert(PermissionCatalog.Codes.Length==55 && !PermissionCatalog.Codes.Any(c=>c.StartsWith("countries.") || c.StartsWith("cities.")));
+            Assert(PermissionCatalog.Codes.Length==61 && !PermissionCatalog.Codes.Any(c=>c.StartsWith("countries.") || c.StartsWith("cities.")));
             Assert(ResourceCatalog.Scope(ResourceCatalog.Get("users")).Contains("NOT is_super_admin"));
         });
         Test("global geography reads authenticated writes native global policy only",()=> {

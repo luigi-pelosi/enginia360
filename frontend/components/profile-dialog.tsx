@@ -19,7 +19,8 @@ function draftOf(profile: OwnProfile): Draft {
   return Object.fromEntries(profileFields.map(name => [name, profile[name] ?? ""])) as Draft;
 }
 
-export function ProfileDialog({onClose, onSaved, onError}: {
+export function ProfileDialog({onClose, onSaved, onError, session}: {
+  session?: Session;
   onClose: () => void;
   onSaved: (session: Session) => void;
   onError: (error: unknown) => string;
@@ -37,14 +38,28 @@ export function ProfileDialog({onClose, onSaved, onError}: {
   const [committed, setCommitted] = useState(false);
   const commit = useRef<{profile: OwnProfile; passwordChanged: boolean} | null>(null);
   const inFlight = useRef(false);
+  const latestDraft = useRef<Draft | null>(null);
+  const tenant = session?.selectedTenantId || session?.tenantId;
+  const storageKey = session?.id && tenant ? `profile-draft:${encodeURIComponent(session.id)}:${encodeURIComponent(tenant)}` : null;
+  function clearDraft() { try { if (storageKey) sessionStorage.removeItem(storageKey); } catch { /* Storage is optional. */ } }
   useEffect(() => {
     let alive = true;
     api<OwnProfile>("/profile").then(value => {
-      if (alive) { setProfile(value); setDraft(draftOf(value)); }
+      if (alive) {
+        const fresh = draftOf(value);
+        if (storageKey && value.id === session?.id) try {
+          const stored = JSON.parse(sessionStorage.getItem(storageKey) || "null");
+          for (const name of profileFields) {
+            if (typeof stored?.base?.[name] === "string" && typeof stored?.values?.[name] === "string" && stored.base[name] === fresh[name]) fresh[name] = stored.values[name];
+          }
+        } catch { /* Ignore unavailable or invalid storage. */ }
+        latestDraft.current = fresh;
+        setProfile(value); setDraft(fresh);
+      }
     }).catch(e => { if (alive) setError(onError(e)); })
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
-  }, [onError]);
+  }, [onError, storageKey, session?.id]);
   const values = Object.fromEntries(profileFields.filter(name => draft && profile && draft[name] !== (profile[name] ?? ""))
     .map(name => [name, draft![name] || null]));
   const hasValues = Object.keys(values).length > 0;
@@ -62,9 +77,22 @@ export function ProfileDialog({onClose, onSaved, onError}: {
   const changed = hasValues || hasPassword;
   const valid = validPersonal && !passwordIssue;
   const locked = loading || busy || committed;
-  function close() { if (!inFlight.current) onClose(); }
+  function close() { if (!inFlight.current) { clearDraft(); onClose(); } }
   function change(name: ProfileField, value: string) {
-    if (!inFlight.current && !commit.current) setDraft(current => current ? {...current, [name]: value} : current);
+    if (!inFlight.current && !commit.current && latestDraft.current && profile) {
+      const next = {...latestDraft.current, [name]: value};
+      latestDraft.current = next;
+      setDraft(next);
+      if (storageKey && profile.id === session?.id) try {
+        const base = draftOf(profile);
+        const changedFields = profileFields.filter(field => next[field] !== base[field]);
+        if (changedFields.length) sessionStorage.setItem(storageKey, JSON.stringify({
+          base: Object.fromEntries(changedFields.map(field => [field, base[field]])),
+          values: Object.fromEntries(changedFields.map(field => [field, next[field]])),
+        }));
+        else clearDraft();
+      } catch { /* Storage is optional. */ }
+    }
   }
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -80,6 +108,7 @@ export function ProfileDialog({onClose, onSaved, onError}: {
           ...(hasPassword ? {currentPassword, newPassword} : {}),
         });
         commit.current = {profile: saved, passwordChanged: hasPassword};
+        clearDraft();
         setCommitted(true);
       }
       const saved = commit.current.profile;

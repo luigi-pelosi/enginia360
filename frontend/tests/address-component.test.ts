@@ -6,6 +6,19 @@ const context={country_code:'IT',city:'Capua',province:'CE'}, scope=(p:string)=>
 const base={id:'field-address',field:'address',value:'Via Roma',context,scope,disabled:false,required:false,onChange(_text:string){},onSelect(_item:any){}};
 const item={label:'Via Roma, Capua',address:'Via Roma',city:'Capua',province:'CE',postalCode:'81043',countryCode:'IT'};
 const keyEvent=(key:string)=>({key,preventDefault(){},stopPropagation(){}});
+test('manual address entry retains the consumer field length independently of lookup limits',()=>{
+ const d=addressDriver(async()=>{});
+ assert.equal(find(d.render({...base,maxLength:500}),n=>n.props?.role==='combobox').props.maxLength,500);d.unmount();
+});
+test('shared autocomplete retains field validation alongside manual-fallback feedback',async()=>{
+ const d=addressDriver(async()=>{throw Error('unavailable');});
+ const props={...base,'aria-invalid':true,'aria-describedby':'validation-message'};
+ let tree=d.render(props);find(tree,n=>n.props?.role==='combobox').props.onFocus();d.render(props);await d.runTimers();tree=d.render(props);
+ const input=find(tree,n=>n.props?.role==='combobox');
+ assert.equal(input.props['aria-invalid'],true);
+ assert.equal(input.props['aria-describedby'],'validation-message field-address-lookup-error');
+ assert.ok(find(tree,n=>n.props?.id==='field-address-lookup-error'));d.unmount();
+});
 test('street selection clears an omitted postcode even in same city; partial parent selections never leave incompatible descendants',()=>{
  const d=addressDriver(async()=>{}), old={country_code:'IT',province:'CE',city:'Capua',postal_code:'OLD',address:'Old street'};
  const next=d.exports.addressSelection(old,'address',{...item,postalCode:''});
@@ -56,7 +69,7 @@ test('local lookup failure is localized and preserves manual entry; readonly/bus
  const changed:string[]=[];const d=addressDriver(async()=>{throw Error('private provider URL/key');},locale);
  const props={...base,onChange:(value:string)=>changed.push(value)};
  let tree=d.render(props);find(tree,n=>n.props?.role==='combobox').props.onFocus();d.render(props);await d.runTimers();tree=d.render(props);
- const message=find(tree,n=>n.props?.id==='field-address-error');assert.ok(message);assert.match(message.props.children,locale==='it'?/Puoi compilare a mano/:/manually/);
+ const message=find(tree,n=>n.props?.id==='field-address-lookup-error');assert.ok(message);assert.match(message.props.children,locale==='it'?/Puoi compilare a mano/:/manually/);
  find(tree,n=>n.props?.role==='combobox').props.onChange({target:{value:'Manual'}});assert.deepEqual(changed,['Manual']);
  tree=d.render({...props,disabled:true});const input=find(tree,n=>n.props?.role==='combobox');input.props.onChange({target:{value:'Blocked'}});input.props.onFocus();
  assert.deepEqual(changed,['Manual']);assert.equal(d.timers.size,0);d.unmount();

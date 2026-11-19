@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {harness, find, session, workspace} from "./workspace-harness.ts";
+import {partnerHarness} from "./record-editor-harness.ts";
 import {normalizeValues, type Resource} from "../lib/model.ts";
 
 const legal = {name: "site_type", type: "select" as const, required: false, options: ["LEGAL", "LOCAL_UNIT", "SECONDARY"]};
@@ -107,13 +108,16 @@ test("readonly classification select ignores synthetic changes", () => {
 });
 
 test("new site has no implicit legal classification, empty functions and one Save", async () => {
-  const h = harness("en");
-  const tree = h.components.RecordEditor({...fullProps, row: null});
+  const h = partnerHarness("workspace", "en");
+  const p = {...fullProps, row: null, tenant: "t"};
+  h.tree("RecordEditor", p);
+  await h.flush();
+  const tree = h.tree("RecordEditor", p);
   assert.equal(find(tree, n => n.props?.name === "site_type").props.value, "");
   for (const option of functions.options)
     assert.equal(find(tree, n => n.props?.id === `field-functions-${option}` && n.props?.onCheckedChange).props.checked, false);
   await find(tree, n => n.props?.id === "record-form").props.onSubmit({preventDefault() {}});
-  assert.deepEqual(plain(h.apiPayloads), [{values: {site_type: null, functions: []}}]);
+  assert.deepEqual(plain(h.calls.map(call => call.body)), [{values: {site_type: null, functions: []}}]);
   assert.equal((harness("en").render("RecordEditor", {...fullProps, row: null}).match(/>Save</g) ?? []).length, 1);
 });
 

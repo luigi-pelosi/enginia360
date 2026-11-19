@@ -1,5 +1,11 @@
 {
+  "partnerCompanies": {
+    "allCompanies": "All companies",
+    "title": "Companies and roles", "byCompany": "By company", "company": "Company", "relationshipStatus": "Relationship status", "assignedRoles": "Assigned roles", "usableRoles": "Usable roles", "CUSTOMER": "Customer", "SUPPLIER": "Supplier", "ACTIVE": "Active", "BLOCKED": "Blocked", "add": "Associate company", "edit": "Manage company and roles", "confirm": "Confirm", "block": "Block", "activate": "Activate", "assign": "Assign", "confirmChange": "Confirm this operation?", "confirmChangeDescription": "The change will be saved immediately.", "role": "Role", "allRoles": "All roles", "usableOnly": "Usable only", "partner": "Business Partner", "partnerStatus": "Business Partner status", "authorizedCompanies": "Authorized companies", "saveCompanyAccess": "Save authorized companies", "missingCompany": "Company unavailable", "referenceError": "Unable to load all companies. Refresh before saving."
+  },
   "app": {
+    "createUncertain": "The Business Partner may have been created, but the result is unknown. Check the list or contact an administrator before attempting another creation.", "createStorageUnavailable": "Creation is blocked because recovery storage is unavailable. Enable session storage and try again.",
+    "createOutcomeUncertain": "The creation may have succeeded. Check the records before taking further action; automatic retry is blocked.",
     "masterData": "Master data",
     "numbering": "Numbering",
     "backToBusinessPartners": "Back to Business Partner",
@@ -88,6 +94,13 @@
     "readOnly": "Read only"
   },
   "businessPartners": {
+    "byCompany": "By company",
+    "applyRelated": "Apply",
+    "relatedDraftHint": "Changes are applied when you save the Business Partner.",
+    "relatedSaveHint": "Confirm with Save to persist this row without saving identity changes.",
+    "removeRelatedSavedHint": "Remove {row}? The removal is saved immediately.",
+    "removeRelatedHint": "Remove {row}? The removal takes effect when you save the Business Partner.",
+
     "identity": "Identity",
     "invalidContact": "Check contacts: enter a valid email, phone number or http/https website without credentials.",
     "verificationHint": "The save was accepted. Verify the saved record without creating it again.", "verifySaved": "Verify saved record",
@@ -104,7 +117,6 @@
     "legal_name": "Legal name", "first_name": "First name", "last_name": "Last name",
     "codeHint": "Leave blank for automatic numbering. If manual mode is configured, enter a code.",
     "immutableCode": "The assigned code cannot be changed.",
-    "draftHint": "Drafts may be incomplete. Complete identity details to activate. Use Archived status to remove from operations.",
     "new": "New Business Partner",
     "search": "Search code, name, tax ID or contact",
     "code": "Code", "displayName": "Name / Legal name", "kind": "Type", "status": "Status",
@@ -121,6 +133,7 @@
   "resources": {
     "business-partners": "Business Partner",
     "business-partner-numbering": "Business Partner numbering",
+    "business-partner-companies": "Companies and roles",
     "countries": "Countries",
     "cities": "Cities",
     "tenants": "Organizations",
@@ -182,6 +195,9 @@
     "assign": "Assign roles",
     "assign_users": "Assign users",
     "assign_permissions": "Assign permissions",
+    "assign_companies": "Assign authorized companies",
+    "use_customer": "Use as customer",
+    "use_supplier": "Use as supplier",
     "assign_scope": "Assign companies and sites"
   },
   "fieldOptions": {
@@ -219,6 +235,9 @@
     "numbering_in_use": "Numbering is already in use and cannot be changed.",
     "numbering_exhausted": "Business Partner numbering is exhausted. Contact your administrator.",
     "stale_version": "Another operator changed these data. Your draft is preserved: compare the current data before retrying.",
+    "company_partner_exists": "This Business Partner is already associated with this company. Refresh the list to manage the existing relationship.",
+    "invalid_partner_role": "Select a valid role: customer or supplier.",
+    "company_access_denied": "You are not authorized to perform this operation in the selected company.",
     "tax_identity_required": "Enter at least one of VAT number or Tax code.",
     "current_password_invalid": "Your current password is incorrect.",
     "invalid_credentials": "Invalid credentials.",

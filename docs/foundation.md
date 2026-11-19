@@ -1,6 +1,6 @@
 # Enginia360 — Foundation
 
-Riferimento tecnico unico per la foundation. Per le attività quotidiane: [Manuale utente](manuale-utente.md).
+Riferimento tecnico generale e regole di sviluppo della foundation. Specifica di dominio: [Business Partner](masterdata_business_partner.md). Per le attività quotidiane: [Manuale utente](manuale-utente.md).
 
 ## Indice
 
@@ -32,9 +32,9 @@ La progettazione segue DDD pragmatico, API-first, modularità, riuso e interoper
 - Utenti, gruppi, ruoli e permessi tenant.
 - Impostazioni con ambito esplicito e audit transazionale.
 - Nazioni e città condivise, ricerca locale e import geografico esplicito.
-- Business Partner fase 1: identità tenant condivisa, identificativi fiscali, indirizzi e recapiti; numerazione dedicata BP.
+- Business Partner: identità tenant condivisa, identificativi fiscali, indirizzi e recapiti; numerazione dedicata, rapporti multi-company e ruoli Cliente/Fornitore.
 
-Sono esclusi i processi operativi successivi: documenti, ordini, commesse, ruoli e condizioni cliente/fornitore, movimentazione e valorizzazione di magazzino, pagamenti, fatturazione e contabilità. Non sono introdotti identity provider esterni, intercompany, organizzazioni predefinite o dati dimostrativi automatici.
+Sono esclusi i processi operativi successivi: documenti, ordini, commesse, condizioni commerciali cliente/fornitore, movimentazione e valorizzazione di magazzino, pagamenti, fatturazione e contabilità. Non sono introdotti identity provider esterni, intercompany, organizzazioni predefinite o dati dimostrativi automatici.
 
 ## 2. Dominio e regole
 
@@ -79,26 +79,9 @@ La copertura è un aggregato: viene salvata atomicamente e verificata anche al c
 
 **La copertura commerciale è eleggibilità, non autorizzazione utente.** Non cambia l'azienda titolare delle future transazioni, non abilita intercompany e non stabilisce prevalenze automatiche tra organizzazioni applicabili.
 
-### Business Partner — fase 1
+### Business Partner
 
-L'identità è unica nel tenant, condivisa dalle aziende senza dipendere da una loro associazione. Non sono implementati ruoli CUSTOMER/SUPPLIER/PROSPECT, condizioni commerciali, relazioni tra soggetti, banche o recapito della fatturazione elettronica.
-
-- `ORGANIZATION`: ragione sociale obbligatoria; nome/cognome persona assenti. `PERSON`: almeno nome o cognome in `DRAFT`, entrambi negli altri stati; ragione sociale assente. Denominazione visualizzata derivata.
-- Stati: `DRAFT`, `ACTIVE`, `BLOCKED`, `ARCHIVED`. Dati fiscali/indirizzi/recapiti facoltativi anche per l'attivazione: non si certifica l'idoneità a emettere documenti. Nessuna cancellazione fisica: si archivia, conservando codice e unicità fiscale.
-- Identificativi fiscali multipli per paese ISO e tipo `VAT`, `FISCAL_CODE`, `FOREIGN_TAX_ID`. Normalizzazione in maiuscolo, eliminando spazi, punti e trattini. Duplicati esatti della terna paese/tipo/valore normalizzato **bloccati nel tenant**, anche tra bozze/archiviati. Nomi uguali ammessi; nessuna fusione automatica. Per l'Italia si controlla la sintassi, non esistenza, checksum o titolarità.
-- Indirizzi snapshot indipendenti dai cataloghi: strada, CAP, città e paese obbligatori se si aggiunge un indirizzo; provincia facoltativa per compatibilità internazionale. Numero civico, etichetta e informazioni aggiuntive facoltativi. Utilizzi `REGISTERED`, `BILLING`, `SHIPPING`, `CORRESPONDENCE`, anche multipli sullo stesso indirizzo; al massimo un default per BP/utilizzo.
-- Recapiti `EMAIL`, `PHONE`, `MOBILE`, `PEC`, `WEBSITE`, con scopo facoltativo e al massimo un principale per tipologia. PEC anagrafica non equivale a configurazione FatturaPA.
-- Ricerca paginata su denominazione, codice, identificativi fiscali e recapiti. Controllo concorrenza tramite `version` e `expectedVersion`; una bozza obsoleta non sovrascrive una modifica concorrente.
-
-### Numbering — solo Business Partner
-
-Una serie per tenant, `scope=TENANT`, `company_id=NULL`, `entity_type=BUSINESS_PARTNER`, `reset_policy=NEVER`. Le colonne di ambito sono esplicite ma **nessun contesto aziendale/documentale è abilitato**. Configurazione dedicata in **Impostazioni → Anagrafiche → Business Partner → Numerazione**, non JSON nella CRUD generica.
-
-Default virtuale: `AUTO`, prefisso `BP-`, padding 6, prossimo numero 1. La sola lettura non inserisce dati. La serie viene materializzata al salvataggio esplicito della configurazione o alla prima creazione BP riuscita. In modalità `MANUAL` il codice va inserito dall'operatore. Codice obbligatorio, univoco nel tenant senza distinzione maiuscole/minuscole e immutabile dopo assegnazione; nessun riutilizzo o reset annuale.
-
-Prefisso ASCII stampabile fino a 32 caratteri, padding 1–15, allocazione fino a `999999999999999`; il valore successivo segnala esaurimento senza wraparound. Configurazione modificabile solo prima del primo utilizzo: poi modalità, formato e prossimo numero restano protetti. La revisione cambia anche con l'allocazione.
-
-Contatore, BP, figli e audit partecipano alla stessa transazione sotto il lock amministrativo esistente; nessun `MAX(code)`. Un errore, incluso audit/commit, annulla anche l'allocazione. La creazione BP non richiede il permesso di leggere/modificare la numerazione.
+Identità condivisa nel tenant, rapporti distinti per azienda e ruoli `CUSTOMER`/`SUPPLIER`, senza anagrafiche duplicate. Numerazione BP tenant-wide separata dalla configurazione commerciale. Modello, invarianti, autorizzazioni aziendali, persistenza e API sono definiti nella [specifica Business Partner](masterdata_business_partner.md).
 
 ### Impostazioni
 
@@ -121,6 +104,8 @@ Nome, cognome ed email sono obbligatori; email non necessariamente univoca. User
 
 Un ruolo tenant, un'email o il primo accesso non rendono Super Admin. Il globale può preselezionare un'organizzazione al login senza cambiare identità: `selectedTenantId` è contesto rivalidato, non appartenenza o grant.
 
+Per il Super Admin la selezione corrente della UI sopravvive al refresh nella stessa scheda: `sessionStorage` con chiave per utente `workspace-tenant:{id}`. All'avvio si carica l'elenco autorevole delle organizzazioni prima di ripristinare selezione, liste e bozze; una selezione non più disponibile diventa vuota. Anche nessuna selezione è esplicita e non ricade sull'organizzazione del login. Gli utenti ordinari ignorano la preferenza; logout la elimina e un nuovo login prevale con il proprio contesto. Nessuna modifica a cookie, identità o grant. Rilasciato il 19 novembre 2026, solo frontend `workspace-tenant-recovery`: 10 test frontend, typecheck/build e 5 percorsi browser mirati superati, con refresh di bozze nuove/esistenti e concorrenza preservata. Readback HTTPS/asset e immagine esatta verificati, backend/database/grant/Serve/mount invariati. Checkpoint privato `/root/.config/enginia360/releases/workspace-tenant-20261119T214424/`. Un tentativo browser per moduli ha incluso accidentalmente casi storici ereditati e ha superato il limite; non costituisce accettazione globale. La verifica finale usa i cinque casi espliciti nel log `workspace-tenant-recovery/browser-final-recovered.log`.
+
 Nella CRUD utenti del tenant il globale vede anche soltanto la propria riga globale, readonly e non assegnabile a relazioni tenant; gli ordinari non vedono identità globali.
 
 ### Profilo e password
@@ -136,9 +121,9 @@ User → Role → Permission
 User → Group → Role → Permission
 ```
 
-Si uniscono le concessioni attive. Nessun permesso diretto utente, deny, gruppo annidato, gerarchia di ruoli o ACL per record. Ruoli, gruppi e permessi valgono per l'intero tenant, non per azienda o sede.
+Si uniscono le concessioni attive. Nessun permesso diretto utente, deny, gruppo annidato o gerarchia di ruoli. Ruoli, gruppi e catalogo permessi appartengono al tenant. Per le nuove operazioni `business-partner-companies.*`, l'ambito è invece aziendale: il ruolo che concede l'operazione deve contenere anche l'azienda in `role_company`. Gli altri permessi tenant esistenti mantengono il loro ambito; il nuovo elenco aziende non attribuisce automaticamente diritti ad altri moduli o sedi.
 
-Il catalogo è finito, readonly e contiene **55 operazioni**:
+Il catalogo è finito, readonly e contiene **61 operazioni**:
 
 | Risorse | Operazioni |
 |---|---|
@@ -146,10 +131,12 @@ Il catalogo è finito, readonly e contiene **55 operazioni**:
 | `permissions` | `read` |
 | `users` | `reset_password` |
 | `roles` | `assign`, `assign_permissions` |
+| `roles` | `assign_companies` |
 | `groups` | `assign_users` |
 | `purchasing-organizations` | `assign_scope` |
 | `business-partners` | `read`, `create`, `update` |
 | `business-partner-numbering` | `read`, `update` |
+| `business-partner-companies` | `read`, `create`, `update`, `use_customer`, `use_supplier` |
 
 Creare un tenant materializza il catalogo, **non ruoli o grant impliciti**. Codici sconosciuti, legacy non di sistema e vecchi `.write` non concedono autorità. `tenants` è esclusivo del globale; Nazioni/Città hanno policy globali dedicate, fuori dal catalogo tenant.
 
@@ -159,6 +146,7 @@ Creare un tenant materializza il catalogo, **non ruoli o grant impliciti**. Codi
 | `group-users` | `groups.read` | `groups.assign_users` |
 | `role-permissions` | `roles.read` | `roles.assign_permissions` |
 | Copertura acquisti | `purchasing-organizations.read` | `purchasing-organizations.assign_scope` |
+| Aziende dei ruoli | `roles.read` e `companies.read` | `roles.assign_companies` |
 
 Creare/modificare un record non autorizza le assegnazioni; `users.update` non autorizza il reset password. Le modifiche di sole associazioni richiedono i relativi permessi, non update/read dell'anagrafica, e restituiscono soltanto l'ID.
 
@@ -166,7 +154,7 @@ Policy e handler ASP.NET Core applicano default deny. Identità, stamp, stato te
 
 ## 4. Database e installazione
 
-Unica baseline iniziale: [`database/foundation.sql`](../database/foundation.sql). Crea gli schemi `foundation` e `masterdata` e contiene direttamente lo stato finale, non una concatenazione delle evoluzioni storiche.
+Unico ingresso di installazione: [`database/foundation.sql`](../database/foundation.sql). Crea lo stato finale e include una sola volta [`database/masterdata_business_partner.sql`](../database/masterdata_business_partner.sql), unica definizione del dominio BP. Non concatena le migrazioni storiche né trasferisce gli oggetti BP con ALTER successivi.
 
 | Area | Tabelle |
 |---|---|
@@ -179,9 +167,11 @@ Unica baseline iniziale: [`database/foundation.sql`](../database/foundation.sql)
 | Sicurezza | `login_limit`, `audit_event` |
 | Geografia | `country`, `city` |
 | Business Partner (`masterdata`) | `business_partner`, `business_partner_tax_identifier`, `business_partner_address`, `business_partner_address_usage`, `business_partner_contact_channel` |
+| Rapporti BP–azienda (`masterdata`) | `company_business_partner`, `company_business_partner_role` |
+| Ambito aziendale RBAC (`foundation`) | `role_company` |
 | Numbering BP (`foundation`) | `numbering_series`, `numbering_counter` |
 
-**30 tabelle: 25 in `foundation`, 5 in `masterdata`; nessun dato iniziale.** Le altre aree della tabella sopra rimangono in `foundation`. Tenant, utenti, permessi, geografia, BP e serie non sono precaricati dall'SQL. Date tecniche e aggiornamento di `updated_at`, dove presenti, sono gestiti dal database; associazioni, FK, unicità e trigger fanno parte dello schema. Il runtime riceve USAGE su entrambi gli schemi senza CREATE e non ha DELETE su BP, serie o contatori. Il guard specifico BP appartiene a `masterdata`; il trigger timestamp riusa la funzione condivisa `foundation.set_updated_at`.
+**33 tabelle: 26 in `foundation`, 7 in `masterdata`; nessun dato iniziale.** Le altre aree della tabella sopra rimangono in `foundation`. Tenant, utenti, permessi, geografia, BP e serie non sono precaricati dall'SQL. Date tecniche e aggiornamento di `updated_at`, dove presenti, sono gestiti dal database; associazioni, FK, unicità e trigger fanno parte dello schema. Il runtime riceve USAGE su entrambi gli schemi senza CREATE e non ha DELETE su BP, rapporti commerciali/ruoli, serie o contatori. Gli accessi aziendali `role_company` sono invece sostituibili per revocare l'autorità. I guard BP appartengono a `masterdata`; il trigger timestamp riusa la funzione condivisa `foundation.set_updated_at`.
 
 ### Nuova installazione
 
@@ -192,7 +182,7 @@ Unica baseline iniziale: [`database/foundation.sql`](../database/foundation.sql)
    psql -X -v ON_ERROR_STOP=1 -d NOME_DATABASE_NUOVO -f database/foundation.sql
    ```
 
-3. Configurare connessione applicativa e origine HTTPS, predisporre il keyring e avviare i servizi.
+3. Conservare `foundation.sql` e `masterdata_business_partner.sql` nella stessa directory: `psql -f` risolve l'inclusione relativa nella transazione della baseline. Configurare connessione applicativa e origine HTTPS, predisporre il keyring e avviare i servizi.
 4. Eseguire il bootstrap esplicito del Super Admin; importare la geografia se richiesta.
 
 Lo script usa una transazione e l'advisory lock `3607902026`. Rifiuta uno schema `foundation` già presente, un esecutore diverso da quello previsto o un ruolo runtime elevato. Non crea login/password né richiede account personali dell'installazione di sviluppo.
@@ -201,15 +191,11 @@ Il ruolo runtime riceve USAGE sullo schema e DML sulle tabelle applicative; su `
 
 ### Database esistente
 
-**Non eseguire `foundation.sql`, DROP o reset sul database attuale.** Il consolidamento non cambia schema, dati, OID, ACL o credenziali esistenti. Le vecchie migrazioni sono archiviate fuori dal repository con checksum; non sono più il percorso di installazione.
+**Non eseguire la baseline, il frammento BP, DROP o reset sul database attuale.** Il consolidamento non cambia schema, dati, OID, ACL o credenziali esistenti. Le migrazioni BP già applicate sono archiviate, senza modificarne i byte e con checksum, in [`database/migrations/archive/business_partner/`](../database/migrations/archive/business_partner/); non sono il percorso di installazione.
 
 Non esistono `EnsureCreated`, `Migrate`, DDL automatico all'avvio o migration runner. Le evoluzioni successive richiedono nuovi interventi incrementali autorizzati e verificati.
 
-L'evoluzione BP è in `database/migrations/20261118_business_partners.sql`: transazione esplicita su foundation preesistente, nuove tabelle/vincoli e cinque permessi per tenant esistenti, **senza assegnazioni automatiche**. **Applicata all'installazione attuale il 19 novembre 2026**, dopo backup privato e rehearsal su ripristino dei dati reali. Non rieseguire dopo l'applicazione. `foundation.sql` resta esclusivo delle nuove installazioni e include già questa evoluzione.
-
-La separazione degli schemi usa la successiva `database/migrations/20261119_business_partner_masterdata.sql`: trasferisce le cinque tabelle BP e il guard di dominio con `ALTER ... SET SCHEMA`, senza ricopiare/eliminare dati; le due tabelle Numbering restano in `foundation`. La migrazione BP già applicata rimane immutabile. **Trasferimento applicato all'installazione attuale il 19 novembre 2026**, insieme al backend compatibile, dopo backup e rehearsal su ripristino dei dati reali. Frontend e database non sono stati ricreati. La nuova baseline crea già gli oggetti negli schemi definitivi. Non rieseguire la migrazione.
-
-Checkpoint, dump, keyring, immagini precedenti ed evidenze di conservazione sono in `/root/.config/enginia360/releases/business-partners-20261119T093538/` (privato). Immagini precedenti conservate con tag `before-business-partners`. Per il ripristino completo occorre riallineare schema, dati e immagini: non eseguire restore sul database corrente senza valutare eventuali scritture successive al checkpoint.
+L'installazione esistente ha già ricevuto le evoluzioni BP; non richiede alcuna applicazione SQL per questa riorganizzazione. I checkpoint dei rilasci restano privati in `/root/.config/enginia360/releases/`. Ripristinare richiede schema, dati, immagini e chiavi compatibili, valutando le scritture successive al checkpoint.
 
 ## 5. Moduli backend
 
@@ -290,21 +276,13 @@ La UI mantiene una bozza e un solo Salva. Annulla non scrive; un errore conserva
 
 ### API Business Partner e Numbering
 
-Le route letterali BP prevalgono sul CRUD generico. `GET /api/data/business-partners` usa paginazione/ricerca standard; `GET /api/data/business-partners/{id}` restituisce il dettaglio con `version`, `tax_identifiers`, `addresses` (con `usages`) e `contact_channels`, in snake_case.
-
-`POST /api/data/business-partners/save` e `PUT /api/data/business-partners/{id}/save` accettano `{values,taxIdentifiers?,addresses?,contactChannels?,expectedVersion?}`. `values` obbligatorio, `expectedVersion` obbligatorio solo in modifica. Le omissioni conservano; gli array vuoti cancellano l'insieme, NULL non è ammesso. Massimo 100 elementi per insieme. Ogni insieme presente è sostituito atomicamente e **rigenera gli ID figli**, non destinati a riferimenti esterni; gli insiemi omessi conservano gli ID. Codice omesso in automatico, necessario in manuale; in modifica non è modificabile. Risposta: dettaglio completo 201/200. POST/PUT generici rifiutati con 405, DELETE con 409.
-
-`GET /api/business-partner-numbering` e `PUT` sullo stesso percorso usano `{mode,prefix,padding,nextNumber,version}`. La PUT richiede tutti i campi e la revisione corrente; restituisce la configurazione autorevole. Ambito tenant come le altre API tenant. Errori specifici: `duplicate_tax_identifier`, `stale_version`, `business_partner_code_required`, `business_partner_code_immutable`, `numbering_in_use`, `numbering_exhausted`. Il conflitto conserva la bozza senza retry di scrittura automatico.
-
-Le validazioni BP note includono codice specifico e percorso del campo, per esempio `invalid_italian_vat` con `taxIdentifiers[0].value`. La UI traduce il motivo e identifica sezione/riga/campo, con feedback inline accessibile; la bozza resta disponibile e la modifica rimuove la segnalazione obsoleta. Distinti formato fiscale, valore assente, nazione/tipo, duplicato, testo troppo lungo, normalizzazione incoerente, identità, indirizzo/utilizzo e recapito/principale. La partita IVA italiana resta di 11 cifre senza prefisso IT: nessuna nuova normalizzazione o certificazione fiscale. Errori di trasporto/struttura non identificabili conservano il fallback generico; gli errori SQL non sono esposti.
-
-La UI operativa è in **Anagrafiche → Business Partner**, con italiano/inglese. La configurazione segue invece **Impostazioni → Anagrafiche → Business Partner → Numerazione**, con tile gerarchiche, breadcrumb e ritorno al livello precedente; nessun pulsante di numerazione nella pagina operativa. Chi possiede soltanto `business-partner-numbering.read` può attraversare le impostazioni senza leggere l'elenco BP né ottenere altri permessi. Un solo salvataggio dell'aggregato; verifica successiva con GET. Se questa lettura fallisce dopo una creazione confermata, il pulsante ripete solo la verifica, non la POST.
+Contratti di anagrafica, collezioni, numerazione, rapporti commerciali e accessi aziendali dei ruoli: [Business Partner — Contratti HTTP](masterdata_business_partner.md#6-contratti-http). Il documento descrive anche revisioni indipendenti, errori specifici, controlli aziendali e persistenza immediata delle operazioni correlate.
 
 ## 7. Sicurezza
 
 - ASP.NET PasswordHasher, 210.000 iterazioni; password senza hash impedisce login. Password non stampate né auditate.
 - Cookie Secure, HttpOnly, SameSite Strict. Sessione massima otto ore, non scorrevole. Keyring persistente `/app/keys`; conservarlo nei rilasci e nei backup.
-- POST/PUT/DELETE, inclusi login/logout, richiedono Origin canonico esatto e `X-CSRF-TOKEN`. Rigenerare il token dopo variazioni dell'autenticazione.
+- POST/PUT/PATCH/DELETE, inclusi login/logout, richiedono Origin canonico esatto e `X-CSRF-TOKEN`. Rigenerare il token dopo variazioni dell'autenticazione.
 - Stato utente/tenant e security stamp sono rivalidati; disabilitazione o revoca invalida l'accesso. Cambio obbligatorio consente solo sessione, cambio password e logout.
 - Lockout: cinque errori, quindici minuti; trenta login/minuto per IP visto dall'API. Dietro proxy il limite può essere condiviso; non fidarsi di header IP del client.
 - HTTPS termina sull'ingresso privato; `App__Origin` imposta lo schema, non gli header client. API `no-store` e `nosniff`.
@@ -324,7 +302,7 @@ La UI le presenta come tile di **Impostazioni**, non in sidebar. La landing è a
 | `GET /api/addresses/countries` | `{provider:"catalog",items:[{isoCode,name}]}`, solo nazioni abilitate |
 | `GET /api/addresses/autocomplete` | `{items:[{label,address,city,province,postalCode,countryCode,region}],attribution:""}` |
 
-Entrambi richiedono `sites.create` oppure `sites.update` nel tenant. Query ammesse: `tenantId`, `field`, `text`, `countryCode`, `city`, `province`, `language`; campi `address/city/province/postal_code`, testo 3–200 caratteri, paese ISO valido, lingua `it/en`.
+Entrambi richiedono create oppure update della risorsa indicata nel tenant. `resource` facoltativo ammette soltanto `sites` (default compatibile) o `business-partners`; nessuna concessione incrociata tra le due risorse. Il catalogo nazioni accetta solo `tenantId` e `resource`. Query autocomplete ammesse: `tenantId`, `resource`, `field`, `text`, `countryCode`, `city`, `province`, `language`; campi `address/city/province/postal_code`, testo 3–200 caratteri, paese ISO valido, lingua `it/en`.
 
 Ricerca locale limitata e accent-insensitive, debounce e cancellazione delle risposte obsolete. Selezionare completa geografia ma conserva la strada manuale; una provincia precedente non blocca una nuova città. Nessuno stradario, geocoding remoto o caricamento integrale delle città nel browser.
 
@@ -395,29 +373,20 @@ Backup locali e rehearsal non definiscono una politica di disaster recovery. Des
 
 ### Incremento Business Partner
 
-Le immagini candidate sono costruite e avviate soltanto nel progetto effimero `enginia360-business-partner-proof`, con database in tmpfs e credenziali sintetiche private. Nessun volume, chiave o account dell'installazione attuale viene usato. Esecuzione HTTP ripetibile:
+Le verifiche di dominio sono riepilogate nella [specifica BP](masterdata_business_partner.md#8-verifiche-e-manutenzione). Per una modifica SQL eseguire installazione nuova ed equivalenza dello schema in PostgreSQL effimero. Per una modifica applicativa avviare immagini esplicite nel progetto `enginia360-business-partner-proof`, con database in tmpfs e credenziali sintetiche:
 
 ```sh
-docker build -t enginia360-backend:bp-masterdata-schema backend
+docker build -t enginia360-backend:business-partner-proof backend
 docker build -t enginia360-frontend:business-partner-proof frontend
 python3 tests/application/run_business_partner_proof.py \
+  --backend-image enginia360-backend:business-partner-proof \
   --frontend-image enginia360-frontend:business-partner-proof --keep
-# Con Playwright e Chromium predisposti, sullo stesso ambiente isolato:
-python3 tests/application/browser_business_partners.py
+# Con Playwright e Chromium predisposti: selezionare i singoli casi pertinenti.
+# Non usare la discovery per modulo su classi che ereditano altre suite.
 python3 tests/application/run_business_partner_proof.py --cleanup
 ```
 
-Il runner inoltra l'origine HTTPS logica al solo trasporto HTTP loopback: **non è una prova TLS**. Evidenze in `$TMPDIR/enginia360-business-partner-proof`; il test browser richiede il Chromium dichiarato nel relativo harness. `BP_DB_TESTS=true` abilita anche i test nativi BP, compresa l'iniezione di un errore audit: connessione elevata di fixture, esclusivamente su database isolato. Le prove HTTP con cookie usano invece il ruolo applicativo non privilegiato.
-
-Verificati in isolamento: creazione/modifica aggregata, omissione/svuotamento, duplicati fiscali, codici automatici/manuali, concorrenza, esaurimento, versioni obsolete, isolamento tenant, CSRF, permessi e revoca, rollback audit al commit, interfaccia desktop/mobile IT/EN e schema/ACL equivalenti tra installazione nuova e migrazione incrementale.
-
-La correzione degli schemi è verificata con `tests/database/prove_business_partner_masterdata.py --previous /percorso/baseline-bp-precedente.sql --output /percorso/evidenze`: 7 prove PostgreSQL su dati popolati, OID/indici/FK/trigger/ACL conservati, equivalenza del dump completo, collisioni, riesecuzione rifiutata e rollback tardivo. Sul backend candidato `bp-masterdata-schema` sono superati 141 test nativi, 12 HTTP e 3 browser usando la baseline precedente più la nuova migrazione; superate anche le tre regressioni dei consumer SQL modificati. Queste verifiche sono isolate e non attestano un rilascio sull'installazione attuale.
-
-La separazione `foundation`/`masterdata` è stata successivamente rilasciata il 19 novembre 2026: migrazione applicata e solo backend ricreato con l'immagine verificata `bp-masterdata-schema`. Readback indipendente: health e pagina HTTPS 200, dati di tutte le 30 tabelle e OID/indici/FK/trigger/funzioni/ACL preesistenti invariati, ruoli e credenziali invariati, USAGE senza CREATE su `masterdata` per il runtime e nessun DELETE sul master BP o sulle numerazioni. Frontend, database, container estranei e configurazione Serve invariati. Checkpoint privati e verifica in `/root/.config/enginia360/releases/bp-masterdata-20261119T105540/`. Nessun nuovo login del proprietario eseguito durante questo rilascio.
-
-Messaggi di validazione BP rilasciati il 19 novembre 2026 con le immagini backend/frontend `bp-validation-errors`, senza migrazioni SQL. Verifica isolata: 179 test nativi, 41 frontend, 14 HTTP e 4 browser; prima del rilascio ulteriori 12 test mirati API/editor/finestre condivise. Readback pubblicato: immagini esatte, health e pagina HTTPS 200, 9 asset accessibili e nuovi codici errore presenti. Dati/metadati/credenziali, container protetti e Serve invariati; checkpoint privato in `/root/.config/enginia360/releases/bp-validation-errors-20261119T115250/`. Il caso autenticato errore IVA → correzione → salvataggio è provato in isolamento, non con un nuovo login del proprietario sul live.
-
-Rilascio attuale del 19 novembre 2026: migrazione applicata e sole immagini backend/frontend aggiornate. Verificati immagine effettiva dei container, health DB/API e pagina/asset nuovi tramite HTTPS reale con certificato valido; database e servizi estranei non ricreati, configurazione Serve invariata. Dati storici, OID/owner/ACL delle tabelle esistenti, ruoli e credenziali conservati; solo catalogo permessi esteso. Il browser reale mostra l'accesso, ma non è stata ripetuta l'autenticazione del proprietario perché il vault non contiene le sue credenziali. Il percorso autenticato resta coperto dalle prove isolate, non da un nuovo login live.
+Il runner usa un'origine HTTPS logica inoltrata al trasporto HTTP loopback: **non è una prova TLS**. Espande la sola inclusione SQL autorizzata prima dell'invio via stdin. I browser richiedono il Chromium dell'harness; `BP_DB_TESTS=true` abilita i test nativi esclusivamente su database isolato. Le prove HTTP usano il ruolo applicativo non privilegiato; eventuali iniezioni audit richiedono il ruolo elevato della sola fixture. Cronologie e conteggi dei rilasci precedenti restano negli originali documentali e nei checkpoint privati, non nel contratto corrente.
 
 ### Foundation e regressioni mirate
 
@@ -453,12 +422,17 @@ Dopo il refactoring: manifest sorgenti prima della build, publish reale, candida
 3. **Naming convenzionale:** standard de facto coerenti con le tecnologie per schemi, tabelle, campi e codice.
 4. **Riusabilità:** privilegiare fortemente il riuso.
 5. **Verifiche locali e incrementali:** unit test, lint, test funzionali, semantici e sintattici locali, senza GitHub Actions; incrementali salvo diverse disposizioni.
-6. **Consegna soggetta ad approvazione:** commit, push, PR e CI/CD richiedono avallo del proprietario.
+6. **Rilascio automatico:** ogni implementazione include verifiche pertinenti, checkpoint di rollback, rilascio sull'installazione Enginia360 esistente e verifica dello stato pubblicato, senza richiedere una conferma separata. Interventi distruttivi o fuori perimetro richiedono autorizzazione specifica. Commit, push, PR e attivazione di pipeline CI/CD restano soggetti all'avallo del proprietario.
 7. **Lingue:** UI italiano default più inglese; nomi codice/DB inglesi; commenti codice/DB e documentazione tecnica/utente italiani.
 8. **Codici anagrafici:** facoltativi e secondari, dopo nome/dati principali; niente generazione per colmare assenze. Codice tenant/login obbligatorio, ma dopo Nome nel form. Codici tecnici permessi obbligatori e readonly.
    Eccezione autorizzata Business Partner: codice obbligatorio e immutabile, automatico o manuale secondo la configurazione Numbering dedicata.
 9. **Integrazioni esterne:** segreti in impostazioni e schermate dedicate autorizzate, cifrati nel DB; non in file root/bundle, risposte API o audit/log. `integrations.` riservato ed escluso dalla CRUD generica.
 10. **Select con ricerca in tempo reale**, salvo richiesta esplicita diversa; comportamento condiviso anche su cataloghi brevi, etichette localizzate e tastiera.
 11. **Messaggi specifici e precisi:** avvisi, errori e informazioni indicano l'operazione o il controllo effettivo, il campo e la riga interessati quando noti, e l'azione utile. Non sostituire una causa conosciuta con un messaggio generico né esporre dettagli SQL, dati riservati o cause non verificate. Se indistinguibili, indicare tutti i campi rilevanti. Non distinguere username inesistente/password errata né rivelare stato prima della password corretta.
+12. **Geografia coerente in tutti i CRUD:** ogni form con campi geografici riusa controlli e comportamento condivisi di autocompletamento e selezione nazione. Ricerca nel catalogo locale, soglia/debounce, tastiera, annullamento delle risposte obsolete e compilazione manuale sono uniformi. I permessi appartengono al CRUD chiamante, mai a un'altra anagrafica. La selezione modifica soltanto la bozza e l'indirizzo interessato; le strade rimangono manuali in assenza di stradario. I cataloghi Nazioni/Città sono la fonte dei suggerimenti, non un servizio esterno.
 
-UI professionale: niente testi su agente, proprietario, prototipo, tecnologia o scelte implementative; niente help text tecnico permanente. Un solo Salva per anagrafica e associazioni. Permessi a domini/risorse/operazioni, ricerca bilingue e checkbox parziali: filtrare o collassare non perde selezioni, la selezione di un ramo include anche foglie nascoste. Nessun dato demo persistente.
+13. **Permessi coerenti con le rotte:** catalogo e selettore dei ruoli seguono la gerarchia completa della navigazione, usando gli stessi metadati dei percorsi. I nodi intermedi raggruppano i permessi discendenti, senza introdurre permessi impliciti o ereditarietà delle autorizzazioni. Codici e assegnazioni restano indipendenti dalla presentazione dell'albero.
+
+14. **Persistenza delle tabelle contestuali/correlate:** sull'entità principale già salvata, le azioni confermate sulle righe sono effettive e persistono senza richiedere anche il Salva generale. Non salvano implicitamente la bozza dei dati principali. Prima della creazione del padre, le righe restano locali e vengono registrate insieme al primo salvataggio.
+
+UI professionale: niente testi su agente, proprietario, prototipo, tecnologia o scelte implementative; niente help text tecnico permanente. Azioni tabellari allineate a destra in colonna di larghezza fissa; preferire icone con nome accessibile e descrizione al passaggio del mouse. Un solo Salva per anagrafica e associazioni, salvo le operazioni autonome delle tabelle correlate già persistibili descritte sopra. Permessi a domini/risorse/operazioni, ricerca bilingue e checkbox parziali: filtrare o collassare non perde selezioni, la selezione di un ramo include anche foglie nascoste. Nessun dato demo persistente.

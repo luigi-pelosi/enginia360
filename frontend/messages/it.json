@@ -1,5 +1,11 @@
 {
+  "partnerCompanies": {
+    "allCompanies": "Tutte le aziende",
+    "title": "Aziende e ruoli", "byCompany": "Per azienda", "company": "Azienda", "relationshipStatus": "Stato relazione", "assignedRoles": "Ruoli assegnati", "usableRoles": "Ruoli utilizzabili", "CUSTOMER": "Cliente", "SUPPLIER": "Fornitore", "ACTIVE": "Attivo", "BLOCKED": "Bloccato", "add": "Associa azienda", "edit": "Gestisci azienda e ruoli", "confirm": "Conferma", "block": "Blocca", "activate": "Attiva", "assign": "Assegna", "confirmChange": "Confermare l'operazione?", "confirmChangeDescription": "La modifica verrà salvata immediatamente.", "role": "Ruolo", "allRoles": "Tutti i ruoli", "usableOnly": "Solo utilizzabili", "partner": "Business Partner", "partnerStatus": "Stato Business Partner", "authorizedCompanies": "Aziende autorizzate", "saveCompanyAccess": "Salva aziende autorizzate", "missingCompany": "Azienda non disponibile", "referenceError": "Impossibile caricare tutte le aziende. Aggiorna prima di salvare."
+  },
   "app": {
+    "createUncertain": "Il Business Partner potrebbe essere stato creato, ma l’esito è sconosciuto. Controlla l’elenco o contatta un amministratore prima di tentare una nuova creazione.", "createStorageUnavailable": "Creazione bloccata perché l’archivio di recupero non è disponibile. Abilita la memoria di sessione e riprova.",
+    "createOutcomeUncertain": "La creazione potrebbe essere riuscita. Controlla i record prima di procedere; il nuovo invio automatico è bloccato.",
     "masterData": "Anagrafiche",
     "numbering": "Numerazione",
     "backToBusinessPartners": "Torna ai Business Partner",
@@ -88,6 +94,13 @@
     "readOnly": "Sola lettura"
   },
   "businessPartners": {
+    "byCompany": "Per azienda",
+    "applyRelated": "Applica",
+    "relatedDraftHint": "Le modifiche saranno applicate al salvataggio del Business Partner.",
+    "relatedSaveHint": "Conferma con Salva per salvare la riga senza salvare le modifiche all’identità.",
+    "removeRelatedSavedHint": "Rimuovere {row}? La rimozione viene salvata immediatamente.",
+    "removeRelatedHint": "Rimuovere {row}? La rimozione sarà applicata al salvataggio del Business Partner.",
+
     "identity": "Identità",
     "invalidContact": "Verifica i contatti: email valida, numero di telefono o indirizzo web http/https senza credenziali.",
     "verificationHint": "Il salvataggio è stato accettato. Verifica il record salvato senza inviare una seconda creazione.", "verifySaved": "Verifica record salvato",
@@ -104,7 +117,6 @@
     "legal_name": "Ragione sociale", "first_name": "Nome", "last_name": "Cognome",
     "codeHint": "Lascia vuoto per la numerazione automatica. Se è configurata la modalità manuale, inserisci il codice.",
     "immutableCode": "Il codice assegnato non è modificabile.",
-    "draftHint": "La bozza può essere incompleta. Per attivare compila i dati identificativi. Per rimuovere dall’operatività usa lo stato Archiviato.",
     "new": "Nuovo Business Partner",
     "search": "Cerca codice, nome, identificativo fiscale o contatto",
     "code": "Codice", "displayName": "Nome / Ragione sociale", "kind": "Tipo", "status": "Stato",
@@ -121,6 +133,7 @@
   "resources": {
     "business-partners": "Business Partner",
     "business-partner-numbering": "Numerazione Business Partner",
+    "business-partner-companies": "Aziende e ruoli",
     "countries": "Nazioni",
     "cities": "Città",
     "tenants": "Organizzazioni",
@@ -182,6 +195,9 @@
     "assign": "Assegnazione ruoli",
     "assign_users": "Assegnazione utenti",
     "assign_permissions": "Assegnazione permessi",
+    "assign_companies": "Assegnazione aziende autorizzate",
+    "use_customer": "Utilizzo come cliente",
+    "use_supplier": "Utilizzo come fornitore",
     "assign_scope": "Assegnazione aziende e sedi"
   },
   "fieldOptions": {
@@ -219,6 +235,9 @@
     "numbering_in_use": "La numerazione è già in uso e non può essere modificata.",
     "numbering_exhausted": "La numerazione Business Partner è esaurita. Contatta l’amministratore.",
     "stale_version": "I dati sono stati modificati da un altro operatore. La bozza è conservata: confronta i dati aggiornati prima di riprovare.",
+    "company_partner_exists": "Il Business Partner è già associato a questa azienda. Aggiorna l'elenco per gestire la relazione esistente.",
+    "invalid_partner_role": "Seleziona un ruolo valido: cliente o fornitore.",
+    "company_access_denied": "Non sei autorizzato a eseguire questa operazione nell'azienda selezionata.",
     "tax_identity_required": "Compila almeno uno tra Partita IVA e Codice fiscale.",
     "current_password_invalid": "La password attuale non è corretta.",
     "invalid_credentials": "Credenziali non valide.",

@@ -26,9 +26,10 @@ export function addressSelection(old: Record<string, unknown>, field: AddressFie
   if (item.region != null && !item.address) next.address = old.address ?? "";
   return next;
 }
-export function AddressAutocomplete({id, field, value, context, scope, disabled, required, onChange, onSelect}: {
+export function AddressAutocomplete({id, field, value, context, scope, disabled, required, maxLength = 200, onChange, onSelect, "aria-invalid": invalid, "aria-describedby": describedBy}: {
   id: string; field: AddressField; value: string; context: Record<string, unknown>; scope: (path: string) => string;
   disabled: boolean; required: boolean; onChange: (text: string) => void; onSelect: (item: AddressSuggestion) => void;
+  maxLength?: number; "aria-invalid"?: boolean; "aria-describedby"?: string;
 }) {
   const locale = useLocale(), t = useTranslations("app");
   const [items, setItems] = useState<AddressSuggestion[]>([]), [focused, setFocused] = useState(false),
@@ -64,9 +65,10 @@ export function AddressAutocomplete({id, field, value, context, scope, disabled,
     setOpen(false); setItems([]); setActive(-1); onSelect(item);
   }
   return <div className="relative" onBlur={e => {if (!e.currentTarget.contains(e.relatedTarget)) {setFocused(false); generation.current++; controller.current?.abort();}}}>
-    <Input id={id} value={value} disabled={disabled} required={required} maxLength={200} autoComplete="off"
+    <Input id={id} value={value} disabled={disabled} required={required} maxLength={maxLength} autoComplete="off"
       role="combobox" aria-autocomplete="list" aria-expanded={visible} aria-controls={visible ? listId : undefined}
-      aria-activedescendant={visible && active >= 0 ? `${listId}-${active}` : undefined} aria-describedby={error ? `${id}-error` : undefined}
+      aria-activedescendant={visible && active >= 0 ? `${listId}-${active}` : undefined} aria-invalid={invalid}
+      aria-describedby={[describedBy, error && focused ? `${id}-lookup-error` : undefined].filter(Boolean).join(" ") || undefined}
       onFocus={() => {if (!disabled) {setFocused(true); setOpen(true);}}}
       onChange={e => {if (disabled) return; generation.current++; controller.current?.abort(); selected.current = null; setOpen(true); setItems([]); onChange(e.target.value);}}
       onKeyDown={e => {
@@ -84,6 +86,6 @@ export function AddressAutocomplete({id, field, value, context, scope, disabled,
           onMouseDown={e => e.preventDefault()} onMouseEnter={() => setActive(index)} onClick={() => choose(item)}>{item.label}</li>)}
       </ul>
     </div>}
-    {error && focused && <p id={`${id}-error`} role="status" className="absolute top-full right-0 left-0 z-50 mt-1 rounded-md border bg-popover p-2 text-sm text-popover-foreground shadow-md">{t("addressUnavailable")}</p>}
+    {error && focused && <p id={`${id}-lookup-error`} role="status" className="absolute top-full right-0 left-0 z-50 mt-1 rounded-md border bg-popover p-2 text-sm text-popover-foreground shadow-md">{t("addressUnavailable")}</p>}
   </div>;
 }

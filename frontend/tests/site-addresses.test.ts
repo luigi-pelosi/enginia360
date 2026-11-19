@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {harness, find, session, workspace} from './workspace-harness.ts';
+import {partnerHarness} from './record-editor-harness.ts';
 import type {Resource} from '../lib/model.ts';
 const codes = JSON.parse(readFileSync(new URL('./country-codes.json', import.meta.url),'utf8')) as string[];
 const resource: Resource = {key:'sites',fields:[{name:'name',type:'text',required:true},{name:'code',type:'text',required:false},{name:'vat_number',type:'text',required:false},{name:'tax_code',type:'text',required:false},{name:'country_code',type:'select',required:false,options:codes}]};
@@ -13,16 +14,16 @@ test('backend fiscal rejection has concise IT/EN feedback',()=>{
  }
 });
 test('fiscal alternatives block blank/whitespace submission without top message or orphan description',async()=>{
- const h=harness('it',{0:{name:'Sede',code:'',vat_number:'  ',tax_code:'',country_code:''}});
- const tree=h.components.RecordEditor(props);
+ const p={...props,tenant:'t'}; const h=partnerHarness('workspace','it'); h.tree('RecordEditor',p); await h.flush(); h.state[0]={name:'Sede',code:'',vat_number:'  ',tax_code:'',country_code:''};
+ const tree=h.tree('RecordEditor',p);
  assert.equal(find(tree,n=>n.props?.id==='tax-identity-requirement'),undefined);
  for(const name of ['vat_number','tax_code']) assert.equal(find(tree,n=>n.props?.id===`field-${name}`).props['aria-describedby'],undefined);
  assert.equal(find(tree,n=>n.props?.form==='record-form').props.disabled,true);
  assert.equal(find(tree,n=>n.props?.id==='field-vat_number').props.required,true);
  assert.equal(find(tree,n=>n.props?.id==='field-tax_code').props.required,true);
  await find(tree,n=>n.props?.id==='record-form').props.onSubmit({preventDefault(){}});
- assert.deepEqual(h.apiCalls,[]);
- const valid=harness('en',{0:{name:'Site',vat_number:'VAT',tax_code:'',country_code:''}}).components.RecordEditor(props);
+ assert.deepEqual(h.calls,[]);
+ const vh=partnerHarness('workspace','en'); vh.tree('RecordEditor',p); await vh.flush(); vh.state[0]={name:'Site',vat_number:'VAT',tax_code:'',country_code:''}; const valid=vh.tree('RecordEditor',p);
  assert.equal(find(valid,n=>n.props?.id==='field-tax_code').props.required,false);
  assert.equal(find(valid,n=>n.props?.form==='record-form').props.disabled,false);
  assert.equal(find(valid,n=>n.props?.id==='tax-identity-requirement'),undefined,'nessun messaggio di compilazione dopo un identificativo fiscale valido');

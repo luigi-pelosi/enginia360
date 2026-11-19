@@ -13,11 +13,14 @@ import time
 import unittest
 
 ROOT=Path(__file__).resolve().parents[2]
+import sys
+sys.path.insert(0, str(ROOT))
+from database.sql_source import load_foundation_sql
 CONTAINER='enginia360-masterdata-schema-proof'
 SCOPE='business-partner-masterdata-proof'
 TABLES=('business_partner','business_partner_tax_identifier','business_partner_address',
         'business_partner_address_usage','business_partner_contact_channel')
-MIGRATION=ROOT/'database/migrations/20261119_business_partner_masterdata.sql'
+MIGRATION=ROOT/'database/migrations/archive/business_partner/20261119_business_partner_masterdata.sql'
 FIXTURE="""
 INSERT INTO foundation.tenant(id,code,name) VALUES('a1000000-0000-0000-0000-000000000001','masterdata-proof','Verifica');
 INSERT INTO foundation.company(id,tenant_id,name) VALUES('a1000000-0000-0000-0000-000000000002','a1000000-0000-0000-0000-000000000001','Azienda conservata');
@@ -141,7 +144,7 @@ def main():
         MasterdataProof.before=snapshot('bp_upgraded')
         sql(MIGRATION.read_text())
         docker('exec',CONTAINER,'createdb','-U','postgres','bp_fresh')
-        sql((ROOT/'database/foundation.sql').read_text(),'bp_fresh')
+        sql(load_foundation_sql(),'bp_fresh')
         result=unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromTestCase(MasterdataProof))
         report={'passed':result.wasSuccessful(),'tests':result.testsRun,'failures':len(result.failures),'errors':len(result.errors),
                 'migrationSha256':hashlib.sha256(MIGRATION.read_bytes()).hexdigest()}

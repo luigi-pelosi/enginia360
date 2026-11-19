@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {addressDriver} from './address-component-harness.ts';
-import {find, harness, session} from './workspace-harness.ts';
+import {find, session} from './workspace-harness.ts';
+import {partnerHarness} from './record-editor-harness.ts';
 test('local explicit region copies or clears, omitted/null region preserves manual draft',()=>{
  const d=addressDriver(async()=>{}), old={country_code:'IT',city:'Roma',province:'RM',region:'Manual',postal_code:'00100',address:'Via manuale'};
  for(const region of [undefined,null]) assert.equal(d.exports.addressSelection(old,'city',{label:'Roma',city:'Roma',region}).region,'Manual');
@@ -12,14 +13,23 @@ test('local city selection preserves manual street in the parent draft and only 
  const resource={key:'sites',fields:['address','city','province','region','postal_code','country_code'].map(name=>({name,type:'text' as const,required:false}))};
  const old={address:'Via manuale 17',city:'Roma',province:'RM',region:'Lazio',postal_code:'00100',country_code:'IT'};
  const props={resource,row:null,canWrite:true,session,scope:(p:string)=>p,load:async()=>[],onClose(){},onSaved:async()=>{},onError:()=> 'error'};
- const h=harness('en',{0:old}),tree=h.components.RecordEditor(props);
+ const h=partnerHarness('workspace');
+ let tree=h.tree('RecordEditor',props);
+ await h.flush();
+ tree=h.tree('RecordEditor',props);
+ find(tree,n=>n.type?.name==='AddressAutocomplete'&&n.props.field==='address').props.onChange(old.address);
+ tree=h.tree('RecordEditor',props);
  find(tree,n=>n.type?.name==='AddressAutocomplete'&&n.props.field==='city').props.onSelect({label:'Capua · 81043',address:'',city:'Capua',province:'CE',region:'Campania',postalCode:'81043',countryCode:'IT'});
- const draft=(h.updates[0] as Function)(old);
- assert.equal(draft.address,'Via manuale 17');assert.equal(draft.region,'Campania');assert.equal(draft.postal_code,'81043');assert.deepEqual(h.apiCalls,[]);
- const saved=harness('en',{0:draft});const next=saved.components.RecordEditor(props);
+ tree=h.tree('RecordEditor',props);
+ assert.equal(find(tree,n=>n.type?.name==='AddressAutocomplete'&&n.props.field==='address').props.value,old.address);
+ assert.equal(find(tree,n=>n.type?.name==='AddressAutocomplete'&&n.props.field==='city').props.value,'Capua');
+ assert.equal(h.calls.length,0);
+ const next=tree;
  await find(next,n=>n.props?.id==='record-form').props.onSubmit({preventDefault(){}});
- assert.deepEqual(saved.apiCalls,['/data/sites/save']);
- assert.equal((saved.apiPayloads[0] as any).values.address,'Via manuale 17');
+ assert.deepEqual(h.calls.map(call=>call.path),['/data/sites/save']);
+ assert.equal(h.calls[0].body.values.address,'Via manuale 17');
+ assert.equal(h.calls[0].body.values.region,'Campania');
+ assert.equal(h.calls[0].body.values.postal_code,'81043');
 });
 test('local suggestions never falsely attribute Geoapify and preserve leading postal zeros',async()=>{
  const d=addressDriver(async()=>({ok:true,json:async()=>({items:[{label:'Roma · 00100',city:'Roma',postalCode:'00100',region:'Lazio'}],attribution:''})}));

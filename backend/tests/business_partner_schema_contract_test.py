@@ -4,13 +4,16 @@ import re
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
+import sys
+sys.path.insert(0, str(ROOT))
+from database.sql_source import load_foundation_sql
 BP = ('business_partner', 'business_partner_tax_identifier', 'business_partner_address',
       'business_partner_address_usage', 'business_partner_contact_channel')
 
 
 class BusinessPartnerSchemaContractTests(unittest.TestCase):
     def test_fresh_ownership(self):
-        sql = (ROOT / 'database/foundation.sql').read_text()
+        sql = load_foundation_sql()
         tables = set(re.findall(r'CREATE TABLE (\w+)\.(\w+)', sql))
         for table in BP:
             self.assertIn(('masterdata', table), tables)
@@ -24,10 +27,10 @@ class BusinessPartnerSchemaContractTests(unittest.TestCase):
 
     def test_incremental_uses_identity_preserving_moves(self):
         import hashlib
-        released = ROOT / 'database/migrations/20261118_business_partners.sql'
+        released = ROOT / 'database/migrations/archive/business_partner/20261118_business_partners.sql'
         self.assertEqual(hashlib.sha256(released.read_bytes()).hexdigest(),
                          '9108323100e8cf950574894ddb12ca9b99e76962ac75475d678fafaad0110a7e')
-        migration = ROOT / 'database/migrations/20261119_business_partner_masterdata.sql'
+        migration = ROOT / 'database/migrations/archive/business_partner/20261119_business_partner_masterdata.sql'
         self.assertTrue(migration.exists(), 'Missing masterdata ownership migration')
         sql = migration.read_text()
         for table in BP:

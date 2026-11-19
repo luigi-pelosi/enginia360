@@ -5,7 +5,7 @@ import {useTranslations} from "next-intl";
 import {ChevronRight} from "lucide-react";
 import {Badge} from "@/components/ui/badge";
 import {Checkbox} from "@/components/ui/checkbox";
-import {groupPermissions, permissionMatches, type Row} from "@/lib/model";
+import {groupPermissions, permissionMatches, permissionRows, type PermissionBranch, type Row} from "@/lib/model";
 import it from "../messages/it.json";
 import en from "../messages/en.json";
 
@@ -19,7 +19,10 @@ export function PermissionTree({rows, query = "", selectedIds, onSelectedIdsChan
 }) {
   const t = useTranslations("app"), r = useTranslations("resources");
   const original = groupPermissions(rows);
-  const allRows = original.flatMap(domain => domain.resources.flatMap(resource => resource.rows));
+  const allRows = original.flatMap(domain => domain.resources.flatMap(permissionRows));
+  const originalBranches = new Map<string, PermissionBranch>();
+  const index = (branch: PermissionBranch) => {originalBranches.set(branch.key, branch); branch.children.forEach(index);};
+  original.forEach(domain => domain.resources.forEach(index));
   const tree = groupPermissions(rows.filter(row => permissionMatches(row, query, [it, en])));
   const searching = Boolean(query.trim());
   const selected = selectedIds ? new Set(selectedIds) : null;
@@ -40,6 +43,21 @@ export function PermissionTree({rows, query = "", selectedIds, onSelectedIdsChan
         onSelectedIdsChange(checked === true ? [...new Set([...selected, ...ids])] : [...selected].filter(id => !ids.has(id)));
       }} />;
   };
+  const renderBranch = (branch: PermissionBranch): ReactNode => {
+    const branchRows = permissionRows(originalBranches.get(branch.key)!);
+    const label = branch.key === "settings-master-data" ? t("masterData") : branch.key === "settings-business-partners" ? r("business-partners") : r.has(branch.key) ? r(branch.key) : branch.key;
+    return <details key={`${query}-${branch.key}`} open={searching || undefined} data-permission-resource={branch.key} className="rounded-md [&[open]>summary>svg]:rotate-90">
+      <summary aria-label={label} className="flex cursor-pointer list-none items-center gap-2 rounded-md px-3 py-2 text-sm font-medium outline-none hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+        <ChevronRight aria-hidden="true" className="size-4 shrink-0 transition-transform" />
+        {bulk(branchRows, `${t("selectAll")} · ${label}`, {"data-permission-resource-checkbox": branch.key})}
+        <span>{label}</span>{count(selected ? branchRows : permissionRows(branch))}
+      </summary>
+      {branch.rows.length > 0 && <ul className="ml-4 divide-y border-l pl-2 sm:ml-5 sm:pl-4">
+        {branch.rows.map(row => <li key={row.id} data-permission-code={String(row.code ?? "")}>{renderLeaf(row)}</li>)}
+      </ul>}
+      {branch.children.length > 0 && <div className="ml-3 space-y-1 border-l pl-2 sm:ml-5 sm:pl-3">{branch.children.map(renderBranch)}</div>}
+    </details>;
+  };
   return <div className="space-y-2">
     {selected && <div className="flex items-center gap-2 rounded-md border px-4 py-3 text-sm font-medium">
       {bulk(allRows, t("selectAll"), {"data-permission-selection": "all"})}
@@ -48,29 +66,16 @@ export function PermissionTree({rows, query = "", selectedIds, onSelectedIdsChan
     {!tree.length ? <p className="p-4 text-sm text-muted-foreground">{t("empty")}</p> : <div className="divide-y rounded-md border">
       {tree.map(domain => {
         const originalDomain = original.find(entry => entry.key === domain.key)!;
-        const domainRows = originalDomain.resources.flatMap(resource => resource.rows);
+        const domainRows = originalDomain.resources.flatMap(permissionRows);
         const domainLabel = t(domain.key === "other" ? "otherPermissions" : domain.key);
         return <details key={`${query}-${domain.key}`} open={searching || undefined} data-permission-domain={domain.key} className="group/domain">
           <summary aria-label={domainLabel} className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm font-semibold outline-none hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
             <ChevronRight aria-hidden="true" className="size-4 shrink-0 transition-transform group-open/domain:rotate-90" />
             {bulk(domainRows, `${t("selectAll")} · ${domainLabel}`, {"data-permission-domain-checkbox": domain.key})}
-            <span>{domainLabel}</span>{count(selected ? domainRows : domain.resources.flatMap(resource => resource.rows))}
+            <span>{domainLabel}</span>{count(selected ? domainRows : domain.resources.flatMap(permissionRows))}
           </summary>
           <div className="space-y-1 border-t p-2 sm:pl-6">
-            {domain.resources.map(resource => {
-              const resourceRows = originalDomain.resources.find(entry => entry.key === resource.key)!.rows;
-              const resourceLabel = r.has(resource.key) ? r(resource.key) : resource.key;
-              return <details key={`${query}-${resource.key}`} open={searching || undefined} data-permission-resource={resource.key} className="group/resource rounded-md">
-                <summary aria-label={resourceLabel} className="flex cursor-pointer list-none items-center gap-2 rounded-md px-3 py-2 text-sm font-medium outline-none hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
-                  <ChevronRight aria-hidden="true" className="size-4 shrink-0 transition-transform group-open/resource:rotate-90" />
-                  {bulk(resourceRows, `${t("selectAll")} · ${resourceLabel}`, {"data-permission-resource-checkbox": resource.key})}
-                  <span>{resourceLabel}</span>{count(selected ? resourceRows : resource.rows)}
-                </summary>
-                <ul className="ml-4 divide-y border-l pl-2 sm:ml-5 sm:pl-4">
-                  {resource.rows.map(row => <li key={row.id} data-permission-code={String(row.code ?? "")}>{renderLeaf(row)}</li>)}
-                </ul>
-              </details>;
-            })}
+            {domain.resources.map(renderBranch)}
           </div>
         </details>;
       })}

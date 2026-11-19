@@ -29,12 +29,13 @@ test("unknown resources/actions fail closed and only true global administrators 
   assert.equal(can({...global, tenantId: "tenant"}, "tenants", "read"), false);
   assert.equal(can({...tenant, permissions: ["tenants.read"]}, "tenants", "read"), false);
 });
-test("all 55 tenant catalog actions are exact, including BP-specific action allowlists", () => {
+test("all 61 tenant catalog actions are exact, including BP-specific action allowlists", () => {
   const mutable = ["companies", "sites", "sales-organizations", "purchasing-organizations", "warehouse-types", "warehouses", "warehouse-locations", "settings", "users", "groups", "roles"];
   const codes = mutable.flatMap(resource => ["read", "create", "update", "delete"].map(action => `${resource}.${action}`));
   codes.push("permissions.read", "users.reset_password", "roles.assign", "groups.assign_users", "roles.assign_permissions", "purchasing-organizations.assign_scope");
   codes.push("business-partners.read", "business-partners.create", "business-partners.update", "business-partner-numbering.read", "business-partner-numbering.update");
-  assert.equal(codes.length, 55);
+  codes.push("business-partner-companies.read", "business-partner-companies.create", "business-partner-companies.update", "business-partner-companies.use_customer", "business-partner-companies.use_supplier", "roles.assign_companies");
+  assert.equal(codes.length, 61);
   for (const code of codes) {
     const [resource, action] = code.split(".");
     assert.equal(can({...tenant, permissions: [code]}, resource, action), true, code);

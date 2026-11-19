@@ -34,9 +34,27 @@ export const navigationSections = [
   {label: "warehouse", keys: ["warehouse-types", "warehouses", "warehouse-locations"]},
   {label: "administration", keys: ["settings", "users", "groups", "roles", "permissions"]},
 ];
-export type PermissionDomain = {key: string; resources: {key: string; rows: Row[]}[]};
-const permissionSections = navigationSections.map(section => section.label === "masterData"
-  ? {...section, keys: [...section.keys, "business-partner-numbering"]} : section);
+export const settingsCatalogs = ["countries", "cities"];
+export const partnerSettingsParents: Record<string, string> = {
+  "settings-master-data": "settings",
+  "settings-business-partners": "settings-master-data",
+  "business-partner-numbering": "settings-business-partners",
+};
+const routeParents: Record<string, string> = {
+  "business-partner-companies": "business-partners",
+  ...partnerSettingsParents,
+  ...Object.fromEntries(settingsCatalogs.map(key => [key, "settings"])),
+};
+export function navigationPath(key: string): string[] {
+  const path = [key];
+  while (Object.hasOwn(routeParents, key)) {key = routeParents[key]; path.unshift(key);}
+  return path;
+}
+export type PermissionBranch = {key: string; rows: Row[]; children: PermissionBranch[]};
+export type PermissionDomain = {key: string; resources: PermissionBranch[]};
+export function permissionRows(branch: PermissionBranch): Row[] {
+  return [...branch.rows, ...branch.children.flatMap(permissionRows)];
+}
 export function groupPermissions(rows: Row[]): PermissionDomain[] {
   const unique = [...new Map(rows.map(row => [row.id, row])).values()];
   const standard = ["read", "create", "update", "delete"];
@@ -51,14 +69,23 @@ export function groupPermissions(rows: Row[]): PermissionDomain[] {
   }
   for (const entries of byResource.values()) entries.sort((a, b) =>
     actionRank(a) - actionRank(b) || String(a.code).localeCompare(String(b.code)) || a.id.localeCompare(b.id));
-  const domains: PermissionDomain[] = permissionSections.map(section => ({
-    key: section.label,
-    resources: section.keys.filter(key => byResource.has(key)).map(key => ({key, rows: byResource.get(key)!})),
-  })).filter(domain => domain.resources.length);
-  const known = new Set(permissionSections.flatMap(section => section.keys));
-  const fallback = [...byResource.keys()].filter(key => !known.has(key)).sort().map(key => ({key, rows: byResource.get(key)!}));
-  if (fallback.length) domains.push({key: "other", resources: fallback});
-  return domains;
+  const domains: PermissionDomain[] = [...navigationSections.map(section => ({key: section.label, resources: [] as PermissionBranch[]})), {key: "other", resources: []}];
+  const branches = new Map<string, PermissionBranch>();
+  const add = (key: string): PermissionBranch => {
+    const existing = branches.get(key);
+    if (existing) return existing;
+    const branch: PermissionBranch = {key, rows: byResource.get(key) ?? [], children: []};
+    branches.set(key, branch);
+    if (Object.hasOwn(routeParents, key)) add(routeParents[key]).children.push(branch);
+    else {
+      const domain = navigationSections.find(section => section.keys.includes(key))?.label ?? "other";
+      domains.find(entry => entry.key === domain)!.resources.push(branch);
+    }
+    return branch;
+  };
+  const ordered = [...navigationSections.flatMap(section => section.keys), ...Object.keys(routeParents), ...[...byResource.keys()].sort()];
+  for (const key of ordered) if (byResource.has(key)) add(key);
+  return domains.filter(domain => domain.resources.length);
 }
 type PermissionMessages = {resources: Record<string, string>; permissionActions: Record<string, string>; app?: Record<string, string>};
 export function permissionLabel(row: Row, messages: PermissionMessages): string {
@@ -70,8 +97,10 @@ export function permissionLabel(row: Row, messages: PermissionMessages): string 
 }
 export function permissionMatches(row: Row, query: string, messages: PermissionMessages[]): boolean {
   const resource = String(row.code ?? "").split(".")[0];
-  const domain = permissionSections.find(section => section.keys.includes(resource))?.label ?? "otherPermissions";
-  return [String(row.code ?? ""), ...messages.flatMap((locale) => [permissionLabel(row, locale), locale.app?.[domain] ?? ""])]
+  const path = navigationPath(resource);
+  const domain = navigationSections.find(section => section.keys.includes(path[0]))?.label ?? "otherPermissions";
+  return [String(row.code ?? ""), ...messages.flatMap((locale) => [permissionLabel(row, locale), locale.app?.[domain] ?? "", ...path.map(key =>
+    key === "settings-master-data" ? locale.app?.masterData ?? "" : locale.resources[key === "settings-business-partners" ? "business-partners" : key] ?? key)])]
     .some((value) => value.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
 }
 export function countryLabel(code: string, locale: string) {
@@ -103,6 +132,7 @@ export function formatFieldValue(
   return String(value);
 }
 export const resourceKeys = [
+  "business-partner-companies",
   "business-partners",
   "business-partner-numbering",
   "countries",
@@ -129,13 +159,15 @@ export function can(
 ) {
   if (!resourceKeys.includes(resource)) return false;
   if (resource === "business-partners" && !["read", "create", "update"].includes(action)) return false;
+  if (resource === "business-partner-companies" && !["read", "create", "update", "use_customer", "use_supplier"].includes(action)) return false;
   if (resource === "business-partner-numbering" && !["read", "update"].includes(action)) return false;
   const standard = ["read", "create", "update", "delete"];
   const extra: Record<string, string[]> = {
+    "business-partner-companies": ["use_customer", "use_supplier"],
     "purchasing-organizations": ["assign_scope"],
     users: ["reset_password"],
     groups: ["assign_users"],
-    roles: ["assign", "assign_permissions"],
+    roles: ["assign", "assign_permissions", "assign_companies"],
   };
   if (resource === "permissions" ? action !== "read" :
       !standard.includes(action) && !extra[resource]?.includes(action)) return false;

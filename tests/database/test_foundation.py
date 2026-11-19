@@ -18,10 +18,11 @@ TABLES = (
     "business_partner", "business_partner_tax_identifier", "business_partner_address",
     "business_partner_address_usage", "business_partner_contact_channel",
     "numbering_series", "numbering_counter",
+    "company_business_partner", "company_business_partner_role", "role_company",
 )
 
 def table_schema(name):
-    return 'masterdata' if name.startswith('business_partner') else 'foundation'
+    return 'masterdata' if name.startswith(('business_partner', 'company_business_partner')) else 'foundation'
 
 
 def query(sql):

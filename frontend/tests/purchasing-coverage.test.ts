@@ -6,7 +6,7 @@ const permissions = ["purchasing-organizations.read", "purchasing-organizations.
 const props = {resource: {key: "purchasing-organizations", fields: [{name: "name", type: "text", required: true}, {name: "code", type: "text", required: false}]}, row: null, canWrite: true, session: {...session, permissions}, scope: (p: string) => p, load: async () => [], onClose() {}, onSaved: async () => {}, onError: () => "error"};
 const entry = {companyId: company, siteScope: "selected_sites", siteIds: [site]};
 const draft = {companies: [{id: company, name: "Acme", is_enabled: false}], sites: [{id: site, company_id: company, name: "Main", is_enabled: false}, {id: "other", company_id: "other-company", name: "Other"}], initial: [], coverage: [entry]};
-const loaded = {0: {name: "Purchases", code: ""}, 9: draft, 10: false};
+const loaded = {0: {name: "Purchases", code: ""}, 9: draft, 10: false, 13: true};
 const submit = (h: ReturnType<typeof harness>, p: any = props) => find(h.components.RecordEditor(p), n => n.props?.id === "record-form").props.onSubmit({preventDefault() {}});
 test("creation stages coverage mode and site choices and writes exactly one aggregate Save", async () => {
   const h = harness("it", loaded, {id: "new"});
@@ -68,7 +68,7 @@ test("new record reads all company/site options but never invents an owner GET",
   const reads: string[] = [];
   const h = harness("it", {}, () => {throw Error("no owner GET for create")});
   h.components.RecordEditor({...props, load: async (key: string) => {reads.push(key); return key === "companies" ? draft.companies : draft.sites}});
-  h.effects[2](); await flush();
+  h.effects[3](); await flush();
   assert.deepEqual(reads, ["companies", "sites"]);
   assert.deepEqual(h.apiCalls, []);
   assert.deepEqual(plain(h.updates[9]), {...draft, initial: [], coverage: []});
@@ -77,7 +77,7 @@ test("new record reads all company/site options but never invents an owner GET",
 test("existing record loads the exact scoped coverage endpoint and retains inactive assignments", async () => {
   const h = harness("it", {}, {coverage: [entry]});
   h.components.RecordEditor({...existing, scope: (p: string) => `${p}?tenantId=t`, load: async (key: string) => key === "companies" ? draft.companies : draft.sites});
-  h.effects[2](); await flush();
+  h.effects[3](); await flush();
   assert.deepEqual(h.apiCalls, ["/data/purchasing-organizations/org/coverage?tenantId=t"]);
   assert.deepEqual(plain(h.updates[9]), {...draft, initial: [entry]});
 });
@@ -100,7 +100,7 @@ test("coverage load errors and failed option loads remain blocking after loading
   for (const fail of ["companies", "sites", "coverage"]) {
     const h = harness("it", {}, () => {if (fail === "coverage") throw Error("failed"); return {coverage: [entry]}});
     h.components.RecordEditor({...existing, load: async (key: string) => {if (key === fail) throw Error("failed"); return []}});
-    h.effects[2](); await flush();
+    h.effects[3](); await flush();
     assert.equal(h.updates[11], "error");
     assert.equal(h.updates[10], false);
     assert.equal(h.updates[9], undefined);

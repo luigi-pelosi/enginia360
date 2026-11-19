@@ -54,9 +54,9 @@ public static class Geography
     }
     public static async Task<IResult> Countries(HttpContext ctx,AppDb db)
     {
-        foreach(var pair in ctx.Request.Query) Check.Require(pair.Key=="tenantId" && pair.Value.Count==1);
-        await AddressLookup.Authorize(ctx);
-        Security.State(ctx).Tenant(ctx,"sites");
+        foreach(var pair in ctx.Request.Query) Check.Require(pair.Key is "tenantId" or "resource" && pair.Value.Count==1);
+        var resource=await AddressLookup.Authorize(ctx);
+        Security.State(ctx).Tenant(ctx,resource);
         var items=new List<object>();
         await using var cmd=await db.Command("SELECT iso_code,name FROM foundation.country WHERE is_enabled ORDER BY lower(name),iso_code,id");
         await using var reader=await cmd.ExecuteReaderAsync(ctx.RequestAborted);

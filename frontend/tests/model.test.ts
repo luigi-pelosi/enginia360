@@ -32,7 +32,8 @@ test("table dates and language values are localized without timezone day shift",
   assert.equal(model.formatFieldValue(language, "it", "en", code => ({it: "Italian", en: "English"})[code]), "Italian");
 });
 test("all resources including BP and its virtual numbering settings are supported", () => {
-  assert.equal(resourceKeys.length, 17);
+  assert.equal(resourceKeys.length, 18);
+  assert.ok(resourceKeys.includes("business-partner-companies"));
   assert.ok(resourceKeys.includes("business-partners"));
   assert.ok(resourceKeys.includes("business-partner-numbering"));
 });

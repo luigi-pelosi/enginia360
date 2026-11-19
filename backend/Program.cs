@@ -48,6 +48,7 @@ if (args.Length > 0 && args[0] == "import-geography")
 }
 
 if (args.Length > 0 && args[0] == "self-test-geography") { GeographySelfTests.Run(app.Services); return; }
+if (args.Length > 0 && args[0] == "self-test-bp-phase2") { await BusinessPartnerPhase2Tests.Run(builder.Configuration.GetConnectionString("Database")!); return; }
 if (args.Length > 0 && args[0] == "self-test") { SelfTests.Run(app.Services); return; }
 if (args.Length > 0 && args[0] == "self-test-site-addresses") { SiteAddressSelfTests.Run(app.Services); return; }
 var origin = app.Configuration["App:Origin"];
@@ -82,7 +83,7 @@ app.Use(async (ctx,next) => {
 });
 app.UseAuthentication();
 app.Use(async (ctx,next) => {
-    if (ctx.Request.Method is "POST" or "PUT" or "DELETE")
+    if (ctx.Request.Method is "POST" or "PUT" or "PATCH" or "DELETE")
     {
         Check.Require(ctx.Request.Headers.Origin.Count == 1 && ctx.Request.Headers.Origin.ToString() == origin,403,"forbidden");
         await ctx.RequestServices.GetRequiredService<IAntiforgery>().ValidateRequestAsync(ctx);

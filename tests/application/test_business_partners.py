@@ -91,6 +91,64 @@ class BusinessPartnerTests(unittest.TestCase):
                 self.assertEqual(response, {'code': code, 'field': 'taxIdentifiers[0].' + field})
                 self.assertEqual(self.read(row), before)
 
+    def test_15_geography_uses_the_selected_crud_permissions_and_catalog(self):
+        from urllib.parse import urlencode
+        country = self.root.request('/api/data/countries', 'POST', {'name': 'Italia prova', 'iso_code': 'IT'})
+        if country[0] == 409:
+            country_id = next(item['id'] for item in self.root.request('/api/data/countries?pageSize=100')[1]['items'] if item['iso_code'] == 'IT')
+        else:
+            self.assertEqual(country[0], 201, country[1]); country_id = country[1]['id']
+        status, city = self.root.request('/api/data/cities', 'POST', {'country_id': country_id, 'name': 'Località BP prova', 'province': 'RM', 'postal_code': '00123'})
+        self.assertIn(status, (201, 409), city)
+        lookup = '/api/addresses/autocomplete?' + urlencode({'tenantId': self.tenant_id, 'resource': 'business-partners', 'field': 'city', 'text': 'Località BP prova', 'countryCode': 'IT'})
+        countries = '/api/addresses/countries?' + urlencode({'tenantId': self.tenant_id, 'resource': 'business-partners'})
+        creator, _ = self.actor(['business-partners.create'])
+        updater, role = self.actor(['business-partners.update'])
+        reader, _ = self.actor(['business-partners.read'])
+        site_writer, _ = self.actor(['sites.create'])
+        for path in (lookup, countries):
+            with self.subTest(path=path):
+                self.assertEqual(Client().request(path)[0], 401)
+                for actor in (creator, updater): self.assertEqual(actor.request(path)[0], 200)
+                for actor in (reader, site_writer): self.assertEqual(actor.request(path)[0], 403)
+                self.assertEqual(creator.request(path.replace('business-partners', 'sites'))[0], 403)
+                self.assertEqual(site_writer.request(path.replace('business-partners', 'sites'))[0], 200)
+                self.assertEqual(self.root.request(path.replace('business-partners', 'unknown'))[0], 400)
+                self.assertEqual(creator.request(path.replace(self.tenant_id, '00000000-0000-0000-0000-000000000001'))[0], 403)
+        status, response = creator.request(lookup)
+        self.assertEqual(status, 200, response)
+        items = response['items']
+        item = next(item for item in items if item['city'] == 'Località BP prova')
+        self.assertEqual((item['postalCode'], item['province'], item['countryCode'], item['address']), ('00123', 'RM', 'IT', ''))
+        self.assertEqual(self.root.request(f'/api/links/role-permissions/{role["id"]}?tenantId={self.tenant_id}', 'PUT', {'ids': []})[0], 204)
+        self.assertEqual(updater.request(lookup)[0], 403)
+
+    def test_16_related_only_commands_preserve_identity_and_omitted_collections(self):
+        row = self.create('Identità da conservare',
+            addresses=[{'street': 'Via Roma', 'city': 'Roma', 'postal_code': '00100', 'country_code': 'IT'}],
+            contactChannels=[{'channel_type': 'EMAIL', 'value': 'keep@example.invalid', 'is_primary': True}])
+        before = self.read(row)
+        status, changed = self.root.request(self.path('/'+row['id']+'/save'), 'PUT', {
+            'values': {}, 'expectedVersion': before['version'],
+            'taxIdentifiers': [{'country_code': 'DE', 'identifier_type': 'FOREIGN_TAX_ID', 'value': 'DE-12345'}]})
+        self.assertEqual(status, 200, changed)
+        self.assertEqual(changed['legal_name'], before['legal_name'])
+        self.assertEqual(changed['addresses'], before['addresses'])
+        self.assertEqual(changed['contact_channels'], before['contact_channels'])
+        self.assertEqual(changed['version'], before['version'] + 1)
+        status, removed = self.root.request(self.path('/'+row['id']+'/save'), 'PUT', {
+            'values': {}, 'expectedVersion': changed['version'], 'contactChannels': []})
+        self.assertEqual(status, 200, removed)
+        self.assertEqual(removed['contact_channels'], [])
+        self.assertEqual(removed['tax_identifiers'], changed['tax_identifiers'])
+        self.assertEqual(removed['addresses'], before['addresses'])
+        self.assertEqual(self.read(row), removed)
+        for grants in (['business-partners.read'], ['business-partners.create']):
+            actor, _ = self.actor(grants)
+            self.assertEqual(actor.request(self.path('/'+row['id']+'/save'), 'PUT', {
+                'values': {}, 'expectedVersion': removed['version'], 'taxIdentifiers': []})[0], 403)
+        self.assertEqual(self.read(row), removed)
+
     def test_01_metadata_and_default_automatic_numbering(self):
         status, resources = self.root.request('/api/resources')
         self.assertEqual(status, 200)

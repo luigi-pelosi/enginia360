@@ -7,10 +7,20 @@ const props={session:{...session,permissions:['business-partners.read','business
 const byId=(tree:any,id:string)=>find(tree,n=>n.props?.id===id);
 const action=(tree:any,text:string)=>find(tree,n=>n.props?.['data-action']===text);
 const form=(tree:any)=>find(tree,n=>n.type==='form');
+const apply=(tree:any)=>find(tree,n=>n.props?.['data-bp-related-form']).props.onSubmit({preventDefault(){},stopPropagation(){}});
+for (const locale of ['it','en']) test(`identity editor omits the removed lifecycle hint (${locale})`,()=>{
+ const h=partnerHarness('business-partner-workspace',locale);
+ const html=h.render('BusinessPartnerEditor',props);
+ assert.doesNotMatch(html,/La bozza può essere incompleta|Drafts may be incomplete/);
+ const tree=h.tree('BusinessPartnerEditor',props);
+ assert.ok(byId(tree,'bp-status'));
+ assert.ok(byId(tree,'bp-legal_name'));
+});
 test('new partner has operator identity fields and saves one complete aggregate without numbering authority',async()=>{
  const h=partnerHarness('business-partner-workspace','en',()=>({id:'bp1'}));
  let tree=h.tree('BusinessPartnerEditor',props);
  assert.ok(byId(tree,'bp-kind'),'kind operator select');
+ assert.ok(find(tree,n=>n.props?.value==='ACTIVE'&&n.props?.onValueChange),'active status selected by default');
  assert.ok(byId(tree,'bp-legal_name'),'legal name field');
  byId(tree,'bp-legal_name').props.onChange({target:{value:'Officina Uno'}});
  tree=h.tree('BusinessPartnerEditor',props);
@@ -20,23 +30,24 @@ test('new partner has operator identity fields and saves one complete aggregate 
  assert.equal(h.calls[1].path,'/data/business-partners/bp1?tenantId=t');
  assert.equal(h.calls[0].path,'/data/business-partners/save?tenantId=t');
  assert.equal(h.calls[0].method,'POST');
- assert.deepEqual(JSON.parse(JSON.stringify(h.calls[0].body)),{values:{kind:'ORGANIZATION',legal_name:'Officina Uno',first_name:null,last_name:null,status:'DRAFT'},taxIdentifiers:[],addresses:[],contactChannels:[]});
+ assert.deepEqual(JSON.parse(JSON.stringify(h.calls[0].body)),{values:{kind:'ORGANIZATION',legal_name:'Officina Uno',first_name:null,last_name:null,status:'ACTIVE'},taxIdentifiers:[],addresses:[],contactChannels:[]});
  assert.ok(!h.calls.some(c=>c.path.includes('numbering')));
 });
 test('nested tax identifiers, multiple addresses and contact channels edit locally and submit together',async()=>{
  const h=partnerHarness('business-partner-workspace','en',()=>({id:'bp1'}));
  let tree=h.tree('BusinessPartnerEditor',props);
+ byId(tree,'bp-legal_name').props.onChange({target:{value:'Partner'}});tree=h.tree('BusinessPartnerEditor',props);
  assert.ok(action(tree,'add-tax'),'add tax identifier action');
  action(tree,'add-tax').props.onClick();
  tree=h.tree('BusinessPartnerEditor',props);
- byId(tree,'bp-tax-0-value').props.onChange({target:{value:'12345678901'}});
+ byId(tree,'bp-tax-0-value').props.onChange({target:{value:'12345678901'}});tree=h.tree('BusinessPartnerEditor',props);apply(tree);tree=h.tree('BusinessPartnerEditor',props);
  action(tree,'add-address').props.onClick();
  tree=h.tree('BusinessPartnerEditor',props);
- byId(tree,'bp-address-0-city').props.onChange({target:{value:'Roma'}});
- assert.equal(byId(tree,'bp-address-0-postal_code').props.required,true,'postal code required by aggregate contract');
+ byId(tree,'bp-address-0-city').props.onChange('Roma');
+ assert.equal(byId(tree,'bp-address-0-postal_code').props.required,true,'postal code required by aggregate contract');tree=h.tree('BusinessPartnerEditor',props);apply(tree);tree=h.tree('BusinessPartnerEditor',props);
  action(tree,'add-contact').props.onClick();
  tree=h.tree('BusinessPartnerEditor',props);
- byId(tree,'bp-contact-0-value').props.onChange({target:{value:'office@example.com'}});
+ byId(tree,'bp-contact-0-value').props.onChange({target:{value:'office@example.com'}});tree=h.tree('BusinessPartnerEditor',props);apply(tree);
  tree=h.tree('BusinessPartnerEditor',props);
  assert.equal(h.calls.length,0,'nested edits are draft only');
  await form(tree).props.onSubmit({preventDefault(){}});
@@ -69,6 +80,7 @@ test('successful create followed by a failed readback retries verification witho
  const h=partnerHarness('business-partner-workspace','en',(_path,method)=>{if(method==='GET'&&failRead)throw new ApiError('network_error',0);return {id:'bp1'};});
  const p={...props,onSaved:()=>saved++};
  let tree=h.tree('BusinessPartnerEditor',p);
+ byId(tree,'bp-legal_name').props.onChange({target:{value:'Partner'}});tree=h.tree('BusinessPartnerEditor',p);
  await form(tree).props.onSubmit({preventDefault(){}});
  assert.equal(saved,0);
  failRead=false;tree=h.tree('BusinessPartnerEditor',p);
@@ -82,11 +94,11 @@ test('invalid contact phone and unsafe website cannot be submitted',async()=>{
  const channel=find(tree,n=>n.props?.value==='EMAIL'&&typeof n.props?.onValueChange==='function');
  channel.props.onValueChange('PHONE');tree=h.tree('BusinessPartnerEditor',props);
  byId(tree,'bp-contact-0-value').props.onChange({target:{value:'not-a-phone'}});tree=h.tree('BusinessPartnerEditor',props);
- await form(tree).props.onSubmit({preventDefault(){}});
+ apply(tree);tree=h.tree('BusinessPartnerEditor',props);
  assert.equal(h.calls.length,0,'invalid phone refused locally');
  const phone=find(tree,n=>n.props?.value==='PHONE'&&typeof n.props?.onValueChange==='function');phone.props.onValueChange('WEBSITE');tree=h.tree('BusinessPartnerEditor',props);
  byId(tree,'bp-contact-0-value').props.onChange({target:{value:'javascript:alert(1)'}});tree=h.tree('BusinessPartnerEditor',props);
- await form(tree).props.onSubmit({preventDefault(){}});assert.equal(h.calls.length,0);
+ apply(tree);assert.equal(h.calls.length,0);
 });
 const record={id:'bp1',version:7,kind:'ORGANIZATION',legal_name:null,first_name:null,last_name:null,code:'BP-000001',status:'DRAFT',tax_identifiers:[],addresses:[],contact_channels:[]};
 test('a fiscally and legally incomplete DRAFT can be read and saved; nullable server names normalize safely',async()=>{
@@ -105,17 +117,20 @@ for(const code of ['duplicate_tax_identifier','stale_version']) test(`${code} re
  h.tree('BusinessPartnerEditor',p);await h.flush();let tree=h.tree('BusinessPartnerEditor',p);
  byId(tree,'bp-legal_name').props.onChange({target:{value:'Edited'}});tree=h.tree('BusinessPartnerEditor',p);
  await form(tree).props.onSubmit({preventDefault(){}});tree=h.tree('BusinessPartnerEditor',p);
- assert.equal(byId(tree,'bp-legal_name').props.value,'Edited');assert.equal(byId(tree,'bp-tax-0-value').props.value,'12345678901');
+ assert.equal(byId(tree,'bp-legal_name').props.value,'Edited');assert.match(h.render('BusinessPartnerEditor',p),/12345678901/);
  const write=h.calls.find(c=>c.method==='PUT')!;assert.equal(write.body.expectedVersion,7);assert.ok(!('id' in write.body.taxIdentifiers[0]));assert.ok(!('normalized_value' in write.body.taxIdentifiers[0]));
  assert.match(h.render('BusinessPartnerEditor',p),new RegExp(code));
 });
-test('address defaults and contact primary are exclusive per usage and channel; removal sends explicit empty collections',async()=>{
- const h=partnerHarness('business-partner-workspace','en',()=>({id:'bp1'}));let tree=h.tree('BusinessPartnerEditor',props);
- for(let i=0;i<2;i++) {action(tree,'add-address').props.onClick();tree=h.tree('BusinessPartnerEditor',props);byId(tree,`bp-address-${i}-SHIPPING`).props.onCheckedChange(true);tree=h.tree('BusinessPartnerEditor',props);byId(tree,`bp-address-${i}-SHIPPING-default`).props.onCheckedChange(true);tree=h.tree('BusinessPartnerEditor',props);}
- assert.equal(byId(tree,'bp-address-0-SHIPPING-default').props.checked,false);assert.equal(byId(tree,'bp-address-1-SHIPPING-default').props.checked,true);
- for(let i=0;i<2;i++) {action(tree,'add-contact').props.onClick();tree=h.tree('BusinessPartnerEditor',props);byId(tree,`bp-contact-${i}-primary`).props.onCheckedChange(true);tree=h.tree('BusinessPartnerEditor',props);}
- assert.equal(byId(tree,'bp-contact-0-primary').props.checked,false);assert.equal(byId(tree,'bp-contact-1-primary').props.checked,true);
- for(let i=0;i<2;i++){action(tree,'remove-address-0').props.onClick();tree=h.tree('BusinessPartnerEditor',props);action(tree,'remove-contact-0').props.onClick();tree=h.tree('BusinessPartnerEditor',props);}
+test('address defaults and contact primary are exclusive only on Apply; removal sends explicit empty collections',async()=>{
+ const h=partnerHarness('business-partner-workspace','en',()=>({id:'bp1'}));const render=()=>h.tree('BusinessPartnerEditor',props);let tree=render();
+ byId(tree,'bp-legal_name').props.onChange({target:{value:'Partner'}});tree=render();
+ for(let i=0;i<2;i++) {
+   action(tree,'add-address').props.onClick();tree=render();byId(tree,`bp-address-${i}-SHIPPING`).props.onCheckedChange(true);tree=render();byId(tree,`bp-address-${i}-SHIPPING-default`).props.onCheckedChange(true);tree=render();apply(tree);tree=render();
+ }
+ for(const [i,expected] of [[0,false],[1,true]]) {action(tree,`details-address-${i}`).props.onClick();tree=render();assert.equal(byId(tree,`bp-address-${i}-SHIPPING-default`).props.checked,expected);action(tree,'cancel-related').props.onClick();tree=render();}
+ for(let i=0;i<2;i++) {action(tree,'add-contact').props.onClick();tree=render();byId(tree,`bp-contact-${i}-value`).props.onChange({target:{value:`${i}@example.com`}});tree=render();byId(tree,`bp-contact-${i}-primary`).props.onCheckedChange(true);tree=render();apply(tree);tree=render();}
+ for(const [i,expected] of [[0,false],[1,true]]) {action(tree,`details-contact-${i}`).props.onClick();tree=render();assert.equal(byId(tree,`bp-contact-${i}-primary`).props.checked,expected);action(tree,'cancel-related').props.onClick();tree=render();}
+ for(let i=0;i<2;i++)for(const kind of ['address','contact']){action(tree,`remove-${kind}-0`).props.onClick();tree=render();await action(tree,'confirm-remove-related').props.onClick({preventDefault(){}});tree=render();}
  await form(tree).props.onSubmit({preventDefault(){}});assert.equal(h.calls[0].body.addresses.length,0);assert.equal(h.calls[0].body.contactChannels.length,0);
 });
 for(const locale of ['it','en']) test(`read-only details show localized operator sections with no mutation controls (${locale})`,async()=>{
@@ -128,7 +143,7 @@ for(const locale of ['it','en']) test(`read-only details show localized operator
 test('Cancel closes a new draft without writing; ACTIVE requires identity but no fiscal data',async()=>{
  let closed=0;const p={...props,onClose:()=>closed++},h=partnerHarness('business-partner-workspace','en',()=>({id:'bp1'}));let tree=h.tree('BusinessPartnerEditor',p);
  find(tree,n=>n.props?.children==='Cancel').props.onClick();assert.equal(closed,1);assert.equal(h.calls.length,0);
- find(tree,n=>n.props?.value==='DRAFT'&&n.props?.onValueChange).props.onValueChange('ACTIVE');tree=h.tree('BusinessPartnerEditor',p);await form(tree).props.onSubmit({preventDefault(){}});assert.equal(h.calls.length,0);
+ await form(tree).props.onSubmit({preventDefault(){}});assert.equal(h.calls.length,0);
  byId(tree,'bp-legal_name').props.onChange({target:{value:'Active without tax'}});tree=h.tree('BusinessPartnerEditor',p);await form(tree).props.onSubmit({preventDefault(){}});
  assert.equal(h.calls[0].body.values.status,'ACTIVE');assert.equal(h.calls[0].body.taxIdentifiers.length,0);
 });

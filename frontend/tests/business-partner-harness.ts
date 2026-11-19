@@ -8,7 +8,8 @@ import {createTranslator} from 'next-intl';
 import * as model from '../lib/model.ts';
 import {ApiError} from '../lib/api.ts';
 export {find,session} from './workspace-harness.ts';
-export function partnerHarness(file='business-partner-workspace', locale='en', respond: (path:string, method:string, body:any)=>any=()=>({})) {
+export function partnerHarness(file='business-partner-workspace', locale='en', respond: (path:string, method:string, body:any)=>any=()=>({}), storage?: Storage) {
+ if (!storage) {const entries=new Map<string,string>(); storage={getItem:k=>entries.get(k)??null,setItem:(k,v)=>{entries.set(k,v);},removeItem:k=>{entries.delete(k);},clear:()=>entries.clear(),key:i=>[...entries.keys()][i]??null,get length(){return entries.size;}};}
  const require=createRequire(import.meta.url), messages=JSON.parse(readFileSync(new URL(`../messages/${locale}.json`,import.meta.url),'utf8'));
  let index=0;
  const state:any[]=[], refs:any[]=[], dependencies:any[][]=[], effects:Array<()=>any>=[], calls:Array<{path:string;method:string;body:any}>=[];
@@ -29,7 +30,7 @@ export function partnerHarness(file='business-partner-workspace', locale='en', r
    if(modules[name]) return modules[name];
    const source=readFileSync(new URL(`../${name.slice(2)}${name.startsWith('@/components/')?'.tsx':'.ts'}`,import.meta.url),'utf8'), module={exports:{}};
    const code=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,esModuleInterop:true}}).outputText;
-   runInNewContext(code,{module,exports:module.exports,require:resolve,console,setTimeout,clearTimeout,AbortController,Intl,URL});modules[name]=module.exports;return module.exports;
+   runInNewContext(code,{module,exports:module.exports,require:resolve,console,setTimeout,clearTimeout,AbortController,Intl,URL,URLSearchParams,sessionStorage:storage});modules[name]=module.exports;return module.exports;
   }
   return require(name);
  };

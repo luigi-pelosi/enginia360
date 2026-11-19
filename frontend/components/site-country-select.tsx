@@ -7,8 +7,9 @@ import {countryLabel} from "@/lib/model";
 
 type Country = {isoCode: string; name: string};
 type CountryOptions = {items: Country[]};
-export function SiteCountrySelect({id, value, scope, disabled, readOnly = false, required, onChange}: {
+export function SiteCountrySelect({id, value, scope, disabled, readOnly = false, required, onChange, "aria-invalid": invalid, "aria-describedby": describedBy}: {
   id: string; value: string; scope: (path: string) => string; disabled: boolean; readOnly?: boolean; required: boolean; onChange: (value: string) => void;
+  "aria-invalid"?: boolean; "aria-describedby"?: string;
 }) {
   const locale = useLocale(), t = useTranslations("app");
   const [options, setOptions] = useState<CountryOptions>({items: []}),
@@ -30,12 +31,12 @@ export function SiteCountrySelect({id, value, scope, disabled, readOnly = false,
   return <div className="relative">
     <Select name="country_code" value={value} required={required} disabled={disabled || readOnly || loading}
       onValueChange={next => {if (!disabled && !readOnly && !loading) onChange(next === "__none__" ? "" : next);}}>
-      <SelectTrigger id={id} className="w-full" aria-busy={loading} aria-describedby={error ? `${id}-error` : undefined}><SelectValue placeholder={loading ? t("loading") : "—"} /></SelectTrigger>
+      <SelectTrigger id={id} className="w-full" aria-busy={loading} aria-invalid={invalid} aria-describedby={[describedBy, error ? `${id}-lookup-error` : undefined].filter(Boolean).join(" ") || undefined}><SelectValue placeholder={loading ? t("loading") : "—"} /></SelectTrigger>
       <SelectContent>
         {!required && <SelectItem value="__none__">—</SelectItem>}
         {items.map(item => <SelectItem key={item.isoCode} value={item.isoCode}>{item.name === item.isoCode ? countryLabel(item.isoCode, locale) : item.name}</SelectItem>)}
       </SelectContent>
     </Select>
-    {error && <p id={`${id}-error`} role="status" className="absolute top-full z-50 mt-1 rounded-md border bg-popover p-2 text-sm text-popover-foreground shadow-md">{t("addressUnavailable")}</p>}
+    {error && <p id={`${id}-lookup-error`} role="status" className="absolute top-full z-50 mt-1 rounded-md border bg-popover p-2 text-sm text-popover-foreground shadow-md">{t("addressUnavailable")}</p>}
   </div>;
 }

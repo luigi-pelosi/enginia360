@@ -90,6 +90,40 @@ public static class SiteAddressSelfTests
                 catch(ApiException e) when(e.Status==403) {Assert(!expected,"Expected permission refused");}
             }
         });
+        foreach(var endpoint in Environment.GetEnvironmentVariable("GEOGRAPHY_DB_TESTS")=="true" ? new[]{"autocomplete","countries"} : new[]{"autocomplete"}) {
+            void Call(string query,IdentityState state) {
+                using var scope=services.CreateScope();
+                var ctx=new DefaultHttpContext {RequestServices=scope.ServiceProvider};
+                ctx.Request.QueryString=new(query); ctx.Items["identity"]=state;
+                var db=scope.ServiceProvider.GetRequiredService<Enginia360.Infrastructure.Persistence.AppDb>();
+                if(endpoint=="autocomplete") AddressLookup.Prepare(ctx,db).GetAwaiter().GetResult();
+                else global::Enginia360.Modules.Geography.Geography.Countries(ctx,db).GetAwaiter().GetResult();
+            }
+            string Query(string suffix)=>"?"+(endpoint=="autocomplete"?"field=address&text=Via%20Roma&":"")+suffix;
+            void Expect(string query,IdentityState state,int status) {
+                try {Call(query,state);} catch(ApiException e) when(e.Status==status) {return;}
+                throw new Exception("Expected status "+status);
+            }
+            var tenant=Guid.NewGuid();
+            IdentityState State(params string[] grants)=>new(new User {TenantId=tenant},"fixture","Fixture",grants);
+            foreach(var resource in new[]{"sites","business-partners"}) foreach(var action in new[]{"create","update"})
+                test($"addresses: {endpoint} exact {resource}.{action} target allowed",()=>Call(Query("resource="+resource),State(resource+"."+action)));
+            foreach(var resource in new[]{"sites","business-partners"}) {
+                test($"addresses: {endpoint} {resource} read-only rejected",()=>Expect(Query("resource="+resource),State(resource+".read"),403));
+                var other=resource=="sites"?"business-partners":"sites";
+                test($"addresses: {endpoint} {other} grants cannot cross explicit {resource}",()=>Expect(Query("resource="+resource),State(other+".create",other+".update"),403));
+                test($"addresses: {endpoint} {resource} cross-tenant rejected",()=>Expect(Query("resource="+resource+"&tenantId="+Guid.NewGuid()),State(resource+".create"),403));
+                test($"addresses: {endpoint} {resource} global requires explicit tenant",()=>Expect(Query("resource="+resource),new(new User {IsSuperAdmin=true},"fixture","Fixture",[]),400));
+            }
+            test($"addresses: {endpoint} legacy site default allowed",()=>Call(Query(""),State("sites.create")));
+            test($"addresses: {endpoint} BP-only cannot use legacy site default",()=>Expect(Query(""),State("business-partners.create","business-partners.update"),403));
+            foreach(var target in new[]{"unknown","users","sites.create","","Sites","%20sites%20","sites&resource=business-partners","sites%00"})
+                test($"addresses: {endpoint} invalid resource {target} rejected before policy",()=>Expect(Query("resource="+target),State("sites.create","business-partners.create"),400));
+            test($"addresses: {endpoint} unknown and duplicate query still rejected",()=> {
+                Expect(Query("unexpected=x"),State("sites.create"),400);
+                Expect(Query("tenantId="+tenant+"&tenantId="+tenant),State("sites.create"),400);
+            });
+        }
         test("addresses: handle consumes only prepared local reply",()=> {
             var ctx=new DefaultHttpContext();
             try {AddressLookup.Handle(ctx).GetAwaiter().GetResult();throw new Exception("Unprepared request accepted");}catch(ApiException e) when(e.Status==403) {}

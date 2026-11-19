@@ -13,7 +13,7 @@ public static class PermissionCatalog
     public static readonly string[] Codes = ResourceCatalog.All.Values
         .Where(r => r.Key is not "tenants" and not "permissions" && !ResourceCatalog.IsGlobalMaster(r.Key))
         .SelectMany(r => (r.Key == "business-partners" ? new[] { "read", "create", "update" } : new[] { "read", "create", "update", "delete" }).Select(a => r.Key + "." + a))
-        .Concat(ResourceCatalog.Links.Values.Select(r => r.Permission)).Append("business-partner-numbering.read").Append("business-partner-numbering.update").Append("purchasing-organizations.assign_scope").Append("permissions.read").Append("users.reset_password").Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
+        .Concat(ResourceCatalog.Links.Values.Select(r => r.Permission)).Concat(new[]{"roles.assign_companies","business-partner-companies.read","business-partner-companies.create","business-partner-companies.update","business-partner-companies.use_customer","business-partner-companies.use_supplier"}).Append("business-partner-numbering.read").Append("business-partner-numbering.update").Append("purchasing-organizations.assign_scope").Append("permissions.read").Append("users.reset_password").Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
     public static async Task Seed(AppDb db,Guid tenantId)
     {
         // Il chiamante possiede transazione e lock; nessun ruolo o grant viene creato.

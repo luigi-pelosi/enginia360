@@ -40,7 +40,7 @@ export function harness(locale = "it", states: Record<number, unknown> = {}, api
       return child.exports;
     }
     if (name === "@/lib/api") return {api: async (path: string, _method?: string, body?: unknown) => {apiCalls.push(path); apiPayloads.push(body); return typeof apiResult === "function" ? apiResult(path, _method, body) : apiResult}, ApiError: class extends Error {}, refreshCsrf: async () => {}};
-    if (name === "@/components/business-partner-numbering" || name === "@/components/business-partner-workspace" || name === "@/components/profile-dialog" || name === "@/components/permission-tree" || name === "@/components/purchasing-coverage-editor" || name === "@/components/address-autocomplete" || name === "@/components/site-country-select") {
+    if (name === "@/components/business-partner-companies" || name === "@/components/company-business-partners" || name === "@/components/role-company-access" || name === "@/components/business-partner-numbering" || name === "@/components/business-partner-workspace" || name === "@/components/profile-dialog" || name === "@/components/permission-tree" || name === "@/components/purchasing-coverage-editor" || name === "@/components/address-autocomplete" || name === "@/components/site-country-select") {
       const child = {exports: {}};
       const childSource = readFileSync(new URL(`../components/${name.split("/").at(-1)}.tsx`, import.meta.url), "utf8");
       const childCode = ts.transpileModule(childSource, {compilerOptions: {target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true}}).outputText;
@@ -50,7 +50,9 @@ export function harness(locale = "it", states: Record<number, unknown> = {}, api
     if (name.startsWith("@/components/ui/")) return ui;
     return require(name);
   };
-  runInNewContext(code, {module, exports: module.exports, require: resolve, console, setTimeout, clearTimeout});
+  const storage = new Map<string, string>();
+  const sessionStorage = {getItem: (key: string) => storage.get(key) ?? null, setItem: (key: string, value: string) => {storage.set(key, value);}, removeItem: (key: string) => {storage.delete(key);}};
+  runInNewContext(code, {module, exports: module.exports, require: resolve, console, setTimeout, clearTimeout, sessionStorage});
   return {components: module.exports, effects, updates, apiCalls, apiPayloads, render: (component: string, props = {}) => renderToStaticMarkup(React.createElement(module.exports[component], props))};
 }
 export function find(node: any, predicate: (node: any) => boolean): any {

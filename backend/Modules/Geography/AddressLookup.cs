@@ -13,7 +13,7 @@ public static class AddressLookup
 
     public static Query ParseQuery(HttpContext ctx)
     {
-        var allowed=new[]{"tenantId","field","text","countryCode","city","province","language"};
+        var allowed=new[]{"tenantId","resource","field","text","countryCode","city","province","language"};
         foreach(var pair in ctx.Request.Query) Check.Require(allowed.Contains(pair.Key,StringComparer.Ordinal) && pair.Value.Count==1);
         string Read(string name,int max) {var text=ctx.Request.Query[name].ToString().Trim(); Check.Require(text.Length<=max && !text.Any(char.IsControl)); return text;}
         var field=Read("field",20); var text=Read("text",200); var country=Read("countryCode",2); var language=Read("language",2);
@@ -22,15 +22,24 @@ public static class AddressLookup
         Check.Require(language.Length==0 || language is "it" or "en");
         return new(field,text,country,Read("city",200),Read("province",200),language.Length==0?"it":language);
     }
-    internal static async Task Authorize(HttpContext ctx)
+    internal static string Resource(HttpContext ctx)
     {
+        if(!ctx.Request.Query.TryGetValue("resource",out var values)) return "sites";
+        Check.Require(values.Count==1 && values[0] is "sites" or "business-partners");
+        return values[0]!;
+    }
+    internal static async Task<string> Authorize(HttpContext ctx)
+    {
+        // La whitelist precede la composizione delle policy native finite.
+        var resource=Resource(ctx);
         var service=ctx.RequestServices.GetRequiredService<Microsoft.AspNetCore.Authorization.IAuthorizationService>();
-        Check.Require((await service.AuthorizeAsync(ctx.User,ctx,"sites.create")).Succeeded || (await service.AuthorizeAsync(ctx.User,ctx,"sites.update")).Succeeded,403,"forbidden");
+        Check.Require((await service.AuthorizeAsync(ctx.User,ctx,resource+".create")).Succeeded || (await service.AuthorizeAsync(ctx.User,ctx,resource+".update")).Succeeded,403,"forbidden");
+        return resource;
     }
     public static async Task Prepare(HttpContext ctx,AppDb db)
     {
-        await Authorize(ctx);
-        Security.State(ctx).Tenant(ctx,"sites");
+        var resource=await Authorize(ctx);
+        Security.State(ctx).Tenant(ctx,resource);
         var query=ParseQuery(ctx);
         // La ricerca locale termina nella transazione autorizzata dal middleware.
         ctx.Items[typeof(Reply)]=await Geography.Local(db,query,ctx.RequestAborted);
