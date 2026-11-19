@@ -29,11 +29,14 @@ export function siteAddress(row: Row, locale: string): string {
   return [row.address, locality, country].filter(Boolean).join(', ') || '—';
 }
 export const navigationSections = [
+  {label: "masterData", keys: ["business-partners"]},
   {label: "organization", keys: ["tenants", "companies", "sites", "sales-organizations", "purchasing-organizations"]},
   {label: "warehouse", keys: ["warehouse-types", "warehouses", "warehouse-locations"]},
   {label: "administration", keys: ["settings", "users", "groups", "roles", "permissions"]},
 ];
 export type PermissionDomain = {key: string; resources: {key: string; rows: Row[]}[]};
+const permissionSections = navigationSections.map(section => section.label === "masterData"
+  ? {...section, keys: [...section.keys, "business-partner-numbering"]} : section);
 export function groupPermissions(rows: Row[]): PermissionDomain[] {
   const unique = [...new Map(rows.map(row => [row.id, row])).values()];
   const standard = ["read", "create", "update", "delete"];
@@ -48,11 +51,11 @@ export function groupPermissions(rows: Row[]): PermissionDomain[] {
   }
   for (const entries of byResource.values()) entries.sort((a, b) =>
     actionRank(a) - actionRank(b) || String(a.code).localeCompare(String(b.code)) || a.id.localeCompare(b.id));
-  const domains: PermissionDomain[] = navigationSections.map(section => ({
+  const domains: PermissionDomain[] = permissionSections.map(section => ({
     key: section.label,
     resources: section.keys.filter(key => byResource.has(key)).map(key => ({key, rows: byResource.get(key)!})),
   })).filter(domain => domain.resources.length);
-  const known = new Set(navigationSections.flatMap(section => section.keys));
+  const known = new Set(permissionSections.flatMap(section => section.keys));
   const fallback = [...byResource.keys()].filter(key => !known.has(key)).sort().map(key => ({key, rows: byResource.get(key)!}));
   if (fallback.length) domains.push({key: "other", resources: fallback});
   return domains;
@@ -67,7 +70,7 @@ export function permissionLabel(row: Row, messages: PermissionMessages): string 
 }
 export function permissionMatches(row: Row, query: string, messages: PermissionMessages[]): boolean {
   const resource = String(row.code ?? "").split(".")[0];
-  const domain = navigationSections.find(section => section.keys.includes(resource))?.label ?? "otherPermissions";
+  const domain = permissionSections.find(section => section.keys.includes(resource))?.label ?? "otherPermissions";
   return [String(row.code ?? ""), ...messages.flatMap((locale) => [permissionLabel(row, locale), locale.app?.[domain] ?? ""])]
     .some((value) => value.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
 }
@@ -100,6 +103,8 @@ export function formatFieldValue(
   return String(value);
 }
 export const resourceKeys = [
+  "business-partners",
+  "business-partner-numbering",
   "countries",
   "cities",
   "tenants",
@@ -123,6 +128,8 @@ export function can(
   row?: Row | null,
 ) {
   if (!resourceKeys.includes(resource)) return false;
+  if (resource === "business-partners" && !["read", "create", "update"].includes(action)) return false;
+  if (resource === "business-partner-numbering" && !["read", "update"].includes(action)) return false;
   const standard = ["read", "create", "update", "delete"];
   const extra: Record<string, string[]> = {
     "purchasing-organizations": ["assign_scope"],

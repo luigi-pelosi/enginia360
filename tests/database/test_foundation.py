@@ -15,7 +15,13 @@ TABLES = (
     "sales_organization", "purchasing_organization",
     "purchasing_organization_company", "purchasing_organization_site",
     "country", "city",
+    "business_partner", "business_partner_tax_identifier", "business_partner_address",
+    "business_partner_address_usage", "business_partner_contact_channel",
+    "numbering_series", "numbering_counter",
 )
+
+def table_schema(name):
+    return 'masterdata' if name.startswith('business_partner') else 'foundation'
 
 
 def query(sql):
@@ -189,7 +195,7 @@ class FoundationTests(unittest.TestCase):
         for table in TABLES:
             with self.subTest(table=table):
                 self.assertEqual(
-                    query(f"SELECT to_regclass('foundation.\"{table}\"') IS NOT NULL;"),
+                    query(f"SELECT to_regclass('{table_schema(table)}.\"{table}\"') IS NOT NULL;"),
                     "t",
                 )
 

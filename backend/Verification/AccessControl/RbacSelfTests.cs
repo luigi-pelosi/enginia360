@@ -69,7 +69,7 @@ public static class RbacTests
         void Case(string name,Func<Task> action) => test(name,() => action().GetAwaiter().GetResult());
         Case("HTTP new tenant seeds exact finite catalog without grants",async () => {
             using var response=await client.PostAsJsonAsync("/api/data/tenants",new {code="test-"+Guid.NewGuid(),name="RBAC test"});
-            Assert(response.StatusCode==HttpStatusCode.Created,"Tenant create status: "+response.StatusCode);
+            Assert(response.StatusCode==HttpStatusCode.Created,"Tenant create status: "+response.StatusCode+" "+await response.Content.ReadAsStringAsync());
             tenant=(await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
             var count=(long)(await db.Scalar("SELECT count(*) FROM foundation.permission WHERE tenant_id=@tenant AND is_system",("tenant",tenant)))!;
             Assert(count==PermissionCatalog.Codes.Length,"Seed count expected "+PermissionCatalog.Codes.Length+", actual "+count);

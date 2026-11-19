@@ -123,10 +123,10 @@ public static class CommercialCoverageRegressionTests
                   UNION ALL SELECT xmin::text FROM foundation.audit_event WHERE record_id=@o AND created_at=(SELECT max(created_at) FROM foundation.audit_event WHERE record_id=@o)) x
                 """,("o",owner)))! == 1,"Writes committed in separate transactions.");
         });
-        Case("new tenant always seeds finite50 including assign_scope",async () => {
+        Case("new tenant always seeds finite55 including assign_scope",async () => {
             using var created=await client.PostAsJsonAsync("/api/data/tenants",new {name="Coverage other tenant",code="coverage-"+Guid.NewGuid()});
             var other=(await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
-            Assert((long)(await db.Scalar("SELECT count(*) FROM foundation.permission WHERE tenant_id=@t AND is_system",("t",other)))! == 50,"New tenant seed incomplete.");
+            Assert((long)(await db.Scalar("SELECT count(*) FROM foundation.permission WHERE tenant_id=@t AND is_system",("t",other)))! == 55,"New tenant seed incomplete.");
             var foreign=Guid.NewGuid(); var foreignOwner=Guid.NewGuid(); var foreignSite=Guid.NewGuid();
             await db.Execute("INSERT INTO foundation.company(id,tenant_id,name) VALUES(@c,@t,'Foreign'); INSERT INTO foundation.site(id,tenant_id,company_id,name,tax_code,address,city,province,postal_code,country_code) VALUES(@s,@t,@c,'Foreign site','SYNTHETIC-TAX','Synthetic Road 42','Synthetic City','Synthetic Region','AB 12-X','GB'); INSERT INTO foundation.purchasing_organization(id,tenant_id,name) VALUES(@o,@t,'Foreign owner')",("c",foreign),("t",other),("o",foreignOwner),("s",foreignSite));
             await Refuse(HttpMethod.Put,Url(owner),new {values=new {name="Denied"},coverage=new[]{Entry(foreign,"all_sites")}},HttpStatusCode.BadRequest);

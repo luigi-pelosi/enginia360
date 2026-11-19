@@ -26,3 +26,15 @@ test('contract errors preserve stable error codes and status',async()=>{
  globalThis.fetch=async()=>Response.json({code:'forbidden'},{status:403});
  try{await assert.rejects(api('/data/users'),(error:unknown)=>error instanceof ApiError&&error.code==='forbidden'&&error.status===403)}finally{globalThis.fetch=original}
 });
+
+test('validation errors preserve optional field paths but ignore malformed metadata',async()=>{
+ const original=globalThis.fetch;
+ try {
+  for(const field of ['taxIdentifiers[0].value',null,{},123]) {
+   globalThis.fetch=async()=>Response.json({code:'invalid_italian_vat',field},{status:400});
+   await assert.rejects(api('/data/business-partners'),(error:unknown)=>error instanceof ApiError
+    && error.code==='invalid_italian_vat' && error.status===400
+    && (error as ApiError & {field?:string}).field===(typeof field==='string'?field:undefined));
+  }
+ } finally {globalThis.fetch=original;}
+});

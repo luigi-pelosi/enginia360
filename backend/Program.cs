@@ -76,7 +76,8 @@ app.Use(async (ctx,next) => {
         ctx.Response.Clear(); ctx.Response.StatusCode=status;
         ctx.Response.Headers.CacheControl="no-store";
         ctx.Response.Headers.XContentTypeOptions="nosniff";
-        await ctx.Response.WriteAsJsonAsync(new { code });
+        await ctx.Response.WriteAsJsonAsync(ex is ApiException { Field: not null } error
+            ? (object)new { code, field = error.Field } : new { code });
     }
 });
 app.UseAuthentication();

@@ -7,7 +7,7 @@ import {catalog} from "./permission-catalog.ts";
 for (const locale of ["it", "en"]) test(`commercial navigation and precise authorities ${locale}`, () => {
   const messages = JSON.parse(readFileSync(new URL(`../messages/${locale}.json`, import.meta.url), "utf8"));
   for (const key of ["sales-organizations", "purchasing-organizations"]) {
-    assert.ok(navigationSections[0].keys.includes(key), `${key} belongs to Organization`);
+    assert.ok(navigationSections.find(section => section.label === "organization")?.keys.includes(key), `${key} belongs to Organization`);
     const s = {...session, permissions: [`${key}.read`]};
     assert.equal(can(s, key, "read"), true);
     assert.equal(can(s, key, "update"), false);
@@ -19,6 +19,6 @@ for (const locale of ["it", "en"]) test(`commercial navigation and precise autho
   assert.equal(permissionLabel({id: "scope", code: "purchasing-organizations.assign_scope"}, messages), `${messages.resources["purchasing-organizations"]} · ${messages.permissionActions.assign_scope}`);
 });
 test("commercial catalog is finite and grouped by the shared taxonomy", () => {
-  assert.equal(catalog.length, 50);
-  assert.deepEqual(groupPermissions(catalog).map(d => [d.key, d.resources.reduce((n,r) => n + r.rows.length, 0)]), [["organization",17],["warehouse",12],["administration",21]]);
+  assert.equal(catalog.length, 55);
+  assert.deepEqual(groupPermissions(catalog).map(d => [d.key, d.resources.reduce((n,r) => n + r.rows.length, 0)]), [["masterData",5],["organization",17],["warehouse",12],["administration",21]]);
 });

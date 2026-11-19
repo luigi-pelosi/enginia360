@@ -14,8 +14,8 @@ SET LOCAL statement_timeout = '60s';
 SELECT pg_catalog.pg_advisory_xact_lock(3607902026);
 DO $foundation_guard$
 BEGIN
-    IF EXISTS (SELECT 1 FROM pg_catalog.pg_namespace WHERE nspname = 'foundation') THEN
-        RAISE EXCEPTION 'foundation esiste già: usare esclusivamente un database nuovo';
+    IF EXISTS (SELECT 1 FROM pg_catalog.pg_namespace WHERE nspname IN ('foundation','masterdata')) THEN
+        RAISE EXCEPTION 'foundation o masterdata esiste già: usare esclusivamente un database nuovo';
     END IF;
     IF current_user <> 'postgres' THEN
         RAISE EXCEPTION 'Il proprietario di installazione deve essere postgres';
@@ -43,6 +43,12 @@ CREATE SCHEMA foundation;
 ALTER SCHEMA foundation OWNER TO postgres;
 
 COMMENT ON SCHEMA foundation IS 'Struttura organizzativa e autorizzazioni del tenant.';
+
+CREATE SCHEMA masterdata AUTHORIZATION postgres;
+COMMENT ON SCHEMA masterdata IS 'Anagrafiche condivise del tenant.';
+REVOKE ALL ON SCHEMA masterdata FROM PUBLIC;
+REVOKE ALL ON SCHEMA masterdata FROM enginia360_app;
+GRANT USAGE ON SCHEMA masterdata TO enginia360_app;
 
 -- Funzioni di integrità: acquisti, identità geografica, timestamp e classificazione.
 
@@ -399,7 +405,7 @@ CREATE TABLE foundation.permission (
     is_system boolean DEFAULT false NOT NULL,
     CONSTRAINT permission_code_check CHECK ((btrim(code) <> ''::text)),
     CONSTRAINT permission_name_check CHECK ((btrim(name) <> ''::text)),
-    CONSTRAINT permission_system_code_check CHECK (((NOT is_system) OR (code = ANY (ARRAY['permissions.read'::text, 'users.reset_password'::text, 'roles.assign'::text, 'groups.assign_users'::text, 'roles.assign_permissions'::text, 'purchasing-organizations.assign_scope'::text])) OR ((split_part(code, '.'::text, 1) = ANY (ARRAY['companies'::text, 'sites'::text, 'warehouse-types'::text, 'warehouses'::text, 'warehouse-locations'::text, 'settings'::text, 'users'::text, 'groups'::text, 'roles'::text, 'sales-organizations'::text, 'purchasing-organizations'::text])) AND (split_part(code, '.'::text, 2) = ANY (ARRAY['read'::text, 'create'::text, 'update'::text, 'delete'::text])) AND (code = ((split_part(code, '.'::text, 1) || '.'::text) || split_part(code, '.'::text, 2)))))),
+    CONSTRAINT permission_system_code_check CHECK (((NOT is_system) OR (code = ANY (ARRAY['permissions.read'::text, 'users.reset_password'::text, 'roles.assign'::text, 'groups.assign_users'::text, 'roles.assign_permissions'::text, 'purchasing-organizations.assign_scope'::text, 'business-partners.read'::text, 'business-partners.create'::text, 'business-partners.update'::text, 'business-partner-numbering.read'::text, 'business-partner-numbering.update'::text])) OR ((split_part(code, '.'::text, 1) = ANY (ARRAY['companies'::text, 'sites'::text, 'warehouse-types'::text, 'warehouses'::text, 'warehouse-locations'::text, 'settings'::text, 'users'::text, 'groups'::text, 'roles'::text, 'sales-organizations'::text, 'purchasing-organizations'::text])) AND (split_part(code, '.'::text, 2) = ANY (ARRAY['read'::text, 'create'::text, 'update'::text, 'delete'::text])) AND (code = ((split_part(code, '.'::text, 1) || '.'::text) || split_part(code, '.'::text, 2)))))),
     CONSTRAINT permission_pkey PRIMARY KEY (id),
     CONSTRAINT permission_tenant_id_code_key UNIQUE (tenant_id, code),
     CONSTRAINT permission_tenant_id_id_key UNIQUE (tenant_id, id)
@@ -865,5 +871,110 @@ GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE foundation.warehouse TO enginia360_ap
 GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE foundation.warehouse_location TO enginia360_app;
 
 GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE foundation.warehouse_type TO enginia360_app;
+
+-- Numerazione esclusiva BP: nessuna serie viene precreata.
+CREATE TABLE foundation.numbering_series (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id uuid NOT NULL REFERENCES foundation.tenant(id) ON DELETE RESTRICT,
+    scope text NOT NULL DEFAULT 'TENANT' CHECK (scope='TENANT'),
+    company_id uuid CHECK (company_id IS NULL),
+    entity_type text NOT NULL DEFAULT 'BUSINESS_PARTNER' CHECK (entity_type='BUSINESS_PARTNER'),
+    reset_policy text NOT NULL DEFAULT 'NEVER' CHECK (reset_policy='NEVER'),
+    mode text NOT NULL CHECK (mode IN ('AUTO','MANUAL')),
+    prefix text NOT NULL CHECK (length(prefix)<=32 AND prefix !~ '[[:cntrl:]]'),
+    padding integer NOT NULL CHECK (padding BETWEEN 1 AND 15),
+    version bigint NOT NULL DEFAULT 1 CHECK (version BETWEEN 1 AND 9007199254740991),
+    UNIQUE (tenant_id,entity_type), UNIQUE (tenant_id,id)
+);
+CREATE TABLE foundation.numbering_counter (
+    series_id uuid PRIMARY KEY,
+    tenant_id uuid NOT NULL,
+    next_number bigint NOT NULL CHECK (next_number BETWEEN 1 AND 1000000000000000),
+    used boolean NOT NULL DEFAULT false,
+    FOREIGN KEY (tenant_id,series_id) REFERENCES foundation.numbering_series(tenant_id,id) ON DELETE RESTRICT
+);
+CREATE FUNCTION foundation.guard_numbering() RETURNS trigger LANGUAGE plpgsql SET search_path TO pg_catalog AS $$
+BEGIN
+    IF TG_OP='DELETE' THEN RAISE EXCEPTION 'La numerazione non si elimina' USING ERRCODE='23514'; END IF;
+    IF TG_TABLE_NAME='numbering_series' THEN
+        IF NEW.id<>OLD.id OR NEW.tenant_id<>OLD.tenant_id THEN RAISE EXCEPTION 'Identita immutabile' USING ERRCODE='23514'; END IF;
+        IF EXISTS(SELECT 1 FROM foundation.numbering_counter WHERE series_id=OLD.id AND used)
+           AND (NEW.mode,NEW.prefix,NEW.padding) IS DISTINCT FROM (OLD.mode,OLD.prefix,OLD.padding)
+        THEN RAISE EXCEPTION 'Numerazione gia utilizzata' USING ERRCODE='23514'; END IF;
+    ELSE
+        IF NEW.series_id<>OLD.series_id OR NEW.tenant_id<>OLD.tenant_id OR (OLD.used AND (NOT NEW.used OR NEW.next_number NOT IN (OLD.next_number,OLD.next_number+1)))
+        THEN RAISE EXCEPTION 'Contatore non ripristinabile' USING ERRCODE='23514'; END IF;
+    END IF;
+    RETURN NEW;
+END $$;
+CREATE TRIGGER numbering_series_guard BEFORE UPDATE OR DELETE ON foundation.numbering_series FOR EACH ROW EXECUTE FUNCTION foundation.guard_numbering();
+CREATE TRIGGER numbering_counter_guard BEFORE UPDATE OR DELETE ON foundation.numbering_counter FOR EACH ROW EXECUTE FUNCTION foundation.guard_numbering();
+REVOKE ALL ON FUNCTION foundation.guard_numbering() FROM PUBLIC;
+GRANT SELECT,INSERT,UPDATE ON foundation.numbering_series,foundation.numbering_counter TO enginia360_app;
+
+-- Anagrafica tenant-wide; nessun ruolo cliente/fornitore o legame aziendale.
+CREATE TABLE masterdata.business_partner (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id uuid NOT NULL REFERENCES foundation.tenant(id) ON DELETE RESTRICT,
+    kind text NOT NULL CHECK (kind IN ('PERSON','ORGANIZATION')),
+    status text NOT NULL DEFAULT 'DRAFT' CHECK (status IN ('DRAFT','ACTIVE','BLOCKED','ARCHIVED')),
+    code text NOT NULL CHECK (length(btrim(code)) BETWEEN 1 AND 100),
+    legal_name text CHECK (length(legal_name)<=500),
+    first_name text CHECK (length(first_name)<=200),
+    last_name text CHECK (length(last_name)<=200),
+    version bigint NOT NULL DEFAULT 1 CHECK (version BETWEEN 1 AND 9007199254740991),
+    created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
+    UNIQUE (tenant_id,id),
+    CHECK ((kind='ORGANIZATION' AND coalesce(btrim(legal_name),'')<>'' AND first_name IS NULL AND last_name IS NULL)
+        OR (kind='PERSON' AND legal_name IS NULL AND (coalesce(btrim(first_name),'')<>'' OR coalesce(btrim(last_name),'')<>'')
+            AND (status='DRAFT' OR (coalesce(btrim(first_name),'')<>'' AND coalesce(btrim(last_name),'')<>''))))
+);
+CREATE UNIQUE INDEX business_partner_code_unique ON masterdata.business_partner(tenant_id,lower(code));
+CREATE TABLE masterdata.business_partner_tax_identifier (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(), tenant_id uuid NOT NULL, business_partner_id uuid NOT NULL,
+    country_code text NOT NULL CHECK (country_code ~ '^[A-Z]{2}$'),
+    identifier_type text NOT NULL CHECK (identifier_type IN ('VAT','FISCAL_CODE','FOREIGN_TAX_ID')),
+    value text NOT NULL CHECK (length(btrim(value)) BETWEEN 1 AND 100),
+    normalized_value text NOT NULL CHECK (length(normalized_value) BETWEEN 1 AND 100 AND normalized_value=regexp_replace(upper(value),'[\s.\-]','','g')),
+    FOREIGN KEY (tenant_id,business_partner_id) REFERENCES masterdata.business_partner(tenant_id,id) ON DELETE RESTRICT,
+    CONSTRAINT business_partner_tax_unique UNIQUE (tenant_id,country_code,identifier_type,normalized_value)
+);
+CREATE TABLE masterdata.business_partner_address (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(), tenant_id uuid NOT NULL, business_partner_id uuid NOT NULL,
+    label text CHECK (length(label)<=200), street text NOT NULL CHECK (length(btrim(street)) BETWEEN 1 AND 500),
+    street_number text CHECK (length(street_number)<=50), postal_code text NOT NULL CHECK (length(btrim(postal_code)) BETWEEN 1 AND 30),
+    city text NOT NULL CHECK (length(btrim(city)) BETWEEN 1 AND 200), province text CHECK (length(province)<=100),
+    country_code text NOT NULL CHECK (country_code ~ '^[A-Z]{2}$'), additional_info text CHECK (length(additional_info)<=1000),
+    FOREIGN KEY (tenant_id,business_partner_id) REFERENCES masterdata.business_partner(tenant_id,id) ON DELETE RESTRICT,
+    UNIQUE (tenant_id,business_partner_id,id)
+);
+CREATE TABLE masterdata.business_partner_address_usage (
+    tenant_id uuid NOT NULL, business_partner_id uuid NOT NULL, address_id uuid NOT NULL,
+    usage text NOT NULL CHECK (usage IN ('REGISTERED','BILLING','SHIPPING','CORRESPONDENCE')), is_default boolean NOT NULL DEFAULT false,
+    PRIMARY KEY (address_id,usage),
+    FOREIGN KEY (tenant_id,business_partner_id,address_id) REFERENCES masterdata.business_partner_address(tenant_id,business_partner_id,id) ON DELETE CASCADE
+);
+CREATE UNIQUE INDEX business_partner_address_default_unique ON masterdata.business_partner_address_usage(tenant_id,business_partner_id,usage) WHERE is_default;
+CREATE TABLE masterdata.business_partner_contact_channel (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(), tenant_id uuid NOT NULL, business_partner_id uuid NOT NULL,
+    channel_type text NOT NULL CHECK (channel_type IN ('EMAIL','PHONE','MOBILE','PEC','WEBSITE')),
+    value text NOT NULL CHECK (length(btrim(value)) BETWEEN 1 AND 500), purpose text CHECK (length(purpose)<=200),
+    is_primary boolean NOT NULL DEFAULT false,
+    FOREIGN KEY (tenant_id,business_partner_id) REFERENCES masterdata.business_partner(tenant_id,id) ON DELETE RESTRICT
+);
+CREATE UNIQUE INDEX business_partner_contact_primary_unique ON masterdata.business_partner_contact_channel(tenant_id,business_partner_id,channel_type) WHERE is_primary;
+CREATE FUNCTION masterdata.guard_business_partner() RETURNS trigger LANGUAGE plpgsql SET search_path TO pg_catalog AS $$
+BEGIN
+    IF TG_OP='DELETE' THEN RAISE EXCEPTION 'Archiviare il business partner' USING ERRCODE='23514'; END IF;
+    IF (NEW.id,NEW.tenant_id,NEW.code) IS DISTINCT FROM (OLD.id,OLD.tenant_id,OLD.code) THEN
+        RAISE EXCEPTION 'Identita e codice immutabili' USING ERRCODE='23514';
+    END IF;
+    RETURN NEW;
+END $$;
+CREATE TRIGGER business_partner_guard BEFORE UPDATE OR DELETE ON masterdata.business_partner FOR EACH ROW EXECUTE FUNCTION masterdata.guard_business_partner();
+CREATE TRIGGER business_partner_updated_at BEFORE UPDATE ON masterdata.business_partner FOR EACH ROW EXECUTE FUNCTION foundation.set_updated_at();
+REVOKE ALL ON FUNCTION masterdata.guard_business_partner() FROM PUBLIC;
+GRANT SELECT,INSERT,UPDATE ON masterdata.business_partner TO enginia360_app;
+GRANT SELECT,INSERT,UPDATE,DELETE ON masterdata.business_partner_tax_identifier,masterdata.business_partner_address,masterdata.business_partner_address_usage,masterdata.business_partner_contact_channel TO enginia360_app;
 
 COMMIT;

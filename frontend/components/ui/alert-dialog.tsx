@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils"
 import { AlertDialog as AlertDialogPrimitive } from "radix-ui"
 
 import { Button } from "@/components/ui/button"
+import { useDialogWindow } from "@/components/ui/use-dialog-window"
 
 function AlertDialog({
   ...props
@@ -47,10 +48,12 @@ function AlertDialogOverlay({
 function AlertDialogContent({
   className,
   size = "default",
+  children,
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Content> & {
   size?: "default" | "sm"
 }) {
+  const windowEvents = useDialogWindow()
   return (
     <AlertDialogPortal>
       <AlertDialogOverlay />
@@ -62,7 +65,15 @@ function AlertDialogContent({
           className
         )}
         {...props}
-      />
+        {...windowEvents}
+        onPointerDown={(event) => {
+          props.onPointerDown?.(event)
+          windowEvents.onPointerDown(event)
+        }}
+      >
+        {children}
+        <span data-dialog-resize aria-hidden="true" />
+      </AlertDialogPrimitive.Content>
     </AlertDialogPortal>
   )
 }

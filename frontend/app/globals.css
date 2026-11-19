@@ -156,3 +156,34 @@
   .password-page h1 { @apply text-xl font-semibold; }
   .skip-link { @apply sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-background focus:p-3 focus:ring-2; }
 }
+
+[data-dialog-resize] { display: none; }
+@media (min-width: 1024px) {
+  [data-slot="dialog-header"], [data-slot="alert-dialog-header"] {
+    cursor: move;
+    touch-action: none;
+  }
+  [data-dialog-floating] {
+    left: var(--dialog-left);
+    top: var(--dialog-top);
+    width: var(--dialog-width);
+    height: var(--dialog-height);
+    max-width: none;
+    max-height: none;
+    translate: none;
+    transition: none;
+  }
+  [data-dialog-resized] { overflow: auto; }
+  [data-dialog-resize] {
+    display: block;
+    position: absolute;
+    right: 2px;
+    bottom: 2px;
+    width: 18px;
+    height: 18px;
+    cursor: nwse-resize;
+    touch-action: none;
+    background: repeating-linear-gradient(135deg, transparent 0 3px, var(--border) 3px 5px);
+    clip-path: polygon(100% 0, 100% 100%, 0 100%);
+  }
+}

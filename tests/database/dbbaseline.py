@@ -47,7 +47,7 @@ def dump_schema():
     return subprocess.check_output(['docker', 'exec', '-e',
         'PGOPTIONS=-c default_transaction_read_only=on', CONTAINER,
         'pg_dump', '-U', 'postgres', '-d', DATABASE, '--schema-only',
-        '--schema=foundation'], text=True, timeout=60)
+        '--schema=foundation', '--schema=masterdata'], text=True, timeout=60)
 
 
 def normalize_dump(raw):

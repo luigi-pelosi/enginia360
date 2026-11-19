@@ -49,19 +49,20 @@ test("filtered selector edits a parent-owned draft without sending a request", (
   assert.deepEqual([...ids], [...rows.map(row => row.id), "hidden"]);
   assert.deepEqual(h.apiCalls, []);
 });
-test("full SSR catalog and selector render all 50 stable IDs exactly once with consistent branch counts", () => {
+test("full SSR catalog and selector render all 55 stable IDs exactly once with consistent branch counts", () => {
   const html = harness("en").render("RelationEditor", {...props, draft: {options: catalog, ids: catalog.slice(0, 5).map(row => row.id), initialIds: []}});
-  assert.equal((html.match(/data-permission-code=/g) ?? []).length, 50);
-  assert.equal((html.match(/data-permission-domain=/g) ?? []).length, 3);
-  assert.equal((html.match(/data-permission-resource=/g) ?? []).length, 12);
+  assert.equal((html.match(/data-permission-code=/g) ?? []).length, 55);
+  assert.equal((html.match(/data-permission-domain=/g) ?? []).length, 4);
+  assert.equal((html.match(/data-permission-resource=/g) ?? []).length, 14);
   for (const row of catalog) assert.equal(html.split(`data-permission-code="${row.code}"`).length - 1, 1, row.code);
-  assert.ok(html.includes("5/17"));
+  assert.ok(html.includes("5/5"));
+  assert.ok(html.includes("0/17"));
   assert.ok(html.includes("0/12"));
   assert.ok(html.includes("0/21"));
   assert.doesNotMatch(html, /<details[^>]* open/);
 });
 test("action and resource searches filter leaves at every depth and counts reflect original branch scopes", () => {
-  for (const [query, count, domains] of [["Create", 11, 3], ["Lettura", 12, 3], ["roles.assign_permissions", 1, 1], ["Organization", 17, 1], ["Magazzino", 12, 1], ["Administration", 21, 1], ["no matching permission", 0, 0]] as const) {
+  for (const [query, count, domains] of [["Create", 12, 4], ["Lettura", 14, 4], ["roles.assign_permissions", 1, 1], ["Organization", 17, 1], ["Anagrafiche", 5, 1], ["Master data", 5, 1], ["Magazzino", 12, 1], ["Administration", 21, 1], ["no matching permission", 0, 0]] as const) {
     const html = harness("en", {0: query}).render("RelationEditor", {...props, draft: {options: catalog, ids: catalog.map(row => row.id), initialIds: []}});
     assert.equal((html.match(/data-permission-code=/g) ?? []).length, count, query);
     assert.equal((html.match(/data-permission-domain=/g) ?? []).length, domains, query);

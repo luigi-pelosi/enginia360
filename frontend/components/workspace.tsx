@@ -49,6 +49,8 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { ProfileDialog } from "@/components/profile-dialog";
+import { BusinessPartnerWorkspace } from "@/components/business-partner-workspace";
+import { BusinessPartnerNumbering } from "@/components/business-partner-numbering";
 import { AddressAutocomplete, addressSelection, type AddressField } from "@/components/address-autocomplete";
 import { SiteCountrySelect } from "@/components/site-country-select";
 import { PermissionTree } from "@/components/permission-tree";
@@ -86,6 +88,8 @@ const icons: Record<string, typeof Building2> = {
   warehouses: Warehouse,
   "warehouse-locations": Boxes,
   settings: Settings,
+  "business-partners": UsersRound,
+  "business-partner-numbering": Settings,
   countries: Globe2,
   cities: MapPin,
   users: Users,
@@ -94,6 +98,15 @@ const icons: Record<string, typeof Building2> = {
   permissions: KeyRound,
 };
 const settingsCatalogs = ["countries", "cities"];
+const partnerSettingsParents: Record<string, string> = {
+  "settings-master-data": "settings",
+  "settings-business-partners": "settings-master-data",
+  "business-partner-numbering": "settings-business-partners",
+};
+function canOpenResource(session: Session, key: string) {
+  if (key in partnerSettingsParents) return can(session, "business-partner-numbering", "read");
+  return key === "settings" || can(session, key, "read");
+}
 type Result = { items: Row[]; total: number; page: number; pageSize: number };
 const permissionMessages = [it, en];
 function localizedRowLabel(resource: string, row: Row, locale: string) {
@@ -131,7 +144,8 @@ function WorkspaceNavigation({accessible, active, navigate, session}: {accessibl
           <SidebarGroupLabel>{t(section.label)}</SidebarGroupLabel>
           <SidebarMenu>{keys.map(key => {
             const Icon = icons[key] || Boxes;
-            return <SidebarMenuItem key={key}><SidebarMenuButton isActive={key === active || (key === "settings" && settingsCatalogs.includes(active))} aria-current={key === active || (key === "settings" && settingsCatalogs.includes(active)) ? "page" : undefined} onClick={() => {navigate(key); setOpenMobile(false)}}><Icon /><span>{r(key)}</span></SidebarMenuButton></SidebarMenuItem>;
+            const selected = key === active || key === "settings" && (settingsCatalogs.includes(active) || active in partnerSettingsParents);
+            return <SidebarMenuItem key={key}><SidebarMenuButton isActive={selected} aria-current={selected ? "page" : undefined} onClick={() => {navigate(key); setOpenMobile(false)}}><Icon /><span>{r(key)}</span></SidebarMenuButton></SidebarMenuItem>;
           })}</SidebarMenu>
         </SidebarGroup> : null;
       })}
@@ -244,9 +258,9 @@ export default function Workspace() {
         if (!alive) return;
         setResources(data);
         setActive((current) =>
-          data.some((x) => x.key === current && (current === "settings" || can(session, x.key, "read")))
+          (current in partnerSettingsParents && canOpenResource(session, current)) || data.some((x) => x.key === current && canOpenResource(session, x.key))
             ? current
-            : data.find((x) => !settingsCatalogs.includes(x.key) && (x.key === "settings" || can(session, x.key, "read")))?.key || "",
+            : data.find((x) => !settingsCatalogs.includes(x.key) && canOpenResource(session, x.key))?.key || "",
         );
       })
       .catch((e) => setError(translateError(e)));
@@ -265,7 +279,7 @@ export default function Workspace() {
   }, [search]);
   useEffect(() => {
     if (!session || session.mustChangePassword || !active) return;
-    if (active === "settings") {setRows([]); setTotal(0); setLoading(false); return;}
+    if (["settings", "business-partners"].includes(active) || active in partnerSettingsParents) {setRows([]); setTotal(0); setLoading(false); return;}
     if (session.isSuperAdmin && !["tenants", "countries", "cities"].includes(active) && !tenant) {
       setRows([]);
       setTotal(0);
@@ -307,17 +321,17 @@ export default function Workspace() {
   }, [session, active, tenant, page, query, version, scope, allRows, translateError]);
   const resource = resources.find((x) => x.key === active);
   const accessible = useMemo(
-    () => resources.filter((x) => session && (x.key === "settings" || can(session, x.key, "read"))),
+    () => resources.filter((x) => session && canOpenResource(session, x.key)),
     [resources, session],
   );
   const refreshSession = useCallback(async () => {
     try {
       const fresh = await api<Session>("/session");
       setSession(fresh);
-      if (active !== "settings" && !can(fresh, active, "read")) {
+      if (!canOpenResource(fresh, active)) {
         setRows([]);
         setTotal(0);
-        setActive(resources.find((entry) => !settingsCatalogs.includes(entry.key) && (entry.key === "settings" || can(fresh, entry.key, "read")))?.key || "");
+        setActive(resources.find((entry) => !settingsCatalogs.includes(entry.key) && canOpenResource(fresh, entry.key))?.key || "");
         setPage(1);
       }
       setEditor((current) => current && can(fresh, current.resource.key, current.row ? "read" : "create", current.row) ? current : null);
@@ -486,7 +500,16 @@ export default function Workspace() {
         </Card>
       </main>
     );
-  const needTenant = session.isSuperAdmin && !["tenants", "countries", "cities"].includes(active) && active !== "settings" && !tenant;
+  const needTenant = session.isSuperAdmin && !["tenants", "countries", "cities", "settings", "settings-master-data", "settings-business-partners"].includes(active) && !tenant;
+  const pageTitle = (key: string) => key === "settings-master-data" ? t("masterData")
+    : key === "settings-business-partners" ? r("business-partners")
+    : key === "business-partner-numbering" ? t("numbering") : r(key);
+  const settingsTrail: string[] = [];
+  for (let key = partnerSettingsParents[active]; key; key = partnerSettingsParents[key]) settingsTrail.unshift(key);
+  const nextSettingsPage = Object.keys(partnerSettingsParents).find(key => partnerSettingsParents[key] === active);
+  const settingsTile = nextSettingsPage && can(session, "business-partner-numbering", "read") && <button type="button" className="rounded-xl border bg-card p-6 text-left transition-colors hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={() => navigate(nextSettingsPage)}>
+    {nextSettingsPage === "business-partner-numbering" ? <Settings className="mb-4 size-8 text-primary" /> : <UsersRound className="mb-4 size-8 text-primary" />}<h2 className="text-lg font-semibold">{pageTitle(nextSettingsPage)}</h2>
+  </button>;
   const columns = tableFields(resource);
   return (
     <SidebarProvider>
@@ -502,7 +525,7 @@ export default function Workspace() {
             <span className="breadcrumb">
               {t("workspace")}
               <ChevronRight size={14} />
-              <strong>{active ? r(active) : t("administration")}</strong>
+              <strong>{active ? pageTitle(active) : t("administration")}</strong>
             </span>
           </div>
           <div className="topbar-actions">
@@ -558,17 +581,18 @@ export default function Workspace() {
         )}
         <section id="main" className="workspace" tabIndex={-1}>
           {settingsCatalogs.includes(active) && <Button variant="outline" className="mb-4" onClick={() => navigate("settings")}>{t("backToSettings")}</Button>}
+          {active in partnerSettingsParents && <Button variant="outline" className="mb-4" onClick={() => navigate(partnerSettingsParents[active])}>{t(active === "business-partner-numbering" ? "backToBusinessPartners" : active === "settings-business-partners" ? "backToMasterData" : "backToSettings")}</Button>}
           <div className="page-heading">
             <div>
               <div className="eyebrow">
-                {t(
+                {settingsTrail.length ? settingsTrail.map((key, index) => <span key={key}>{index > 0 && <span aria-hidden="true"> › </span>}<button type="button" onClick={() => navigate(key)}>{pageTitle(key)}</button></span>) : t(
                   sections.find((s) => s.keys.includes(active))?.label ||
                     "administration",
                 )}
               </div>
-              <h1>{active ? r(active) : t("noAccess")}</h1>
+              <h1>{active ? pageTitle(active) : t("noAccess")}</h1>
             </div>
-            {resource && active !== "settings" && !resource.readOnly && !needTenant && can(session, active, "create") && (
+            {resource && !["settings", "business-partners", "business-partner-numbering"].includes(active) && !resource.readOnly && !needTenant && can(session, active, "create") && (
               <Button onClick={() => setEditor({ resource, row: null })}>
                 <Plus size={17} />
                 {t("new")}
@@ -589,8 +613,9 @@ export default function Workspace() {
                 <Icon className="mb-4 size-8 text-primary" /><h2 className="text-lg font-semibold">{r(key)}</h2>
               </button>;
             })}
+            {settingsTile}
           </div>}
-          {active === "settings" && !needTenant ? null : needTenant ? (
+          {active === "settings-master-data" || active === "settings-business-partners" ? canOpenResource(session, active) && <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{settingsTile}</div> : active === "settings" && !needTenant ? null : needTenant ? (
             <Card className="empty-state">
               <span className="empty-icon">
                 <Building2 size={32} />
@@ -608,6 +633,10 @@ export default function Workspace() {
                 </Button>
               )}
             </Card>
+          ) : active === "business-partners" && canOpenResource(session, active) ? (
+            <BusinessPartnerWorkspace key={tenant} session={session} scope={scope} onError={translateError} />
+          ) : active === "business-partner-numbering" && can(session, active, "read") ? (
+            <BusinessPartnerNumbering key={tenant} session={session} scope={scope} onError={translateError} />
           ) : resource ? (
             <Card id={active === "settings" ? "settings-panel-general" : undefined} role={active === "settings" ? "tabpanel" : undefined} aria-labelledby={active === "settings" ? "settings-tab-general" : undefined} className="gap-0 overflow-hidden py-0" aria-label={r(active)}>
               <div className="table-toolbar">

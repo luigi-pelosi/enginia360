@@ -7,10 +7,11 @@ function find(node: any, key: string, value: string): any {
   if (node.props?.[key] === value) return node;
   for (const child of [node.props?.children].flat(Infinity)) {const result = find(child, key, value); if (result) return result;}
 }
-for (const [key, value, count] of [["data-permission-selection", "all", 50], ["data-permission-domain-checkbox", "organization", 17], ["data-permission-resource-checkbox", "companies", 4], ["data-permission-resource-checkbox", "purchasing-organizations", 5]] as const) {
+for (const [key, value, count] of [["data-permission-selection", "all", 55], ["data-permission-domain-checkbox", "masterData", 5], ["data-permission-domain-checkbox", "organization", 17], ["data-permission-resource-checkbox", "companies", 4], ["data-permission-resource-checkbox", "purchasing-organizations", 5]] as const) {
   test(`${value}: bulk includes hidden original scope, tristate and preserves external selections`, () => {
     let changed: string[] = [];
-    const props = {rows: catalog, query: value === "purchasing-organizations" ? "purchasing-organizations.read" : "companies.read", selectedIds: [value === "purchasing-organizations" ? "purchasing-organizations.read" : catalog[0].id, "outside"], renderLeaf: () => null, onSelectedIdsChange: (ids: string[]) => {changed = ids}};
+    const selectedCode = value === "masterData" ? "business-partners.read" : value === "purchasing-organizations" ? "purchasing-organizations.read" : "companies.read";
+    const props = {rows: catalog, query: selectedCode, selectedIds: [selectedCode, "outside"], renderLeaf: () => null, onSelectedIdsChange: (ids: string[]) => {changed = ids}};
     const h = harness();
     const tree = h.components.PermissionTree(props);
     const control = find(tree, key, value);

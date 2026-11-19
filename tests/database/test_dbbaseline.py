@@ -2,14 +2,14 @@
 import json
 import unittest
 from dbbaseline import sql, normalize_dump
-from test_foundation import TABLES, fixture
+from test_foundation import TABLES, fixture, table_schema
 
 
 class BaselineInvariantTests(unittest.TestCase):
     def test_exact_table_inventory(self):
-        names = json.loads(sql("SELECT json_agg(tablename ORDER BY tablename) FROM pg_tables WHERE schemaname='foundation'").stdout)
-        self.assertEqual(sorted(TABLES), names)
-        self.assertEqual(len(names), 23)
+        names = json.loads(sql("SELECT json_agg(schemaname||'.'||tablename ORDER BY schemaname,tablename) FROM pg_tables WHERE schemaname IN ('foundation','masterdata')").stdout)
+        self.assertEqual(sorted(table_schema(t)+'.'+t for t in TABLES), names)
+        self.assertEqual(len(names), len(TABLES))
 
     def test_runtime_role_has_no_escalation_or_ownership(self):
         attrs = json.loads(sql("""SELECT json_build_object('super',rolsuper,'createdb',rolcreatedb,
@@ -17,11 +17,12 @@ class BaselineInvariantTests(unittest.TestCase):
             'login',rolcanlogin) FROM pg_roles WHERE rolname='enginia360_app'""").stdout)
         self.assertEqual(attrs, dict.fromkeys(attrs, False))
         self.assertEqual(sql("SELECT count(*) FROM pg_auth_members WHERE member='enginia360_app'::regrole").stdout.strip(), '0')
-        self.assertEqual(sql("SELECT count(*) FROM pg_class WHERE relnamespace='foundation'::regnamespace AND relowner<>'postgres'::regrole").stdout.strip(), '0')
-        self.assertEqual(sql("SELECT nspowner='postgres'::regrole FROM pg_namespace WHERE nspname='foundation'").stdout.strip(), 't')
+        self.assertEqual(sql("SELECT count(*) FROM pg_class WHERE relnamespace IN ('foundation'::regnamespace,'masterdata'::regnamespace) AND relowner<>'postgres'::regrole").stdout.strip(), '0')
+        self.assertEqual(sql("SELECT bool_and(nspowner='postgres'::regrole) FROM pg_namespace WHERE nspname IN ('foundation','masterdata')").stdout.strip(), 't')
         for statement in ('SET ROLE postgres', 'SET SESSION AUTHORIZATION postgres',
                           'CREATE ROLE escalation',
                           'CREATE TABLE foundation.forbidden_test(id int)',
+                          'CREATE TABLE masterdata.forbidden_test(id int)',
                           'ALTER TABLE foundation.tenant ADD COLUMN forbidden int',
                           'TRUNCATE foundation.tenant CASCADE',
 
@@ -43,9 +44,9 @@ class BaselineInvariantTests(unittest.TestCase):
         self.assertEqual(sql("""SELECT bool_and(has_table_privilege('enginia360_app',c.oid,'SELECT')
             AND has_table_privilege('enginia360_app',c.oid,'INSERT')
             AND has_table_privilege('enginia360_app',c.oid,'UPDATE')
-            AND has_table_privilege('enginia360_app',c.oid,'DELETE')
+            AND has_table_privilege('enginia360_app',c.oid,'DELETE') = (c.relname NOT IN ('business_partner','numbering_series','numbering_counter'))
             AND NOT has_table_privilege('enginia360_app',c.oid,'TRUNCATE'))
-            FROM pg_class c WHERE relnamespace='foundation'::regnamespace
+            FROM pg_class c WHERE relnamespace IN ('foundation'::regnamespace,'masterdata'::regnamespace)
             AND relkind='r' AND relname<>'audit_event'""").stdout.strip(),'t')
 
     def test_audit_details_are_objects_and_runtime_can_only_append(self):
@@ -56,18 +57,20 @@ class BaselineInvariantTests(unittest.TestCase):
             self.assertNotEqual(result.returncode,0)
             self.assertIn('audit_event_details_check',result.stderr)
 
-    def test_permission_catalog_is_not_a_seed_and_current_fifty_codes_are_admitted(self):
+    def test_permission_catalog_is_not_a_seed_and_current_codes_are_admitted(self):
         resources=('companies','sites','warehouse-types','warehouses','warehouse-locations',
                    'settings','users','groups','roles','sales-organizations','purchasing-organizations')
         codes=[r+'.'+a for r in resources for a in ('read','create','update','delete')]
         codes+=['permissions.read','users.reset_password','roles.assign','groups.assign_users',
                 'roles.assign_permissions','purchasing-organizations.assign_scope']
-        self.assertEqual(len(set(codes)),50)
+        codes+=['business-partners.read','business-partners.create','business-partners.update',
+                'business-partner-numbering.read','business-partner-numbering.update']
+        self.assertEqual(len(set(codes)),55)
         base="BEGIN;INSERT INTO foundation.tenant(id,code,name) VALUES('95000000-0000-0000-0000-000000000001','catalog-proof','Verifica');"
         values=','.join("('95000000-0000-0000-0000-000000000001','"+c+"','Operazione',true)" for c in codes)
         result=sql(base+'INSERT INTO foundation.permission(tenant_id,code,name,is_system) VALUES '+values+';SELECT count(*) FROM foundation.role_permission;ROLLBACK;',role='enginia360_app')
         self.assertEqual(result.stdout.strip(),'0')
-        for code in ('companies.write','tenants.read','roles.assign_users','unknown.read','users.read.extra'):
+        for code in ('companies.write','tenants.read','roles.assign_users','unknown.read','users.read.extra','business-partners.delete','business-partner-numbering.create'):
             result=sql(base+"INSERT INTO foundation.permission(tenant_id,code,name,is_system) VALUES('95000000-0000-0000-0000-000000000001','"+code+"','Non ammesso',true);ROLLBACK;",check=False)
             self.assertNotEqual(result.returncode,0)
             self.assertIn('permission_system_code_check',result.stderr)

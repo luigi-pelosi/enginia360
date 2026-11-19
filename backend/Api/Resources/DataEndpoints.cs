@@ -15,6 +15,8 @@ public static class DataEndpoints
 {
     public static void Map(WebApplication app)
     {
+        Enginia360.Modules.BusinessPartners.BusinessPartnerEndpoints.Map(app);
+        Enginia360.Modules.Numbering.BusinessPartnerNumbering.Map(app);
         app.MapGet("/api/resources",(HttpContext ctx) => Results.Ok(Resources.All.Values.Select(r => new {r.Key,r.Fields,ReadOnly=Resources.MetaReadOnly(r,Security.State(ctx).User)})));
         app.MapGet("/api/data/{resource}",async (HttpContext ctx,AppDb db,string resource) => {
             var r=Resources.Get(resource); var state=Security.State(ctx); await Security.AuthorizeResource(ctx,r,"read");

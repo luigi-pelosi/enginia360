@@ -1,12 +1,31 @@
 """Contratto ristretto per la sola baseline di nuove installazioni."""
 from pathlib import Path
+import re
 import unittest
 import dbbaseline
+from test_foundation import TABLES
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
 class PortableBaselineTests(unittest.TestCase):
+    def test_inventory_matches_sql_including_business_partner_tables(self):
+        source = (ROOT / 'database/foundation.sql').read_text()
+        tables = re.findall(r'^CREATE TABLE (foundation|masterdata)\.([^\s(]+)', source, re.MULTILINE)
+        from test_foundation import table_schema
+        self.assertEqual({(table_schema(name), name) for name in TABLES}, {(schema, name.strip('"')) for schema, name in tables})
+        self.assertEqual(len(TABLES), len(tables))
+
+    def test_masterdata_owns_only_business_partner_tables(self):
+        source = (ROOT / 'database/foundation.sql').read_text()
+        self.assertIn('CREATE SCHEMA masterdata', source)
+        tables = re.findall(r'^CREATE TABLE masterdata\.([^\s(]+)', source, re.MULTILINE)
+        self.assertEqual(set(tables), {'business_partner', 'business_partner_tax_identifier',
+            'business_partner_address', 'business_partner_address_usage', 'business_partner_contact_channel'})
+        for name in ('numbering_series', 'numbering_counter'):
+            self.assertIn('CREATE TABLE foundation.' + name, source)
+        self.assertNotRegex(source, r'CREATE TABLE foundation\.business_partner')
+
     def test_baseline_has_no_personal_role(self):
         source = (ROOT / 'database/foundation.sql').read_text()
         self.assertNotIn('luigi_pelosi', source)

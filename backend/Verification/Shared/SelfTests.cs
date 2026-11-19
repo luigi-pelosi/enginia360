@@ -17,6 +17,13 @@ public static class SelfTests
         var count=0; var failed=0;
         void Test(string name,Action run) { try { run(); count++; Console.WriteLine("PASS " + name); } catch(Exception e) { failed++; Console.WriteLine("FAIL " + name + ": " + e.Message); } }
         void Reject(Action run,int status=400) {try {run();} catch(ApiException e) when(e.Status==status) {return;} throw new InvalidOperationException("Expected refusal.");}
+        Test("business partners finite catalog without delete",() => {
+            if(!ResourceCatalog.All.ContainsKey("business-partners")) throw new Exception("Business partner resource missing.");
+            foreach(var code in new[]{"business-partners.read","business-partners.create","business-partners.update","business-partner-numbering.read","business-partner-numbering.update"})
+                if(!PermissionCatalog.Contains(code)) throw new Exception("Missing permission: "+code);
+            if(PermissionCatalog.Contains("business-partners.delete")) throw new Exception("Delete is forbidden.");
+        });
+        if(Environment.GetEnvironmentVariable("BP_DB_TESTS")=="true") BusinessPartnerTests.Run(services.GetRequiredService<IConfiguration>().GetConnectionString("Database")!,Test);
         LoginPreselectionSelfTests.Run(services,Test);
         ProfileSelfTests.Run(Test);
         bool Allowed(string code, string[] grants, bool global=false)
@@ -56,7 +63,7 @@ public static class SelfTests
         });
         Test("native finite actions deny legacy and global tenant impostor",() => {
             foreach(var resource in ResourceCatalog.All.Keys.Where(r => r != "tenants" && !ResourceCatalog.IsGlobalMaster(r))) {
-                var actions=resource=="permissions" ? new[]{"read"} : new[]{"read","create","update","delete"};
+                var actions=resource=="permissions" ? new[]{"read"} : resource=="business-partners" ? new[]{"read","create","update"} : new[]{"read","create","update","delete"};
                 foreach(var action in actions) if(!Allowed(resource+"."+action,[resource+"."+action])) throw new Exception("Action missing.");
                 if(Allowed(resource+".write",[resource+".write"],true)) throw new Exception("Legacy write granted.");
             }
@@ -129,7 +136,7 @@ public static class SelfTests
             var session=JsonSerializer.SerializeToElement(new IdentityState(user,"sample","ignored",[]).Session);
             if(session.GetProperty("displayName").GetString() != "First Last" || session.GetProperty("preferredLanguage").GetString() != "en") throw new Exception("Incorrect session profile.");
         });
-        Test("fifteen resources",() => {if(ResourceCatalog.All.Count != 15) throw new Exception();});
+        Test("sixteen resources",() => {if(ResourceCatalog.All.Count != 16) throw new Exception();});
         Test("unknown resource rejected",() => Reject(() => ResourceCatalog.Get("user"),404));
         Test("privilege injection rejected",() => Reject(() => ResourceCatalog.Validate(ResourceCatalog.Get("users"),Json("{\"username\":\"alice\",\"display_name\":\"Alice\",\"is_super_admin\":true}"),true)));
         Test("tenant injection rejected",() => Reject(() => ResourceCatalog.Validate(ResourceCatalog.Get("companies"),Json("{\"tenant_id\":\"00000000-0000-0000-0000-000000000001\"}"),false)));
@@ -202,6 +209,13 @@ public static class SelfTests
         Test("reserved table identifier quoted",() => {
             if(SqlNames.Table(ResourceCatalog.Get("users").Table) != "\"foundation\".\"user\"") throw new Exception();
         });
+        Test("BP persistence schema is masterdata while numbering remains foundation",() => {
+            foreach(var table in new[] {"business_partner", "business_partner_tax_identifier", "business_partner_address", "business_partner_address_usage", "business_partner_contact_channel"})
+                if(SqlNames.Table(table) != "\"masterdata\".\""+table+"\"") throw new Exception("Wrong BP schema: "+table);
+            if(SqlNames.Table(ResourceCatalog.Get("business-partners").Table) != "\"masterdata\".\"business_partner\"") throw new Exception("Resource lookup uses wrong schema");
+            foreach(var table in new[] {"numbering_series", "numbering_counter", "business_partner_fake", "masterdata.business_partner"})
+                if(SqlNames.Table(table) != "\"foundation\".\""+table+"\"") throw new Exception("Schema routing must use exact finite names");
+        });
         Test("identifier quotes escaped without splitting",() => {
             if(SqlNames.Table("a\".b") != "\"foundation\".\"a\"\".b\"") throw new Exception();
         });
@@ -233,8 +247,8 @@ public static class SelfTests
             Reject(() => ResourceCatalog.Validate(r,JsonSerializer.SerializeToElement(new {name="Vendite"}),true));
             Reject(() => ResourceCatalog.Validate(r,JsonSerializer.SerializeToElement(new {company_id=company}),true));
         });
-        Test("commercial finite50 catalog and assign scope native isolation",() => {
-            if(PermissionCatalog.Codes.Length!=50 || !Allowed("purchasing-organizations.assign_scope",["purchasing-organizations.assign_scope"])) throw new Exception("50 codes including native assign_scope required.");
+        Test("commercial finite55 catalog and assign scope native isolation",() => {
+            if(PermissionCatalog.Codes.Length!=55 || !Allowed("purchasing-organizations.assign_scope",["purchasing-organizations.assign_scope"])) throw new Exception("55 codes including native assign_scope required.");
             foreach(var other in new[]{"read","create","update","delete"}) {
                 if(Allowed("purchasing-organizations.assign_scope",["purchasing-organizations."+other]) || Allowed("purchasing-organizations."+other,["purchasing-organizations.assign_scope"])) throw new Exception("Coverage and profile authority conflated.");
             }

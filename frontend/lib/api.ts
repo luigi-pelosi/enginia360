@@ -1,10 +1,12 @@
 export class ApiError extends Error {
   code: string;
   status: number;
-  constructor(code: string, status: number) {
+  field?: string;
+  constructor(code: string, status: number, field?: string) {
     super(code);
     this.code = code;
     this.status = status;
+    this.field = field;
   }
 }
 let csrf: string | null = null;
@@ -44,10 +46,13 @@ export async function api<T = unknown>(
   }
   if (!response.ok) {
     let code = "server_error";
+    let field: string | undefined;
     try {
-      code = (await response.json()).code || code;
+      const error = await response.json();
+      if (typeof error.code === "string" && error.code) code = error.code;
+      if (typeof error.field === "string") field = error.field;
     } catch {}
-    throw new ApiError(code, response.status);
+    throw new ApiError(code, response.status, field);
   }
   if (response.status === 204) return undefined as T;
   return response.json();

@@ -22,6 +22,7 @@ public static class Resources
         new("tenants", "tenant", Named(true, codeRequired: true)),
         new("countries", "country", [Text("name", true), Text("iso_code", true), new("notes", "textarea"), new("is_enabled", "boolean")]),
         new("cities", "city", [Text("name", true), Text("postal_code", true), Text("province"), Text("region"), Ref("country_id", "countries"), new("notes", "textarea"), new("is_enabled", "boolean")]),
+        new("business-partners", "business_partner", [Text("legal_name"), Text("first_name"), Text("last_name"), new("kind", "select", true, Options: ["PERSON", "ORGANIZATION"]), Text("code"), new("status", "select", Options: ["DRAFT", "ACTIVE", "BLOCKED", "ARCHIVED"], DefaultValue: "DRAFT")]),
         new("companies", "company", Named()),
         new("sales-organizations", "sales_organization", [Ref("company_id", "companies"), ..Named(true)]),
         new("purchasing-organizations", "purchasing_organization", Named(true)),

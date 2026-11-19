@@ -2,7 +2,7 @@
 
 python3 tests/database/prove_foundation.py --oracle /percorso/live-schema.sql \
   --output /root/.hermes/cache/scratch/enginia360-foundation-close/sql
-L'oracolo deve essere un pg_dump --schema-only --schema=foundation, acquisito
+L'oracolo deve essere un pg_dump --schema-only --schema=foundation --schema=masterdata, acquisito
 in sola lettura. Questo programma non si collega mai al database live.
 """
 import argparse
@@ -18,7 +18,7 @@ import sys
 import time
 
 from dbbaseline import CONTAINER, SCOPE, sql, dump_schema, normalize_dump, normalize_product_dump, personal_grant_lines, require_isolated
-from test_foundation import TABLES
+from test_foundation import TABLES, table_schema
 
 ROOT=Path(__file__).resolve().parents[2]
 IMAGE='postgres:18.6-alpine3.24@sha256:123b17998ccaf47e53b502e8c6a1e79afd8f579c6f3eec83c563da026f957395'
@@ -30,8 +30,8 @@ def main():
     parser.add_argument('--output',required=True,type=Path)
     args=parser.parse_args()
     oracle=args.oracle.read_text()
-    if 'CREATE SCHEMA foundation;' not in oracle or oracle.count('CREATE TABLE foundation.')!=23:
-        raise RuntimeError('Oracolo incompleto o non conforme: attese 23 tabelle foundation')
+    if 'CREATE SCHEMA foundation;' not in oracle or 'CREATE SCHEMA masterdata;' not in oracle or len(re.findall(r'^CREATE TABLE (?:foundation|masterdata)\.',oracle,re.M))!=len(TABLES):
+        raise RuntimeError(f'Oracolo incompleto o non conforme: attese {len(TABLES)} tabelle foundation/masterdata')
     args.output.mkdir(parents=True,exist_ok=True)
     baseline=(ROOT/'database/foundation.sql').read_text()
     (args.output/'foundation.sql').write_text(baseline)
@@ -53,10 +53,10 @@ def main():
         return result
 
     def zero_rows(name):
-        names=json.loads(sql("SELECT json_agg(tablename ORDER BY tablename) FROM pg_tables WHERE schemaname='foundation'").stdout)
-        record(name+'-inventory',names==sorted(TABLES),tables=names,count=len(names))
-        counts=json.loads(sql('SELECT json_build_object('+','.join("'"+t+"',(SELECT count(*) FROM foundation.\""+t+'\")' for t in names)+')').stdout)
-        record(name,len(counts)==23 and all(v==0 for v in counts.values()),rows=counts)
+        names=json.loads(sql("SELECT json_agg(schemaname||'.'||tablename ORDER BY schemaname,tablename) FROM pg_tables WHERE schemaname IN ('foundation','masterdata')").stdout)
+        record(name+'-inventory',names==sorted(table_schema(t)+'.'+t for t in TABLES),tables=names,count=len(names))
+        counts=json.loads(sql('SELECT json_build_object('+','.join("'"+t+"',(SELECT count(*) FROM "+'.'.join('"'+part+'"' for part in t.split('.'))+')' for t in names)+')').stdout)
+        record(name,len(counts)==len(TABLES) and all(v==0 for v in counts.values()),rows=counts)
 
     def terminate(signum,frame):
         raise SystemExit('Segnale di arresto '+str(signum))
@@ -158,7 +158,7 @@ def main():
         record('schema-still-canonical-after-tests',normalize_dump(dump_schema())==right)
         extra=subprocess.run([sys.executable,'-m','unittest','-v','test_portable_baseline'],cwd=ROOT,env=env,capture_output=True,text=True,timeout=30)
         (args.output/'portable-tests.log').write_text(extra.stdout+extra.stderr)
-        record('portable-normalization-regressions',extra.returncode==0 and 'Ran 2 tests' in extra.stderr,executed=2,returncode=extra.returncode)
+        record('portable-normalization-regressions',extra.returncode==0 and 'Ran 4 tests' in extra.stderr,executed=4,returncode=extra.returncode)
         execute('concurrent-create-db','CREATE DATABASE enginia360_proof_concurrent;')
         cmd=['docker','exec','-i',CONTAINER,'psql','-U','postgres','-d','enginia360_proof_concurrent','-X','-qAt','-v','ON_ERROR_STOP=1']
         runners=[]
@@ -182,8 +182,8 @@ def main():
             (args.output/'concurrent-first.log').write_text(out1+err1)
             (args.output/'concurrent-second.log').write_text(out2+err2)
             record('concurrent-install-serialized',waiting and first.returncode==0 and second.returncode!=0 and 'foundation esiste già' in err2,waiter_observed=waiting,returncodes=[first.returncode,second.returncode])
-            counts=sql("SELECT count(*) FROM pg_tables WHERE schemaname='foundation'",database='enginia360_proof_concurrent').stdout.strip()
-            record('concurrent-installed-exactly-once',counts=='23',tables=counts)
+            counts=sql("SELECT count(*) FROM pg_tables WHERE schemaname IN ('foundation','masterdata')",database='enginia360_proof_concurrent').stdout.strip()
+            record('concurrent-installed-exactly-once',counts==str(len(TABLES)),tables=counts)
         finally:
             for process in runners:
                 if process.poll() is None:process.kill();process.wait(timeout=10)

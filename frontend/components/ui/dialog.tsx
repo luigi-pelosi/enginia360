@@ -7,6 +7,7 @@ import { XIcon } from "lucide-react"
 import { Dialog as DialogPrimitive } from "radix-ui"
 
 import { Button } from "@/components/ui/button"
+import { useDialogWindow } from "@/components/ui/use-dialog-window"
 
 function Dialog({
   ...props
@@ -57,6 +58,7 @@ function DialogContent({
   showCloseButton?: boolean
 }) {
   const t = useTranslations("app")
+  const windowEvents = useDialogWindow()
   return (
     <DialogPortal data-slot="dialog-portal">
       <DialogOverlay />
@@ -67,8 +69,14 @@ function DialogContent({
           className
         )}
         {...props}
+        {...windowEvents}
+        onPointerDown={(event) => {
+          props.onPointerDown?.(event)
+          windowEvents.onPointerDown(event)
+        }}
       >
         {children}
+        <span data-dialog-resize aria-hidden="true" />
         {showCloseButton && (
           <DialogPrimitive.Close
             data-slot="dialog-close"

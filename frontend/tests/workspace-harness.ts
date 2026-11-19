@@ -32,6 +32,7 @@ export function harness(locale = "it", states: Record<number, unknown> = {}, api
     }, useRef: (current: unknown) => ({current}), useEffect: (effect: () => unknown) => effects.push(effect), useMemo: (fn: () => unknown) => fn(), useCallback: (fn: unknown) => fn};
     if (name === "next-intl") return {useLocale: () => locale, useTranslations: (namespace: string) => createTranslator({locale, messages, namespace})};
     if (name === "@/lib/model") return model;
+    if (name === "@/lib/country-codes") return {countryCodes: JSON.parse(readFileSync(new URL('./country-codes.json', import.meta.url), 'utf8'))};
     if (name === "@/lib/password") {
       const child = {exports: {}};
       const text = readFileSync(new URL("../lib/password.ts", import.meta.url), "utf8");
@@ -39,11 +40,11 @@ export function harness(locale = "it", states: Record<number, unknown> = {}, api
       return child.exports;
     }
     if (name === "@/lib/api") return {api: async (path: string, _method?: string, body?: unknown) => {apiCalls.push(path); apiPayloads.push(body); return typeof apiResult === "function" ? apiResult(path, _method, body) : apiResult}, ApiError: class extends Error {}, refreshCsrf: async () => {}};
-    if (name === "@/components/profile-dialog" || name === "@/components/permission-tree" || name === "@/components/purchasing-coverage-editor" || name === "@/components/address-autocomplete" || name === "@/components/site-country-select") {
+    if (name === "@/components/business-partner-numbering" || name === "@/components/business-partner-workspace" || name === "@/components/profile-dialog" || name === "@/components/permission-tree" || name === "@/components/purchasing-coverage-editor" || name === "@/components/address-autocomplete" || name === "@/components/site-country-select") {
       const child = {exports: {}};
       const childSource = readFileSync(new URL(`../components/${name.split("/").at(-1)}.tsx`, import.meta.url), "utf8");
       const childCode = ts.transpileModule(childSource, {compilerOptions: {target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true}}).outputText;
-      runInNewContext(childCode, {module: child, exports: child.exports, require: resolve});
+      runInNewContext(childCode, {module: child, exports: child.exports, require: resolve, AbortController, setTimeout, clearTimeout});
       return child.exports;
     }
     if (name.startsWith("@/components/ui/")) return ui;
