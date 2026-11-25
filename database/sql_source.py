@@ -1,35 +1,33 @@
-"""Espansione minima della baseline psql per fixture che inviano SQL su stdin.
-
-Non interpreta SQL: riconosce soltanto la direttiva canonica completa su una
-riga. L'installazione ordinaria usa psql -f database/foundation.sql.
-"""
+"""Espande esclusivamente i tre include canonici della baseline psql."""
 from pathlib import Path
 
-_CANONICAL_INCLUDE = r'\ir masterdata_business_partner.sql'
+_CANONICAL_INCLUDES = (
+    r'\ir masterdata_business_partner.sql',
+    r'\ir masterdata_payments.sql',
+    r'\ir masterdata_catalog.sql',
+)
 
 
 def read_sql(path: str | Path) -> str:
-    """Legge SQL storico senza include o espande il solo include canonico.
-
-    Nessuna interpretazione generale SQL/psql e nessuna risoluzione arbitraria.
-    """
     baseline = Path(path)
     source = baseline.read_text()
     directives = [line for line in source.splitlines() if line.lstrip().startswith('\\')]
     if not directives:
         return source
-    if directives != [_CANONICAL_INCLUDE]:
-        raise ValueError('Atteso un solo include canonico Business Partner, senza altre direttive psql')
-    domain = baseline.with_name('masterdata_business_partner.sql').read_text()
-    if any(line.lstrip().startswith('\\') for line in domain.splitlines()):
-        raise ValueError('Il frammento Business Partner non può contenere direttive psql')
-    return source.replace(_CANONICAL_INCLUDE, domain.rstrip('\n'), 1)
+    if tuple(directives) != _CANONICAL_INCLUDES:
+        raise ValueError('Attesi solo include canonici, senza altre direttive psql')
+    for directive in directives:
+        domain = baseline.with_name(directive.split(' ', 1)[1]).read_text()
+        if any(line.lstrip().startswith('\\') for line in domain.splitlines()):
+            raise ValueError('Il frammento non può contenere direttive psql')
+        source = source.replace(directive, domain.rstrip('\n'), 1)
+    return source
 
 
 def load_foundation_sql(path: str | Path | None = None) -> str:
-    """Carica la baseline corrente esigendo il suo unico include canonico."""
     baseline = Path(path) if path is not None else Path(__file__).with_name('foundation.sql')
     source = baseline.read_text()
-    if _CANONICAL_INCLUDE not in source.splitlines():
-        raise ValueError('Include canonico Business Partner assente')
+    directives = tuple(line for line in source.splitlines() if line.lstrip().startswith('\\'))
+    if directives != _CANONICAL_INCLUDES:
+        raise ValueError('Attesi i tre include canonici Business Partner, Payments e Catalogo')
     return read_sql(baseline)

@@ -82,7 +82,7 @@ public static class OptionalCodeSelfTests
                 foreach(var field in resource.Fields.Where(f => f.Name == "name"))
                     if(!field.Required) throw new Exception("Name must remain required: "+resource.Key);
                 foreach(var field in resource.Fields.Where(f => f.Name == "code"))
-                    if(field.Required != (resource.Key is "tenants" or "permissions"))
+                    if(field.Required != (resource.Key is "tenants" or "permissions" or "currencies"))
                         throw new Exception("Unexpected code requirement: "+resource.Key);
             }
             if(!ResourceCatalog.Get("permissions").ReadOnly) throw new Exception("Permission catalog must stay read-only.");
@@ -102,10 +102,7 @@ public static class OptionalCodeSelfTests
             var values=ResourceCatalog.Validate(ResourceCatalog.Get("sites"),JsonSerializer.SerializeToElement(new {tax_code=" T ",country_code="IT"}),false);
             if(!Equals(values["tax_code"],"T") || !Equals(values["country_code"],"IT")) throw new Exception("Site identifiers changed.");
             Reject(() => ResourceCatalog.Validate(ResourceCatalog.Get("sites"),JsonSerializer.SerializeToElement(new {country_code=" IT "}),false));
-            foreach(var key in new[]{"key", " key "}) {
-                values=ResourceCatalog.Validate(ResourceCatalog.Get("settings"),JsonSerializer.SerializeToElement(new {key}),false);
-                if(!Equals(values["key"],key)) throw new Exception("Setting key changed.");
-            }
+
         });
     }
 

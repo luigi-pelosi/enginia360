@@ -399,7 +399,7 @@ CREATE TABLE foundation.permission (
     is_system boolean DEFAULT false NOT NULL,
     CONSTRAINT permission_code_check CHECK ((btrim(code) <> ''::text)),
     CONSTRAINT permission_name_check CHECK ((btrim(name) <> ''::text)),
-    CONSTRAINT permission_system_code_check CHECK (((NOT is_system) OR (code = ANY (ARRAY['permissions.read'::text, 'users.reset_password'::text, 'roles.assign'::text, 'groups.assign_users'::text, 'roles.assign_permissions'::text, 'purchasing-organizations.assign_scope'::text, 'business-partners.read'::text, 'business-partners.create'::text, 'business-partners.update'::text, 'business-partner-numbering.read'::text, 'business-partner-numbering.update'::text, 'roles.assign_companies'::text, 'business-partner-companies.read'::text, 'business-partner-companies.create'::text, 'business-partner-companies.update'::text, 'business-partner-companies.use_customer'::text, 'business-partner-companies.use_supplier'::text])) OR ((split_part(code, '.'::text, 1) = ANY (ARRAY['companies'::text, 'sites'::text, 'warehouse-types'::text, 'warehouses'::text, 'warehouse-locations'::text, 'settings'::text, 'users'::text, 'groups'::text, 'roles'::text, 'sales-organizations'::text, 'purchasing-organizations'::text])) AND (split_part(code, '.'::text, 2) = ANY (ARRAY['read'::text, 'create'::text, 'update'::text, 'delete'::text])) AND (code = ((split_part(code, '.'::text, 1) || '.'::text) || split_part(code, '.'::text, 2)))))),
+    CONSTRAINT permission_system_code_check CHECK (((NOT is_system) OR (code = ANY (ARRAY['permissions.read'::text, 'users.reset_password'::text, 'roles.assign'::text, 'groups.assign_users'::text, 'roles.assign_permissions'::text, 'purchasing-organizations.assign_scope'::text, 'business-partners.read'::text, 'business-partners.create'::text, 'business-partners.update'::text, 'business-partner-numbering.read'::text, 'business-partner-numbering.update'::text, 'roles.assign_companies'::text, 'business-partner-companies.read'::text, 'business-partner-companies.create'::text, 'business-partner-companies.update'::text, 'business-partner-companies.use_customer'::text, 'business-partner-companies.use_supplier'::text, 'payment-methods.read'::text, 'payment-methods.create'::text, 'payment-methods.update'::text, 'payment-terms.read'::text, 'payment-terms.create'::text, 'payment-terms.update'::text, 'payment-settings.read'::text, 'payment-settings.update'::text, 'payment-partner-defaults.read'::text, 'payment-partner-defaults.update'::text, 'payment-schedule.preview'::text, 'payment-resolution.read'::text, 'catalog-units.read'::text, 'catalog-units.create'::text, 'catalog-units.update'::text, 'countries.read'::text, 'cities.read'::text, 'currencies.read'::text, 'catalog-items.read'::text, 'catalog-items.create'::text, 'catalog-items.update'::text, 'catalog-items.activate'::text, 'catalog-items.deactivate'::text, 'catalog-items.archive'::text, 'catalog-brands.read'::text, 'catalog-brands.create'::text, 'catalog-brands.update'::text, 'catalog-categories.read'::text, 'catalog-categories.create'::text, 'catalog-categories.update'::text, 'catalog-categories.delete'::text, 'catalog-types.read'::text, 'catalog-types.create'::text, 'catalog-types.update'::text, 'catalog-numbering.read'::text, 'catalog-numbering.update'::text])) OR ((split_part(code, '.'::text, 1) = ANY (ARRAY['companies'::text, 'sites'::text, 'warehouse-types'::text, 'warehouses'::text, 'warehouse-locations'::text, 'users'::text, 'groups'::text, 'roles'::text, 'sales-organizations'::text, 'purchasing-organizations'::text])) AND (split_part(code, '.'::text, 2) = ANY (ARRAY['read'::text, 'create'::text, 'update'::text, 'delete'::text])) AND (code = ((split_part(code, '.'::text, 1) || '.'::text) || split_part(code, '.'::text, 2)))) OR (code = 'catalog-types.delete'::text) OR (code = ANY (ARRAY['catalog-item-companies.read'::text, 'catalog-item-companies.create'::text, 'catalog-item-companies.update'::text])))),
     CONSTRAINT permission_pkey PRIMARY KEY (id),
     CONSTRAINT permission_tenant_id_code_key UNIQUE (tenant_id, code),
     CONSTRAINT permission_tenant_id_id_key UNIQUE (tenant_id, id)
@@ -539,30 +539,7 @@ ALTER TABLE foundation.purchasing_organization_site OWNER TO postgres;
 
 COMMENT ON TABLE foundation.purchasing_organization_site IS 'Sedi selezionate entro la copertura aziendale dell’organizzazione acquisti.';
 
--- Configurazione, autenticazione e audit.
-
-CREATE TABLE foundation.setting (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    tenant_id uuid NOT NULL,
-    company_id uuid,
-    site_id uuid,
-    key text NOT NULL,
-    value jsonb NOT NULL,
-    is_enabled boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT setting_check CHECK (((site_id IS NULL) OR (company_id IS NOT NULL))),
-    CONSTRAINT setting_key_check CHECK ((btrim(key) <> ''::text)),
-    CONSTRAINT setting_pkey PRIMARY KEY (id),
-    CONSTRAINT setting_tenant_id_company_id_site_id_key_key UNIQUE NULLS NOT DISTINCT (tenant_id, company_id, site_id, key)
-);
-
-
-ALTER TABLE foundation.setting OWNER TO postgres;
-
-COMMENT ON TABLE foundation.setting IS 'Configurazione riferita esattamente al tenant, alla società o alla sede; nessuna ereditarietà implicita.';
-
-COMMENT ON COLUMN foundation.setting.value IS 'Valore JSON della configurazione; non destinato a credenziali o segreti.';
+-- Autenticazione e audit.
 
 CREATE TABLE foundation.login_limit (
     key text NOT NULL,
@@ -705,14 +682,7 @@ ALTER TABLE ONLY foundation.sales_organization
 ALTER TABLE ONLY foundation.sales_organization
     ADD CONSTRAINT sales_organization_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES foundation.tenant(id);
 
-ALTER TABLE ONLY foundation.setting
-    ADD CONSTRAINT setting_tenant_id_company_id_fkey FOREIGN KEY (tenant_id, company_id) REFERENCES foundation.company(tenant_id, id);
 
-ALTER TABLE ONLY foundation.setting
-    ADD CONSTRAINT setting_tenant_id_company_id_site_id_fkey FOREIGN KEY (tenant_id, company_id, site_id) REFERENCES foundation.site(tenant_id, company_id, id);
-
-ALTER TABLE ONLY foundation.setting
-    ADD CONSTRAINT setting_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES foundation.tenant(id);
 
 ALTER TABLE ONLY foundation.site
     ADD CONSTRAINT site_tenant_id_company_id_fkey FOREIGN KEY (tenant_id, company_id) REFERENCES foundation.company(tenant_id, id);
@@ -797,7 +767,7 @@ CREATE TRIGGER set_updated_at BEFORE UPDATE ON foundation.role FOR EACH ROW EXEC
 
 CREATE TRIGGER set_updated_at BEFORE UPDATE ON foundation.sales_organization FOR EACH ROW EXECUTE FUNCTION foundation.set_updated_at();
 
-CREATE TRIGGER set_updated_at BEFORE UPDATE ON foundation.setting FOR EACH ROW EXECUTE FUNCTION foundation.set_updated_at();
+
 
 CREATE TRIGGER set_updated_at BEFORE UPDATE ON foundation.site FOR EACH ROW EXECUTE FUNCTION foundation.set_updated_at();
 
@@ -844,7 +814,7 @@ GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE foundation.role_permission TO enginia
 
 GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE foundation.sales_organization TO enginia360_app;
 
-GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE foundation.setting TO enginia360_app;
+
 
 GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE foundation.site TO enginia360_app;
 
@@ -866,7 +836,279 @@ GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE foundation.warehouse_location TO engi
 
 GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE foundation.warehouse_type TO enginia360_app;
 
+-- Fonte: SIX, ISO 4217 current currency list, pubblicata 2026-09-17.
+-- https://www.six-group.com/dam/download/financial-information/data-center/iso-currrency/lists/list-one.xml
+-- SHA-256 XML: 33139b438657d1cee116ba737807ea71d19d6de4b90f799a09c56f0cc6a1b0ff
+-- Una riga per codice; minor units N.A. resta NULL, mai due per default.
+CREATE TABLE foundation.currency (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+ code char(3) NOT NULL UNIQUE CHECK (code ~ '^[A-Z]{3}$'),
+ numeric_code char(3) NOT NULL UNIQUE CHECK (numeric_code ~ '^[0-9]{3}$'),
+ name text NOT NULL CHECK (length(btrim(name)) BETWEEN 1 AND 500),
+ minor_units integer CHECK (minor_units BETWEEN 0 AND 28),
+ is_enabled boolean NOT NULL DEFAULT true,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE foundation.currency OWNER TO postgres;
+COMMENT ON TABLE foundation.currency IS 'Valute globali condivise; scrittura riservata al Super Admin.';
+CREATE TRIGGER set_updated_at BEFORE UPDATE ON foundation.currency FOR EACH ROW EXECUTE FUNCTION foundation.set_updated_at();
+GRANT SELECT, INSERT, UPDATE, DELETE ON foundation.currency TO enginia360_app;
+INSERT INTO foundation.currency(code,numeric_code,name,minor_units) VALUES
+ ('AED','784','UAE Dirham',2),
+ ('AFN','971','Afghani',2),
+ ('ALL','008','Lek',2),
+ ('AMD','051','Armenian Dram',2),
+ ('AOA','973','Kwanza',2),
+ ('ARS','032','Argentine Peso',2),
+ ('AUD','036','Australian Dollar',2),
+ ('AWG','533','Aruban Florin',2),
+ ('AZN','944','Azerbaijan Manat',2),
+ ('BAM','977','Convertible Mark',2),
+ ('BBD','052','Barbados Dollar',2),
+ ('BDT','050','Taka',2),
+ ('BHD','048','Bahraini Dinar',3),
+ ('BIF','108','Burundi Franc',0),
+ ('BMD','060','Bermudian Dollar',2),
+ ('BND','096','Brunei Dollar',2),
+ ('BOB','068','Boliviano',2),
+ ('BOV','984','Mvdol',2),
+ ('BRL','986','Brazilian Real',2),
+ ('BSD','044','Bahamian Dollar',2),
+ ('BTN','064','Ngultrum',2),
+ ('BWP','072','Pula',2),
+ ('BYN','933','Belarusian Ruble',2),
+ ('BZD','084','Belize Dollar',2),
+ ('CAD','124','Canadian Dollar',2),
+ ('CDF','976','Congolese Franc',2),
+ ('CHE','947','WIR Euro',2),
+ ('CHF','756','Swiss Franc',2),
+ ('CHW','948','WIR Franc',2),
+ ('CLF','990','Unidad de Fomento',4),
+ ('CLP','152','Chilean Peso',0),
+ ('CNY','156','Yuan Renminbi',2),
+ ('COP','170','Colombian Peso',2),
+ ('COU','970','Unidad de Valor Real',2),
+ ('CRC','188','Costa Rican Colon',2),
+ ('CUP','192','Cuban Peso',2),
+ ('CVE','132','Cabo Verde Escudo',2),
+ ('CZK','203','Czech Koruna',2),
+ ('DJF','262','Djibouti Franc',0),
+ ('DKK','208','Danish Krone',2),
+ ('DOP','214','Dominican Peso',2),
+ ('DZD','012','Algerian Dinar',2),
+ ('EGP','818','Egyptian Pound',2),
+ ('ERN','232','Nakfa',2),
+ ('ETB','230','Ethiopian Birr',2),
+ ('EUR','978','Euro',2),
+ ('FJD','242','Fiji Dollar',2),
+ ('FKP','238','Falkland Islands Pound',2),
+ ('GBP','826','Pound Sterling',2),
+ ('GEL','981','Lari',2),
+ ('GHS','936','Ghana Cedi',2),
+ ('GIP','292','Gibraltar Pound',2),
+ ('GMD','270','Dalasi',2),
+ ('GNF','324','Guinean Franc',0),
+ ('GTQ','320','Quetzal',2),
+ ('GYD','328','Guyana Dollar',2),
+ ('HKD','344','Hong Kong Dollar',2),
+ ('HNL','340','Lempira',2),
+ ('HTG','332','Gourde',2),
+ ('HUF','348','Forint',2),
+ ('IDR','360','Rupiah',2),
+ ('ILS','376','New Israeli Sheqel',2),
+ ('INR','356','Indian Rupee',2),
+ ('IQD','368','Iraqi Dinar',3),
+ ('IRR','364','Iranian Rial',2),
+ ('ISK','352','Iceland Krona',0),
+ ('JMD','388','Jamaican Dollar',2),
+ ('JOD','400','Jordanian Dinar',3),
+ ('JPY','392','Yen',0),
+ ('KES','404','Kenyan Shilling',2),
+ ('KGS','417','Som',2),
+ ('KHR','116','Riel',2),
+ ('KMF','174','Comorian Franc ',0),
+ ('KPW','408','North Korean Won',2),
+ ('KRW','410','Won',0),
+ ('KWD','414','Kuwaiti Dinar',3),
+ ('KYD','136','Cayman Islands Dollar',2),
+ ('KZT','398','Tenge',2),
+ ('LAK','418','Lao Kip',2),
+ ('LBP','422','Lebanese Pound',2),
+ ('LKR','144','Sri Lanka Rupee',2),
+ ('LRD','430','Liberian Dollar',2),
+ ('LSL','426','Loti',2),
+ ('LYD','434','Libyan Dinar',3),
+ ('MAD','504','Moroccan Dirham',2),
+ ('MDL','498','Moldovan Leu',2),
+ ('MGA','969','Malagasy Ariary',2),
+ ('MKD','807','Denar',2),
+ ('MMK','104','Kyat',2),
+ ('MNT','496','Tugrik',2),
+ ('MOP','446','Pataca',2),
+ ('MRU','929','Ouguiya',2),
+ ('MUR','480','Mauritius Rupee',2),
+ ('MVR','462','Rufiyaa',2),
+ ('MWK','454','Malawi Kwacha',2),
+ ('MXN','484','Mexican Peso',2),
+ ('MXV','979','Mexican Unidad de Inversion (UDI)',2),
+ ('MYR','458','Malaysian Ringgit',2),
+ ('MZN','943','Mozambique Metical',2),
+ ('NAD','516','Namibia Dollar',2),
+ ('NGN','566','Naira',2),
+ ('NIO','558','Cordoba Oro',2),
+ ('NOK','578','Norwegian Krone',2),
+ ('NPR','524','Nepalese Rupee',2),
+ ('NZD','554','New Zealand Dollar',2),
+ ('OMR','512','Rial Omani',3),
+ ('PAB','590','Balboa',2),
+ ('PEN','604','Sol',2),
+ ('PGK','598','Kina',2),
+ ('PHP','608','Philippine Peso',2),
+ ('PKR','586','Pakistan Rupee',2),
+ ('PLN','985','Zloty',2),
+ ('PYG','600','Guarani',0),
+ ('QAR','634','Qatari Rial',2),
+ ('RON','946','Romanian Leu',2),
+ ('RSD','941','Serbian Dinar',2),
+ ('RUB','643','Russian Ruble',2),
+ ('RWF','646','Rwanda Franc',0),
+ ('SAR','682','Saudi Riyal',2),
+ ('SBD','090','Solomon Islands Dollar',2),
+ ('SCR','690','Seychelles Rupee',2),
+ ('SDG','938','Sudanese Pound',2),
+ ('SEK','752','Swedish Krona',2),
+ ('SGD','702','Singapore Dollar',2),
+ ('SHP','654','Saint Helena Pound',2),
+ ('SLE','925','Leone',2),
+ ('SOS','706','Somali Shilling',2),
+ ('SRD','968','Surinam Dollar',2),
+ ('SSP','728','South Sudanese Pound',2),
+ ('STN','930','Dobra',2),
+ ('SVC','222','El Salvador Colon',2),
+ ('SYP','760','Syrian Pound',2),
+ ('SZL','748','Lilangeni',2),
+ ('THB','764','Baht',2),
+ ('TJS','972','Somoni',2),
+ ('TMT','934','Turkmenistan New Manat',2),
+ ('TND','788','Tunisian Dinar',3),
+ ('TOP','776','Pa’anga',2),
+ ('TRY','949','Turkish Lira',2),
+ ('TTD','780','Trinidad and Tobago Dollar',2),
+ ('TWD','901','New Taiwan Dollar',2),
+ ('TZS','834','Tanzanian Shilling',2),
+ ('UAH','980','Hryvnia',2),
+ ('UGX','800','Uganda Shilling',0),
+ ('USD','840','US Dollar',2),
+ ('USN','997','US Dollar (Next day)',2),
+ ('UYI','940','Uruguay Peso en Unidades Indexadas (UI)',0),
+ ('UYU','858','Peso Uruguayo',2),
+ ('UYW','927','Unidad Previsional',4),
+ ('UZS','860','Uzbekistan Sum',2),
+ ('VED','926','Bolívar Soberano',2),
+ ('VES','928','Bolívar Soberano',2),
+ ('VND','704','Dong',0),
+ ('VUV','548','Vatu',0),
+ ('WST','882','Tala',2),
+ ('XAD','396','Arab Accounting Dinar',2),
+ ('XAF','950','CFA Franc BEAC',0),
+ ('XAG','961','Silver',NULL),
+ ('XAU','959','Gold',NULL),
+ ('XBA','955','Bond Markets Unit European Composite Unit (EURCO)',NULL),
+ ('XBB','956','Bond Markets Unit European Monetary Unit (E.M.U.-6)',NULL),
+ ('XBC','957','Bond Markets Unit European Unit of Account 9 (E.U.A.-9)',NULL),
+ ('XBD','958','Bond Markets Unit European Unit of Account 17 (E.U.A.-17)',NULL),
+ ('XCD','951','East Caribbean Dollar',2),
+ ('XCG','532','Caribbean Guilder',2),
+ ('XDR','960','SDR (Special Drawing Right)',NULL),
+ ('XOF','952','CFA Franc BCEAO',0),
+ ('XPD','964','Palladium',NULL),
+ ('XPF','953','CFP Franc',0),
+ ('XPT','962','Platinum',NULL),
+ ('XSU','994','Sucre',NULL),
+ ('XTS','963','Codes specifically reserved for testing purposes',NULL),
+ ('XUA','965','ADB Unit of Account',NULL),
+ ('XXX','999','The codes assigned for transactions where no currency is involved',NULL),
+ ('YER','886','Yemeni Rial',2),
+ ('ZAR','710','Rand',2),
+ ('ZMW','967','Zambian Kwacha',2),
+ ('ZWG','924','Zimbabwe Gold',2);
+
+ALTER TABLE foundation.currency ADD COLUMN version bigint NOT NULL DEFAULT 1 CHECK (version BETWEEN 1 AND 9007199254740991);
+CREATE FUNCTION foundation.bump_currency_version() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+    NEW.version := OLD.version + 1;
+    RETURN NEW;
+END;
+$$;
+CREATE TRIGGER bump_currency_version BEFORE UPDATE ON foundation.currency FOR EACH ROW EXECUTE FUNCTION foundation.bump_currency_version();
+
+-- Kernel numerazione condiviso: nessuna serie viene precreata.
+CREATE TABLE foundation.numbering_series (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id uuid NOT NULL REFERENCES foundation.tenant(id) ON DELETE RESTRICT,
+    scope text NOT NULL DEFAULT 'TENANT' CHECK (scope='TENANT'),
+    company_id uuid CHECK (company_id IS NULL),
+    entity_type text NOT NULL DEFAULT 'BUSINESS_PARTNER' CHECK (entity_type IN ('BUSINESS_PARTNER','CATALOG_GOOD','CATALOG_SERVICE','CATALOG_INTANGIBLE','CATALOG_CHARGE')),
+    reset_policy text NOT NULL DEFAULT 'NEVER' CHECK (reset_policy='NEVER'),
+    mode text NOT NULL CHECK (mode IN ('AUTO','MANUAL')),
+    prefix text NOT NULL CHECK (length(prefix)<=32 AND prefix !~ '[[:cntrl:]]'),
+    padding integer NOT NULL CHECK (padding BETWEEN 1 AND 15),
+    version bigint NOT NULL DEFAULT 1 CHECK (version BETWEEN 1 AND 9007199254740991),
+    UNIQUE (tenant_id,entity_type), UNIQUE (tenant_id,id)
+);
+CREATE TABLE foundation.numbering_counter (
+    series_id uuid PRIMARY KEY,
+    tenant_id uuid NOT NULL,
+    next_number bigint NOT NULL CHECK (next_number BETWEEN 1 AND 1000000000000000),
+    used boolean NOT NULL DEFAULT false,
+    FOREIGN KEY (tenant_id,series_id) REFERENCES foundation.numbering_series(tenant_id,id) ON DELETE RESTRICT
+);
+CREATE FUNCTION foundation.guard_numbering() RETURNS trigger LANGUAGE plpgsql SET search_path TO pg_catalog AS $$
+BEGIN
+    IF TG_OP='DELETE' THEN RAISE EXCEPTION 'La numerazione non si elimina' USING ERRCODE='23514'; END IF;
+    IF TG_TABLE_NAME='numbering_series' THEN
+        IF (NEW.id,NEW.tenant_id,NEW.entity_type,NEW.scope,NEW.company_id,NEW.reset_policy) IS DISTINCT FROM (OLD.id,OLD.tenant_id,OLD.entity_type,OLD.scope,OLD.company_id,OLD.reset_policy) THEN RAISE EXCEPTION 'Identita immutabile' USING ERRCODE='23514'; END IF;
+        IF EXISTS(SELECT 1 FROM foundation.numbering_counter WHERE series_id=OLD.id AND used)
+           AND (NEW.mode,NEW.prefix,NEW.padding) IS DISTINCT FROM (OLD.mode,OLD.prefix,OLD.padding)
+        THEN RAISE EXCEPTION 'Numerazione gia utilizzata' USING ERRCODE='23514'; END IF;
+    ELSE
+        IF NEW.series_id<>OLD.series_id OR NEW.tenant_id<>OLD.tenant_id OR (OLD.used AND (NOT NEW.used OR NEW.next_number NOT IN (OLD.next_number,OLD.next_number+1)))
+        THEN RAISE EXCEPTION 'Contatore non ripristinabile' USING ERRCODE='23514'; END IF;
+    END IF;
+    RETURN NEW;
+END $$;
+CREATE TRIGGER numbering_series_guard BEFORE UPDATE OR DELETE ON foundation.numbering_series FOR EACH ROW EXECUTE FUNCTION foundation.guard_numbering();
+CREATE TRIGGER numbering_counter_guard BEFORE UPDATE OR DELETE ON foundation.numbering_counter FOR EACH ROW EXECUTE FUNCTION foundation.guard_numbering();
+REVOKE ALL ON FUNCTION foundation.guard_numbering() FROM PUBLIC;
+GRANT SELECT,INSERT,UPDATE ON foundation.numbering_series,foundation.numbering_counter TO enginia360_app;
+
+
 -- Dominio Business Partner: definizioni finali e privilegi espliciti.
 \ir masterdata_business_partner.sql
+
+-- Unita di misura condivise, mantenute nel namespace e contratto tenant masterdata.
+CREATE TABLE masterdata.catalog_unit_of_measure (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id uuid NOT NULL REFERENCES foundation.tenant(id) ON DELETE RESTRICT,
+    code text NOT NULL CHECK (length(btrim(code)) BETWEEN 1 AND 30),
+    name text NOT NULL CHECK (length(btrim(name)) BETWEEN 1 AND 200),
+    dimension text NOT NULL CHECK (dimension IN ('COUNT','MASS','LENGTH','VOLUME','TIME','AREA')),
+    factor_to_base numeric CHECK (factor_to_base>0 AND factor_to_base<10000000000000000 AND scale(factor_to_base)<=12),
+    decimal_places integer NOT NULL CHECK (decimal_places BETWEEN 0 AND 12),
+    is_base boolean NOT NULL DEFAULT false,
+    is_active boolean NOT NULL DEFAULT true,
+    version bigint NOT NULL DEFAULT 1 CHECK (version BETWEEN 1 AND 9007199254740991),
+    created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
+    conversion_scope text NOT NULL DEFAULT 'UNIVERSAL',
+    UNIQUE(tenant_id,id), CHECK (NOT is_base OR factor_to_base=1),
+    CONSTRAINT catalog_unit_conversion_scope_check CHECK (
+        (conversion_scope='UNIVERSAL' AND factor_to_base IS NOT NULL AND factor_to_base>0)
+        OR (conversion_scope='ITEM' AND factor_to_base IS NULL AND NOT is_base))
+);
+CREATE UNIQUE INDEX catalog_unit_code_unique ON masterdata.catalog_unit_of_measure(tenant_id,lower(code));
+CREATE UNIQUE INDEX catalog_unit_base_unique ON masterdata.catalog_unit_of_measure(tenant_id,dimension) WHERE is_base;
+
+\ir masterdata_payments.sql
+\ir masterdata_catalog.sql
 
 COMMIT;

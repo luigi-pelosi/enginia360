@@ -40,7 +40,7 @@ test("all supported permission actions have IT/EN translations", () => {
 test("permission list applies bilingual search before client pagination, without backend raw-name filtering", async () => {
   const h = harness("it", {0: {...session, permissions: ["permissions.read"]}, 1: false, 5: [resource], 6: "permissions", 7: "t", 12: "Warehouse types", 13: "Warehouse types"}, {items: [row], total: 1, page: 1, pageSize: 100});
   h.render("default");
-  h.effects[4]();
+  h.effects.find(effect => String(effect).includes("pageSize=25"))!();
   await new Promise(resolve => setTimeout(resolve, 0));
   assert.ok(h.apiCalls.some(path => path.includes("pageSize=100") && !path.includes("search=")), "load complete finite catalog before filtering");
   assert.deepEqual(JSON.parse(JSON.stringify(h.updates[9])), [row]);
@@ -54,7 +54,7 @@ test("permission catalog keeps all 50 filtered rows without pagination", async (
   const catalog = Array.from({length: 50}, (_, index) => ({...row, id: `p-${index}`}));
   const h = harness("en", {0: {...session, permissions: ["permissions.read"]}, 1: false, 5: [resource], 6: "permissions", 7: "t", 11: 2, 13: "Creazione"}, {items: catalog, total: catalog.length, page: 1, pageSize: 100});
   h.render("default");
-  h.effects[4]();
+  h.effects.find(effect => String(effect).includes("pageSize=25"))!();
   await new Promise(resolve => setTimeout(resolve, 0));
   assert.deepEqual(JSON.parse(JSON.stringify(h.updates[9])), catalog);
   assert.equal(h.updates[10], catalog.length);

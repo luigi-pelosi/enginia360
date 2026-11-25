@@ -9,12 +9,14 @@ test('global catalogs appear without tenant selection and ordinary readers canno
  for(const locale of ['it','en']) {
   const h=harness(locale,{0:{...session,isSuperAdmin:true,tenantId:null},1:false,5:[countries],6:'countries',7:''});
   const html=h.render('default');
-  assert.match(html,locale==='it'?/Torna alle impostazioni/:/Back to settings/);
+  assert.match(html,locale==='it'?/Torna a Sistema/:/Back to System/);
   assert.match(html,locale==='it'?/Nazioni/:/Countries/);
   assert.match(html,/table-toolbar/);
  }
- const h=harness('en',{0:session,1:false,5:[{...countries,readOnly:true}],6:'countries',7:'tenant'});
+ const h=harness('en',{0:{...session,permissions:['countries.read']},1:false,5:[{...countries,readOnly:true}],6:'countries',7:'tenant'});
  const html=h.render('default');assert.match(html,/Countries/);assert.doesNotMatch(html,/New</);
+ const denied=harness('en',{0:session,1:false,5:[countries],6:'countries',7:'tenant'}).render('default');
+ assert.match(denied,/No resources available/);assert.doesNotMatch(denied,/table-toolbar/);
 });
 test('country ISO input is uppercase canonical with exactly two alphabetic characters',()=>{
  const h=harness('en'), tree=h.components.RecordEditor({...props,resource:countries});

@@ -2,9 +2,8 @@
 
 import * as React from "react"
 
-const desktopQuery = "(min-width: 1024px)"
 const margin = 16
-const interactive = "button, a, input, select, textarea, [role='button'], [contenteditable='true']"
+const interactive = "button, a, input, select, textarea, [role='button'], [role='tab'], [role='checkbox'], [role='radio'], [role='switch'], [role='slider'], [role='combobox'], [role='textbox'], [contenteditable]:not([contenteditable='false']), [tabindex]:not([tabindex='-1'])"
 
 type Gesture = {
   pointerId: number
@@ -20,7 +19,6 @@ export function useDialogWindow() {
   const gesture = React.useRef<Gesture | null>(null)
 
   React.useEffect(() => {
-    const media = window.matchMedia(desktopQuery)
     const reset = () => {
       const node = element.current
       if (!node) return
@@ -33,21 +31,19 @@ export function useDialogWindow() {
     }
     // Il cambio viewport ripristina sempre il comportamento responsive originale.
     window.addEventListener("resize", reset)
-    media.addEventListener("change", reset)
     return () => {
       window.removeEventListener("resize", reset)
-      media.removeEventListener("change", reset)
       gesture.current = null
     }
   }, [])
 
   const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (event.defaultPrevented || event.button !== 0 || event.isPrimary === false || !window.matchMedia(desktopQuery).matches) return
+    if (event.defaultPrevented || event.button !== 0 || event.isPrimary === false) return
     const target = event.target as HTMLElement
     const node = event.currentTarget
     if (target.closest("[data-slot='dialog-content'], [data-slot='alert-dialog-content']") !== node) return
     const resize = !!target.closest("[data-dialog-resize]")
-    if (!resize && (!target.closest("[data-slot='dialog-header'], [data-slot='alert-dialog-header']") || target.closest(interactive))) return
+    if (!resize && (!target.closest("[data-slot='dialog-header'], [data-slot='alert-dialog-header'], [data-slot='dialog-title'], [data-slot='alert-dialog-title']") || target.closest(interactive))) return
     element.current = node
     gesture.current = {pointerId: event.pointerId, x: event.clientX, y: event.clientY, rect: node.getBoundingClientRect(), resize}
     node.setPointerCapture(event.pointerId)
@@ -78,5 +74,12 @@ export function useDialogWindow() {
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
   }
 
-  return {onPointerDown, onPointerMove, onPointerUp, onPointerCancel: onPointerUp, onLostPointerCapture: onPointerUp}
+  const onScroll = (event: React.UIEvent<HTMLDivElement>) => {
+    const node = event.currentTarget
+    if (event.target !== node) return
+    node.style.setProperty("--dialog-scroll-x", `${node.scrollLeft}px`)
+    node.style.setProperty("--dialog-scroll-y", `${node.scrollTop}px`)
+  }
+
+  return {onPointerDown, onPointerMove, onPointerUp, onPointerCancel: onPointerUp, onLostPointerCapture: onPointerUp, onScroll}
 }

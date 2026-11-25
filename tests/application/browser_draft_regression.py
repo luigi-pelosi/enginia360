@@ -1,0 +1,151 @@
+"""Isolated real Chromium/API draft and conflict regressions."""
+from urllib.parse import parse_qs, urlsplit
+import browser_business_partners as base
+from playwright.sync_api import expect
+
+class DraftProof(base.BusinessPartnerBrowserTests):
+    def currencies(self):
+        self.page.locator('nav').get_by_role('button', name='Impostazioni', exact=True).click()
+        self.page.get_by_role('button', name='Sistema', exact=True).click()
+        self.page.get_by_role('button', name='Valute', exact=True).click()
+        expect(self.page.locator('#main')).to_contain_text('Valute')
+
+    def test_currency_create_edit_conflict_and_pending(self):
+        self.login(); self.currencies()
+        self.page.get_by_role('textbox',name='Cerca',exact=True).fill('EUR')
+        self.page.get_by_role('button', name='Nuovo', exact=True).click()
+        dialog = self.page.get_by_role('dialog')
+        dialog.locator('#field-code').fill('ZZR'); dialog.locator('#field-name').fill('Draft currency')
+        self.page.reload(wait_until='networkidle')
+        dialog = self.page.get_by_role('dialog')
+        expect(dialog.locator('#field-name')).to_have_value('Draft currency')
+        self.page.keyboard.press('Escape')
+        expect(self.page.get_by_role('dialog')).to_have_count(0)
+        self.currencies()
+        self.page.reload(wait_until='networkidle')
+        expect(self.page.get_by_role('dialog')).to_have_count(0)
+        expect(self.page.get_by_role('textbox',name='Cerca',exact=True)).to_have_value('')
+        self.page.get_by_role('textbox', name='Cerca', exact=True).fill('EUR')
+        row=self.page.locator('tbody tr').filter(has=self.page.get_by_role('cell', name='EUR', exact=True))
+        row.get_by_role('button', name='Modifica', exact=False).click()
+        dialog=self.page.get_by_role('dialog'); dialog.locator('#field-name').fill('Local draft conflict')
+        status,listing=self.case.root.request('/api/data/currencies?search=EUR&pageSize=100')
+        eur=next(x for x in listing['items'] if x['code']=='EUR')
+        status,updated=self.case.root.request('/api/data/currencies/'+eur['id'],'PUT',{'name':'External winner','expectedVersion':eur['version']})
+        self.assertEqual(status,200,updated)
+        self.page.reload(wait_until='networkidle'); dialog=self.page.get_by_role('dialog')
+        expect(dialog.locator('#field-name')).to_have_value('Local draft conflict')
+        with self.page.expect_response(lambda r:r.request.method=='PUT' and '/currencies/' in r.url and r.url.endswith('/save')) as response:
+            dialog.get_by_role('button',name='Salva',exact=True).click()
+        self.assertEqual(response.value.status,409,response.value.text())
+        self.assertEqual(response.value.request.post_data_json['expectedVersion'],eur['version'])
+        expect(dialog.locator('#field-name')).to_have_value('Local draft conflict')
+        status,listing=self.case.root.request('/api/data/currencies?search=EUR&pageSize=100')
+        self.assertEqual(next(x for x in listing['items'] if x['id']==eur['id'])['name'],'External winner')
+        # Inject only the documented uncertainty marker; this is not a lost-response simulation.
+        self.page.evaluate("() => { const k=Object.keys(sessionStorage).find(k=>k.startsWith('workspace:')&&k.endsWith(':record:currencies')); if(!k) throw Error('missing draft'); const p=k.split(':'); sessionStorage.setItem(`record-pending:${p[1]}:${p[2]}:currencies`,'pending'); }")
+        self.page.reload(wait_until='networkidle'); dialog=self.page.get_by_role('dialog')
+        expect(dialog.locator('#field-name')).to_have_value('Local draft conflict')
+        expect(dialog.get_by_role('button',name='Salva',exact=True)).to_be_disabled()
+        print('currency create/edit refresh, stale 409, injected pending block and menu reset verified',flush=True)
+
+    def test_payment_create_edit_refresh_and_menu_reset(self):
+        status,company=self.case.root.request('/api/data/companies?tenantId='+self.case.tenant_id,'POST',{'name':'Draft browser company'})
+        self.assertEqual(status,201,company)
+        self.login(); nav=self.page.locator('nav'); nav.get_by_role('button',name='Pagamenti',exact=True).click()
+        w=self.page.locator('[data-payments-workspace]'); w.locator('#payment-company').click()
+        self.page.get_by_role('option',name='Draft browser company',exact=True).click()
+        w.get_by_role('button',name='Nuovo',exact=True).click(); d=self.page.get_by_role('dialog')
+        d.locator('#pm-code').fill('DRF'); d.locator('#pm-name').fill('Payment draft')
+        self.page.reload(wait_until='networkidle'); d=self.page.get_by_role('dialog')
+        expect(d.locator('#pm-name')).to_have_value('Payment draft')
+        with self.page.expect_response(lambda r:r.request.method=='POST' and '/payment-methods' in r.url) as saved:
+            d.get_by_role('button',name='Salva',exact=True).click()
+        self.assertEqual(saved.value.status,201,saved.value.text())
+        w=self.page.locator('[data-payments-workspace]'); row=w.locator('tbody tr').filter(has_text='Payment draft')
+        row.get_by_role('button',name='Modifica',exact=False).click(); d=self.page.get_by_role('dialog')
+        d.locator('#pm-name').fill('Payment edit draft')
+        self.page.reload(wait_until='networkidle'); d=self.page.get_by_role('dialog')
+        expect(d.locator('#pm-name')).to_have_value('Payment edit draft')
+        # Forward the actual PATCH to the isolated API, confirm acceptance, then
+        # drop its response before Chromium receives it (not an injected marker).
+        accepted=[]
+        def lose_response(route):
+            u=urlsplit(route.request.url)
+            response=route.fetch(url=f"http://127.0.0.1:{base.STATE['apiPort']}"+u.path+('?' + u.query if u.query else ''), headers={**route.request.all_headers(),'host':urlsplit(base.runner.ORIGIN).netloc})
+            accepted.append((response.status,u.path+('?' + u.query if u.query else '')))
+            route.abort('failed')
+        self.page.route('**/api/**/payment-methods/**',lose_response)
+        d.get_by_role('button',name='Salva',exact=True).click()
+        expect(self.page.locator('[data-payments-workspace] [role=alert]').last).to_be_visible()
+        self.assertEqual(len(accepted),1); self.assertEqual(accepted[0][0],200)
+        self.page.unroute('**/api/**/payment-methods/**')
+        u=urlsplit(accepted[0][1]); collection=u.path.rsplit('/',1)[0]+('?' + u.query if u.query else '')
+        status,listing=self.case.root.request(collection)
+        self.assertEqual(status,200,listing)
+        matches=[x for x in listing['items'] if x['code']=='DRF']
+        self.assertEqual(len(matches),1); stored=matches[0]
+        self.assertEqual(stored['name'],'Payment edit draft')
+        self.page.reload(wait_until='networkidle'); d=self.page.get_by_role('dialog')
+        expect(d.locator('#pm-name')).to_have_value('Payment edit draft')
+        expect(self.page.locator('[data-payments-workspace] [role=alert]')).to_contain_text('Esito del salvataggio sconosciuto')
+        payment_writes=[]
+        self.page.on('request',lambda r: payment_writes.append(r.url) if r.method in ('POST','PATCH','PUT','DELETE') and '/payment-methods' in r.url else None)
+        save=d.get_by_role('button',name='Salva',exact=True)
+        if save.is_enabled(): save.click()
+        expect(d.locator('#pm-name')).to_have_value('Payment edit draft')
+        self.assertEqual(payment_writes,[])
+        status,listing=self.case.root.request(collection)
+        self.assertEqual(status,200,listing)
+        matches=[x for x in listing['items'] if x['code']=='DRF']
+        self.assertEqual(len(matches),1); self.assertEqual(matches[0]['version'],stored['version'])
+        self.page.evaluate("() => Object.keys(sessionStorage).filter(k=>k.startsWith('payments-pending:')).forEach(k=>sessionStorage.removeItem(k))")
+        self.page.reload(wait_until='networkidle'); d=self.page.get_by_role('dialog')
+        expect(d.locator('#pm-name')).to_have_value('Payment edit draft')
+        # A modal makes navigation inert; dismiss it before exercising same-menu reset.
+        self.page.keyboard.press('Escape')
+        expect(self.page.get_by_role('dialog')).to_have_count(0)
+        self.page.locator('nav').get_by_role('button',name='Pagamenti',exact=True).click()
+        expect(self.page.locator('#payment-company')).to_contain_text('Nessuno')
+        self.page.reload(wait_until='networkidle')
+        expect(self.page.get_by_role('dialog')).to_have_count(0)
+        expect(self.page.locator('#payment-company')).to_contain_text('Nessuno')
+        # Restore a condition and multiple installment edits after a real reload.
+        w=self.page.locator('[data-payments-workspace]'); w.locator('#payment-company').click()
+        self.page.get_by_role('option',name='Draft browser company',exact=True).click()
+        w.get_by_role('button',name='Condizioni di pagamento',exact=True).click()
+        w.get_by_role('button',name='Nuovo',exact=True).click(); d=self.page.get_by_role('dialog')
+        d.locator('#pt-code').fill('TERM'); d.locator('#pt-name').fill('Condition draft')
+        d.locator('#percent-0').fill('40'); d.locator('#days-0').fill('12')
+        d.get_by_role('button',name='Aggiungi',exact=True).click()
+        d.locator('#percent-1').fill('60'); d.locator('#days-1').fill('45')
+        self.page.reload(wait_until='networkidle'); d=self.page.get_by_role('dialog')
+        expect(d.locator('#pt-name')).to_have_value('Condition draft')
+        for selector,value in [('#percent-0','40'),('#days-0','12'),('#percent-1','60'),('#days-1','45')]:
+            expect(d.locator(selector)).to_have_value(value)
+        print('payment method and condition/installments refresh, menu reset verified',flush=True)
+
+    def test_payments_effective_tenant_refresh(self):
+        status,other=self.case.root.request('/api/data/tenants','POST',{'name':'Draft other '+self.case.code,'code':'draft-'+self.case.code})
+        self.assertEqual(status,201,other)
+        status,company=self.case.root.request('/api/data/companies?tenantId='+other['id'],'POST',{'name':'Other draft company'})
+        self.assertEqual(status,201,company)
+        self.login(); self.page.locator('#tenant-select').click(); self.page.get_by_role('option',name=other['name'],exact=True).click()
+        self.page.locator('nav').get_by_role('button',name='Pagamenti',exact=True).click()
+        w=self.page.locator('[data-payments-workspace]'); w.locator('#payment-company').click(); self.page.get_by_role('option',name='Other draft company',exact=True).click()
+        w.get_by_role('button',name='Nuovo',exact=True).click(); self.page.locator('#pm-name').fill('Other tenant draft')
+        requests=[]; self.page.on('request',lambda request:requests.append(request.url))
+        self.page.reload(wait_until='networkidle')
+        expect(self.page.locator('#tenant-select')).to_have_text(other['name'])
+        expect(self.page.locator('#pm-name')).to_have_value('Other tenant draft')
+        scoped=[parse_qs(urlsplit(url).query)['tenantId'][0] for url in requests if 'tenantId' in parse_qs(urlsplit(url).query)]
+        self.assertTrue(scoped); self.assertEqual(set(scoped),{other['id']})
+        # Change only the tab-scoped effective tenant, then reload the same URL.
+        self.page.evaluate("tenant => {const k=Object.keys(sessionStorage).find(k=>k.startsWith('workspace-tenant:')); if(!k) throw Error('missing tenant'); sessionStorage.setItem(k,tenant)}",self.case.tenant_id)
+        self.page.reload(wait_until='networkidle')
+        expect(self.page.locator('#tenant-select')).to_have_text(self.case.tenant['name'])
+        expect(self.page.locator('#pm-name')).to_have_count(0)
+        self.page.evaluate("tenant => {const k=Object.keys(sessionStorage).find(k=>k.startsWith('workspace-tenant:')); sessionStorage.setItem(k,tenant)}",other['id'])
+        self.page.reload(wait_until='networkidle')
+        expect(self.page.locator('#pm-name')).to_have_value('Other tenant draft')
+        print('effective tenant isolation, payment draft and scoped requests',set(scoped),flush=True)

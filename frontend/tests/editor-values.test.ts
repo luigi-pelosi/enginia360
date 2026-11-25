@@ -21,7 +21,7 @@ const users: Resource = {key: "users", fields: [
   {name: "is_enabled", type: "boolean", required: true},
 ]};
 function initialValues(resource: Resource, row: Row | null): Record<string, unknown> {
-  const result = runInNewContext(`${code}; values`, {resource, row, useState: (initialize: () => unknown) => [initialize(), () => {}]});
+  const result = runInNewContext(`${code}; values`, {resource, row, canWrite: true, useState: (initialize: () => unknown) => [initialize(), () => {}]});
   // VM objects have their own prototype; compare the serializable transport shape.
   return JSON.parse(JSON.stringify(result));
 }
@@ -37,7 +37,7 @@ test("editing preserves stored details and English, absent optional values use m
   assert.equal(initialValues(users, {...row, preferred_language: null}).preferred_language, "it");
 });
 test("non-user metadata editor defaults and JSON formatting stay unchanged", () => {
-  const resource: Resource = {key: "settings", fields: [
+  const resource: Resource = {key: "future-json-resource", fields: [
     {name: "key", type: "text", required: true},
     {name: "value", type: "json", required: true},
     {name: "site_id", type: "reference", required: false},

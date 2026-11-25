@@ -19,6 +19,7 @@ public static class Geography
     public static string SearchExpression(Resource r) => r.Key switch {
         "cities" => "concat_ws(' ',name,postal_code,province,region)",
         "countries" => "concat_ws(' ',name,iso_code)",
+        "currencies" => "concat_ws(' ',name,code,numeric_code)",
         "users" => "concat_ws(' ',first_name,last_name)",
         _ => r.Fields.First(f=>f.Name is "name" or "key").Name
     };

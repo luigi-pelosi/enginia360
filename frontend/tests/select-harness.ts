@@ -6,12 +6,12 @@ import React from 'react';
 const require=createRequire(import.meta.url);
 export function selectDriver(locale='it') {
  const states=new Map<string,any[]>(), contexts=new Map<any,any>();let path='',index=0;const effects:Function[]=[];
- const hooks={...React,useState(initial:any){const key=path,i=index++;let slots=states.get(key);if(!slots)states.set(key,slots=[]);if(!(i in slots))slots[i]=typeof initial==='function'?initial():initial;return [slots[i],(v:any)=>slots![i]=typeof v==='function'?v(slots![i]):v];},useRef(initial:any){const [ref]=hooks.useState(()=>({current:initial}));return ref;},useId(){return 'id-'+path.replace(/[^a-z0-9]/gi,'-');},useContext(context:any){return contexts.get(context)??context._currentValue;},useMemo(fn:Function){return fn();},useCallback(fn:Function){return fn;},useEffect(fn:Function){effects.push(fn);}};
+ const hooks={...React,useState(initial:any){const key=path,i=index++;let slots=states.get(key);if(!slots)states.set(key,slots=[]);if(!(i in slots))slots[i]=typeof initial==='function'?initial():initial;return [slots[i],(v:any)=>slots![i]=typeof v==='function'?v(slots![i]):v];},useRef(initial:any){const [ref]=hooks.useState(()=>({current:initial}));return ref;},useId(){return 'id-'+path.replace(/[^a-z0-9]/gi,'-');},useContext(context:any){return contexts.get(context)??context._currentValue;},useMemo(fn:Function){return fn();},useCallback(fn:Function){return fn;},useEffect(fn:Function,deps?:any[]){const key=path,i=index++;let slots=states.get(key);if(!slots)states.set(key,slots=[]);const prev=slots[i];if(!prev||!deps||deps.some((d,j)=>!Object.is(d,prev.deps?.[j]))){effects.push(()=>{prev?.cleanup?.();slots![i]={deps,cleanup:fn()};});}}};
  const primitive=new Proxy({}, {get:(_t,key)=> (props:any)=>React.createElement('primitive-'+String(key).toLowerCase(),props)});
  const module={exports:{} as any};
  const resolve=(name:string):any=>{
   if(name==='react')return hooks;
-  if(name==='next-intl')return {useTranslations:()=> (key:string)=>({search:locale==='it'?'Cerca':'Search',empty:locale==='it'?'Nessun risultato':'No results'})[key]};
+  if(name==='next-intl')return {useTranslations:()=> (key:string)=>({search:locale==='it'?'Cerca':'Search',empty:locale==='it'?'Nessun risultato':'No results',field_required:locale==='it'?'Compila questo campo obbligatorio.':'Complete this required field.'})[key]};
   if(name==='radix-ui')return {Select:primitive,Popover:primitive};
   if(name==='@/lib/utils')return {cn:(...v:any[])=>v.filter(Boolean).join(' ')};
   if(name.startsWith('./select-ordinary')){const child={exports:{}};runInNewContext(ts.transpileModule(readFileSync(new URL('../components/ui/select-ordinary.tsx',import.meta.url),'utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,esModuleInterop:true}}).outputText,{module:child,exports:child.exports,require:resolve});return child.exports;}

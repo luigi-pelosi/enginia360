@@ -56,3 +56,16 @@ test('failed country options retain legacy value, concise manual fallback and no
  d.render(props);await settle();const tree=d.render(props);
  assert.equal(find(tree,n=>n.props?.name==='country_code').props.value,'FR');assert.match(find(tree,n=>n.props?.role==='status').props.children,/manually/);assert.deepEqual(changed,[]);d.unmount();
 });
+test('opted-in new site selects the first valid loaded country',async()=>{
+ const chosen:string[]=[];const d=addressDriver(async()=>({ok:true,json:async()=>({items:[{isoCode:'',name:'invalid'},{isoCode:'IT',name:'Italy'}]})}),'en','SiteCountrySelect');
+ d.render({...base,value:'',required:true,onDefault:(value:string)=>chosen.push(value)});await settle();
+ assert.deepEqual(chosen,['IT']);d.unmount();
+});
+test('country default ignores stale, failed, empty and aborted lookups',async()=>{
+ const pending:any[]=[],chosen:string[]=[];const d=addressDriver((url,options)=>new Promise((resolve,reject)=>pending.push({url,options,resolve,reject})),'en','SiteCountrySelect');
+ const props={...base,value:'',required:true,onDefault:(v:string)=>chosen.push(v)};
+ d.render(props);const next={...props,scope:(p:string)=>p+'?tenantId=B'};d.render(next);
+ pending[0].resolve({ok:true,json:async()=>({items:[{isoCode:'US',name:'stale'}]})});pending[1].resolve({ok:true,json:async()=>({items:[]})});await settle();assert.deepEqual(chosen,[]);
+ const third={...props,scope:(p:string)=>p+'?tenantId=C'};d.render(third);pending[2].reject(Error('failed'));await settle();assert.deepEqual(chosen,[]);
+ const fourth={...props,scope:(p:string)=>p+'?tenantId=D'};d.render(fourth);d.unmount();pending[3].resolve({ok:true,json:async()=>({items:[{isoCode:'IT',name:'Italy'}]})});await settle();assert.deepEqual(chosen,[]);
+});

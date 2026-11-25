@@ -3,14 +3,14 @@ import assert from "node:assert/strict";
 import * as model from "../lib/model.ts";
 
 import {catalog} from "./permission-catalog.ts";
-test("groups the exact 61 catalog IDs by domain and action order, including operational company roles and virtual numbering settings", () => {
+test("groups the exact 60 catalog IDs by domain and action order, including operational company roles and virtual numbering settings", () => {
   assert.equal(typeof model.groupPermissions, "function", "permission grouping is available");
   const tree = model.groupPermissions(catalog);
-  assert.deepEqual(tree.map(domain => [domain.key, domain.resources.flatMap(model.permissionRows).length]), [["masterData", 8], ["organization", 17], ["warehouse", 12], ["administration", 24]]);
-  assert.deepEqual(tree.flatMap(domain => domain.resources.map(resource => resource.key)), model.navigationSections.flatMap(section => section.keys).filter(key => !["tenants", "countries", "cities"].includes(key)));
+  assert.deepEqual(tree.map(domain => [domain.key, domain.resources.flatMap(model.permissionRows).length]), [["masterData", 8], ["organization", 17], ["warehouse", 12], ["administration", 23]]);
+  assert.deepEqual(tree.flatMap(domain => domain.resources.map(resource => resource.key)), model.navigationSections.flatMap(section => section.keys).filter(key => !["tenants", "countries", "cities", "payments", "catalog"].includes(key)));
   const ids = tree.flatMap(domain => domain.resources.flatMap(model.permissionRows).map(row => row.id));
-  assert.equal(ids.length, 61);
-  assert.equal(new Set(ids).size, 61);
+  assert.equal(ids.length, 60);
+  assert.equal(new Set(ids).size, 60);
   assert.deepEqual([...ids].sort(), catalog.map(row => row.id).sort());
   assert.deepEqual(tree.find(domain => domain.key === "administration")!.resources.find(resource => resource.key === "roles")!.rows.map(row => row.code), ["roles.read", "roles.create", "roles.update", "roles.delete", "roles.assign", "roles.assign_companies", "roles.assign_permissions"]);
 });
@@ -30,6 +30,6 @@ test("settings catalogs follow their routes without inventing parent grants", ()
   const settings = tree[0].resources[0];
   assert.equal(settings.key, "settings");
   assert.deepEqual(settings.rows, []);
-  assert.deepEqual(settings.children.map(branch => branch.key), ["settings-master-data", "countries", "cities"]);
+  assert.deepEqual(settings.children.map(branch => branch.key), ["settings-master-data", "settings-system"]);
   assert.deepEqual(model.permissionRows(settings).map(row => row.id).sort(), rows.map(row => row.id).sort());
 });

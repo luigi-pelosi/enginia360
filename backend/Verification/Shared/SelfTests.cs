@@ -17,6 +17,19 @@ public static class SelfTests
         var count=0; var failed=0;
         void Test(string name,Action run) { try { run(); count++; Console.WriteLine("PASS " + name); } catch(Exception e) { failed++; Console.WriteLine("FAIL " + name + ": " + e.Message); } }
         void Reject(Action run,int status=400) {try {run();} catch(ApiException e) when(e.Status==status) {return;} throw new InvalidOperationException("Expected refusal.");}
+        Test("currency catalog validates nullable ISO minor units",() => {
+            var currency=ResourceCatalog.Get("currencies");
+            var valid=ResourceCatalog.Validate(currency,JsonSerializer.SerializeToElement(new {code="XTS",numeric_code="963",name="Test",minor_units=(int?)null}),true);
+            if(valid["minor_units"] != null) throw new Exception("N.A. must remain null");
+            var units=ResourceCatalog.Validate(currency,JsonSerializer.SerializeToElement(new {minor_units=3}),false);
+            if(!Equals(units["minor_units"],3)) throw new Exception("Minor units not numeric");
+            Reject(()=>ResourceCatalog.Validate(currency,JsonSerializer.SerializeToElement(new {code="bad"}),false));
+        });
+        Test("payment permissions are explicit and finite",() => {
+            foreach(var code in new[]{"payment-methods.read","payment-methods.create","payment-methods.update","payment-terms.read","payment-terms.create","payment-terms.update","payment-settings.read","payment-settings.update","payment-partner-defaults.read","payment-partner-defaults.update","payment-schedule.preview","payment-resolution.read"})
+                if(!PermissionCatalog.Contains(code)) throw new Exception("Missing payment permission: "+code);
+            if(PermissionCatalog.Contains("payment-methods.delete") || PermissionCatalog.Contains("payment-terms.delete")) throw new Exception("Physical deletion must not be exposed.");
+        });
         Test("business partners finite catalog without delete",() => {
             if(!ResourceCatalog.All.ContainsKey("business-partners")) throw new Exception("Business partner resource missing.");
             foreach(var code in new[]{"business-partners.read","business-partners.create","business-partners.update","business-partner-numbering.read","business-partner-numbering.update"})
@@ -24,6 +37,7 @@ public static class SelfTests
             if(PermissionCatalog.Contains("business-partners.delete")) throw new Exception("Delete is forbidden.");
         });
         if(Environment.GetEnvironmentVariable("BP_DB_TESTS")=="true") BusinessPartnerTests.Run(services.GetRequiredService<IConfiguration>().GetConnectionString("Database")!,Test);
+        Enginia360.Verification.Payments.PaymentScheduleTests.Run(Test);
         LoginPreselectionSelfTests.Run(services,Test);
         ProfileSelfTests.Run(Test);
         bool Allowed(string code, string[] grants, bool global=false)
@@ -39,6 +53,63 @@ public static class SelfTests
             if(!Allowed("companies.create",["companies.create"])) throw new Exception("companies.create policy must grant exact create.");
             if(Allowed("companies.update",["companies.create"])) throw new Exception("create must not grant update.");
             if(Allowed("unknown.action",[],true)) throw new Exception("Global must reject unknown code.");
+        });
+        Test("removed generic settings resource is not found",() => Reject(() => ResourceCatalog.Get("settings"),404));
+        foreach(var action in new[]{"read","create","update","delete"})
+            Test("removed settings authority denied: "+action,() => {
+                var code="settings."+action;
+                if(PermissionCatalog.Contains(code) || Allowed(code,[code]) || Allowed(code,[],true))
+                    throw new Exception("Removed settings authority granted: "+code);
+                foreach(var global in new[]{false,true}) {
+                    var state=new IdentityState(new User {TenantId=global ? null : Guid.NewGuid(),IsSuperAdmin=global},"fixture","Fixture",[code]);
+                    if(PermissionCatalog.Grants(state,code)) throw new Exception("Legacy settings grant accepted.");
+                    Reject(() => state.Authorize("settings",action),403);
+                }
+            });
+        foreach(var resource in new[]{"countries","cities","currencies"}) {
+            Test("system catalog exact read grant required: "+resource,() => {
+                using var scope=services.CreateScope();
+                var ctx=new DefaultHttpContext {RequestServices=scope.ServiceProvider};
+                foreach(var grants in new[]{Array.Empty<string>(),new[]{"companies.read"},new[]{"catalog-units.read"}}
+                    .Concat(new[]{"countries","cities","currencies"}.Where(r=>r!=resource).Select(r=>new[]{r+".read"}))) {
+                    var state=new IdentityState(new User {TenantId=Guid.NewGuid()},"fixture","Fixture",grants);
+                    ctx.Items["identity"]=state;
+                    Reject(() => Security.AuthorizeResource(ctx,ResourceCatalog.Get(resource),"read").GetAwaiter().GetResult(),403);
+                    Reject(() => state.Authorize(resource,"read"),403);
+                }
+                var granted=new IdentityState(new User {TenantId=Guid.NewGuid()},"fixture","Fixture",[resource+".read"]);
+                ctx.Items["identity"]=granted;
+                Security.AuthorizeResource(ctx,ResourceCatalog.Get(resource),"read").GetAwaiter().GetResult();
+                granted.Authorize(resource,"read");
+                foreach(var action in new[]{"create","update","delete"}) {
+                    Reject(() => Security.AuthorizeResource(ctx,ResourceCatalog.Get(resource),action).GetAwaiter().GetResult(),403);
+                    Reject(() => granted.Authorize(resource,action),403);
+                    if(PermissionCatalog.Contains(resource+"."+action)) throw new Exception("Unexpected catalog write permission.");
+                }
+            });
+            Test("system catalog fresh identity revokes read despite cookie: "+resource,() => {
+                using var scope=services.CreateScope();
+                var ctx=new DefaultHttpContext {RequestServices=scope.ServiceProvider};
+                ctx.User=new System.Security.Claims.ClaimsPrincipal(new System.Security.Claims.ClaimsIdentity(new[]{new System.Security.Claims.Claim("permission",resource+".read")},"fixture"));
+                var user=new User {TenantId=Guid.NewGuid()};
+                ctx.Items["identity"]=new IdentityState(user,"fixture","Fixture",[resource+".read"]);
+                Security.AuthorizeResource(ctx,ResourceCatalog.Get(resource),"read").GetAwaiter().GetResult();
+                ctx.Items["identity"]=new IdentityState(user,"fixture","Fixture",[]);
+                Reject(() => Security.AuthorizeResource(ctx,ResourceCatalog.Get(resource),"read").GetAwaiter().GetResult(),403);
+                ctx.Items["identity"]=new IdentityState(new User {IsSuperAdmin=true},"fixture","Fixture",[]);
+                foreach(var action in new[]{"read","create","update","delete"}) {
+                    Security.AuthorizeResource(ctx,ResourceCatalog.Get(resource),action).GetAwaiter().GetResult();
+                    Security.State(ctx).Authorize(resource,action);
+                }
+            });
+        }
+        Test("catalog units native permission gates remain exact",() => {
+            foreach(var action in new[]{"read","create","update"}) {
+                var code="catalog-units."+action;
+                if(!Allowed(code,[code]) || Allowed(code,[]) || Allowed(code,["companies.read"])) throw new Exception("Catalog unit gate mismatch.");
+                foreach(var other in new[]{"read","create","update"}.Where(a=>a!=action))
+                    if(Allowed(code,["catalog-units."+other])) throw new Exception("Catalog unit operation conflated.");
+            }
         });
         Test("native password reset is separate from users.update",() => {
             if(!Allowed("users.reset_password",["users.reset_password"])) throw new Exception("reset authority missing.");
@@ -136,7 +207,7 @@ public static class SelfTests
             var session=JsonSerializer.SerializeToElement(new IdentityState(user,"sample","ignored",[]).Session);
             if(session.GetProperty("displayName").GetString() != "First Last" || session.GetProperty("preferredLanguage").GetString() != "en") throw new Exception("Incorrect session profile.");
         });
-        Test("sixteen resources",() => {if(ResourceCatalog.All.Count != 16) throw new Exception();});
+        Test("sixteen resources without generic settings",() => {if(ResourceCatalog.All.Count != 16) throw new Exception();});
         Test("unknown resource rejected",() => Reject(() => ResourceCatalog.Get("user"),404));
         Test("privilege injection rejected",() => Reject(() => ResourceCatalog.Validate(ResourceCatalog.Get("users"),Json("{\"username\":\"alice\",\"display_name\":\"Alice\",\"is_super_admin\":true}"),true)));
         Test("tenant injection rejected",() => Reject(() => ResourceCatalog.Validate(ResourceCatalog.Get("companies"),Json("{\"tenant_id\":\"00000000-0000-0000-0000-000000000001\"}"),false)));
@@ -247,13 +318,15 @@ public static class SelfTests
             Reject(() => ResourceCatalog.Validate(r,JsonSerializer.SerializeToElement(new {name="Vendite"}),true));
             Reject(() => ResourceCatalog.Validate(r,JsonSerializer.SerializeToElement(new {company_id=company}),true));
         });
-        Test("commercial finite61 catalog and assign scope native isolation",() => {
-            if(PermissionCatalog.Codes.Length!=61 || !Allowed("purchasing-organizations.assign_scope",["purchasing-organizations.assign_scope"])) throw new Exception("61 codes including native assign_scope required.");
+        Test("commercial finite catalog and assign scope native isolation",() => {
+            if(PermissionCatalog.Codes.Length!=97 || !Allowed("purchasing-organizations.assign_scope",["purchasing-organizations.assign_scope"])) throw new Exception("97 codes including company catalog and system catalog reads, excluding generic settings required.");
             foreach(var other in new[]{"read","create","update","delete"}) {
                 if(Allowed("purchasing-organizations.assign_scope",["purchasing-organizations."+other]) || Allowed("purchasing-organizations."+other,["purchasing-organizations.assign_scope"])) throw new Exception("Coverage and profile authority conflated.");
             }
         });
         OptionalCodeSelfTests.Run(Test);
+        Enginia360.Verification.Catalog.CatalogItemCompanyTests.Run(Test);
+        Enginia360.Verification.Catalog.CatalogItemCompanyCreationTests.Run(Test);
         SiteClassificationSelfTests.Run(Test);
         if(Environment.GetEnvironmentVariable("RBAC_DB_TESTS") == "true")
             RbacTests.Run(services.GetRequiredService<IConfiguration>().GetConnectionString("Database")!,Test);

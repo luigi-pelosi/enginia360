@@ -17,7 +17,7 @@ test('complete manual foreign address accepts false boolean and metadata require
  const h=partnerHarness('workspace','en'); h.tree('RecordEditor',props); await h.flush(); h.state[0]=complete; const tree=h.tree('RecordEditor',props);
  assert.equal(find(tree,n=>n.props?.form==='record-form').props.disabled,false);
  for(const name of names){
-  const label=find(tree,n=>n.props?.htmlFor===`field-${name}`);assert.ok(find(label,n=>n.type==='span'&&n.props.children===' *'));
+  const label=find(tree,n=>n.props?.htmlFor===`field-${name}`);assert.equal(label.props.required,true);
  }
  await find(tree,n=>n.props?.id==='record-form').props.onSubmit({preventDefault(){}});
  assert.deepEqual(h.calls.map(call=>call.path),['/data/sites/save']);

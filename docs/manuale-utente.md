@@ -1,6 +1,6 @@
 # Enginia360 — Guida rapida
 
-Questa guida spiega accesso, anagrafiche, Business Partner e rapporti aziendali, magazzini, utenti, autorizzazioni e cataloghi geografici.
+Questa guida spiega accesso, anagrafiche, Business Partner e rapporti aziendali, Pagamenti, Catalogo articoli e servizi, magazzini, utenti, autorizzazioni e cataloghi geografici.
 
 Le schermate sono reali e usano un'organizzazione dimostrativa. Le voci e i pulsanti disponibili dipendono dai tuoi permessi.
 
@@ -99,16 +99,16 @@ Per impostare o reimpostare la password di un altro utente, usa l'azione dedicat
 
 ## 6. Consultare nazioni e città
 
-Apri **Impostazioni**, poi scegli la tile **Nazioni** o **Città**.
+Apri **Impostazioni → Sistema**, poi scegli la tile **Nazioni** o **Città**. La pagina Impostazioni raccoglie le funzioni disponibili: non contiene un elenco generico di impostazioni da creare o modificare.
 
-I cataloghi sono condivisi da tutte le organizzazioni. Gli utenti autenticati possono consultarli; solo il **Super Admin** può modificarli.
+I cataloghi sono condivisi da tutte le organizzazioni. Per consultarli serve il permesso di lettura del singolo catalogo assegnato dall’amministratore; solo il **Super Admin** può modificarli. Le unità di misura hanno permessi dedicati per consultazione, creazione e modifica.
 
 - **Nazioni:** nome e codice paese a due lettere, per esempio `IT`.
 - **Città:** nazione, nome, CAP, provincia e regione. Più CAP dello stesso comune sono voci distinte.
 
 Per aggiungere una città di una nuova nazione, registra prima la nazione. Una nazione collegata a città non può essere eliminata finché esistono quei collegamenti. Le modifiche ai cataloghi non riscrivono gli indirizzi già salvati nelle sedi.
 
-![Tile Nazioni e Città nella pagina Impostazioni](assets/manuale/05-impostazioni.png)
+Le tile Nazioni e Città si trovano nella pagina Sistema.
 
 ## 7. Aggiornare profilo e password
 
@@ -187,11 +187,11 @@ Per esempio, Alfa Ricambi può comparire una volta per Service con Cliente e For
 
 ### Autorizzare le aziende di un ruolo
 
-Apri **Ruoli** e un ruolo già salvato. In **Aziende autorizzate**, seleziona le aziende e usa **Salva aziende autorizzate**. Le caselle modificano soltanto la selezione fino alla conferma; il relativo Annulla ripristina la selezione caricata. Questa operazione richiede il permesso dedicato di assegnazione aziende, non il solo permesso di modifica del ruolo.
+Apri **Ruoli** e crea o modifica un ruolo. In **Aziende autorizzate**, seleziona le aziende; premi il **Salva** principale per registrare insieme dati del ruolo, aziende e permessi. Le selezioni restano in bozza fino al salvataggio; **Annulla** scarta tutte le modifiche non salvate. L’assegnazione aziende richiede il permesso dedicato, non il solo permesso di modifica del ruolo.
 
 Assegna inoltre al ruolo i permessi necessari sotto **Anagrafiche → Business Partner → Aziende e ruoli**: lettura, associazione, modifica, utilizzo come cliente e/o fornitore. Il permesso e l'azienda devono provenire dallo stesso ruolo attivo. Esempio: un ruolo di modifica su Service e uno di sola lettura su Trading non consentono di modificare Trading. Vale anche per i ruoli ricevuti tramite gruppi.
 
-Nessuna azienda selezionata significa nessun accesso ai rapporti aziendali, salvo il Super Admin globale. I ruoli esistenti non ricevono automaticamente i nuovi permessi o aziende. L'accesso all'anagrafica BP condivisa rimane distinto dall'accesso ai suoi rapporti aziendali. Condizioni di pagamento, listini, affidamenti, conti e codici locali cliente/fornitore non fanno parte di questa fase.
+Nessuna azienda selezionata significa nessun accesso ai rapporti aziendali, salvo il Super Admin globale. I ruoli esistenti non ricevono automaticamente i nuovi permessi o aziende. L'accesso all'anagrafica BP condivisa rimane distinto dall'accesso ai suoi rapporti aziendali. Listini, affidamenti, conti e codici locali cliente/fornitore non fanno parte di questa fase.
 
 Per consultare i rapporti servono sia la lettura dell'anagrafica BP sia quella di **Aziende e ruoli** per le aziende interessate. Il permesso di utilizzo come Cliente o Fornitore non concede automaticamente associazione o modifica.
 
@@ -205,7 +205,127 @@ Con i permessi dedicati, apri **Impostazioni**, poi le tile **Anagrafiche → Bu
 
 La configurazione è condivisa dall'organizzazione, non distinta per azienda. Dopo il primo Business Partner non si possono cambiare modalità, formato o progressivo. Le numerazioni di fatture, ordini e altri documenti non fanno parte di questa schermata.
 
-## 9. Risolvere i problemi più comuni
+### Consultare e gestire le valute
+
+Apri **Impostazioni → Sistema → Valute** per consultare il catalogo condiviso. Sono presenti codice alfabetico, codice numerico, nome, unità minori e stato. Solo il Super Admin globale può modificarlo; disabilitare una valuta la esclude dalle nuove scelte nell'anteprima pagamenti. Le unità minori indicano la precisione dell'importo: un valore non disponibile non viene sostituito automaticamente con due decimali.
+
+La modifica si apre in una finestra. Se la valuta è cambiata nel frattempo, il salvataggio viene rifiutato: conserva le modifiche utili, riapri il record e confrontale con i dati aggiornati. Una bozza recuperata senza versione affidabile non può essere salvata: copia le modifiche, annulla e riapri.
+
+Il catalogo è uno snapshot, non si aggiorna automaticamente. Include anche codici speciali e di test: verifica che quello scelto sia adatto all'uso. L'applicazione non effettua conversioni tra valute.
+
+### Configurare i pagamenti
+
+In **Anagrafiche → Pagamenti**, seleziona l'azienda e apri **Metodi di pagamento**, **Condizioni di pagamento** o **Impostazioni aziendali**. Metodi e condizioni sono specifici dell'azienda.
+
+Metodi e condizioni sono elencati in tabelle con ricerca e si aprono in finestre di creazione, modifica o sola lettura. Nella finestra della condizione usa le schede **Generale** e **Rate**; l'anteprima scadenze è nella scheda Rate e le impostazioni aziendali sono invece nella pagina.
+
+1. Crea un metodo con codice, descrizione, categoria e direzione: **Incassi**, **Pagamenti** o **Entrambi**. Il codice FatturaPA è facoltativo; il catalogo proposto è limitato. Puoi disattivare un metodo non più utilizzato.
+2. Crea una condizione, scegli la data di riferimento e inserisci almeno una rata. Le percentuali devono totalizzare esattamente il 100%; per ciascuna rata imposta mesi, giorni, base e regola della data. Il metodo della condizione e quello della singola rata sono facoltativi.
+3. Nell'**Anteprima scadenze**, inserisci importo, data e valuta abilitata con precisione disponibile e scegli **Calcola**. L'importo deve rispettare le unità minori della valuta. È una simulazione: non registra incassi o pagamenti.
+4. In **Impostazioni aziendali** puoi scegliere separatamente condizione e metodo predefiniti per vendite e acquisti. I metodi devono essere compatibili rispettivamente con incassi e pagamenti.
+
+Per un BP già salvato, nella sezione **Pagamenti predefiniti del partner** scegli un'azienda con rapporto utilizzabile e il ruolo **Cliente** o **Fornitore**, quindi condizione e metodo e premi **Salva**. I default sono distinti per azienda e ruolo; Cliente richiede metodi compatibili con incassi, Fornitore con pagamenti. Il salvataggio è separato da quello generale della scheda. I riferimenti disattivati non sono proposti per nuove scelte.
+
+L'amministratore deve assegnare i permessi Pagamenti necessari e l'azienda **nello stesso ruolo attivo**. Per modificare impostazioni aziendali o default partner occorrono anche i permessi di lettura di metodi e condizioni; la simulazione richiede il permesso dedicato. I nuovi permessi non sono assegnati automaticamente ai ruoli esistenti. Se l'esito di un salvataggio è sconosciuto, ricarica e verifica prima di riprovare.
+
+Al refresh nella stessa scheda, le bozze disponibili possono essere ripristinate dopo la verifica di organizzazione, azienda e permessi; non è una garanzia di recupero se l'archiviazione del browser non è disponibile o l'accesso è cambiato. Cambiare voce di menu può chiudere la finestra e scartare la bozza: copia prima i dati utili. Se un'altra modifica causa un conflitto, conserva i tuoi dati, riapri e confronta la versione aggiornata. Un esito sconosciuto può indicare che il salvataggio è già riuscito: il nuovo invio può restare bloccato, quindi verifica il record prima di procedere, senza ripetere alla cieca.
+
+## 9. Configurare il Catalogo
+
+L’identità di articoli e servizi è condivisa dalle aziende della stessa organizzazione: non creare duplicati per azienda. Le abilitazioni e le impostazioni operative sono invece distinte per azienda e si gestiscono nella scheda **Aziende** o nella vista **Per azienda**. Prezzi, giacenze e movimenti non fanno parte del Catalogo.
+
+### Articoli e servizi
+
+1. Apri **Anagrafiche → Catalogo → Articoli e servizi → Identità**. Cerca per nome, codice o identificativo; filtra per tipologia e stato. L’elenco iniziale mostra gli articoli **Attivi**; scegli **Tutti** per cercare anche sospesi e archiviati. Il tab **Per azienda** mostra le associazioni aziendali nella stessa schermata, secondo i permessi disponibili.
+2. Premi **Nuovo** e inserisci nome, tipologia, categoria e unità base: sono obbligatori sia in creazione sia in modifica, anche nello stato **Sospeso**. Lo stato predefinito è **Attivo**; **Archiviato** non è disponibile sui nuovi articoli. Il marchio è facoltativo. Un'unità base come G è valida anche se la base generale della dimensione è KG. Gli articoli già presenti con dati incompleti restano consultabili, ma il Salva generale richiede di completarli.
+3. In modalità automatica il codice viene assegnato al salvataggio. In modalità manuale usa soltanto lettere **A–Z/a–z** e cifre **0–9**, per un massimo di **40 caratteri**, senza spazi, accenti o simboli. Dopo la creazione puoi modificarlo soltanto se l'articolo è **Sospeso** e non è mai stato attivato. I codici precedenti non diventano disponibili per altri articoli.
+4. Nelle schede **Identificativi** e **Unità** aggiungi i riferimenti e le confezioni. La scheda **Dati fisici** è disponibile soltanto per i beni; pesi e dimensioni sono facoltativi e riferiti all'unità base.
+5. Premi **Salva** per registrare insieme articolo, stato e righe inserite. La conferma compare soltanto alla **prima attivazione**, perché rende immutabili codice e unità base. Se l'articolo è già stato attivato almeno una volta, l'avviso non compare più, nemmeno riattivandolo da **Sospeso**: i due campi restano bloccati. **Conferma e salva** registra i dati; **Annulla** conserva le modifiche nel form senza salvarle. Attivazione e riattivazione richiedono il relativo permesso; **Sospeso** non abilita l'utilizzo commerciale. La bozza locale recuperabile al refresh non è uno stato dell’articolo.
+
+Gli identificativi GTIN vengono controllati per formato e cifra di controllo; gli stessi GTIN e barcode interni non possono identificare articoli diversi dell'organizzazione. Per ciascun tipo puoi indicare un identificativo principale. I riferimenti OEM/MPN possono essere condivisi. Scegli l'unità commerciale associata oppure lascia quella base; una confezione deve prima comparire nelle unità dell'articolo.
+
+Per una confezione CF da 12 PZ imposta numeratore 12 e denominatore 1; per un altro articolo CF può avere un contenuto differente. Le alternative universali mantengono il rapporto già definito dalle unità. L'anteprima contestuale converte fra base e alternative attive dell'articolo senza registrare movimenti.
+
+Su un articolo già salvato, confermare una riga di identificativi o unità registra subito quella riga, **senza salvare le modifiche dei dati generali**. Dati fisici e stato vengono invece registrati dal Salva generale. Sul nuovo articolo le righe restano locali fino al primo Salva. Prima di cambiare la base di un articolo sospeso mai attivato occorre non avere unità alternative, identificativi o dati fisici; dopo la prima attivazione la base e il codice restano bloccati.
+
+Per sospendere o riattivare un articolo, scegli **Sospeso** o **Attivo** nel campo **Stato**, poi premi **Salva**. Per archiviarlo scegli **Archiviato** e salva: prima dell'aggiornamento compare una conferma perché l'operazione è definitiva e l'articolo non potrà più essere riattivato. **Annulla** nella conferma non scrive nulla e conserva le modifiche del form. Un articolo archiviato rimane soltanto consultabile. Le transizioni richiedono permessi distinti; non vengono assegnati automaticamente.
+
+### Marchi
+
+Apri **Anagrafiche → Catalogo → Marchi**. Inserisci il nome; codice e descrizione sono facoltativi. Puoi disattivare un marchio senza eliminare i riferimenti già presenti negli articoli. Il marchio non identifica automaticamente il produttore o il fornitore.
+
+### Categorie e tipologie
+
+Apri **Anagrafiche → Catalogo → Categorie** oppure **Impostazioni → Anagrafiche → Catalogo → Tipologie articolo**. Usa la ricerca e le azioni della riga per consultare o modificare una voce; **Nuovo** apre la finestra di creazione.
+
+- **Categorie:** inserisci il nome e scegli un'eventuale categoria padre. Codice e descrizione sono facoltativi. Modificare il padre sposta l'intero ramo; una categoria non può diventare figlia di sé stessa o dei propri discendenti. Si eliminano soltanto categorie prive di figli e collegamenti.
+- **Tipologie articolo:** scegli la natura **Bene materiale**, **Bene immateriale**, **Servizio** oppure **Onere accessorio**, quindi i valori proposti per vendibilità e acquistabilità. Solo **Bene materiale** prevede gestione stock e dati fisici. Puoi modificare la natura finché la tipologia non è collegata ad alcun articolo o servizio, anche sospeso o archiviato; un collegamento aggiunto nel frattempo blocca il salvataggio del cambio natura. Le nuove organizzazioni dispongono inizialmente delle sole tipologie **Merce** e **Servizio**: crea esplicitamente le tipologie per le altre nature quando servono. Puoi aggiungerne altre o disattivare quelle non più utilizzate.
+
+**Salva** registra la singola configurazione; **Annulla** scarta le modifiche non salvate. Le finestre si possono trascinare e ridimensionare.
+
+Nelle **Tipologie articolo**, l'icona **Elimina** richiede il permesso dedicato. Se la tipologia è collegata ad articoli o servizi, anche sospesi o archiviati, compare un avviso e l'eliminazione è bloccata. In assenza di collegamenti viene chiesta conferma: **Annulla** non modifica nulla, **Elimina** rimuove la tipologia. Un collegamento aggiunto nel frattempo blocca comunque l'operazione. Il nuovo permesso non viene assegnato automaticamente ai ruoli.
+
+### Unità di misura e conversioni
+
+1. Apri **Impostazioni → Sistema → Unità di misura**.
+2. Consulta le unità iniziali oppure premi **Nuovo**.
+3. Inserisci nome, codice/simbolo obbligatorio, dimensione e precisione quantità da 0 a 12 decimali. Per le unità universali indica il fattore positivo verso la base; per l'unità base vale 1. Per confezioni come CF/PLT scegli la conversione specifica dell'articolo: non esiste un fattore globale.
+4. Premi **Salva**. Ambito della conversione, dimensione, fattore e ruolo di base non sono più modificabili; per una definizione diversa crea una nuova unità.
+
+Per ogni dimensione può esistere una sola base. Non puoi disattivarla finché altre unità attive della stessa dimensione la richiedono. Le unità si disattivano, non si eliminano.
+
+L'azione **Converti** apre un'anteprima: scegli un'unità attiva della stessa dimensione, inserisci la quantità con il punto come separatore decimale e premi **Converti**. L'applicazione mostra risultato, anteprima prima dell'arrotondamento ed eventuale arrotondamento alla precisione dell'unità di destinazione. I valori a metà vengono arrotondati lontano da zero. L'anteprima non registra movimenti e non modifica la quantità inserita; non converte confezioni in pezzi.
+
+Quantità e fattori accettano fino a 12 decimali e valori con magnitudine inferiore a `10000000000000000`; i fattori devono essere positivi. Nei rapporti periodici, l'anteprima prima dell'arrotondamento mostra al massimo 40 decimali: il risultato viene comunque calcolato dal rapporto esatto.
+
+### Numerazione del Catalogo
+
+Apri **Impostazioni → Anagrafiche → Catalogo → Numerazione**. La vista mostra le quattro nature: **Bene materiale**, **Bene immateriale**, **Servizio**, **Onere accessorio**. Puoi filtrare per natura oppure tornare a **Tutte le nature**. La ricerca filtra le configurazioni visualizzate. Modifica la configurazione desiderata con la matita.
+
+- **Automatica:** scegli prefisso, numero minimo di cifre e prossimo progressivo. I formati iniziali sono `ART-000001`, `IMM-000001`, `SRV-000001` e `ONR-000001`, rispettivamente per le quattro nature. Le configurazioni già impostate restano invariate.
+- **Manuale:** il codice viene inserito nell'anagrafica articolo.
+
+Le quattro serie sono indipendenti fra loro e dalla numerazione Business Partner; il codice articolo deve comunque essere univoco nell'organizzazione, anche fra nature diverse. Dopo il primo utilizzo non si possono cambiare modalità, formato o riavvolgere il progressivo. Codice articolo, assegnazione e primo salvataggio vengono registrati insieme: un salvataggio rifiutato non consuma un numero.
+
+### Lavorare con elenchi e finestre
+
+La tabella **Identità** mostra codice, nome, tipologia, categoria, unità di misura base, marchio e stato; le azioni sono separate a destra. Puoi trascinare o ridimensionare le finestre. La lingua si cambia dal selettore italiano/inglese in alto.
+
+### Bozze, conflitti e permessi
+
+Al refresh nella stessa scheda il Catalogo recupera stato e bozze disponibili, verificando organizzazione, record e permessi attuali. Il recupero non sostituisce un salvataggio e dipende dallo storage del browser. Aprire nuovamente una voce dal menu resetta la relativa videata.
+
+Una bozza basata su una versione superata resta protetta dalla sovrascrittura: confronta i dati, conserva le modifiche utili e riapri il record aggiornato. Se l'esito del salvataggio è incerto, usa la verifica dello stato prima di procedere; non ripetere alla cieca l'invio.
+
+L'amministratore assegna separatamente consultazione, creazione, modifica e, per le categorie, eliminazione. Attivazione, disattivazione e archiviazione articolo hanno permessi dedicati. I permessi delle unità sono nel ramo **Impostazioni → Sistema → Unità di misura**, quelli di articoli, marchi e categorie in **Anagrafiche → Catalogo**, quelli delle tipologie in **Impostazioni → Anagrafiche → Catalogo → Tipologie articolo**, quelli della numerazione nel suo percorso impostazioni. Nessun nuovo permesso viene concesso automaticamente ai ruoli esistenti.
+
+### Configurazioni aziendali degli articoli
+
+I filtri sono compatti e partono sempre da **Cerca**. Quando non entrano sulla stessa riga, usa il pulsante con icona filtri in fondo alla riga per mostrare gli altri controlli. Chiudere il pannello non annulla i filtri già selezionati. Le tabelle allineano i testi a sinistra, i valori numerici/importi a destra e stati, icone e azioni al centro.
+
+La creazione di un articolo non lo abilita automaticamente nelle aziende.
+
+In **Abilita per aziende**, aziende e articoli sono mostrati in tabelle paginate. Gli articoli riportano gli stessi dati della lista Identità: codice, nome, tipologia, categoria, unità di misura base, marchio e stato, senza azioni di riga. La checkbox nell'intestazione seleziona o deseleziona le righe della pagina corrente; cambiare pagina o cercare un articolo non cancella le altre selezioni. Le aziende sono mostrate **25 per pagina**; ricerca e paginazione degli articoli interrogano il catalogo aggiornato. Per ogni azienda viene mostrato l’indirizzo della prima sede legale attiva censita: se manca, la cella resta vuota, senza usare l’indirizzo di una sede operativa. La finestra è ampia, trascinabile e ridimensionabile.
+
+1. In **Anagrafiche → Catalogo → Articoli e servizi**, crea un articolo oppure aprine uno già salvato e scegli **Aziende**.
+2. Premi **Abilita per un’azienda**, seleziona l'azienda e controlla vendibilità, acquistabilità e gestione scorte. I valori iniziali provengono dalla tipologia e restano indipendenti dopo il salvataggio.
+3. Seleziona le unità predefinite di vendita/acquisto tra quelle ammesse oppure mantieni **Unità di misura base**.
+4. In creazione, **Salva** nella finestra aziendale aggiorna soltanto la bozza: aggiungi, modifica o rimuovi le aziende, poi usa il **Salva generale** per registrare articolo e configurazioni insieme. Annullare la creazione non registra associazioni. Su un articolo già salvato, il salvataggio aziendale è invece immediato e non salva la bozza principale. La matita consente di modificare l'associazione; disabilitarla conserva le impostazioni.
+
+Solo i beni materiali consentono la gestione scorte; questo flag non crea quantità o movimenti. La sospensione blocca l'utilizzo effettivo senza disabilitare le associazioni. L'archiviazione dell'articolo disabilita automaticamente tutte le associazioni aziendali, conservando le impostazioni operative e le unità predefinite; non possono essere riabilitate. Anche un'azienda disabilitata impedisce l'utilizzo effettivo e consente soltanto di disabilitare le associazioni esistenti.
+
+Il tab **Per azienda** in **Anagrafiche → Catalogo → Articoli e servizi** mostra inizialmente le associazioni **Abilitate** delle aziende autorizzate. **Cerca** è il primo filtro a sinistra; seguono azienda, stato associazione e **Vendita consentita**, **Acquisto consentito**, **Scorte consentite**, ciascuno con scelta **Tutti/Sì/No**. Le tre colonne mostrano l'utilizzo effettivamente consentito: tick verde per sì, X rossa per no. Le impostazioni operative restano nel form di modifica. Seleziona **Tutte** o **Disabilitate** per consultare anche le associazioni escluse; tab e filtri restano al refresh, mentre il menu ripristina la vista iniziale autorizzata e **Abilitate**. **Abilita per aziende** consente la selezione esplicita di più articoli e aziende: massimo 100 per insieme e 500 associazioni. Le configurazioni già presenti, incluse quelle disabilitate, restano invariate.
+
+Per abilitare più articoli insieme:
+
+1. Apri **Per azienda** e premi **Abilita per aziende**.
+2. Seleziona le aziende e gli articoli nelle due tabelle. La casella nell’intestazione riguarda solo la pagina visibile; controlla anche le selezioni conservate sulle altre pagine.
+3. Rispetta i limiti di **100 articoli**, **100 aziende** e **500 coppie articolo–azienda**. I default della tipologia sono copiati solo nelle nuove associazioni; quelle esistenti non vengono sovrascritte o riabilitate.
+4. Conferma il salvataggio. Un errore impedisce l’intera operazione; **Annulla** chiude senza registrarla. Aggiorna la lista per controllare il risultato, senza ripetere un invio dall’esito incerto.
+
+L'amministratore assegna lettura, creazione e modifica del catalogo aziendale e le aziende autorizzate nello stesso ruolo. I pulsanti di scrittura richiedono anche la lettura della precisa azienda, necessaria alla verifica dell'esito; il catalogo aziendale può essere consultato senza accesso all'intero catalogo organizzativo o alla gestione anagrafica aziende. Nessun nuovo permesso è assegnato automaticamente. Dopo una risposta incerta usa **Leggi dati aggiornati** e conferma la verifica; refresh e menu non ripetono l'operazione.
+
+## 10. Risolvere i problemi più comuni
 
 | Situazione | Cosa fare |
 |---|---|

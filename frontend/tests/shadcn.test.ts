@@ -62,14 +62,16 @@ test('metadata user controls preserve date/tel types, default language and offic
  assert.match(source,/languages\(option\)/);
  assert.match(source,/field\.defaultValue \?\? ""/);
  assert.match(source,/required=\{field\.required\}/);
- assert.match(source,/field\.required && <span aria-hidden="true"> \*<\/span>/);
+ assert.match(source,/<Label htmlFor=\{id\} required=\{fieldRequired\}>/);
  assert.doesNotMatch(source,/display_name/);
  const select=source.slice(source.indexOf(') : field.type === "select" ? ('),source.indexOf(') : field.type === "reference" ? ('));
  for(const token of ['<Select','name={field.name}','required={field.required}','disabled={!canWrite || busy}','<SelectTrigger id={id}','<SelectContent>','<SelectItem']) assert.ok(select.includes(token),token);
 });
-test('CRUD, exact RBAC, all four relation editors and settings chain preserved',()=>{
+test('CRUD, exact RBAC, all four relation editors and local settings navigation preserved',()=>{
  const source=read('components/workspace.tsx');
  const contract = source + read('lib/model.ts');
  for(const key of ['tenants','companies','sites','warehouse-types','warehouses','warehouse-locations','settings','users','groups','roles','permissions','user-roles','group-users','group-roles','role-permissions']) assert.ok(contract.includes('"'+key+'"'),key);
- for(const behavior of ['normalizeValues(resource.fields, values)','can(session, active, "create")','can(session, active, "delete", row)','canRelation(session, resource.key, relation.key, "read", owner)','company_id: value','site_id: ""','company_id: site.company_id','await refreshCsrf()','drafts[relation.key].ids','currentPassword: current']) assert.ok(source.includes(behavior),behavior);
+ for(const behavior of ['normalizeValues(resource.fields, values)','can(session, active, "create")','can(session, active, "delete", row)','canRelation(session, resource.key, relation.key, "read", owner)','touchedReferences.current.add(field.name)','set(field.name, value)','await refreshCsrf()','drafts[relation.key].ids','currentPassword: current']) assert.ok(source.includes(behavior),behavior);
+ // Impostazioni è un contenitore di navigazione, senza CRUD o automatismi azienda/sede.
+ assert.doesNotMatch(source,/resource\.key === "settings"/);
 });

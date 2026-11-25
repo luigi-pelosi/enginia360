@@ -6,13 +6,15 @@ import React from "react";
 import {renderToStaticMarkup} from "react-dom/server";
 import {createTranslator} from "next-intl";
 import * as model from "../lib/model.ts";
+import * as catalog from "../lib/catalog.ts";
 
 export const source = readFileSync(new URL("../components/workspace.tsx", import.meta.url), "utf8");
 const require = createRequire(import.meta.url);
-export function harness(locale = "it", states: Record<number, unknown> = {}, apiResult: unknown = {ids: []}) {
+export function harness(locale = "it", states: Record<number, unknown> = {}, apiResult: unknown = {ids: []}, storage = new Map<string, string>(), browserWindow?: object) {
   const messages = JSON.parse(readFileSync(new URL(`../messages/${locale}.json`, import.meta.url), "utf8"));
   let index = 0;
   const effects: Array<() => unknown> = [];
+
   const updates: Record<number, unknown> = {};
   const ui = new Proxy({}, {get: (_target, name) => name === "useSidebar" ? () => ({setOpenMobile() {}}) : (props: Record<string, unknown>) => {
     const tag = name === "Button" ? "button" : name === "Checkbox" || name === "Input" ? "input" : name === "Label" ? "label" : "div";
@@ -22,7 +24,7 @@ export function harness(locale = "it", states: Record<number, unknown> = {}, api
     return React.createElement(tag, safe);
   }});
   const module = {exports: {} as Record<string, (...args: any[]) => any>};
-  const code = ts.transpileModule(source + "\nexport {RecordEditor, RelationEditor, PermissionTree, PasswordForm, PurchasingCoverageEditor};", {compilerOptions: {target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true}}).outputText;
+  const code = ts.transpileModule(source + "\nexport {RecordEditor, RelationEditor, PermissionTree, PasswordForm, PurchasingCoverageEditor, recoverCurrencyEdit};", {compilerOptions: {target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true}}).outputText;
   const apiCalls: string[] = [];
   const apiPayloads: unknown[] = [];
   const resolve = (name: string): any => {
@@ -32,6 +34,15 @@ export function harness(locale = "it", states: Record<number, unknown> = {}, api
     }, useRef: (current: unknown) => ({current}), useEffect: (effect: () => unknown) => effects.push(effect), useMemo: (fn: () => unknown) => fn(), useCallback: (fn: unknown) => fn};
     if (name === "next-intl") return {useLocale: () => locale, useTranslations: (namespace: string) => createTranslator({locale, messages, namespace})};
     if (name === "@/lib/model") return model;
+    if (name === "@/lib/catalog") return catalog;
+    if (name === "@/components/catalog-workspace") return {
+      CatalogWorkspace: () => null,
+      resetCatalogRecovery: (session: model.Session, tenant: string, resource: string) => catalog.resetCatalog(sessionStorage, catalog.catalogKey(session.id, session.isSuperAdmin ? tenant : session.tenantId || "", resource)),
+    };
+    if (name === "@/components/catalog-items-overview") return {CatalogItemsOverview: () => null};
+    if (name === "@/components/catalog-item-workspace") return {CatalogItemWorkspace: () => null};
+    if (name === "@/components/payment-partner-defaults") return {PaymentPartnerDefaults: () => null};
+    if (name === "@/components/payments-workspace") return {PaymentsWorkspace: () => null};
     if (name === "@/lib/country-codes") return {countryCodes: JSON.parse(readFileSync(new URL('./country-codes.json', import.meta.url), 'utf8'))};
     if (name === "@/lib/password") {
       const child = {exports: {}};
@@ -50,15 +61,14 @@ export function harness(locale = "it", states: Record<number, unknown> = {}, api
     if (name.startsWith("@/components/ui/")) return ui;
     return require(name);
   };
-  const storage = new Map<string, string>();
-  const sessionStorage = {getItem: (key: string) => storage.get(key) ?? null, setItem: (key: string, value: string) => {storage.set(key, value);}, removeItem: (key: string) => {storage.delete(key);}};
-  runInNewContext(code, {module, exports: module.exports, require: resolve, console, setTimeout, clearTimeout, sessionStorage});
+  const sessionStorage = {get length() {return storage.size;}, key: (i: number) => [...storage.keys()][i] ?? null, getItem: (key: string) => storage.get(key) ?? null, setItem: (key: string, value: string) => {storage.set(key, value);}, removeItem: (key: string) => {storage.delete(key);}};
+  runInNewContext(code, {module, exports: module.exports, require: resolve, console, setTimeout, clearTimeout, sessionStorage, URLSearchParams, ...(browserWindow ? {window: browserWindow} : {})});
   return {components: module.exports, effects, updates, apiCalls, apiPayloads, render: (component: string, props = {}) => renderToStaticMarkup(React.createElement(module.exports[component], props))};
 }
 export function find(node: any, predicate: (node: any) => boolean): any {
   if (!node || typeof node !== "object") return;
   if (predicate(node)) return node;
-  for (const child of [node.props?.children].flat(Infinity)) {const result = find(child, predicate); if (result) return result;}
+  for (const child of [node.props?.children, ...(node.props?.fields ?? []).map((field: any) => field.content)].flat(Infinity)) {const result = find(child, predicate); if (result) return result;}
 }
 export const session: model.Session = {id: "u", username: "ada", displayName: "Ada", preferredLanguage: "it", tenantId: "t", isSuperAdmin: false, mustChangePassword: false, permissions: []};
 export function workspace(resource: model.Resource, permissions: string[], row: model.Row, locale = "it") {

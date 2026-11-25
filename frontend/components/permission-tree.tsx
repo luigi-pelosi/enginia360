@@ -45,7 +45,7 @@ export function PermissionTree({rows, query = "", selectedIds, onSelectedIdsChan
   };
   const renderBranch = (branch: PermissionBranch): ReactNode => {
     const branchRows = permissionRows(originalBranches.get(branch.key)!);
-    const label = branch.key === "settings-master-data" ? t("masterData") : branch.key === "settings-business-partners" ? r("business-partners") : r.has(branch.key) ? r(branch.key) : branch.key;
+    const label = branch.key === "settings-system" ? t("system") : branch.key === "settings-master-data" ? t("masterData") : branch.key === "settings-business-partners" ? r("business-partners") : r.has(branch.key) ? r(branch.key) : branch.key;
     return <details key={`${query}-${branch.key}`} open={searching || undefined} data-permission-resource={branch.key} className="rounded-md [&[open]>summary>svg]:rotate-90">
       <summary aria-label={label} className="flex cursor-pointer list-none items-center gap-2 rounded-md px-3 py-2 text-sm font-medium outline-none hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
         <ChevronRight aria-hidden="true" className="size-4 shrink-0 transition-transform" />

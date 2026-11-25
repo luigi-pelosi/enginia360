@@ -8,11 +8,11 @@ Un Business Partner identifica una persona o un'organizzazione una sola volta ne
 
 Il modulo `backend/Modules/BusinessPartners/` gestisce anagrafica, validazione, rapporti e utilizzabilità. `Modules/Numbering/` gestisce la numerazione BP; `Modules/AccessControl/` catalogo, policy e assegnazioni aziendali dei ruoli. UI operative in **Anagrafiche → Business Partner**; numerazione in **Impostazioni → Anagrafiche → Business Partner → Numerazione**. Le gerarchie dei permessi seguono questi percorsi.
 
-Esclusi: qualificazione `PROSPECT` del futuro CRM, condizioni di pagamento, valuta, listini, plafond, conti contabili, banche, configurazione FatturaPA e documenti gestionali. Non sono introdotti codici locali cliente/fornitore né numerazioni aziendali.
+Esclusi: qualificazione `PROSPECT` del futuro CRM, valuta, listini, plafond, conti contabili, banche, configurazione FatturaPA e documenti gestionali. I default di pagamento sono gestiti separatamente per azienda e ruolo commerciale nel dominio Pagamenti. Non sono introdotti codici locali cliente/fornitore né numerazioni aziendali.
 
 ## 2. Persistenza e SQL consolidato
 
-Unica definizione SQL del dominio: [`database/masterdata_business_partner.sql`](../database/masterdata_business_partner.sql). Crea direttamente gli oggetti definitivi, senza `ALTER` o trasferimenti successivi di schema. È inclusa una sola volta dalla baseline [`database/foundation.sql`](../database/foundation.sql), nella stessa transazione e dopo i prerequisiti condivisi.
+Unica definizione SQL del dominio: [`database/masterdata_business_partner.sql`](../database/masterdata_business_partner.sql). Crea direttamente gli oggetti definitivi, senza `ALTER` o trasferimenti successivi di schema. È inclusa una sola volta dalla baseline [`database/foundation.sql`](../database/foundation.sql), nella stessa transazione e dopo i prerequisiti condivisi. Le definizioni condivise di serie/contatori appartengono ora a [`database/foundation_numbering.sql`](../database/foundation_numbering.sql), incluso prima del frammento BP: il nucleo supporta BP e Catalogo con discriminanti separati, senza modificare il contratto BP.
 
 | Schema | Tabella | Responsabilità |
 |---|---|---|
@@ -37,7 +37,7 @@ UUID, `tenant_id`, FK composte same-tenant, unicità esplicite e timestamp con f
 psql -X -v ON_ERROR_STOP=1 -d NOME_DATABASE_NUOVO -f database/foundation.sql
 ```
 
-Conservare entrambi i file SQL nella stessa directory: `psql` risolve l'inclusione relativa. Il frammento BP non è un aggiornamento autonomo di un database popolato. La baseline acquisisce il lock `3607902026`, esegue in transazione e non crea dati, serie, utenti o grant impliciti; il catalogo finito dei permessi è definito nella struttura RBAC condivisa e materializzato alla creazione del tenant.
+Conservare baseline e i cinque frammenti canonici elencati nella Foundation nella stessa directory: `psql` risolve le inclusioni relative. Il frammento BP non è un aggiornamento autonomo di un database popolato. La baseline acquisisce il lock `3607902026`, esegue in transazione e non crea tenant, BP, serie, utenti o grant impliciti; i cataloghi globali iniziali e il provisioning delle configurazioni di un nuovo tenant sono descritti nella Foundation. Il catalogo finito dei permessi è definito nella struttura RBAC condivisa e materializzato alla creazione del tenant.
 
 Le tre migrazioni storiche, già applicate all'installazione esistente, sono conservate con checksum in [`database/migrations/archive/business_partner/`](../database/migrations/archive/business_partner/). Non costituiscono il percorso per nuove installazioni e non vanno rieseguite. Il consolidamento dei sorgenti **non modifica il database esistente**, i dati, gli OID, gli owner, le ACL o le credenziali. Non usare DROP, reset o restore sul database corrente per adottarlo.
 
@@ -116,6 +116,10 @@ Prefisso `/api`; per il globale `tenantId` è obbligatorio nelle operazioni tena
 | `GET /companies/{companyId}/business-partners/{bpId}/eligibility/{roleCode}` | `{usable}` con lettura BP e permesso d'uso aziendale esatto |
 | `GET /roles/{roleId}/companies` | `{companyIds}` |
 | `PUT /roles/{roleId}/companies` | `{companyIds}`; sostituzione atomica auditata, nessun grant operativo implicito |
+| `POST /data/roles/save` | `{values,links?,companyIds?}`; crea ruolo, permessi e aziende in un’unica transazione |
+| `PUT /data/roles/{roleId}/save` | `{values?,links?,companyIds?}`; salva atomicamente le sole parti inviate |
+
+Nell’editor Ruoli si usano gli endpoint `/save`: `companyIds` omesso conserva le assegnazioni, `[]` le svuota; NULL, duplicati e aziende di altri tenant sono rifiutati. Il campo richiede `roles.assign_companies`, indipendentemente dai permessi necessari per anagrafica e permessi del ruolo. Il percorso PUT separato rimane disponibile per compatibilità API, non come salvataggio autonomo nell’editor.
 
 Gli elenchi commerciali accettano `role`, `usableOnly`, `search`, `page`, `pageSize`. Default: nessun ruolo, `usableOnly=false`, ricerca vuota, prima pagina e 25 righe. Massimo 100 righe per pagina e ricerca di 200 caratteri. Una richiesta a un'azienda vietata resta 403: non diventa lettura generale. Le risposte includono `company_name`, `roles`, `usable_roles` e revisione del rapporto; gli elenchi includono anche codice, nome e stato BP.
 
@@ -123,7 +127,7 @@ Gli elenchi commerciali accettano `role`, `usableOnly`, `search`, `page`, `pageS
 
 - BP nuovo: identità e figli restano locali fino al Salva generale. Un esito di creazione incerto non autorizza a ripetere automaticamente la POST.
 - BP esistente: confermare aggiunta/modifica/rimozione di fiscalità, indirizzi o contatti invia la PUT aggregata con `values:{}`, sola collezione interessata ed `expectedVersion`. Persistenza immediata; figli e revisione autorevoli aggiornati senza salvare la bozza dell'identità. Annullare il padre non annulla queste scritture.
-- Rapporti, ruoli e aziende autorizzate nei ruoli hanno conferme autonome. Chiudere una finestra prima della conferma non scrive. Blocchi e rimozioni richiedono conferma.
+- I rapporti BP mantengono le proprie conferme contestuali. Nell’editor Ruoli, invece, aziende autorizzate, anagrafica e permessi appartengono a un’unica bozza e vengono registrati con il Salva principale nella stessa transazione. Annulla scarta tutta la bozza; selezionare aziende non scrive. Blocchi e rimozioni mantengono le conferme previste.
 - Vista **Per azienda** inizialmente senza filtri: tutte le aziende leggibili, tutti i ruoli, inclusi bloccati/non utilizzabili, ricerca vuota. Colonna Azienda esplicita; filtri manuali facoltativi.
 - `version` e `expectedVersion` impediscono sovrascritture obsolete. Errori e conflitti conservano i dati tentati; nessun retry di scrittura automatico. Lettura, revisione e audit restano autorevoli sul server.
 - Gli errori noti indicano codice e campo/riga, ad esempio `invalid_italian_vat` con `taxIdentifiers[0].value`. Altri codici: `duplicate_tax_identifier`, `stale_version`, `business_partner_code_required`, `business_partner_code_immutable`, `company_partner_exists`, `numbering_in_use`, `numbering_exhausted`. Nessuna certificazione fiscale implicita o normalizzazione aggiunta dalla UI.

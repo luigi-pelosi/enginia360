@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import * as model from "../lib/model.ts";
 import { can, normalizeValues, resourceKeys, rowLabel } from "../lib/model.ts";
+import {catalogKey} from "../lib/catalog.ts";
+import {find, harness, session} from "./workspace-harness.ts";
 test("user labels use first and last names, never persisted display names", () => {
   assert.equal(rowLabel({id: "u", username: "ada", first_name: "Ada", last_name: "Lovelace", display_name: "Old name"}), "Ada Lovelace");
   assert.equal(rowLabel({id: "u", username: "ada", display_name: "Old name"}), "ada");
@@ -31,11 +33,47 @@ test("table dates and language values are localized without timezone day shift",
   assert.equal(model.formatFieldValue(language, "en", "it", code => ({it: "Italiano", en: "Inglese"})[code]), "Inglese");
   assert.equal(model.formatFieldValue(language, "it", "en", code => ({it: "Italian", en: "English"})[code]), "Italian");
 });
-test("all resources including BP and its virtual numbering settings are supported", () => {
-  assert.equal(resourceKeys.length, 18);
+test("all resources including BP, Catalog and their virtual numbering settings are supported", () => {
+  assert.equal(resourceKeys.length, 32);
+  for (const key of ["catalog-item-companies", "catalog-items", "catalog-brands", "catalog-units", "catalog-categories", "catalog-types", "catalog-numbering"]) assert.ok(resourceKeys.includes(key), key);
+  assert.ok(resourceKeys.includes("currencies"));
   assert.ok(resourceKeys.includes("business-partner-companies"));
   assert.ok(resourceKeys.includes("business-partners"));
   assert.ok(resourceKeys.includes("business-partner-numbering"));
+});
+for (const isSuperAdmin of [false, true]) test(`Catalog menu reset uses real recovery guards and the effective tenant (SuperAdmin=${isSuperAdmin})`, () => {
+  const operator = {...session, isSuperAdmin, tenantId: isSuperAdmin ? null : "t", permissions: model.catalogResources.map(key => `${key}.read`)};
+  const tenant = isSuperAdmin ? "selected-tenant" : "t";
+  const key = (user: string, tenantId: string, resource: string) => catalogKey(user, tenantId, resource);
+  const cleared = key(operator.id, tenant, "catalog-types");
+  const guarded = key(operator.id, tenant, "catalog-categories");
+  const settingsUnit = key(operator.id, tenant, "catalog-units");
+  const retained = [key(operator.id, "other-tenant", "catalog-types"), key("other-user", tenant, "catalog-types")];
+  const storage = new Map([cleared, guarded, settingsUnit, ...retained].map(key => [key, '{"search":"draft"}']));
+  storage.set(guarded + ":pending", '{"method":"POST"}');
+  const h = harness("en", {0: operator, 1: false, 5: model.catalogRoutes.map(key => ({key, fields: []})), 6: "catalog-types", 7: isSuperAdmin ? tenant : "untrusted-selection"}, undefined, storage);
+  const tree = h.components.default();
+  const child = find(tree, node => node.type?.name === "CatalogWorkspace");
+  assert.ok(child, "Catalog resolver mounts the dedicated workspace stub");
+  const navigation = find(tree, node => node.type?.name === "WorkspaceNavigation");
+  const entry = find(navigation.type(navigation.props), node => node.props?.["aria-current"] === "page");
+  assert.ok(entry);
+  entry.props.onClick();
+  assert.equal(h.updates[6], "settings");
+  assert.equal(storage.has(settingsUnit), false, "other settings descendants are reset");
+  assert.equal(storage.has(cleared), false, "ordinary descendant recovery is reset");
+  assert.equal(storage.get(guarded), '{"search":"draft"}', "pending write keeps its recovery");
+  assert.equal(storage.get(guarded + ":pending"), '{"method":"POST"}', "pending marker survives");
+  for (const key of retained) assert.equal(storage.get(key), '{"search":"draft"}', key);
+});
+test("workspace harness retains the actual effects without compatibility remapping", () => {
+  const h = harness("en", {0: session, 1: false});
+  h.components.default();
+  const registered = [...h.effects];
+  assert.equal(new Set(registered).size, registered.length, "iteration never duplicates or drops callbacks");
+  assert.ok(registered.some(effect => String(effect).includes("rememberWorkspaceTenant")), "tenant persistence is still registered");
+  assert.ok(registered.some(effect => String(effect).includes('"/resources"')), "metadata effect is registered");
+  assert.ok(registered.some(effect => String(effect).includes("pageSize=25")), "list effect is registered");
 });
 test("permission gates use exact grants and global administrator", () => {
   assert.equal(

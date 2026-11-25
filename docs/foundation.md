@@ -1,6 +1,6 @@
 # Enginia360 — Foundation
 
-Riferimento tecnico generale e regole di sviluppo della foundation. Specifica di dominio: [Business Partner](masterdata_business_partner.md). Per le attività quotidiane: [Manuale utente](manuale-utente.md).
+Riferimento tecnico generale e regole di sviluppo della foundation. Specifiche di dominio: [Business Partner](masterdata_business_partner.md), [Catalogo](masterdata_catalog.md). Per le attività quotidiane: [Manuale utente](manuale-utente.md).
 
 ## Indice
 
@@ -30,11 +30,13 @@ La progettazione segue DDD pragmatico, API-first, modularità, riuso e interoper
 - Organizzazioni tenant, aziende, sedi e organizzazioni commerciali.
 - Anagrafiche di magazzino, non movimenti o giacenze.
 - Utenti, gruppi, ruoli e permessi tenant.
-- Impostazioni con ambito esplicito e audit transazionale.
+- Audit transazionale delle operazioni amministrative.
 - Nazioni e città condivise, ricerca locale e import geografico esplicito.
 - Business Partner: identità tenant condivisa, identificativi fiscali, indirizzi e recapiti; numerazione dedicata, rapporti multi-company e ruoli Cliente/Fornitore.
+- Pagamenti: metodi, condizioni rateali, simulazione delle scadenze e default aziendali e per ruolo Business Partner.
+- Catalogo: identità tenant-wide di articoli/servizi, unità e conversioni, categorie, tipologie, marchi, identificativi, confezioni e dati fisici; configurazioni autonome di utilizzo per azienda e quattro numerazioni sul nucleo condiviso.
 
-Sono esclusi i processi operativi successivi: documenti, ordini, commesse, condizioni commerciali cliente/fornitore, movimentazione e valorizzazione di magazzino, pagamenti, fatturazione e contabilità. Non sono introdotti identity provider esterni, intercompany, organizzazioni predefinite o dati dimostrativi automatici.
+Sono esclusi i processi operativi successivi: documenti, ordini, commesse, movimentazione e valorizzazione di magazzino, incassi e pagamenti effettivi, fatturazione e contabilità. Non sono introdotti identity provider esterni, intercompany, organizzazioni predefinite o dati dimostrativi automatici.
 
 ## 2. Dominio e regole
 
@@ -83,11 +85,39 @@ La copertura è un aggregato: viene salvata atomicamente e verificata anche al c
 
 Identità condivisa nel tenant, rapporti distinti per azienda e ruoli `CUSTOMER`/`SUPPLIER`, senza anagrafiche duplicate. Numerazione BP tenant-wide separata dalla configurazione commerciale. Modello, invarianti, autorizzazioni aziendali, persistenza e API sono definiti nella [specifica Business Partner](masterdata_business_partner.md).
 
-### Impostazioni
+### Catalogo
 
-Ambiti ammessi: tenant; tenant+azienda; tenant+azienda+sede. La sede richiede la propria azienda. Unicità della chiave anche con NULL, JSONB come valore, riferimenti coerenti con il tenant.
+Identità e configurazioni condivise nel tenant, nello schema `masterdata`, senza azienda obbligatoria. Unità con codice/simbolo obbligatorio e significato immutabile; categorie indipendenti dalla natura; tipologie con natura economica GOOD/INTANGIBLE/SERVICE/CHARGE modificabile soltanto in assenza di articoli collegati e default non retroattivi. Solo GOOD è materiale e ammette dati fisici/gestione stock; le altre nature non introducono regole fiscali o contabili. Quantità/fattori fino a 12 decimali, conversioni esatte e arrotondamento esplicito a metà lontano da zero. Le unità UNIVERSAL hanno un fattore globale; quelle ITEM hanno rapporti solo nell'articolo, senza conversioni universali fittizie. Quattro numerazioni indipendenti sul nucleo condiviso in `foundation`, isolate dalla serie BP; GOOD e SERVICE esistenti restano invariati.
 
-Non esistono ereditarietà, precedenze o fallback impliciti. Le chiavi `integrations.*` sono escluse dalla CRUD generica: eventuali segreti futuri richiedono percorsi dedicati autorizzati.
+`CatalogItem` governa codice, riferimenti, identificativi, unità alternative, dati fisici dei soli beni e ciclo ACTIVE/SUSPENDED/ARCHIVED. ACTIVE è il default in creazione; ARCHIVED non è creabile e richiede conferma irreversibile al salvataggio. Natura derivata dalla tipologia, immutabile; codice e unità base bloccati dalla prima attivazione. I vecchi codici manuali restano riservati. Marchio distinto da produttore/fornitore. Nessun prezzo, stock, IVA, conto o flag operativo aziendale sul master. Modello, API e invarianti nella [specifica unica Catalogo](masterdata_catalog.md).
+
+`CatalogItemCompany` governa abilitazione opt-in e configurazioni operative indipendenti per azienda, senza duplicare il master. Default della tipologia copiati soltanto alla prima associazione, unità predefinite tra quelle ammesse dall'articolo, disponibilità effettive calcolate e stock previsto solo per GOOD. Permessi con ambito aziendale sullo stesso ruolo; nessuna associazione automatica, movimento, prezzo o regola fiscale/contabile.
+
+La UI riunisce le viste in **Anagrafiche → Catalogo → Articoli e servizi**, con tab **Identità** e **Per azienda**, secondo il modello Business Partner. I permessi restano distinti: il solo lettore aziendale può raggiungere il contenitore senza ottenere lettura o CRUD sul master. Tab, filtri e bozze sono isolati per utente/tenant e recuperabili al refresh; il menu resetta la schermata senza eliminare le mutazioni incerte. La vecchia rotta UI aziendale è un alias compatibile, non una voce separata; le API non cambiano.
+
+### Valute
+
+`foundation.currency` è un catalogo globale condiviso, esposto come `/data/currencies`: codice alfabetico e numerico a tre caratteri univoci, nome, unità minori opzionali e stato abilitato. La consultazione è disponibile agli utenti autorizzati; la modifica è riservata al Super Admin globale attivo. La baseline incorpora 178 codici distinti dalla lista corrente ISO 4217 SIX pubblicata il 17 settembre 2026: `https://www.six-group.com/dam/download/financial-information/data-center/iso-currrency/lists/list-one.xml`, SHA-256 `33139b438657d1cee116ba737807ea71d19d6de4b90f799a09c56f0cc6a1b0ff`. I valori N.A. sono `NULL`, non due decimali. È uno snapshot, non un aggiornamento automatico; comprende anche codici di test e unità di conto.
+
+Per database esistenti, `database/migrations/20261120_currency.sql` crea tabella, trigger, grant e dati in una transazione, con timeout e lock advisory. È manuale e non idempotente: va applicata una sola volta come `postgres`, dopo verifica dei prerequisiti e backup. Il seed coincide staticamente con quello della baseline; ciò non dimostra l'esito dell'upgrade o rollback su una specifica installazione. Verificare prima su copia isolata della baseline precedente, senza presumere che sia già stata applicata in produzione.
+
+La modifica valuta della UI conserva la versione originale anche nel recupero della bozza e invia `expectedVersion`; una versione obsoleta produce conflitto, non sovrascrittura. Le bozze prive di versione affidabile non sono inviabili. Per database con la tabella già presente serve anche la migrazione manuale `database/migrations/20261120_currency_version.sql` prima della nuova API. Le chiamate legacy senza token restano non condizionali: dettagli e limiti in [currency-concurrency.md](currency-concurrency.md).
+
+Nell'anteprima scadenze Pagamenti il server accetta soltanto codici abilitati con unità minori numeriche e verifica la precisione dell'importo; N.A., disabilitati e sconosciuti sono rifiutati. L'interfaccia propone solo valute abilitate con precisione nota e valida l'importo in base alle unità minori selezionate, usando il passo corrispondente. Non sono implementati cambi valutari o conversioni.
+
+### Pagamenti
+
+Metodi e condizioni appartengono all'azienda. Una condizione contiene almeno una rata e percentuali per un totale esatto del 100%; i differimenti e le regole di calendario sono espliciti. Il calcolo è indipendente dal database e assegna il residuo di arrotondamento all'ultima rata. Default aziendali e default per ruolo Business Partner sono distinti; la risoluzione considera nell'ordine valori espliciti, rapporto aziendale, azienda e selezione manuale. I riferimenti inattivi non sono proposti per nuove operazioni. L'accesso richiede permesso e azienda sullo stesso ruolo attivo.
+
+La UI mostra metodi e condizioni in tabelle filtrabili con finestre di dettaglio/modifica; la condizione ha schede Generale e Rate, con l'anteprima scadenze contestuale nella scheda Rate. Le impostazioni aziendali restano nella pagina. Metodi, condizioni e default usano versioni attese per rilevare aggiornamenti concorrenti; un conflitto richiede rilettura e confronto, non un reinvio cieco.
+
+Il recupero al refresh usa `sessionStorage` nella stessa scheda ed è subordinato a contesto, esistenza del record e autorizzazioni attuali; non sostituisce un salvataggio e non è garantito se lo storage è indisponibile. La navigazione da menu può chiudere l'editor e scartare la bozza. Un timeout o una risposta persa non dimostrano il fallimento del commit: il blocco prudenziale del reinvio non è idempotenza, e occorre verificare lo stato autorevole prima di procedere.
+
+Le nuove installazioni includono `database/masterdata_payments.sql` nella baseline; per database esistenti la migrazione `database/migrations/20261119_payments.sql` è manuale e non assegna permessi ai ruoli. Il catalogo FatturaPA iniziale contiene solo i codici previsti nell'incremento. Documenti, snapshot, conti di regolamento, movimenti e contabilizzazione restano fuori dal perimetro.
+
+### Pagina Impostazioni
+
+È un contenitore di navigazione per configurazioni e cataloghi specifici. Non è una risorsa CRUD e non richiede permessi generici propri. Menu e rotta sono disponibili soltanto se almeno una funzione discendente è consultabile; in caso contrario anche accesso diretto, refresh e cronologia conducono alla prima pagina autorizzata, oppure a un’area neutra se non esistono pagine accessibili. Le singole funzioni mantengono le proprie autorizzazioni: numerazioni, cataloghi di sistema e default aziendali dei pagamenti rimangono separati.
 
 ## 3. Identità e autorizzazioni
 
@@ -121,14 +151,14 @@ User → Role → Permission
 User → Group → Role → Permission
 ```
 
-Si uniscono le concessioni attive. Nessun permesso diretto utente, deny, gruppo annidato o gerarchia di ruoli. Ruoli, gruppi e catalogo permessi appartengono al tenant. Per le nuove operazioni `business-partner-companies.*`, l'ambito è invece aziendale: il ruolo che concede l'operazione deve contenere anche l'azienda in `role_company`. Gli altri permessi tenant esistenti mantengono il loro ambito; il nuovo elenco aziende non attribuisce automaticamente diritti ad altri moduli o sedi.
+Si uniscono le concessioni attive. Nessun permesso diretto utente, deny, gruppo annidato o gerarchia di ruoli. Ruoli, gruppi e catalogo permessi appartengono al tenant. Per le operazioni `business-partner-companies.*` e `catalog-item-companies.*`, l'ambito è aziendale: il ruolo che concede l'operazione deve contenere anche l'azienda in `role_company`. Gli altri permessi tenant esistenti mantengono il loro ambito; l'elenco aziende non attribuisce automaticamente diritti ad altri moduli o sedi.
 
-Il catalogo è finito, readonly e contiene **61 operazioni**:
+Il catalogo è finito, readonly e contiene **97 operazioni**, incluse Pagamenti e Catalogo multi-company; `catalog-types.delete` abilita l'eliminazione delle sole tipologie senza articoli collegati:
 
 | Risorse | Operazioni |
 |---|---|
-| `companies`, `sites`, `warehouse-types`, `warehouses`, `warehouse-locations`, `settings`, `users`, `groups`, `roles`, `sales-organizations`, `purchasing-organizations` | `read`, `create`, `update`, `delete` |
-| `permissions` | `read` |
+| `companies`, `sites`, `warehouse-types`, `warehouses`, `warehouse-locations`, `users`, `groups`, `roles`, `sales-organizations`, `purchasing-organizations` | `read`, `create`, `update`, `delete` |
+| `permissions`, `countries`, `cities`, `currencies` | `read` |
 | `users` | `reset_password` |
 | `roles` | `assign`, `assign_permissions` |
 | `roles` | `assign_companies` |
@@ -137,6 +167,16 @@ Il catalogo è finito, readonly e contiene **61 operazioni**:
 | `business-partners` | `read`, `create`, `update` |
 | `business-partner-numbering` | `read`, `update` |
 | `business-partner-companies` | `read`, `create`, `update`, `use_customer`, `use_supplier` |
+| `payment-methods`, `payment-terms` | `read`, `create`, `update` |
+| `payment-settings`, `payment-partner-defaults` | `read`, `update` |
+| `payment-schedule` / `payment-resolution` | `preview` / `read` |
+| `catalog-units` | `read`, `create`, `update` |
+| `catalog-types` | `read`, `create`, `update`, `delete` |
+| `catalog-categories` | `read`, `create`, `update`, `delete` |
+| `catalog-numbering` | `read`, `update` |
+| `catalog-items` | `read`, `create`, `update`, `activate`, `deactivate`, `archive` |
+| `catalog-brands` | `read`, `create`, `update` |
+| `catalog-item-companies` | `read`, `create`, `update` |
 
 Creare un tenant materializza il catalogo, **non ruoli o grant impliciti**. Codici sconosciuti, legacy non di sistema e vecchi `.write` non concedono autorità. `tenants` è esclusivo del globale; Nazioni/Città hanno policy globali dedicate, fuori dal catalogo tenant.
 
@@ -154,14 +194,13 @@ Policy e handler ASP.NET Core applicano default deny. Identità, stamp, stato te
 
 ## 4. Database e installazione
 
-Unico ingresso di installazione: [`database/foundation.sql`](../database/foundation.sql). Crea lo stato finale e include una sola volta [`database/masterdata_business_partner.sql`](../database/masterdata_business_partner.sql), unica definizione del dominio BP. Non concatena le migrazioni storiche né trasferisce gli oggetti BP con ALTER successivi.
+Unico ingresso di installazione: [`database/foundation.sql`](../database/foundation.sql). Le definizioni condivise Numbering appartengono a `foundation`; Business Partner e Pagamenti conservano i frammenti [`masterdata_business_partner.sql`](../database/masterdata_business_partner.sql) e [`masterdata_payments.sql`](../database/masterdata_payments.sql). Il Catalogo usa un solo frammento finale [`masterdata_catalog.sql`](../database/masterdata_catalog.sql), non una catena di parti incrementali o migrazioni obsolete. La tabella unità resta `masterdata.catalog_unit_of_measure` anche quando la sua definizione è posta fra i prerequisiti della baseline. Non applicare la baseline a dati esistenti.
 
 | Area | Tabelle |
 |---|---|
 | Organizzazione | `tenant`, `company`, `site`, `sales_organization`, `purchasing_organization` |
 | Copertura acquisti | `purchasing_organization_company`, `purchasing_organization_site` |
 | Magazzino | `warehouse_type`, `warehouse`, `warehouse_location` |
-| Configurazione | `setting` |
 | Identità/RBAC | `user`, `user_group`, `role`, `permission` |
 | Associazioni | `user_group_member`, `user_role`, `user_group_role`, `role_permission` |
 | Sicurezza | `login_limit`, `audit_event` |
@@ -169,9 +208,14 @@ Unico ingresso di installazione: [`database/foundation.sql`](../database/foundat
 | Business Partner (`masterdata`) | `business_partner`, `business_partner_tax_identifier`, `business_partner_address`, `business_partner_address_usage`, `business_partner_contact_channel` |
 | Rapporti BP–azienda (`masterdata`) | `company_business_partner`, `company_business_partner_role` |
 | Ambito aziendale RBAC (`foundation`) | `role_company` |
-| Numbering BP (`foundation`) | `numbering_series`, `numbering_counter` |
+| Numbering condiviso (`foundation`) | `numbering_series`, `numbering_counter` |
+| Valute (`foundation`) | `currency` |
+| Pagamenti (`masterdata`) | `payment_methods`, `payment_terms`, `payment_term_installments`, `company_payment_settings`, `business_partner_payment_defaults`, `fatturapa_payment_codes` |
+| Catalogo (`masterdata`) | `catalog_unit_of_measure`, `catalog_category`, `catalog_item_type` |
+| Articoli e servizi (`masterdata`) | `catalog_brand`, `catalog_item`, `catalog_item_code`, `catalog_item_identifier`, `catalog_item_unit`, `catalog_item_physical_data` |
+| Utilizzo aziendale Catalogo (`masterdata`) | `catalog_item_company` |
 
-**33 tabelle: 26 in `foundation`, 7 in `masterdata`; nessun dato iniziale.** Le altre aree della tabella sopra rimangono in `foundation`. Tenant, utenti, permessi, geografia, BP e serie non sono precaricati dall'SQL. Date tecniche e aggiornamento di `updated_at`, dove presenti, sono gestiti dal database; associazioni, FK, unicità e trigger fanno parte dello schema. Il runtime riceve USAGE su entrambi gli schemi senza CREATE e non ha DELETE su BP, rapporti commerciali/ruoli, serie o contatori. Gli accessi aziendali `role_company` sono invece sostituibili per revocare l'autorità. I guard BP appartengono a `masterdata`; il trigger timestamp riusa la funzione condivisa `foundation.set_updated_at`.
+**49 tabelle: 26 in `foundation`, 23 in `masterdata`.** Le altre aree della tabella sopra rimangono in `foundation`. Tenant, utenti, geografia, BP, serie, marchi, articoli e associazioni aziendali non sono precaricati dall'SQL; i cataloghi globali Valute e FatturaPA hanno i rispettivi dati iniziali. La creazione applicativa di un tenant materializza permessi senza grant e inizializza 11 unità e le tipologie Merce/Servizio, senza categorie o confezioni specifiche. Date tecniche e aggiornamento di `updated_at`, dove presenti, sono gestiti dal database; associazioni, FK, unicità e trigger fanno parte dello schema. Il runtime riceve USAGE su entrambi gli schemi senza CREATE e non ha DELETE su BP, rapporti commerciali/ruoli, unità Catalogo, articoli, marchi, configurazioni aziendali, serie o contatori; le tipologie inutilizzate sono eliminabili con permesso dedicato e il registro codici è append-only. Gli accessi aziendali `role_company` sono invece sostituibili per revocare l'autorità. I guard di dominio appartengono a `masterdata`; il trigger timestamp riusa la funzione condivisa `foundation.set_updated_at`.
 
 ### Nuova installazione
 
@@ -182,7 +226,7 @@ Unico ingresso di installazione: [`database/foundation.sql`](../database/foundat
    psql -X -v ON_ERROR_STOP=1 -d NOME_DATABASE_NUOVO -f database/foundation.sql
    ```
 
-3. Conservare `foundation.sql` e `masterdata_business_partner.sql` nella stessa directory: `psql -f` risolve l'inclusione relativa nella transazione della baseline. Configurare connessione applicativa e origine HTTPS, predisporre il keyring e avviare i servizi.
+3. Conservare `foundation.sql` e i frammenti canonici nella stessa directory: `psql -f` risolve le inclusioni relative nella transazione della baseline. Configurare connessione applicativa e origine HTTPS, predisporre il keyring e avviare i servizi.
 4. Eseguire il bootstrap esplicito del Super Admin; importare la geografia se richiesta.
 
 Lo script usa una transazione e l'advisory lock `3607902026`. Rifiuta uno schema `foundation` già presente, un esecutore diverso da quello previsto o un ruolo runtime elevato. Non crea login/password né richiede account personali dell'installazione di sviluppo.
@@ -210,7 +254,9 @@ backend/
     Organizations/                   # applicabilità e copertura acquisti
     Geography/                       # cataloghi, ricerca locale, import, ISO
     BusinessPartners/                # aggregato anagrafico, validazione e API dedicate
-    Numbering/                       # configurazione e allocazione solo BP
+    Numbering/                       # nucleo BP/Catalogo, discriminante serie esplicito
+    Catalog/                         # configurazioni, articoli, figli, marchi e ciclo di vita
+    Payments/                        # metodi, condizioni, default e simulazione
   Infrastructure/Persistence/        # AppDb, mapping, identificatori SQL
   Api/Resources/                     # metadata e CRUD/associazioni condivisi
   Shared/Validation/                 # Check e ApiException
@@ -293,9 +339,9 @@ Contratti di anagrafica, collezioni, numerazione, rapporti commerciali e accessi
 
 ## 8. Geografia e import
 
-Nazioni e Città sono globali: lettura per ogni autenticato, manutenzione soltanto Super Admin. Una città è una coppia località/CAP; `istat_code` è tecnico e non editabile. Nazione ISO univoca, non modificabile se referenziata; eliminazione RESTRICT. Le città estere possono non avere provincia/regione: gli obblighi della sede rimangono separati.
+Nazioni e Città sono dati globali condivisi: per gli utenti ordinari la consultazione richiede rispettivamente `countries.read` e `cities.read`; Valute richiede `currencies.read`. La manutenzione di questi tre cataloghi rimane riservata al Super Admin. I nuovi permessi sono assegnabili nei ruoli tenant, non vengono concessi automaticamente. Una città è una coppia località/CAP; `istat_code` è tecnico e non editabile. Nazione ISO univoca, non modificabile se referenziata; eliminazione RESTRICT. Le città estere possono non avere provincia/regione: gli obblighi della sede rimangono separati.
 
-La UI le presenta come tile di **Impostazioni**, non in sidebar. La landing è accessibile senza `settings.read`, ma non concede lettura delle impostazioni tenant.
+La UI le presenta come tile di **Impostazioni → Sistema**, non in sidebar. Il contenitore non ha un permesso generico: è visibile soltanto con almeno una funzione discendente autorizzata. Consultazione e modifica delle singole funzioni dipendono dalle rispettive autorizzazioni.
 
 | Endpoint | Comportamento |
 |---|---|
@@ -386,7 +432,25 @@ python3 tests/application/run_business_partner_proof.py \
 python3 tests/application/run_business_partner_proof.py --cleanup
 ```
 
-Il runner usa un'origine HTTPS logica inoltrata al trasporto HTTP loopback: **non è una prova TLS**. Espande la sola inclusione SQL autorizzata prima dell'invio via stdin. I browser richiedono il Chromium dell'harness; `BP_DB_TESTS=true` abilita i test nativi esclusivamente su database isolato. Le prove HTTP usano il ruolo applicativo non privilegiato; eventuali iniezioni audit richiedono il ruolo elevato della sola fixture. Cronologie e conteggi dei rilasci precedenti restano negli originali documentali e nei checkpoint privati, non nel contratto corrente.
+Il runner usa un'origine HTTPS logica inoltrata al trasporto HTTP loopback: **non è una prova TLS**. Espande esclusivamente gli include canonici della baseline prima dell'invio via stdin, mantenendo separati Business Partner, Pagamenti e il Catalogo consolidato. I browser richiedono il Chromium dell'harness; `BP_DB_TESTS=true` abilita i test nativi esclusivamente su database isolato. Le prove HTTP usano il ruolo applicativo non privilegiato; eventuali iniezioni audit richiedono il ruolo elevato della sola fixture. Cronologie e report dei precedenti run restano nei checkpoint privati.
+
+### Verifiche mirate Pagamenti
+
+Dalla radice del repository, con Python 3 e Node compatibile con `--experimental-strip-types`:
+
+```sh
+python3 -m unittest discover -s tests/database -p 'test_business_partner_source.py' -v
+# Solo parità statica: il caso PostgreSQL viene saltato senza PAYMENTS_TEST_CONTAINER.
+python3 -m unittest discover -s tests/database -p 'test_payment_permissions.py' -v
+(cd frontend && node --experimental-strip-types --test tests/payment-*.test.ts tests/payments-*.test.ts)
+# Prova HTTP reale con Docker e immagini disponibili; build prima l'immagine backend:
+docker build -t enginia360-backend:payments-proof backend
+python3 tests/application/run_payments_proof.py --backend-image enginia360-backend:payments-proof
+```
+
+Il runner HTTP crea PostgreSQL e API effimeri, carica la baseline fresca e fallisce anche se i test HTTP sono saltati. Usa l'immagine `postgres:18.6-alpine3.24`, un'origine HTTPS logica su HTTP loopback (non TLS) e nomi fissi `enginia360-payments-http-proof*`; non eseguire due prove contemporaneamente. All'avvio e in chiusura rimuove le risorse con quei nomi e l'etichetta di scope della prova: non utilizzarle per altri scopi. Il file di credenziali sintetiche rimane nella directory di evidenza sotto `TMPDIR`.
+
+`test_payments_schema.py` e il caso runtime di `test_payment_permissions.py` richiedono un container PostgreSQL **isolato**, con ruolo `enginia360_app` e baseline già caricata nel database `payments_test`; impostare `PAYMENTS_TEST_CONTAINER` al nome esatto prima della discovery. Non puntare mai a dati reali. Questi test non preparano né eliminano il database. Il runner HTTP non prova l'upgrade: la migrazione manuale va verificata separatamente su una copia isolata della baseline precedente, includendo rollback e assenza di nuove assegnazioni ai ruoli. Il confronto sorgente o un test statico non sostituisce tale prova.
 
 ### Foundation e regressioni mirate
 
@@ -411,7 +475,7 @@ npm run typecheck
 
 `RBAC_DB_TESTS=true` e `LOGIN_PRESELECTION_DB_TESTS=true` abilitano prove native con scritture: **solo su database isolato**, mai sul principale. Gli harness HTTP/browser sotto `tests/application/` richiedono destinazione e credenziali sintetiche esplicite. Nei test che preparano o leggono l'audit può essere necessario un ruolo di fixture elevato; non è il ruolo runtime e non prova da solo i suoi privilegi.
 
-La baseline SQL deve dimostrare: schema equivalente allo stato corrente salvo ACL personali escluse dalle nuove installazioni; zero dati; rifiuto di una seconda applicazione; rollback e retry; privilegi minimi; integrità e concorrenza della copertura acquisti. Non normalizzare via differenze sconosciute per ottenere un confronto positivo.
+La baseline SQL deve dimostrare: schema equivalente allo stato corrente salvo ACL personali escluse dalle nuove installazioni; assenza di tenant e dati operativi, con i soli cataloghi globali iniziali dichiarati; rifiuto di una seconda applicazione; rollback e retry; privilegi minimi; integrità e concorrenza della copertura acquisti. Non normalizzare via differenze sconosciute per ottenere un confronto positivo.
 
 Dopo il refactoring: manifest sorgenti prima della build, publish reale, candidato esatto su copia, regressioni pertinenti e readback dopo rilascio. TLS reale distinto dai test interni; screenshot autentici. Audit vulnerabilità aggiornato richiede accesso alle fonti: un publish offline riuscito non è un audit corrente.
 
@@ -426,6 +490,7 @@ Dopo il refactoring: manifest sorgenti prima della build, publish reale, candida
 7. **Lingue:** UI italiano default più inglese; nomi codice/DB inglesi; commenti codice/DB e documentazione tecnica/utente italiani.
 8. **Codici anagrafici:** facoltativi e secondari, dopo nome/dati principali; niente generazione per colmare assenze. Codice tenant/login obbligatorio, ma dopo Nome nel form. Codici tecnici permessi obbligatori e readonly.
    Eccezione autorizzata Business Partner: codice obbligatorio e immutabile, automatico o manuale secondo la configurazione Numbering dedicata.
+   Eccezione autorizzata Catalogo: codice/simbolo obbligatorio per le unità di misura; codice articolo obbligatorio, automatico o manuale e immutabile dalla prima attivazione. Il codice articolo inserito o modificato manualmente ammette esclusivamente lettere ASCII A–Z/a–z e cifre 0–9, massimo 40 caratteri, senza spazi, accenti, simboli o normalizzazioni automatiche. Gli articoli sospesi mai attivati in modalità manuale possono cambiarlo, senza liberare i codici precedenti. Categorie, tipologie e marchi conservano il codice facoltativo.
 9. **Integrazioni esterne:** segreti in impostazioni e schermate dedicate autorizzate, cifrati nel DB; non in file root/bundle, risposte API o audit/log. `integrations.` riservato ed escluso dalla CRUD generica.
 10. **Select con ricerca in tempo reale**, salvo richiesta esplicita diversa; comportamento condiviso anche su cataloghi brevi, etichette localizzate e tastiera.
 11. **Messaggi specifici e precisi:** avvisi, errori e informazioni indicano l'operazione o il controllo effettivo, il campo e la riga interessati quando noti, e l'azione utile. Non sostituire una causa conosciuta con un messaggio generico né esporre dettagli SQL, dati riservati o cause non verificate. Se indistinguibili, indicare tutti i campi rilevanti. Non distinguere username inesistente/password errata né rivelare stato prima della password corretta.
@@ -435,4 +500,18 @@ Dopo il refactoring: manifest sorgenti prima della build, publish reale, candida
 
 14. **Persistenza delle tabelle contestuali/correlate:** sull'entità principale già salvata, le azioni confermate sulle righe sono effettive e persistono senza richiedere anche il Salva generale. Non salvano implicitamente la bozza dei dati principali. Prima della creazione del padre, le righe restano locali e vengono registrate insieme al primo salvataggio.
 
-UI professionale: niente testi su agente, proprietario, prototipo, tecnologia o scelte implementative; niente help text tecnico permanente. Azioni tabellari allineate a destra in colonna di larghezza fissa; preferire icone con nome accessibile e descrizione al passaggio del mouse. Un solo Salva per anagrafica e associazioni, salvo le operazioni autonome delle tabelle correlate già persistibili descritte sopra. Permessi a domini/risorse/operazioni, ricerca bilingue e checkbox parziali: filtrare o collassare non perde selezioni, la selezione di un ramo include anche foglie nascoste. Nessun dato demo persistente.
+15. **Campi obbligatori:** ogni campo obbligatorio è contrassegnato da un asterisco visibile accanto all'etichetta, coerente con le regole effettive, comprese quelle condizionali.
+
+16. **Selezioni obbligatorie:** nelle nuove maschere, in assenza di un valore iniziale definito dal dominio, preselezionare la prima opzione valorizzata e ammissibile. Non sostituire scelte già effettuate, bozze recuperate o valori esistenti; i campi facoltativi restano invariati.
+
+17. **Stati delle entità:** rappresentare gli stati visualizzati tramite badge coerenti; i controlli per modificarli restano selettori o altri elementi di input appropriati.
+
+18. **Parità creazione/modifica:** validazioni e obbligatorietà dei campi sono speculari in creazione e modifica, nella UI e nelle API, salvo diversa richiesta esplicita del proprietario. Riutilizzare le stesse regole; uno stato diverso non introduce implicitamente deroghe. Nei salvataggi parziali validare il risultato complessivo, conservando i valori omessi. Restano valide le immutabilità e le eccezioni di dominio approvate.
+
+19. **Ordine dei filtri:** il campo di ricerca occupa sempre la prima posizione a sinistra; lo stesso ordine viene mantenuto quando i controlli si dispongono su più righe o su mobile.
+
+20. **Filtri compatti e adattivi:** preferire una sola riga, con etichette brevi e comprensibili. Se lo spazio non basta, mantenere la ricerca e i primi filtri sulla riga principale e porre in fondo un pulsante con icona filtri che espande un accordion sottostante con gli altri controlli. Dimensionamento sulla larghezza disponibile, non su un numero fisso di campi. Nascondere un controllo non azzera né disattiva il suo filtro; niente duplicazioni dei controlli o perdita delle selezioni al ridimensionamento.
+
+21. **Allineamento delle tabelle:** celle testuali e relative intestazioni a sinistra; valori numerici, economici e importi in valuta a destra con intestazioni centrate; badge, icone e azioni centrati nelle celle e nelle intestazioni. Usare il tipo semantico delle colonne nei componenti condivisi, senza dedurlo dal contenuto occasionale. I codici identificativi restano testi anche quando composti da cifre.
+
+UI professionale: niente testi su agente, proprietario, prototipo, tecnologia o scelte implementative; niente help text tecnico permanente. Azioni tabellari centrate in colonna di larghezza fissa; preferire icone con nome accessibile e descrizione al passaggio del mouse. Le azioni della videata restano allineate a destra sulla barra dei tab. Un solo Salva per anagrafica e associazioni, salvo le operazioni autonome delle tabelle correlate già persistibili descritte sopra. Permessi a domini/risorse/operazioni, ricerca bilingue e checkbox parziali: filtrare o collassare non perde selezioni, la selezione di un ramo include anche foglie nascoste. Nessun dato demo persistente.

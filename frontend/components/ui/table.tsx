@@ -64,28 +64,37 @@ function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
   )
 }
 
-function TableHead({ className, ...props }: React.ComponentProps<"th">) {
+export type TableKind = "text" | "number" | "status" | "actions"
+
+function TableHead({ className, kind = "text", ...props }: React.ComponentProps<"th"> & { kind?: TableKind }) {
   return (
     <th
-      data-slot="table-head"
-      className={cn(
-        "h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
-        className
-      )}
       {...props}
+      data-slot="table-head"
+      data-kind={kind}
+      className={cn(
+        "h-10 px-2 align-middle font-medium whitespace-nowrap text-foreground [&>[role=checkbox]]:translate-y-[2px]",
+        kind === "text" && "[&:has([role=checkbox])]:pr-0",
+        className,
+        kind === "text" ? "text-left" : "text-center"
+      )}
     />
   )
 }
 
-function TableCell({ className, ...props }: React.ComponentProps<"td">) {
+function TableCell({ className, kind = "text", ...props }: React.ComponentProps<"td"> & { kind?: TableKind }) {
   return (
     <td
-      data-slot="table-cell"
-      className={cn(
-        "p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
-        className
-      )}
       {...props}
+      data-slot="table-cell"
+      data-kind={kind}
+      className={cn(
+        "p-2 align-middle whitespace-nowrap [&>[role=checkbox]]:translate-y-[2px]",
+        kind === "text" && "[&:has([role=checkbox])]:pr-0",
+        className,
+        kind === "number" ? "text-right tabular-nums [&_input]:text-right" :
+          kind === "status" || kind === "actions" ? "text-center [&>div]:justify-center [&>svg]:mx-auto" : "text-left"
+      )}
     />
   )
 }

@@ -21,7 +21,7 @@ test("Refresh reads /session before reloading data and replaces revoked UI autho
   await refresh!();
   assert.equal(h.apiCalls[0], "/session", "refresh obtains fresh effective permissions");
   assert.equal(h.updates[0], refreshed, "session is replaced, not merged with old grants");
-  assert.equal(h.updates[6], "", "revoked resource is no longer active");
+  assert.equal(h.updates[6], "", "zero grants falls back to neutral no-access, never Settings");
   assert.equal(typeof h.updates[15], "function", "data version invalidated after session reload");
 });
 test("unified assignment save closes before fresh session and never performs protected link readback", async () => {

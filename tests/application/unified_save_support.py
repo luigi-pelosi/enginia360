@@ -108,7 +108,7 @@ class Case:
         tenant = self.tenant['id']
         tables = ('purchasing_organization_site','purchasing_organization_company','purchasing_organization','sales_organization',
                   'role_permission','user_role','user_group_member','user_group_role','permission','role','user_group','user',
-                  'setting','warehouse_location','warehouse','warehouse_type','site','company')
+                  'warehouse_location','warehouse','warehouse_type','site','company')
         statements=[]
         for table in tables:
             if table.startswith(('purchasing_organization','sales_organization')) and sql(f"SELECT to_regclass('foundation.{table}') IS NOT NULL").stdout.strip() != 't':

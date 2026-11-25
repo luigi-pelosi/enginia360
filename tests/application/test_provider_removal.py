@@ -26,6 +26,6 @@ class ProviderRemovalTests(unittest.TestCase):
   self.assertEqual((item['postalCode'],item['province'],item['region'],item['countryCode']),('07041','SS','Sardegna','IT'))
   self.assertEqual(data['attribution'],'')
  def test_provider_setting_is_removed_from_storage(self):
-  self.assertEqual(sql("SELECT count(*) FROM foundation.setting WHERE key='integrations.geoapify';").stdout.strip(),'0')
+  self.assertEqual(sql("SELECT to_regclass('foundation.setting') IS NULL;").stdout.strip(),'t')
 
 if __name__=='__main__':unittest.main()

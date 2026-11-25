@@ -24,14 +24,14 @@ public static class GeographySelfTests
                 var ctx=new DefaultHttpContext(); ctx.Request.QueryString=new QueryString("?tenantId=ignored");
                 Assert(state.Tenant(ctx,key)==null);
             }
-            Assert(PermissionCatalog.Codes.Length==61 && !PermissionCatalog.Codes.Any(c=>c.StartsWith("countries.") || c.StartsWith("cities.")));
+            Assert(PermissionCatalog.Codes.Length==93 && PermissionCatalog.Contains("countries.read") && PermissionCatalog.Contains("cities.read") && PermissionCatalog.Contains("currencies.read") && !PermissionCatalog.Codes.Any(c=>c.StartsWith("settings.")));
             Assert(ResourceCatalog.Scope(ResourceCatalog.Get("users")).Contains("NOT is_super_admin"));
         });
-        Test("global geography reads authenticated writes native global policy only",()=> {
+        Test("global geography reads explicit permission writes native global policy only",()=> {
             foreach(var key in new[]{"countries","cities"}) foreach(var global in new[]{false,true}) {
                 using var scope=services.CreateScope();
                 var ctx=new DefaultHttpContext {RequestServices=scope.ServiceProvider};
-                ctx.Items["identity"]=new IdentityState(new User {TenantId=global?null:Guid.NewGuid(),IsSuperAdmin=global},"a","A",[]);
+                ctx.Items["identity"]=new IdentityState(new User {TenantId=global?null:Guid.NewGuid(),IsSuperAdmin=global},"a","A",global?[]:[key+".read"]);
                 Security.AuthorizeResource(ctx,ResourceCatalog.Get(key),"read").GetAwaiter().GetResult();
                 foreach(var action in new[]{"create","update","delete"}) {
                     if(global) Security.AuthorizeResource(ctx,ResourceCatalog.Get(key),action).GetAwaiter().GetResult();
@@ -110,7 +110,7 @@ public static class GeographySelfTests
             var reply=task.GetAwaiter().GetResult(); Assert(reply.items.Length==0 && reply.attribution=="");
         });
         Test("global catalog disabled and tenant impostor cannot read or mutate",()=> {
-            foreach(var key in new[]{"countries","cities"}) foreach(var user in new[]{new User {IsEnabled=false,TenantId=Guid.NewGuid()},new User {IsSuperAdmin=true,TenantId=Guid.NewGuid()},new User {IsSuperAdmin=false,TenantId=null}}) {
+            foreach(var key in new[]{"countries","cities","currencies"}) foreach(var user in new[]{new User {IsEnabled=false,TenantId=Guid.NewGuid()},new User {IsEnabled=false,IsSuperAdmin=true},new User {IsSuperAdmin=true,TenantId=Guid.NewGuid()},new User {IsSuperAdmin=false,TenantId=null}}) {
                 using var scope=services.CreateScope();var ctx=new DefaultHttpContext {RequestServices=scope.ServiceProvider};
                 ctx.Items["identity"]=new IdentityState(user,"a","A",[key+".read",key+".update"]);
                 foreach(var action in new[]{"read","create","update","delete"}) Reject(()=>Security.AuthorizeResource(ctx,ResourceCatalog.Get(key),action).GetAwaiter().GetResult(),403);

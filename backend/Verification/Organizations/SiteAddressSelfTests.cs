@@ -71,10 +71,7 @@ public static class SiteAddressSelfTests
     }
     public static void Lookup(Action<string,Action> test,IServiceProvider services)
     {
-        test("addresses: reserved settings invisible and immutable",()=> {
-            Assert(ResourceCatalog.Scope(ResourceCatalog.Get("settings")).Contains("integrations."),"Reserved settings visible");
-            Reject(()=>ResourceCatalog.Validate(ResourceCatalog.Get("settings"),JsonSerializer.SerializeToElement(new{key="integrations.future",value=new{token="synthetic"}}),true));
-        });
+
         test("addresses: strict bounded local query whitelist",()=> {
             AddressLookup.Query Call(string query) {var ctx=new DefaultHttpContext();ctx.Request.QueryString=new(query);return AddressLookup.ParseQuery(ctx);}
             var parsed=Call("?field=city&text=%20Capua%20&language=it&countryCode=IT");

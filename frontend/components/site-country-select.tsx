@@ -7,20 +7,28 @@ import {countryLabel} from "@/lib/model";
 
 type Country = {isoCode: string; name: string};
 type CountryOptions = {items: Country[]};
-export function SiteCountrySelect({id, value, scope, disabled, readOnly = false, required, onChange, "aria-invalid": invalid, "aria-describedby": describedBy}: {
-  id: string; value: string; scope: (path: string) => string; disabled: boolean; readOnly?: boolean; required: boolean; onChange: (value: string) => void;
+export function SiteCountrySelect({id, value, scope, disabled, readOnly = false, required, onChange, onDefault, "aria-invalid": invalid, "aria-describedby": describedBy}: {
+  id: string; value: string; scope: (path: string) => string; disabled: boolean; readOnly?: boolean; required: boolean; onChange: (value: string) => void; onDefault?: (value: string) => void;
   "aria-invalid"?: boolean; "aria-describedby"?: string;
 }) {
   const locale = useLocale(), t = useTranslations("app");
   const [options, setOptions] = useState<CountryOptions>({items: []}),
     [loading, setLoading] = useState(true), [error, setError] = useState(false);
   const generation = useRef(0);
+  const latest = useRef({value, disabled, readOnly, required, onDefault});
+  latest.current = {value, disabled, readOnly, required, onDefault};
   useEffect(() => {
     const current = ++generation.current, controller = new AbortController();
     if (readOnly) {setLoading(false); setError(false); return;}
     setLoading(true); setError(false);
     api<CountryOptions>(scope("/addresses/countries"), "GET", undefined, {signal: controller.signal})
-      .then(data => {if (!controller.signal.aborted && current === generation.current) setOptions(data);})
+      .then(data => {
+        if (controller.signal.aborted || current !== generation.current) return;
+        const items = Array.isArray(data.items) ? data.items.filter(item => item && typeof item.isoCode === "string" && !!item.isoCode.trim() && item.isoCode !== "__none__") : [];
+        setOptions({items});
+        const state = latest.current;
+        if (!state.value && !state.disabled && !state.readOnly && state.required && items.length) state.onDefault?.(items[0].isoCode);
+      })
       .catch(() => {if (!controller.signal.aborted && current === generation.current) setError(true);})
       .finally(() => {if (!controller.signal.aborted && current === generation.current) setLoading(false);});
     return () => {controller.abort(); generation.current++;};

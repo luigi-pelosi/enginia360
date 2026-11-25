@@ -54,7 +54,7 @@ test('BP numbering page has its parent breadcrumb and back action without resour
 test('resource refresh preserves the permitted virtual numbering page without metadata',async()=>{
  const operator={...session,permissions:['business-partner-numbering.read']};
  const h=harness('en',{0:operator,1:false,5:resources,6:'business-partner-numbering',7:'t'},(path:string)=>path==='/session'?operator:path==='/resources'?resources:{items:[],total:0});
- h.components.default();h.effects[2]();await new Promise(resolve=>setImmediate(resolve));
+ h.components.default();h.effects.find(effect=>String(effect).includes('"/resources"'))!();await new Promise(resolve=>setImmediate(resolve));
  assert.deepEqual(h.apiCalls,['/resources']);
  assert.equal((h.updates[6] as (current:string)=>string)('business-partner-numbering'),'business-partner-numbering');
 });

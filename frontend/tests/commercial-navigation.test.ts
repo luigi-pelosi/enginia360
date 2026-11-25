@@ -19,6 +19,8 @@ for (const locale of ["it", "en"]) test(`commercial navigation and precise autho
   assert.equal(permissionLabel({id: "scope", code: "purchasing-organizations.assign_scope"}, messages), `${messages.resources["purchasing-organizations"]} · ${messages.permissionActions.assign_scope}`);
 });
 test("commercial catalog is finite and grouped by the shared taxonomy", () => {
-  assert.equal(catalog.length, 61);
-  assert.deepEqual(groupPermissions(catalog).map(d => [d.key, d.resources.flatMap(permissionRows).length]), [["masterData",8],["organization",17],["warehouse",12],["administration",24]]);
+  // settings.read was retired: Settings is a navigation container, not a grant.
+  assert.equal(catalog.some(row => row.code === 'settings.read'), false);
+  assert.equal(catalog.length, 60);
+  assert.deepEqual(groupPermissions(catalog).map(d => [d.key, d.resources.flatMap(permissionRows).length]), [["masterData",8],["organization",17],["warehouse",12],["administration",23]]);
 });

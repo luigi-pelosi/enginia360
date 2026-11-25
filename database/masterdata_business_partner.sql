@@ -8,46 +8,6 @@ REVOKE ALL ON SCHEMA masterdata FROM PUBLIC;
 REVOKE ALL ON SCHEMA masterdata FROM enginia360_app;
 GRANT USAGE ON SCHEMA masterdata TO enginia360_app;
 
--- Numerazione esclusiva BP: nessuna serie viene precreata.
-CREATE TABLE foundation.numbering_series (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id uuid NOT NULL REFERENCES foundation.tenant(id) ON DELETE RESTRICT,
-    scope text NOT NULL DEFAULT 'TENANT' CHECK (scope='TENANT'),
-    company_id uuid CHECK (company_id IS NULL),
-    entity_type text NOT NULL DEFAULT 'BUSINESS_PARTNER' CHECK (entity_type='BUSINESS_PARTNER'),
-    reset_policy text NOT NULL DEFAULT 'NEVER' CHECK (reset_policy='NEVER'),
-    mode text NOT NULL CHECK (mode IN ('AUTO','MANUAL')),
-    prefix text NOT NULL CHECK (length(prefix)<=32 AND prefix !~ '[[:cntrl:]]'),
-    padding integer NOT NULL CHECK (padding BETWEEN 1 AND 15),
-    version bigint NOT NULL DEFAULT 1 CHECK (version BETWEEN 1 AND 9007199254740991),
-    UNIQUE (tenant_id,entity_type), UNIQUE (tenant_id,id)
-);
-CREATE TABLE foundation.numbering_counter (
-    series_id uuid PRIMARY KEY,
-    tenant_id uuid NOT NULL,
-    next_number bigint NOT NULL CHECK (next_number BETWEEN 1 AND 1000000000000000),
-    used boolean NOT NULL DEFAULT false,
-    FOREIGN KEY (tenant_id,series_id) REFERENCES foundation.numbering_series(tenant_id,id) ON DELETE RESTRICT
-);
-CREATE FUNCTION foundation.guard_numbering() RETURNS trigger LANGUAGE plpgsql SET search_path TO pg_catalog AS $$
-BEGIN
-    IF TG_OP='DELETE' THEN RAISE EXCEPTION 'La numerazione non si elimina' USING ERRCODE='23514'; END IF;
-    IF TG_TABLE_NAME='numbering_series' THEN
-        IF NEW.id<>OLD.id OR NEW.tenant_id<>OLD.tenant_id THEN RAISE EXCEPTION 'Identita immutabile' USING ERRCODE='23514'; END IF;
-        IF EXISTS(SELECT 1 FROM foundation.numbering_counter WHERE series_id=OLD.id AND used)
-           AND (NEW.mode,NEW.prefix,NEW.padding) IS DISTINCT FROM (OLD.mode,OLD.prefix,OLD.padding)
-        THEN RAISE EXCEPTION 'Numerazione gia utilizzata' USING ERRCODE='23514'; END IF;
-    ELSE
-        IF NEW.series_id<>OLD.series_id OR NEW.tenant_id<>OLD.tenant_id OR (OLD.used AND (NOT NEW.used OR NEW.next_number NOT IN (OLD.next_number,OLD.next_number+1)))
-        THEN RAISE EXCEPTION 'Contatore non ripristinabile' USING ERRCODE='23514'; END IF;
-    END IF;
-    RETURN NEW;
-END $$;
-CREATE TRIGGER numbering_series_guard BEFORE UPDATE OR DELETE ON foundation.numbering_series FOR EACH ROW EXECUTE FUNCTION foundation.guard_numbering();
-CREATE TRIGGER numbering_counter_guard BEFORE UPDATE OR DELETE ON foundation.numbering_counter FOR EACH ROW EXECUTE FUNCTION foundation.guard_numbering();
-REVOKE ALL ON FUNCTION foundation.guard_numbering() FROM PUBLIC;
-GRANT SELECT,INSERT,UPDATE ON foundation.numbering_series,foundation.numbering_counter TO enginia360_app;
-
 -- Anagrafica tenant-wide; nessun ruolo cliente/fornitore o legame aziendale.
 CREATE TABLE masterdata.business_partner (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

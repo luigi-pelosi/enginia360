@@ -2,6 +2,16 @@
 @import "tw-animate-css";
 @custom-variant dark (&:is(.dark *));
 
+:is([data-payments-workspace], [role="dialog"]:has(#pm-code), [data-payment-term-dialog]) div:not(.space-y-2) > label:has(+ [data-slot="select-trigger"]) {
+  display: flex;
+  margin-bottom: 0.5rem;
+}
+
+/* The term editor's grid item and fieldset must shrink before the table can scroll. */
+[data-payment-term-dialog] { grid-template-columns: minmax(0, 1fr); }
+[data-installments-table] { max-width: 100%; overflow-x: auto; }
+[data-installments-table] > [data-slot="table-container"] { width: 100%; overflow: visible; }
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -157,9 +167,8 @@
   .skip-link { @apply sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-background focus:p-3 focus:ring-2; }
 }
 
-[data-dialog-resize] { display: none; }
-@media (min-width: 1024px) {
-  [data-slot="dialog-header"], [data-slot="alert-dialog-header"] {
+[data-slot="dialog-header"], [data-slot="alert-dialog-header"],
+  [data-slot="dialog-title"], [data-slot="alert-dialog-title"] {
     cursor: move;
     touch-action: none;
   }
@@ -173,17 +182,19 @@
     translate: none;
     transition: none;
   }
-  [data-dialog-resized] { overflow: auto; }
+  [data-dialog-floating] { overflow: auto; }
+  /* The grip is out of grid/flex flow; offset its scroll with the dialog. */
   [data-dialog-resize] {
     display: block;
     position: absolute;
-    right: 2px;
-    bottom: 2px;
-    width: 18px;
-    height: 18px;
+    right: 0;
+    bottom: 0;
+    transform: translate(var(--dialog-scroll-x, 0px), var(--dialog-scroll-y, 0px));
+    z-index: 1;
+    width: 24px;
+    height: 24px;
     cursor: nwse-resize;
     touch-action: none;
     background: repeating-linear-gradient(135deg, transparent 0 3px, var(--border) 3px 5px);
     clip-path: polygon(100% 0, 100% 100%, 0 100%);
   }
-}

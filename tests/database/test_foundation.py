@@ -9,7 +9,7 @@ from dbbaseline import CONTAINER, sql as baseline_sql
 ROOT = Path(__file__).resolve().parents[2]
 TABLES = (
     "tenant", "company", "site", "warehouse_type", "warehouse",
-    "warehouse_location", "setting", "user", "user_group", "role",
+    "warehouse_location", "user", "user_group", "role",
     "permission", "user_group_member", "user_role", "user_group_role",
     "role_permission", "login_limit", "audit_event",
     "sales_organization", "purchasing_organization",
@@ -19,10 +19,15 @@ TABLES = (
     "business_partner_address_usage", "business_partner_contact_channel",
     "numbering_series", "numbering_counter",
     "company_business_partner", "company_business_partner_role", "role_company",
+    "currency", "payment_methods", "payment_terms", "payment_term_installments",
+    "company_payment_settings", "business_partner_payment_defaults", "fatturapa_payment_codes",
+    "catalog_unit_of_measure", "catalog_category", "catalog_item_type",
+    "catalog_brand", "catalog_item", "catalog_item_code", "catalog_item_identifier",
+    "catalog_item_unit", "catalog_item_physical_data", "catalog_item_company",
 )
 
 def table_schema(name):
-    return 'masterdata' if name.startswith(('business_partner', 'company_business_partner')) else 'foundation'
+    return 'masterdata' if name.startswith(('business_partner', 'company_business_partner', 'catalog_', 'payment_')) or name in ('company_payment_settings', 'fatturapa_payment_codes') else 'foundation'
 
 
 def query(sql):
@@ -108,39 +113,8 @@ class FoundationTests(unittest.TestCase):
             with self.subTest(statement=statement):
                 self.rejects(statement, '23503')
 
-    def test_setting_has_three_exact_scopes(self):
-        tenant = uid(1)
-        statements = []
-        for company, site in (('NULL', 'NULL'), (tenant, 'NULL'), (tenant, tenant)):
-            statements.append(
-                f"INSERT INTO foundation.setting (tenant_id, company_id, site_id, key, value) VALUES ({tenant}, {company}, {site}, 'language', '\"it\"');"
-            )
-        statements.append(f'SELECT count(*) FROM foundation.setting WHERE tenant_id = {tenant};')
-        self.assertEqual(self.exercise('\n'.join(statements)), '3')
-
-    def test_setting_duplicates_are_rejected_at_each_scope(self):
-        tenant = uid(1)
-        for company, site in (('NULL', 'NULL'), (tenant, 'NULL'), (tenant, tenant)):
-            statement = (
-                f"INSERT INTO foundation.setting (tenant_id, company_id, site_id, key, value) "
-                f"VALUES ({tenant}, {company}, {site}, 'language', '\"it\"')"
-            )
-            with self.subTest(company=company, site=site):
-                self.rejects(statement + '; ' + statement, '23505')
-
-    def test_setting_invalid_hierarchy_is_rejected(self):
-        for tenant, company, site, state in (
-            (uid(1), 'NULL', uid(1), '23514'),
-            (uid(1), uid(2), 'NULL', '23503'),
-            (uid(1), uid(1), uid(2), '23503'),
-            (uid(1), uid(1), uid(3), '23503'),
-            ('NULL', 'NULL', 'NULL', '23502'),
-        ):
-            with self.subTest(tenant=tenant, company=company, site=site):
-                self.rejects(
-                    f"INSERT INTO foundation.setting (tenant_id, company_id, site_id, key, value) "
-                    f"VALUES ({tenant}, {company}, {site}, 'language', '\"it\"')", state,
-                )
+    def test_setting_is_not_an_installed_resource(self):
+        self.assertEqual(query("SELECT to_regclass('foundation.setting') IS NULL"), 't')
 
     def test_codes_are_unique_in_their_own_scope(self):
         tenant = uid(1)

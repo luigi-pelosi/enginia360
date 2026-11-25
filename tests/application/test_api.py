@@ -131,8 +131,7 @@ class ApplicationTests(unittest.TestCase):
             group = create('groups', {'code': 'operators', 'name': 'Operatori', 'is_enabled': True})
             role = create('roles', {'code': 'reader', 'name': 'Lettura', 'is_enabled': True})
             permission = catalog_permission(self.client, first, 'companies.read')['id']
-            setting = create('settings', {'company_id': company, 'site_id': site, 'key': 'language', 'value': 'it', 'is_enabled': True})
-            self.assertIsNotNone(setting)
+            self.assertEqual(self.client.request('/api/data/settings?tenantId=' + first)[0], 404)
             for relation, owner, ids in (
                 ('user-roles', user, [role]), ('group-users', group, [user]),
                 ('group-roles', group, [role]), ('role-permissions', role, [permission]),

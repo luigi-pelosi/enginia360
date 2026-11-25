@@ -30,7 +30,7 @@ public static class DataEndpoints
             var match=Resources.IsGlobalMaster(resource) ? $"strpos({GeographyCatalog.FoldSearch(searchField)},{GeographyCatalog.FoldSearch("@search")}) > 0" : $"strpos(lower({searchField}),lower(@search)) > 0";
             var where=$"{scope} AND (@search='' OR {match})";
             var total=await db.Scalar($"SELECT count(*) FROM {SqlNames.Table(r.Table)} WHERE {where}",("tenant",tenant),("search",search),("viewer",state.User.Id));
-            var order=Resources.IsGlobalMaster(resource) ? "lower(name),"+(resource=="cities" ? "postal_code," : "iso_code,")+"id" : "created_at,id";
+            var order=Resources.IsGlobalMaster(resource) ? "lower(name),"+(resource=="cities" ? "postal_code," : resource=="currencies" ? "code," : "iso_code,")+"id" : "created_at,id";
             await using var cmd=await db.Command($"SELECT {Resources.Projection(r)} FROM {SqlNames.Table(r.Table)} t WHERE {where} ORDER BY {order} LIMIT @size OFFSET @offset",("tenant",tenant),("search",search),("viewer",state.User.Id),("size",size),("offset",(page-1)*size));
             await using var reader=await cmd.ExecuteReaderAsync(); var items=new List<JsonElement>();
             while(await reader.ReadAsync()) items.Add(JsonSerializer.Deserialize<JsonElement>(reader.GetString(0)));
@@ -51,7 +51,8 @@ public static class DataEndpoints
         });
         app.MapPut("/api/data/{resource}/{id:guid}",async (HttpContext ctx,AppDb db,string resource,Guid id,JsonElement body) => {
             var r=Resources.Get(resource); var state=Security.State(ctx); await Security.AuthorizeResource(ctx,r,"update"); var tenant=state.Tenant(ctx,resource);
-            var after=await Update(db,r,state,tenant,id,Resources.Validate(r,body,false));
+            var (values,expected)=CurrencyValues(r,body);
+            var after=await Update(db,r,state,tenant,id,Resources.Validate(r,values,false),expected);
             return Results.Ok(after);
         });
         app.MapDelete("/api/data/{resource}/{id:guid}",async (HttpContext ctx,AppDb db,string resource,Guid id) => {
@@ -94,12 +95,20 @@ public static class DataEndpoints
         var create=!ownerId.HasValue;
         Check.Require(!r.ReadOnly,403,"forbidden");
         Check.Require(body.ValueKind==JsonValueKind.Object);
-        JsonElement? valuesBody=null; JsonElement? linksBody=null; PurchasingCoverage.Entry[]? coverage=null;
+        JsonElement? valuesBody=null; JsonElement? linksBody=null; PurchasingCoverage.Entry[]? coverage=null; long? expected=null; HashSet<Guid>? companyIds=null;
         var names=new HashSet<string>(StringComparer.Ordinal);
         foreach(var prop in body.EnumerateObject())
         {
             var name=Resources.ReadName(prop);
-            Check.Require(names.Add(name) && name is "values" or "links" or "coverage");
+            Check.Require(names.Add(name) && name is "values" or "links" or "coverage" or "expectedVersion" or "companyIds");
+            if(name=="companyIds") {
+                Check.Require(resource=="roles");
+                companyIds=RoleCompanyEndpoints.Parse(prop.Value); continue;
+            }
+            if(name=="expectedVersion") {
+                Check.Require(resource=="currencies" && ownerId.HasValue);
+                expected=ParseVersion(prop.Value); continue;
+            }
             if(name=="coverage") {
                 Check.Require(resource=="purchasing-organizations");
                 coverage=PurchasingCoverage.Parse(prop.Value); continue;
@@ -115,24 +124,52 @@ public static class DataEndpoints
             Check.Require(!links.ContainsKey(name) && Resources.Links.TryGetValue(name,out var relation) && relation.OwnerResource==resource);
             links.Add(name,ParseLinkIds(prop.Value));
         }
-        Check.Require(valuesBody.HasValue || links.Count>0 || coverage!=null);
+        Check.Require(valuesBody.HasValue || links.Count>0 || coverage!=null || companyIds!=null);
         // Tutti i gate precedono letture/scritture; l'identità resta quella fresca sotto lock middleware.
         if(valuesBody.HasValue) await Security.AuthorizeResource(ctx,r,ownerId.HasValue ? "update" : "create");
         foreach(var name in links.Keys) await Security.Authorize(ctx,Resources.Links[name].Permission);
         if(coverage!=null) await Security.Authorize(ctx,PurchasingCoverage.Permission);
+        if(companyIds!=null) await Security.Authorize(ctx,"roles.assign_companies");
         var tenant=state.Tenant(ctx,resource);
         var values=valuesBody.HasValue ? Resources.Validate(r,valuesBody.Value,!ownerId.HasValue) : null;
+        if(resource=="roles") {
+            // Anche comandi senza anagrafica devono identificare un ruolo del tenant.
+            // Tutti i target sono verificati prima di creare/aggiornare il ruolo o i grant:
+            // l'autorità fresca non può essere ampliata dalle scritture di questo comando.
+            if(ownerId.HasValue) await Resources.EnsureRow(db,r,ownerId.Value,tenant);
+            foreach(var (name,ids) in links)
+                foreach(var id in ids) Check.Require(await Resources.Row(db,Resources.Get(Resources.Links[name].TargetResource),id,tenant)!=null);
+            if(companyIds!=null) await RoleCompanyEndpoints.Validate(db,tenant!.Value,companyIds);
+        }
         JsonElement? after=null;
         if(!ownerId.HasValue)
         {
             after=await Create(db,r,state,tenant,values!);
             ownerId=after.Value.GetProperty("id").GetGuid();
         }
-        else if(values != null) after=await Update(db,r,state,tenant,ownerId.Value,values);
+        else if(values != null) after=await Update(db,r,state,tenant,ownerId.Value,values,expected);
         foreach(var (name,ids) in links) await ReplaceLinks(db,Resources.Links[name],name,state,tenant,ownerId.Value,ids);
         if(coverage!=null) await PurchasingCoverage.Replace(db,state,tenant!.Value,ownerId.Value,coverage);
+        if(companyIds!=null) await RoleCompanyEndpoints.Replace(db,state,tenant!.Value,ownerId.Value,companyIds);
         return after.HasValue ? Results.Json(after,statusCode:create ? 201 : 200)
             : Results.Ok(new {id=ownerId.Value});
+    }
+    private static long ParseVersion(JsonElement value)
+    {
+        Check.Require(value.ValueKind==JsonValueKind.Number && value.TryGetInt64(out var v) && v is >= 1 and <= 9007199254740991);
+        return value.GetInt64();
+    }
+    private static (JsonElement Values,long? Expected) CurrencyValues(Resource r,JsonElement body)
+    {
+        if(r.Key!="currencies") return (body,null);
+        Check.Require(body.ValueKind==JsonValueKind.Object);
+        var values=new Dictionary<string,JsonElement>(StringComparer.Ordinal); long? expected=null;
+        var seen=new HashSet<string>(StringComparer.Ordinal);
+        foreach(var prop in body.EnumerateObject()) {
+            var name=Resources.ReadName(prop); Check.Require(seen.Add(name));
+            if(name=="expectedVersion") expected=ParseVersion(prop.Value); else values.Add(name,prop.Value);
+        }
+        return (JsonSerializer.SerializeToElement(values),expected);
     }
     private static HashSet<Guid> ParseLinkIds(JsonElement list)
     {
@@ -154,16 +191,26 @@ public static class DataEndpoints
         fields.Add("id");
         cmd.CommandText=$"INSERT INTO {SqlNames.Table(r.Table)} ({string.Join(',',fields)}) VALUES ({string.Join(',',fields.Select(x => "@"+x))})";
         await cmd.ExecuteNonQueryAsync();
-        if(resource == "tenants") await PermissionCatalog.Seed(db,id);
+        if(resource == "tenants") {
+            await PermissionCatalog.Seed(db,id);
+            await Enginia360.Modules.Catalog.CatalogSeed.Seed(db,id,state.User.Id);
+        }
         var after=await Resources.Row(db,r,id,tenant);
         object? details=HasSnapshots(resource) ? new {before=(JsonElement?)null,after}
             : resource == "tenants" ? new {permissionCatalog=PermissionCatalog.Codes} : null;
         await db.Audit(state.User.Id,tenant,"create",resource,id,details);
         return after!.Value;
     }
-    private static async Task<JsonElement> Update(AppDb db,Resource r,IdentityState state,Guid? tenant,Guid id,Dictionary<string,object?> values)
+    private static async Task<JsonElement> Update(AppDb db,Resource r,IdentityState state,Guid? tenant,Guid id,Dictionary<string,object?> values,long? expected=null)
     {
         var resource=r.Key;
+        if(resource=="currencies") {
+            var current=await db.Scalar("SELECT version FROM foundation.currency WHERE id=@id FOR UPDATE",("id",id));
+            Check.Require(current!=null,404,"not_found");
+            var version=(long)current!;
+            Check.Require(!expected.HasValue || version==expected.Value,409,"version_conflict");
+            Check.Require(version < 9007199254740991,409,"version_exhausted");
+        }
         await Resources.EnsureRow(db,r,id,tenant); await Resources.ValidateReferences(db,r,values,tenant);
         var before=HasSnapshots(resource) ? await Resources.Row(db,r,id,tenant) : null;
         if(resource == "countries" && values.ContainsKey("iso_code"))
@@ -209,7 +256,7 @@ public static class DataEndpoints
         foreach(var (key,value) in values)
         {
             var type=r.Fields.Single(f => f.Name==key).Type;
-            cmd.Parameters.Add(new NpgsqlParameter(key,type switch { "multiselect" => NpgsqlDbType.Array | NpgsqlDbType.Text,"date" => NpgsqlDbType.Date,"boolean" => NpgsqlDbType.Boolean,"reference" => NpgsqlDbType.Uuid,"json" => NpgsqlDbType.Jsonb,_ => NpgsqlDbType.Text }) {Value=value ?? DBNull.Value});
+            cmd.Parameters.Add(new NpgsqlParameter(key,type switch { "multiselect" => NpgsqlDbType.Array | NpgsqlDbType.Text,"date" => NpgsqlDbType.Date,"integer" => NpgsqlDbType.Integer,"boolean" => NpgsqlDbType.Boolean,"reference" => NpgsqlDbType.Uuid,"json" => NpgsqlDbType.Jsonb,_ => NpgsqlDbType.Text }) {Value=value ?? DBNull.Value});
         }
     }
 }

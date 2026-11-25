@@ -7,13 +7,15 @@ import ts from "typescript";
 // Execute the real login handler with its browser/API boundary isolated.
 const source = readFileSync(new URL("../components/workspace.tsx", import.meta.url), "utf8");
 const handler = source.slice(source.indexOf("  async function login("), source.indexOf("  async function logout("));
-const executable = ts.transpileModule(handler, {compilerOptions: {target: ts.ScriptTarget.ES2022}}).outputText;
+const tenantHelpers = source.slice(source.indexOf('function workspaceTenantKey('), source.indexOf('/* end-workspace-navigation-helpers */'));
+const executable = ts.transpileModule(tenantHelpers + '\n' + handler, {compilerOptions: {target: ts.ScriptTarget.ES2022}}).outputText;
 async function login(currentLocale: string, preferredLanguage: "it" | "en", mustChangePassword = false, failure = "", overrides: Record<string, unknown> = {}) {
   const events: string[] = [];
   const session = {id: "user", tenantId: "tenant", displayName: "Ada Lovelace", preferredLanguage, mustChangePassword, ...overrides};
   let authenticated: unknown = null;
   const document = {cookie: ""};
   const context = {
+    sessionStorage: {setItem: (key: string, value: string) => events.push(`storage:${key}:${value}`)},
     locale: currentLocale, username: "ada", password: "secret", tenantCode: "",
     document, location: {reload: () => events.push("reload")},
     api: async (path: string) => {events.push(path); if(failure) throw Error(failure); return session},
@@ -63,6 +65,7 @@ test("global login preselects the organization without changing identity scope",
   const result = await login("it", "it", false, "", {tenantId:null,isSuperAdmin:true,selectedTenantId:"chosen-organization"});
   assert.equal(result.session.tenantId, null);
   assert.ok(result.events.includes("tenant:chosen-organization"));
+  assert.ok(result.events.includes("storage:workspace-tenant:user:chosen-organization"));
   assert.equal(result.authenticated, result.session);
 });
 test("session restoration and password-change do not overwrite temporary language choice", () => {

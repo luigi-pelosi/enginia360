@@ -92,7 +92,6 @@ with sync_playwright() as p:
         group = create('groups', 'Gruppi', {'code': 'operators', 'name': 'Operatori verifica'})
         role = create('roles', 'Ruoli', {'code': 'reader', 'name': 'Lettura società'})
         permission = create('permissions', 'Permessi', {'code': 'companies.read', 'name': 'Lettura società'})
-        create('settings', 'Impostazioni', {'company_id': company, 'site_id': site, 'key': 'language', 'value': '"it"'})
 
         for label, record_name, relation_label, target_name in (
             ('Ruoli', 'Lettura società', 'Permessi del ruolo', 'Lettura società'),

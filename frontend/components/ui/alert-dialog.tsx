@@ -66,6 +66,10 @@ function AlertDialogContent({
         )}
         {...props}
         {...windowEvents}
+        onScroll={(event) => {
+          props.onScroll?.(event)
+          windowEvents.onScroll(event)
+        }}
         onPointerDown={(event) => {
           props.onPointerDown?.(event)
           windowEvents.onPointerDown(event)

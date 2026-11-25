@@ -24,5 +24,5 @@ test('Settings bulk selects original descendant permissions even while filtering
  const control=find(tree,n=>n.props?.['data-permission-resource-checkbox']==='settings');
  assert.ok(control);
  control.props.onCheckedChange(true);
- assert.deepEqual([...changed].sort(),['outside',...catalog.filter(row=>row.code.startsWith('settings.')||row.code.startsWith('business-partner-numbering.')).map(row=>row.id)].sort());
+ assert.deepEqual([...changed].sort(),['outside',...catalog.filter(row=>row.code.startsWith('business-partner-numbering.')||['countries.read','cities.read','currencies.read'].includes(row.code)).map(row=>row.id)].sort());
 });

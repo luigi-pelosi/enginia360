@@ -1,0 +1,61 @@
+"""Currency catalog and payment preview in Chromium using the disposable real API."""
+import unittest
+import browser_business_partners as b
+from playwright.sync_api import expect
+
+class CurrencyBrowserProof(b.BusinessPartnerBrowserTests):
+    def test_currency_catalog_and_preview(self):
+        status, company = self.case.root.request('/api/data/companies?tenantId='+self.case.tenant_id, 'POST', {'name':'Currency browser company'})
+        self.assertEqual(status, 201, company)
+        self.login()
+        self.page.locator('nav').get_by_role('button', name='Impostazioni', exact=True).click()
+        self.page.get_by_role('button', name='Sistema', exact=True).click()
+        with self.page.expect_response(lambda r: r.request.method == 'GET' and '/api/data/currencies' in r.url) as catalog:
+            self.page.get_by_role('button', name='Valute', exact=True).click()
+        self.assertEqual(catalog.value.status, 200)
+        expect(self.page.locator('#main')).to_contain_text('Valute')
+        search=self.page.get_by_role('textbox',name='Cerca',exact=True)
+        search.fill('EUR')
+        row=self.page.locator('tbody tr').filter(has=self.page.get_by_role('cell',name='EUR',exact=True))
+        expect(row).to_have_count(1)
+        row.get_by_role('button',name='Modifica',exact=False).click()
+        currency_dialog=self.page.get_by_role('dialog')
+        expect(currency_dialog.locator('#field-code')).to_have_value('EUR')
+        currency_dialog.locator('#field-name').fill('Euro browser proof')
+        with self.page.expect_response(lambda r:r.request.method=='PUT' and '/api/data/currencies/' in r.url and r.url.endswith('/save')) as update:
+            currency_dialog.get_by_role('button',name='Salva',exact=True).click()
+        self.assertEqual(update.value.status,200,update.value.text())
+        self.assertGreaterEqual(update.value.request.post_data_json['expectedVersion'],1)
+        status,listing=self.case.root.request('/api/data/currencies?search=EUR&pageSize=100')
+        self.assertEqual(status,200,listing)
+        readback=next(item for item in listing['items'] if item['code']=='EUR')
+        self.assertEqual(readback['name'],'Euro browser proof')
+        self.assertEqual(readback['version'],update.value.request.post_data_json['expectedVersion']+1)
+        expect(currency_dialog).to_have_count(0)
+        print('Currency GET',status,readback['name'],'version',readback['version'],flush=True)
+        print('Currency update',update.value.status,update.value.request.post_data_json,flush=True)
+        self.page.locator('nav').get_by_role('button',name='Pagamenti',exact=True).click()
+        w=self.page.locator('[data-payments-workspace]')
+        expect(w).to_be_visible()
+        w.locator('#payment-company').click()
+        self.page.get_by_role('option',name='Currency browser company',exact=True).click()
+        w.get_by_role('button',name='Condizioni di pagamento',exact=True).click()
+        w.get_by_role('button',name='Nuovo',exact=True).click()
+        dialog=self.page.get_by_role('dialog')
+        expect(dialog).to_be_visible()
+        dialog.get_by_role('tab',name='Rate',exact=True).click()
+        dialog.locator('#preview-date').fill('2026-11-20')
+        dialog.locator('#preview-amount').fill('1.2345')
+        dialog.locator('#preview-currency').click()
+        self.page.get_by_role('option',name='CLF · Unidad de Fomento',exact=False).click()
+        with self.page.expect_response(lambda r:r.request.method=='POST' and '/payment-schedule/preview' in r.url) as preview:
+            dialog.get_by_role('button',name='Calcola',exact=True).click()
+        self.assertEqual(preview.value.status,200,preview.value.text())
+        self.assertEqual(preview.value.request.post_data_json['currency'],'CLF')
+        self.assertEqual(preview.value.json()['items'][0]['amount'],1.2345)
+        expect(dialog.locator('table').last).to_contain_text('1.2345')
+        dialog.locator('#preview-currency').click()
+        expect(self.page.get_by_role('option',name='XAU',exact=False)).to_have_count(0)
+        print('Chromium: catalog GET',catalog.value.status,'CLF preview',preview.value.status,preview.value.json(),'XAU N.A. not offered',flush=True)
+
+if __name__=='__main__': unittest.main()

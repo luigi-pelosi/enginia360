@@ -21,6 +21,8 @@ public sealed record IdentityState(User User, string Username, string DisplayNam
     public void Authorize(string resource, string operation)
     {
         Check.Require(resource == "tenants" ? User.IsEnabled && User.IsSuperAdmin && User.TenantId == null && operation is "read" or "create" or "update" or "delete"
+            : ResourceCatalog.IsGlobalMaster(resource) && operation != "read"
+                ? User.IsEnabled && User.IsSuperAdmin && User.TenantId == null && operation is "create" or "update" or "delete"
             : PermissionCatalog.Grants(this,resource+"."+operation),403,"forbidden");
     }
     public Guid? Tenant(HttpContext ctx, string resource)
@@ -83,12 +85,9 @@ public static class Security
     {
         Check.Require(action is "read" or "create" or "update" or "delete",403,"forbidden");
         Check.Require(!resource.ReadOnly || action == "read",403,"forbidden");
-        if(ResourceCatalog.IsGlobalMaster(resource.Key) && action == "read") {
-            var user=State(ctx).User;
-            Check.Require(user.IsEnabled && (user.TenantId != null && !user.IsSuperAdmin || user.TenantId == null && user.IsSuperAdmin),403,"forbidden");
-            return Task.CompletedTask;
-        }
-        return Authorize(ctx,resource.Key == "tenants" || ResourceCatalog.IsGlobalMaster(resource.Key) ? PermissionCatalog.GlobalPolicy : resource.Key+"."+action);
+        // Cataloghi globali: lettura esplicita tenant, manutenzione soltanto globale.
+        return Authorize(ctx,resource.Key == "tenants" || ResourceCatalog.IsGlobalMaster(resource.Key) && action != "read"
+            ? PermissionCatalog.GlobalPolicy : resource.Key+"."+action);
     }
     public static async Task Issue(HttpContext ctx, User a, Guid? selectedTenantId = null)
     {

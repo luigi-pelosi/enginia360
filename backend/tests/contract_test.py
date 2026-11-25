@@ -10,7 +10,8 @@ class ContractTests(unittest.TestCase):
 
     def test_resource_whitelist(self):
         source = (ROOT / 'Api/Resources/Resources.cs').read_text().replace('ResourceCatalog.', 'Resources.').replace('GeographyCatalog.', 'Geography.') if (ROOT / 'Api/Resources/Resources.cs').exists() else ''
-        for key in ['tenants', 'companies', 'sites', 'warehouse-types', 'warehouses', 'warehouse-locations', 'settings', 'users', 'groups', 'roles', 'permissions']:
+        for key in ['tenants', 'companies', 'sites', 'warehouse-types', 'warehouses', 'warehouse-locations', 'users', 'groups', 'roles', 'permissions']:
             self.assertIn('"' + key + '"', source)
+        self.assertNotIn('"settings"', source)
 
 if __name__ == '__main__': unittest.main()

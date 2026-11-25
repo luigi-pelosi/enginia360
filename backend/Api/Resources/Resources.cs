@@ -20,6 +20,7 @@ public static class Resources
         : [Text("name", true), Text("code", codeRequired), new("is_enabled", "boolean")];
     public static readonly Dictionary<string, Resource> All = new Resource[] {
         new("tenants", "tenant", Named(true, codeRequired: true)),
+        new("currencies", "currency", [Text("name", true), Text("code", true), Text("numeric_code", true), new("minor_units", "integer"), new("is_enabled", "boolean")]),
         new("countries", "country", [Text("name", true), Text("iso_code", true), new("notes", "textarea"), new("is_enabled", "boolean")]),
         new("cities", "city", [Text("name", true), Text("postal_code", true), Text("province"), Text("region"), Ref("country_id", "countries"), new("notes", "textarea"), new("is_enabled", "boolean")]),
         new("business-partners", "business_partner", [Text("legal_name"), Text("first_name"), Text("last_name"), new("kind", "select", true, Options: ["PERSON", "ORGANIZATION"]), Text("code"), new("status", "select", Options: ["DRAFT", "ACTIVE", "BLOCKED", "ARCHIVED"], DefaultValue: "DRAFT")]),
@@ -30,7 +31,7 @@ public static class Resources
         new("warehouse-types", "warehouse_type", Named()),
         new("warehouses", "warehouse", [Ref("site_id", "sites"), Ref("warehouse_type_id", "warehouse-types"), ..Named()]),
         new("warehouse-locations", "warehouse_location", [Ref("warehouse_id", "warehouses"), ..Named()]),
-        new("settings", "setting", [Ref("company_id", "companies", false), Ref("site_id", "sites", false), Text("key", true), new("value", "json", true), new("is_enabled", "boolean")]),
+
         new("users", "user", [Text("username", true), Text("first_name", true), Text("last_name", true), Text("email", true), new("date_of_birth", "date"), new("phone_number", "tel"), new("preferred_language", "select", Options: ["it", "en"], DefaultValue: "it"), new("is_enabled", "boolean")]),
         new("groups", "user_group", Named(true)),
         new("roles", "role", Named(true)),
@@ -42,7 +43,7 @@ public static class Resources
         ["group-roles"] = new("user_group_role", "user_group_id", "role_id", "groups", "roles", "roles.assign"),
         ["role-permissions"] = new("role_permission", "role_id", "permission_id", "roles", "permissions", "roles.assign_permissions")
     };
-    public static bool IsGlobalMaster(string key) => key is "countries" or "cities";
+    public static bool IsGlobalMaster(string key) => key is "countries" or "cities" or "currencies";
     public static bool MetaReadOnly(Resource r, User user) => r.ReadOnly || IsGlobalMaster(r.Key) && !(user.IsEnabled && user.IsSuperAdmin && user.TenantId == null);
     public static Resource Get(string key) => All.TryGetValue(key, out var r) ? r : throw new ApiException(404,"not_found");
 
@@ -62,6 +63,11 @@ public static class Resources
             {
                 Check.Require(!f.Required && f.Type is not ("boolean" or "multiselect") && f.Name != "preferred_language");
                 value = null;
+            }
+            else if (f.Type == "integer")
+            {
+                Check.Require(prop.Value.ValueKind == JsonValueKind.Number && prop.Value.TryGetInt32(out var number) && number is >= 0 and <= 28);
+                value = prop.Value.GetInt32();
             }
             else if (f.Type == "boolean")
             {
@@ -100,6 +106,8 @@ public static class Resources
                     if(f.Name == "phone_number") Check.Require(text.Length <= 50);
                     if(f.Name == "preferred_language") Check.Require(text is "it" or "en");
                 }
+                if (resource.Key == "currencies" && f.Name is "code" or "numeric_code")
+                    Check.Require(System.Text.RegularExpressions.Regex.IsMatch(text, f.Name == "code" ? "^[A-Z]{3}$" : "^[0-9]{3}$"));
                 if (resource.Key == "countries" && f.Name == "iso_code") Check.Require(CountryCodes.All.Contains(text, StringComparer.Ordinal));
                 if (IsGlobalMaster(resource.Key)) text = text.Trim();
                 if (resource.Key == "sites" && f.Name is "vat_number" or "tax_code") text = text.Trim();
@@ -126,8 +134,7 @@ public static class Resources
         }
         if (create) foreach (var field in resource.Fields.Where(f => f.Required)) Check.Require(values.ContainsKey(field.Name));
         if (resource.Key == "sites" && create) ValidateTaxIdentity(values,null);
-        if (resource.Key == "settings" && values.TryGetValue("key",out var settingKey))
-            Check.Require(settingKey is string k && !k.TrimStart().StartsWith("integrations.",StringComparison.OrdinalIgnoreCase));
+
         Check.Require(values.Count > 0);
         return values;
     }
@@ -157,12 +164,12 @@ public static class Resources
     public static string Projection(Resource r)
     {
         var fields = new[] { "id" }.Concat(r.Key == "tenants" || IsGlobalMaster(r.Key) ? [] : new[] { "tenant_id" })
-            .Concat(r.Fields.Select(f => f.Name)).Concat(new[] { "created_at", "updated_at" });
+            .Concat(r.Fields.Select(f => f.Name)).Concat(r.Key == "currencies" ? new[] { "version" } : []).Concat(new[] { "created_at", "updated_at" });
         return "json_build_object(" + string.Join(',',fields.Select(f => $"'{f}',t.{f}")) + ")::text";
     }
     public static string Scope(Resource r) => r.Key == "tenants" || IsGlobalMaster(r.Key) ? "true"
         : r.Key == "users" ? "tenant_id=@tenant::uuid AND NOT is_super_admin"
-        : r.Key == "settings" ? "tenant_id=@tenant::uuid AND key NOT LIKE 'integrations.%'"
+
         : r.Key == "permissions" ? "tenant_id=@tenant::uuid AND is_system AND code IN ("+string.Join(',',PermissionCatalog.Codes.Select(c => "'"+c+"'"))+")" : "tenant_id=@tenant::uuid";
 
     // La visibilità della propria utenza globale non estende mutazioni o associazioni tenant.

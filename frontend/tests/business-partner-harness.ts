@@ -13,12 +13,13 @@ export function partnerHarness(file='business-partner-workspace', locale='en', r
  const require=createRequire(import.meta.url), messages=JSON.parse(readFileSync(new URL(`../messages/${locale}.json`,import.meta.url),'utf8'));
  let index=0;
  const state:any[]=[], refs:any[]=[], dependencies:any[][]=[], effects:Array<()=>any>=[], calls:Array<{path:string;method:string;body:any}>=[];
- const ui=new Proxy({}, {get:(_target,name)=>(props:any)=>{
+ const uiComponents=new Map<PropertyKey,any>();
+ const ui=new Proxy({}, {get:(_target,name)=>{if(uiComponents.has(name))return uiComponents.get(name);const component=(props:any)=>{
   const tag=name==='Button'?'button':name==='Input'?'input':name==='Textarea'?'textarea':name==='Label'?'label':name==='Checkbox'?'input':'div';
   const safe=Object.fromEntries(Object.entries(props).filter(([key])=>['children','disabled','className','id','value','checked','htmlFor','type','required','pattern','readOnly','min','max'].includes(key)||key.startsWith('aria-')));
   if(tag==='input') {delete safe.children;safe.readOnly=true;}
-  return React.createElement(tag,safe);
- }});
+  return React.createElement(tag,safe,name==='FilterBar'?props.fields.map((field:any)=>React.createElement(React.Fragment,{key:field.key},field.content)):safe.children);
+ };uiComponents.set(name,component);return component;}});
  const modules:Record<string,any>={};
  const resolve=(name:string):any=>{
   if(name==='react') return {...React,useState:(initial:any)=>{const i=index++;if(!(i in state)) state[i]=typeof initial==='function'?initial():initial;return [state[i],(next:any)=>{state[i]=typeof next==='function'?next(state[i]):next;}];},useRef:(initial:any)=>{const i=index++;return refs[i]??=( {current:initial});},useEffect:(effect:()=>any,deps:any[])=>{const i=index++;if(!dependencies[i]||deps.some((v,j)=>v!==dependencies[i][j])){dependencies[i]=deps;effects.push(effect);}},useMemo:(fn:()=>any)=>fn(),useCallback:(fn:any)=>fn};
@@ -29,7 +30,7 @@ export function partnerHarness(file='business-partner-workspace', locale='en', r
   if(name.startsWith('@/')) {
    if(modules[name]) return modules[name];
    const source=readFileSync(new URL(`../${name.slice(2)}${name.startsWith('@/components/')?'.tsx':'.ts'}`,import.meta.url),'utf8'), module={exports:{}};
-   const code=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,esModuleInterop:true}}).outputText;
+   const code=ts.transpileModule(source+(name==='@/components/workspace'?'\nexport {RecordEditor};':''),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,esModuleInterop:true}}).outputText;
    runInNewContext(code,{module,exports:module.exports,require:resolve,console,setTimeout,clearTimeout,AbortController,Intl,URL,URLSearchParams,sessionStorage:storage});modules[name]=module.exports;return module.exports;
   }
   return require(name);

@@ -42,9 +42,12 @@ class BaselineInvariantTests(unittest.TestCase):
         self.assertEqual(acl,sql("SELECT nspacl::text FROM pg_namespace WHERE nspname='foundation'").stdout)
         self.assertEqual(sql("SELECT has_schema_privilege('enginia360_app','foundation','USAGE') AND NOT has_schema_privilege('enginia360_app','foundation','CREATE')").stdout.strip(),'t')
         self.assertEqual(sql("""SELECT bool_and(has_table_privilege('enginia360_app',c.oid,'SELECT')
-            AND has_table_privilege('enginia360_app',c.oid,'INSERT')
-            AND has_table_privilege('enginia360_app',c.oid,'UPDATE')
-            AND has_table_privilege('enginia360_app',c.oid,'DELETE') = (c.relname NOT IN ('business_partner','numbering_series','numbering_counter','company_business_partner','company_business_partner_role'))
+            AND has_table_privilege('enginia360_app',c.oid,'INSERT') = (c.relname <> 'fatturapa_payment_codes')
+            AND has_table_privilege('enginia360_app',c.oid,'UPDATE') = (c.relname NOT IN ('fatturapa_payment_codes','catalog_item_code'))
+            AND has_table_privilege('enginia360_app',c.oid,'DELETE') = (c.relname NOT IN (
+                'business_partner','numbering_series','numbering_counter','company_business_partner','company_business_partner_role',
+                'payment_methods','payment_terms','company_payment_settings','business_partner_payment_defaults','fatturapa_payment_codes',
+                'catalog_unit_of_measure','catalog_brand','catalog_item','catalog_item_code','catalog_item_company'))
             AND NOT has_table_privilege('enginia360_app',c.oid,'TRUNCATE'))
             FROM pg_class c WHERE relnamespace IN ('foundation'::regnamespace,'masterdata'::regnamespace)
             AND relkind='r' AND relname<>'audit_event'""").stdout.strip(),'t')
@@ -59,7 +62,7 @@ class BaselineInvariantTests(unittest.TestCase):
 
     def test_permission_catalog_is_not_a_seed_and_current_codes_are_admitted(self):
         resources=('companies','sites','warehouse-types','warehouses','warehouse-locations',
-                   'settings','users','groups','roles','sales-organizations','purchasing-organizations')
+                   'users','groups','roles','sales-organizations','purchasing-organizations')
         codes=[r+'.'+a for r in resources for a in ('read','create','update','delete')]
         codes+=['permissions.read','users.reset_password','roles.assign','groups.assign_users',
                 'roles.assign_permissions','purchasing-organizations.assign_scope']
@@ -68,12 +71,27 @@ class BaselineInvariantTests(unittest.TestCase):
         codes+=['roles.assign_companies','business-partner-companies.read',
                 'business-partner-companies.create','business-partner-companies.update',
                 'business-partner-companies.use_customer','business-partner-companies.use_supplier']
-        self.assertEqual(len(set(codes)),61)
+        codes+=['payment-methods.read','payment-methods.create','payment-methods.update',
+                'payment-terms.read','payment-terms.create','payment-terms.update',
+                'payment-settings.read','payment-settings.update','payment-partner-defaults.read',
+                'payment-partner-defaults.update','payment-schedule.preview','payment-resolution.read']
+        codes+=['catalog-units.read','catalog-units.create','catalog-units.update',
+                'catalog-categories.read','catalog-categories.create','catalog-categories.update','catalog-categories.delete',
+                'catalog-types.read','catalog-types.create','catalog-types.update','catalog-types.delete','catalog-item-companies.read','catalog-item-companies.create','catalog-item-companies.update','catalog-numbering.read','catalog-numbering.update',
+                'catalog-items.read','catalog-items.create','catalog-items.update','catalog-items.activate','catalog-items.deactivate','catalog-items.archive',
+                'catalog-brands.read','catalog-brands.create','catalog-brands.update']
+        codes+=['countries.read','cities.read','currencies.read']
+        self.assertEqual(len(set(codes)),97)
         base="BEGIN;INSERT INTO foundation.tenant(id,code,name) VALUES('95000000-0000-0000-0000-000000000001','catalog-proof','Verifica');"
         values=','.join("('95000000-0000-0000-0000-000000000001','"+c+"','Operazione',true)" for c in codes)
         result=sql(base+'INSERT INTO foundation.permission(tenant_id,code,name,is_system) VALUES '+values+';SELECT count(*) FROM foundation.role_permission;ROLLBACK;',role='enginia360_app')
         self.assertEqual(result.stdout.strip(),'0')
-        for code in ('companies.write','tenants.read','roles.assign_users','unknown.read','users.read.extra','business-partners.delete','business-partner-numbering.create'):
+        for code in ('companies.write','tenants.read','roles.assign_users','unknown.read','users.read.extra','business-partners.delete','business-partner-numbering.create',
+                     'catalog-items.delete','catalog-items.write','catalog-items.status','catalog-brands.delete',
+                     'settings.read','settings.create','settings.update','settings.delete',
+                     'countries.create','countries.update','countries.delete',
+                     'cities.create','cities.update','cities.delete',
+                     'currencies.create','currencies.update','currencies.delete'):
             result=sql(base+"INSERT INTO foundation.permission(tenant_id,code,name,is_system) VALUES('95000000-0000-0000-0000-000000000001','"+code+"','Non ammesso',true);ROLLBACK;",check=False)
             self.assertNotEqual(result.returncode,0)
             self.assertIn('permission_system_code_check',result.stderr)

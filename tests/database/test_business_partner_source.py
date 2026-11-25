@@ -18,8 +18,12 @@ class BusinessPartnerSourceTests(unittest.TestCase):
         source = loader.load_foundation_sql()
         self.assertEqual(loader.read_sql(ROOT / 'database/foundation.sql'), source)
         main = (ROOT / 'database/foundation.sql').read_text()
-        domain = (ROOT / 'database/masterdata_business_partner.sql').read_text()
-        self.assertEqual(source, main.replace('\\ir masterdata_business_partner.sql', domain.rstrip('\n')))
+        expected = main
+        fragments = ('masterdata_business_partner.sql', 'masterdata_payments.sql', 'masterdata_catalog.sql')
+        for filename in fragments:
+            self.assertEqual(main.splitlines().count('\\ir ' + filename), 1)
+            expected = expected.replace('\\ir ' + filename, (ROOT / 'database' / filename).read_text().rstrip('\n'))
+        self.assertEqual(source, expected)
         self.assertNotIn('\\ir ', source)
         with tempfile.TemporaryDirectory(dir=__import__('os').environ.get('TMPDIR')) as temporary:
             path = Path(temporary) / 'foundation.sql'
@@ -52,13 +56,19 @@ class BusinessPartnerSourceTests(unittest.TestCase):
         self.assertNotRegex(sql, r'(?im)^\s*ALTER\b')
         self.assertNotRegex(sql, r'(?im)^\s*(?:BEGIN|COMMIT);\s*$')
         tables = re.findall(r'^CREATE TABLE (foundation|masterdata)\.([^\s(]+)', sql, re.M)
-        self.assertEqual(len(tables), 10)
+        self.assertEqual(set(tables), {('foundation','role_company'),
+            ('masterdata','business_partner'), ('masterdata','business_partner_tax_identifier'),
+            ('masterdata','business_partner_address'), ('masterdata','business_partner_address_usage'),
+            ('masterdata','business_partner_contact_channel'), ('masterdata','company_business_partner'),
+            ('masterdata','company_business_partner_role')})
         self.assertEqual(sum(schema == 'masterdata' for schema, _ in tables), 7)
+        numbering = (ROOT / 'database/foundation.sql').read_text()
+        self.assertTrue({'numbering_series','numbering_counter'} <= set(re.findall(r'^CREATE TABLE foundation\.([^\s(]+)', numbering, re.M)))
         main = (ROOT / 'database/foundation.sql').read_text()
         self.assertEqual(main.count('\\ir masterdata_business_partner.sql'), 1)
         self.assertLess(main.index('GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE foundation.warehouse_type'), main.index('\\ir masterdata_business_partner.sql'))
-        self.assertRegex(main, r'\\ir masterdata_business_partner\.sql\s+COMMIT;\s*$')
-        self.assertNotRegex(main, r'CREATE (?:TABLE masterdata\.|SCHEMA masterdata|TABLE foundation\.(?:numbering_|role_company))')
+        self.assertEqual([line for line in main.splitlines() if line.startswith('\\ir ')], ['\\ir '+name for name in ('masterdata_business_partner.sql','masterdata_payments.sql','masterdata_catalog.sql')])
+        self.assertNotRegex(main, r'CREATE TABLE (?:masterdata\.business_partner|foundation\.role_company)')
 
 
 if __name__ == '__main__':

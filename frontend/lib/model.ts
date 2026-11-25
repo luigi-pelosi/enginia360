@@ -11,7 +11,7 @@ export type Session = {
 };
 export type Field = {
   name: string;
-  type: "text" | "textarea" | "boolean" | "json" | "reference" | "date" | "tel" | "select" | "multiselect";
+  type: "text" | "integer" | "textarea" | "boolean" | "json" | "reference" | "date" | "tel" | "select" | "multiselect";
   required: boolean;
   reference?: string;
   options?: string[];
@@ -29,21 +29,47 @@ export function siteAddress(row: Row, locale: string): string {
   return [row.address, locality, country].filter(Boolean).join(', ') || '—';
 }
 export const navigationSections = [
-  {label: "masterData", keys: ["business-partners"]},
+  {label: "masterData", keys: ["business-partners", "payments", "catalog"]},
   {label: "organization", keys: ["tenants", "companies", "sites", "sales-organizations", "purchasing-organizations"]},
   {label: "warehouse", keys: ["warehouse-types", "warehouses", "warehouse-locations"]},
   {label: "administration", keys: ["settings", "users", "groups", "roles", "permissions"]},
 ];
+// A local navigation container, never a backend CRUD resource.
+export const settingsRoute = {key: "settings"} as const;
 export const settingsCatalogs = ["countries", "cities"];
+export function isCurrentPermission(row: Row): boolean {
+  return !["settings.read", "settings.create", "settings.update", "settings.delete"].includes(String(row.code ?? ""));
+}
 export const partnerSettingsParents: Record<string, string> = {
   "settings-master-data": "settings",
   "settings-business-partners": "settings-master-data",
   "business-partner-numbering": "settings-business-partners",
 };
-const routeParents: Record<string, string> = {
+export const catalogRouteParents: Record<string, string> = {
+  "catalog-items": "catalog",
+  "catalog-item-companies": "catalog-items",
+  "catalog-brands": "catalog",
+  "catalog-categories": "catalog",
+  "catalog-types": "settings-catalog",
+  "catalog-units": "settings-system",
+  "settings-catalog": "settings-master-data",
+  "catalog-numbering": "settings-catalog",
+};
+export const catalogResources = ["catalog-item-companies", "catalog-items", "catalog-brands", "catalog-units", "catalog-categories", "catalog-types", "catalog-numbering"];
+export const catalogRoutes = ["catalog", ...Object.keys(catalogRouteParents)];
+export const routeParents: Record<string, string> = {
+  ...catalogRouteParents,
+  "settings-system": "settings",
+  "currencies": "settings-system",
+  "payment-methods": "payments",
+  "payment-terms": "payments",
+  "payment-settings": "payments",
+  "payment-partner-defaults": "payments",
+  "payment-schedule": "payments",
+  "payment-resolution": "payments",
   "business-partner-companies": "business-partners",
   ...partnerSettingsParents,
-  ...Object.fromEntries(settingsCatalogs.map(key => [key, "settings"])),
+  ...Object.fromEntries(settingsCatalogs.map(key => [key, "settings-system"])),
 };
 export function navigationPath(key: string): string[] {
   const path = [key];
@@ -56,7 +82,7 @@ export function permissionRows(branch: PermissionBranch): Row[] {
   return [...branch.rows, ...branch.children.flatMap(permissionRows)];
 }
 export function groupPermissions(rows: Row[]): PermissionDomain[] {
-  const unique = [...new Map(rows.map(row => [row.id, row])).values()];
+  const unique = [...new Map(rows.filter(isCurrentPermission).map(row => [row.id, row])).values()];
   const standard = ["read", "create", "update", "delete"];
   const actionRank = (row: Row) => {
     const rank = standard.indexOf(String(row.code ?? "").split(".")[1]);
@@ -85,6 +111,10 @@ export function groupPermissions(rows: Row[]): PermissionDomain[] {
   };
   const ordered = [...navigationSections.flatMap(section => section.keys), ...Object.keys(routeParents), ...[...byResource.keys()].sort()];
   for (const key of ordered) if (byResource.has(key)) add(key);
+  for (const domain of domains) {
+    const order = navigationSections.find(section => section.label === domain.key)?.keys;
+    if (order) domain.resources.sort((a, b) => order.indexOf(a.key) - order.indexOf(b.key));
+  }
   return domains.filter(domain => domain.resources.length);
 }
 type PermissionMessages = {resources: Record<string, string>; permissionActions: Record<string, string>; app?: Record<string, string>};
@@ -100,7 +130,7 @@ export function permissionMatches(row: Row, query: string, messages: PermissionM
   const path = navigationPath(resource);
   const domain = navigationSections.find(section => section.keys.includes(path[0]))?.label ?? "otherPermissions";
   return [String(row.code ?? ""), ...messages.flatMap((locale) => [permissionLabel(row, locale), locale.app?.[domain] ?? "", ...path.map(key =>
-    key === "settings-master-data" ? locale.app?.masterData ?? "" : locale.resources[key === "settings-business-partners" ? "business-partners" : key] ?? key)])]
+    key === "settings-master-data" ? locale.app?.masterData ?? "" : key === "settings-system" ? locale.app?.system ?? "" : locale.resources[key === "settings-business-partners" ? "business-partners" : key] ?? key)])]
     .some((value) => value.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
 }
 export function countryLabel(code: string, locale: string) {
@@ -132,11 +162,20 @@ export function formatFieldValue(
   return String(value);
 }
 export const resourceKeys = [
+  ...catalogResources,
+  "payments",
+  "payment-methods",
+  "payment-terms",
+  "payment-settings",
+  "payment-schedule",
+  "payment-partner-defaults",
+  "payment-resolution",
   "business-partner-companies",
   "business-partners",
   "business-partner-numbering",
   "countries",
   "cities",
+  "currencies",
   "tenants",
   "companies",
   "sites",
@@ -145,7 +184,6 @@ export const resourceKeys = [
   "warehouse-types",
   "warehouses",
   "warehouse-locations",
-  "settings",
   "users",
   "groups",
   "roles",
@@ -158,11 +196,21 @@ export function can(
   row?: Row | null,
 ) {
   if (!resourceKeys.includes(resource)) return false;
+  if (resource === "payments") return false;
+  if (["catalog-units", "catalog-brands", "catalog-item-companies"].includes(resource) && !["read", "create", "update"].includes(action)) return false;
+  if (resource === "catalog-items" && !["read", "create", "update", "activate", "deactivate", "archive"].includes(action)) return false;
+  if (resource === "catalog-numbering" && !["read", "update"].includes(action)) return false;
   if (resource === "business-partners" && !["read", "create", "update"].includes(action)) return false;
   if (resource === "business-partner-companies" && !["read", "create", "update", "use_customer", "use_supplier"].includes(action)) return false;
   if (resource === "business-partner-numbering" && !["read", "update"].includes(action)) return false;
+  if (resource === "payment-schedule" && action !== "preview") return false;
+  if (["payment-settings", "payment-partner-defaults"].includes(resource) && !["read", "update"].includes(action)) return false;
+  if (resource === "payment-resolution" && action !== "read") return false;
+  if (["payment-methods", "payment-terms"].includes(resource) && !["read", "create", "update"].includes(action)) return false;
   const standard = ["read", "create", "update", "delete"];
   const extra: Record<string, string[]> = {
+    "catalog-items": ["activate", "deactivate", "archive"],
+    "payment-schedule": ["preview"],
     "business-partner-companies": ["use_customer", "use_supplier"],
     "purchasing-organizations": ["assign_scope"],
     users: ["reset_password"],
@@ -174,7 +222,7 @@ export function can(
   if (resource === "users" && row?.tenant_id === null && action !== "read")
     return false;
   const global = session.isSuperAdmin && session.tenantId === null;
-  if (resource === "countries" || resource === "cities") return action === "read" || global;
+  if (resource === "countries" || resource === "cities" || resource === "currencies") return global || action === "read" && session.permissions.includes(`${resource}.read`);
   return global || (resource !== "tenants" && session.permissions.includes(`${resource}.${action}`));
 }
 export function relationOptions(target: string, rows: Row[]): Row[] {
@@ -203,6 +251,8 @@ export function normalizeValues(
       f.name,
       f.name === "iso_code" && typeof values[f.name] === "string"
         ? String(values[f.name]).toUpperCase()
+        : f.type === "integer"
+        ? (values[f.name] === "" || values[f.name] == null ? null : (() => { const value = Number(values[f.name]); if (!Number.isSafeInteger(value)) throw new Error("Invalid integer"); return value; })())
         : f.type === "multiselect"
         ? (f.options ?? []).filter(option => Array.isArray(values[f.name]) && (values[f.name] as unknown[]).includes(option))
         : f.type === "json"

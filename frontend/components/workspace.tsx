@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { DropdownMenu } from "radix-ui";
 import {
@@ -51,6 +51,11 @@ import {
 import { ProfileDialog } from "@/components/profile-dialog";
 import { BusinessPartnerWorkspace, clearBusinessPartnerRecoveries, resetBusinessPartnerRecovery } from "@/components/business-partner-workspace";
 import { BusinessPartnerNumbering, resetBusinessPartnerNumberingRecovery } from "@/components/business-partner-numbering";
+import { PaymentsWorkspace } from "@/components/payments-workspace";
+import { CatalogWorkspace, resetCatalogRecovery } from "@/components/catalog-workspace";
+import { CatalogItemsOverview } from "@/components/catalog-items-overview";
+import {catalogKey,resetCatalog,type CatalogResource} from "@/lib/catalog";
+
 import { AddressAutocomplete, addressSelection, type AddressField } from "@/components/address-autocomplete";
 import { SiteCountrySelect } from "@/components/site-country-select";
 import { PermissionTree } from "@/components/permission-tree";
@@ -62,11 +67,18 @@ import it from "../messages/it.json";
 import en from "../messages/en.json";
 import {
   can,
+  resourceKeys,
   permissionLabel,
   permissionMatches,
   navigationSections as sections,
   settingsCatalogs,
+  settingsRoute,
+  isCurrentPermission,
   partnerSettingsParents,
+  catalogRoutes,
+  catalogResources,
+  routeParents,
+  navigationPath,
   canRelation,
   relations,
   relationOptions,
@@ -101,12 +113,24 @@ const icons: Record<string, typeof Building2> = {
   permissions: KeyRound,
 };
 function canOpenResource(session: Session, key: string) {
-  if (key in partnerSettingsParents) return can(session, "business-partner-numbering", "read");
-  return key === "settings" || can(session, key, "read");
+  // Local containers inherit traversal only, never CRUD authority, from readable descendants.
+  // Payments exposes only these three children, not its contextual capabilities.
+  if (key === "catalog-items") return can(session, "catalog-items", "read") || can(session, "catalog-item-companies", "read");
+  if (key === "payments") return ["payment-methods", "payment-terms", "payment-settings"].some(resource => can(session, resource, "read"));
+  if (!resourceKeys.includes(key)) return resourceKeys.some(resource => navigationPath(resource).includes(key) && can(session, resource, "read"));
+  return can(session, key, "read");
+}
+function firstAuthorizedRoute(session: Session, resources: Resource[]) {
+  return resources.find(resource => canOpenResource(session, resource.key))?.key || (canOpenResource(session, settingsRoute.key) ? settingsRoute.key : "");
 }
 /* workspace-navigation-helpers */
-function workspaceRoute(search: string, allowed: string[]): string {
+function workspaceRoute(search: string, allowed: string[], session?: Session, tenant = ""): string {
   const values = new URLSearchParams(search).getAll("view");
+  if (values.length === 1 && values[0] === "catalog-item-companies" && allowed.includes("catalog-items") && session) {
+    const effectiveTenant = session.isSuperAdmin ? tenant : session.tenantId || "";
+    try {sessionStorage.setItem(catalogKey(session.id, effectiveTenant, "catalog-items-view"), JSON.stringify(can(session, "catalog-item-companies", "read") ? "company" : "identity"));} catch { /* Optional recovery. */ }
+    return "catalog-items";
+  }
   return values.length === 1 && allowed.includes(values[0]) ? values[0] : "";
 }
 function workspaceTenantKey(session: {id: string}): string {
@@ -152,6 +176,12 @@ function clearUserProfileRecoveries(session: {id: string}) {
 function recoverableValues(fields: {name: string; type: string}[], values: Record<string, unknown>) {
   return Object.fromEntries(fields.filter(field => field.type !== "json" && field.type !== "password" && !/(password|secret|token|api.?key|credential)/i.test(field.name)).filter(field => Object.hasOwn(values, field.name)).map(field => [field.name, values[field.name]]));
 }
+async function recoverCurrencyEdit(saved: any, resource: Resource, load: (key: string) => Promise<Row[]>): Promise<Row | null> {
+  if (saved?.kind !== "edit" || typeof saved.id !== "string" || !saved.baseline || typeof saved.baseline !== "object") return null;
+  const row = (await load(resource.key)).find(item => item.id === saved.id);
+  if (!row || resource.key !== "currencies") return null;
+  return row;
+}
 /* end-record-recovery-helpers */
 function recordRecoveryKey(session: Session, tenant: string, resource: string) {return `workspace:${session.id}:${tenant}:record:${resource}`;}
 function recordPendingKey(session: Session, tenant: string, resource: string) {return `record-pending:${session.id}:${tenant}:${resource}`;}
@@ -159,6 +189,21 @@ function clearRecordRecovery(session: Session, tenant: string, resource: string)
   try {
     if (!sessionStorage.getItem(recordPendingKey(session, tenant, resource))) sessionStorage.removeItem(recordRecoveryKey(session, tenant, resource));
   } catch { /* Preserve recovery if storage is unavailable. */ }
+}
+function clearPaymentRecovery(session: Session, tenant: string) {
+  if (!session.id || !tenant) return;
+  try { sessionStorage.removeItem(`payments-recovery:${encodeURIComponent(session.id)}:${encodeURIComponent(tenant)}`); }
+  catch { /* Never remove the pending guard. */ }
+}
+function clearUserPaymentRecoveries(session: Session) {
+  if (!session.id) return;
+  try {
+    const prefix = `payments-recovery:${encodeURIComponent(session.id)}:`;
+    for (let i = sessionStorage.length - 1; i >= 0; i--) {
+      const key = sessionStorage.key(i);
+      if (key?.startsWith(prefix)) sessionStorage.removeItem(key);
+    }
+  } catch { /* Never remove pending guards. */ }
 }
 type Result = { items: Row[]; total: number; page: number; pageSize: number };
 const permissionMessages = [it, en];
@@ -185,7 +230,7 @@ function LocaleControl() {
     <SelectContent><SelectItem value="it">Italiano</SelectItem><SelectItem value="en">English</SelectItem></SelectContent>
   </Select>;
 }
-function WorkspaceNavigation({accessible, active, navigate, session}: {accessible: Resource[]; active: string; navigate: (key: string) => void; session: Session}) {
+function WorkspaceNavigation({accessible, active, navigate, session}: {accessible: Pick<Resource, "key">[]; active: string; navigate: (key: string) => void; session: Session}) {
   const t = useTranslations("app"), r = useTranslations("resources");
   const {setOpenMobile} = useSidebar();
   return <Sidebar>
@@ -197,7 +242,7 @@ function WorkspaceNavigation({accessible, active, navigate, session}: {accessibl
           <SidebarGroupLabel>{t(section.label)}</SidebarGroupLabel>
           <SidebarMenu>{keys.map(key => {
             const Icon = icons[key] || Boxes;
-            const selected = key === active || key === "settings" && (settingsCatalogs.includes(active) || active in partnerSettingsParents);
+            const selected = navigationPath(active)[0] === key;
             return <SidebarMenuItem key={key}><SidebarMenuButton isActive={selected} aria-current={selected ? "page" : undefined} onClick={() => {navigate(key); setOpenMobile(false)}}><Icon /><span>{r(key)}</span></SidebarMenuButton></SidebarMenuItem>;
           })}</SidebarMenu>
         </SidebarGroup> : null;
@@ -223,7 +268,7 @@ export default function Workspace() {
     [error, setError] = useState(""),
     [notice, setNotice] = useState("");
   const [resources, setResources] = useState<Resource[]>([]),
-    [active, setActive] = useState(""),
+    [selectedRoute, setActive] = useState(""),
     [tenant, setTenant] = useState(""),
     [tenants, setTenants] = useState<Row[]>([]);
   const [rows, setRows] = useState<Row[]>([]),
@@ -246,6 +291,7 @@ export default function Workspace() {
   const [partnerWorkspaceVersion, setPartnerWorkspaceVersion] = useState(0);
   const [workspaceVersion, setWorkspaceVersion] = useState(0);
   const [navigationReady, setNavigationReady] = useState(false);
+  const active = session && canOpenResource(session, selectedRoute) ? selectedRoute : "";
   const restoredNavigation = useRef(false);
   useEffect(() => {
     if (initial || !session || session.mustChangePassword || !tenant) { setProfileOpen(false); return; }
@@ -265,7 +311,7 @@ export default function Workspace() {
   );
   const scope = useCallback(
     (path: string) =>
-      /^\/data\/(tenants|countries|cities)(?:[/?]|$)/.test(path) ? path :
+      /^\/data\/(tenants|countries|cities|currencies)(?:[/?]|$)/.test(path) ? path :
       `${path}${path.includes("?") ? "&" : "?"}${tenant ? `tenantId=${encodeURIComponent(tenant)}` : ""}`,
     [tenant],
   );
@@ -277,7 +323,7 @@ export default function Workspace() {
           scope(`/data/${key}?page=${p}&pageSize=100`),
         );
         result = result.concat(data.items);
-        if (result.length >= data.total || !data.items.length) return result;
+        if (result.length >= data.total || !data.items.length) return key === "permissions" ? result.filter(isCurrentPermission) : result;
       }
       throw new ApiError("server_error", 500);
     },
@@ -328,10 +374,11 @@ export default function Workspace() {
     api<Resource[]>("/resources")
       .then((data) => {
         if (!alive) return;
+        data = [...data.filter(item => item.key !== settingsRoute.key && item.key !== "payments" && !catalogRoutes.includes(item.key)).map(item => item.key === "currencies" ? {...item, fields: item.fields.map(field => field.name === "minor_units" ? {...field, type: "integer" as const} : field)} : item), {key: "payments", fields: []}, ...catalogRoutes.map(key => ({key, fields: []}))];
         setResources(data);
-        const allowed = [...data.map(item => item.key), ...Object.keys(partnerSettingsParents)].filter(key => canOpenResource(session, key));
-        const requested = typeof window === "undefined" ? "" : workspaceRoute(window.location.search, allowed);
-        const fallback = data.find(x => !settingsCatalogs.includes(x.key) && canOpenResource(session, x.key))?.key || "";
+        const allowed = [...data.map(item => item.key), settingsRoute.key, ...Object.keys(partnerSettingsParents), "settings-system"].filter(key => canOpenResource(session, key));
+        const requested = typeof window === "undefined" ? "" : workspaceRoute(window.location.search, allowed, session, tenant);
+        const fallback = firstAuthorizedRoute(session, data);
         if (!restoredNavigation.current && typeof window !== "undefined") {
           const route = requested || fallback;
           try {
@@ -344,7 +391,7 @@ export default function Workspace() {
           setNavigationReady(true);
         }
         setActive((current) =>
-          (current in partnerSettingsParents && canOpenResource(session, current)) || data.some((x) => x.key === current && canOpenResource(session, x.key))
+          ((current === settingsRoute.key || current in partnerSettingsParents || current === "settings-system") && canOpenResource(session, current)) || data.some((x) => x.key === current && canOpenResource(session, x.key))
             ? current
             : requested || fallback,
         );
@@ -364,8 +411,9 @@ export default function Workspace() {
   }, [search]);
   useEffect(() => {
     if (!session || session.mustChangePassword || !active) return;
-    if (["settings", "business-partners"].includes(active) || active in partnerSettingsParents) {setRows([]); setTotal(0); setLoading(false); return;}
-    if (session.isSuperAdmin && !["tenants", "countries", "cities"].includes(active) && !tenant) {
+    if (!canOpenResource(session, active)) {setRows([]); setTotal(0); setLoading(false); return;}
+    if (["settings", "business-partners", "payments", ...catalogRoutes].includes(active) || (active in partnerSettingsParents || active === "settings-system")) {setRows([]); setTotal(0); setLoading(false); return;}
+    if (session.isSuperAdmin && !["tenants", "countries", "cities", "currencies"].includes(active) && !tenant) {
       setRows([]);
       setTotal(0);
       return;
@@ -405,10 +453,10 @@ export default function Workspace() {
     };
   }, [session, active, tenant, page, query, version, scope, allRows, translateError]);
   useEffect(() => {
-    if (!navigationReady || !session || !active || !canOpenResource(session, active)) return;
+    if (!navigationReady || !session) return;
     try {
-      sessionStorage.setItem(`workspace:${session.id}:${tenant}:${active}`, JSON.stringify({search, page}));
-      const url = `${window.location.pathname}?view=${encodeURIComponent(active)}`;
+      if (active) sessionStorage.setItem(`workspace:${session.id}:${tenant}:${active}`, JSON.stringify({search, page}));
+      const url = active ? `${window.location.pathname}?view=${encodeURIComponent(active)}` : window.location.pathname;
       if (window.location.pathname + window.location.search !== url) window.history.replaceState(null, "", url);
     } catch { /* Navigation remains usable when storage or history is blocked. */ }
   }, [navigationReady, session, tenant, active, search, page]);
@@ -416,8 +464,9 @@ export default function Workspace() {
     if (!navigationReady || !session) return;
     const onPopState = () => {
       if (editor) clearRecordRecovery(session, tenant, editor.resource.key);
-      const allowed = [...resources.map(item => item.key), ...Object.keys(partnerSettingsParents)].filter(key => canOpenResource(session, key));
-      const route = workspaceRoute(window.location.search, allowed) || resources.find(item => !settingsCatalogs.includes(item.key) && canOpenResource(session, item.key))?.key || "";
+      const allowed = [...resources.map(item => item.key), settingsRoute.key, ...Object.keys(partnerSettingsParents), "settings-system"].filter(key => canOpenResource(session, key));
+      const route = workspaceRoute(window.location.search, allowed, session, tenant) || firstAuthorizedRoute(session, resources);
+      setWorkspaceVersion(current => current + 1);
       setActive(route); setSearch(""); setQuery(""); setPage(1); setNotice(""); setEditor(null); setDeleting(null);
       try {
         const stored = JSON.parse(sessionStorage.getItem(`workspace:${session.id}:${tenant}:${route}`) || "null");
@@ -429,20 +478,27 @@ export default function Workspace() {
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
   }, [navigationReady, session, resources, tenant, editor]);
-  const resource = resources.find((x) => x.key === active);
+  const resource = active !== settingsRoute.key && session && canOpenResource(session, active) ? resources.find((x) => x.key === active) : undefined;
   const recoveryOpened = useRef("");
   useEffect(() => {
     if (!navigationReady || !session || !resource || !active) return;
     const key = recordRecoveryKey(session, tenant, active);
     if (recoveryOpened.current === key) return;
     recoveryOpened.current = key;
+    let alive = true;
     try {
       const saved = JSON.parse(sessionStorage.getItem(key) || "null");
       if (saved?.kind === "create" && !resource.readOnly && can(session, active, "create")) setEditor({resource, row: null});
+      if (active === "currencies" && saved?.kind === "edit" && !resource.readOnly && can(session, active, "update")) {
+        recoverCurrencyEdit(saved, resource, allRows).then(row => {
+          if (alive && row && can(session, active, "update", row)) setEditor({resource, row});
+        }).catch(e => {if (alive) setError(translateError(e));});
+      }
     } catch { /* Ignore invalid or unavailable storage. */ }
-  }, [navigationReady, session, tenant, active, resource]);
+    return () => {alive = false; if (recoveryOpened.current === key) recoveryOpened.current = "";};
+  }, [navigationReady, session, tenant, active, resource, allRows, translateError]);
   const accessible = useMemo(
-    () => resources.filter((x) => session && canOpenResource(session, x.key)),
+    () => [settingsRoute, ...resources.filter(x => x.key !== settingsRoute.key)].filter((x) => session && canOpenResource(session, x.key)),
     [resources, session],
   );
   const refreshSession = useCallback(async () => {
@@ -452,7 +508,7 @@ export default function Workspace() {
       if (!canOpenResource(fresh, active)) {
         setRows([]);
         setTotal(0);
-        setActive(resources.find((entry) => !settingsCatalogs.includes(entry.key) && canOpenResource(fresh, entry.key))?.key || "");
+        setActive(firstAuthorizedRoute(fresh, resources));
         setPage(1);
       }
       setEditor((current) => current && can(fresh, current.resource.key, current.row ? "read" : "create", current.row) ? current : null);
@@ -500,6 +556,7 @@ export default function Workspace() {
       await api("/auth/logout", "POST");
       if (session) clearBusinessPartnerRecoveries(session);
       if (session) clearUserProfileRecoveries(session);
+      if (session) clearUserPaymentRecoveries(session);
       setProfileOpen(false);
       try {
         if (session) sessionStorage.removeItem(workspaceTenantKey(session));
@@ -532,7 +589,9 @@ export default function Workspace() {
     }
   }
   function navigate(key: string) {
+    if (!session || !canOpenResource(session, key)) return;
     if (session && editor) clearRecordRecovery(session, tenant, editor.resource.key);
+    if (session && active === "currencies") clearRecordRecovery(session, tenant, active);
     if (session) clearProfileRecovery(session, tenant);
     if (key !== active && typeof window !== "undefined") {
       try { window.history.pushState(null, "", `${window.location.pathname}?view=${encodeURIComponent(key)}`); } catch { /* History may be disabled. */ }
@@ -542,6 +601,13 @@ export default function Workspace() {
       setPartnerWorkspaceVersion(current => current + 1);
     }
     if (key === "business-partner-numbering" && session) resetBusinessPartnerNumberingRecovery(session, tenant);
+    if (key === "payments" && session) clearPaymentRecovery(session, tenant);
+    if (session) for (const catalogResource of catalogResources.filter(resource => navigationPath(resource).includes(key))) resetCatalogRecovery(session, tenant, catalogResource);
+    if (key === "catalog-items" || key === "catalog") {
+      try { sessionStorage.removeItem(catalogKey(session.id, session.isSuperAdmin ? tenant : session.tenantId || "", "catalog-items-view")); } catch { /* Optional view recovery. */ }
+      const prefix = catalogKey(session.id, session.isSuperAdmin ? tenant : session.tenantId || "", "catalog-item-companies") + ":item:";
+      try {for (let i = sessionStorage.length - 1; i >= 0; i--) {const saved = sessionStorage.key(i); if (saved?.startsWith(prefix) && !saved.endsWith(":pending")) resetCatalog(sessionStorage, saved);}} catch { /* Non rimuovere marcatori di esito incerto. */ }
+    }
     setWorkspaceVersion(current => current + 1);
     setActive(key);
     setEditor(null);
@@ -599,7 +665,7 @@ export default function Workspace() {
           <CardContent><form onSubmit={login}>
             <Notice message={error} />
             <div className="field">
-              <Label htmlFor="username">{t("username")}</Label>
+              <Label htmlFor="username" required>{t("username")}</Label>
               <Input
                 id="username"
                 value={username}
@@ -609,7 +675,7 @@ export default function Workspace() {
               />
             </div>
             <div className="field">
-              <Label htmlFor="password">{t("password")}</Label>
+              <Label htmlFor="password" required>{t("password")}</Label>
               <Input
                 id="password"
                 type="password"
@@ -656,23 +722,24 @@ export default function Workspace() {
         </Card>
       </main>
     );
-  const needTenant = session.isSuperAdmin && !["tenants", "countries", "cities", "settings", "settings-master-data", "settings-business-partners"].includes(active) && !tenant;
-  const pageTitle = (key: string) => key === "settings-master-data" ? t("masterData")
+  const needTenant = session.isSuperAdmin && !["tenants", "countries", "cities", "settings", "settings-master-data", "settings-business-partners", "settings-system", "currencies"].includes(active) && !tenant;
+  const pageTitle = (key: string) => key === "settings-system" ? t("system") : key === "settings-master-data" ? t("masterData")
     : key === "settings-business-partners" ? r("business-partners")
     : key === "business-partner-numbering" ? t("numbering") : r(key);
-  const settingsTrail: string[] = [];
-  for (let key = partnerSettingsParents[active]; key; key = partnerSettingsParents[key]) settingsTrail.unshift(key);
+  const settingsTrail = navigationPath(active).slice(0,-1);
   const heading = <div>
     <div className="eyebrow">
+      {settingsTrail.length > 0 && navigationPath(active)[0] === "catalog" && <span>{t("masterData")}<span aria-hidden="true"> › </span></span>}
       {settingsTrail.length ? settingsTrail.map((key, index) => <span key={key}>{index > 0 && <span aria-hidden="true"> › </span>}<button type="button" onClick={() => navigate(key)}>{pageTitle(key)}</button></span>) : t(sections.find((s) => s.keys.includes(active))?.label || "administration")}
     </div>
     <h1>{active ? pageTitle(active) : t("noAccess")}</h1>
   </div>;
   const showPartnerWorkspace = active === "business-partners" && !needTenant && canOpenResource(session, active);
   const nextSettingsPage = Object.keys(partnerSettingsParents).find(key => partnerSettingsParents[key] === active);
-  const settingsTile = nextSettingsPage && can(session, "business-partner-numbering", "read") && <button type="button" className="rounded-xl border bg-card p-6 text-left transition-colors hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={() => navigate(nextSettingsPage)}>
+  const settingsTile = nextSettingsPage && canOpenResource(session, nextSettingsPage) && <button type="button" className="rounded-xl border bg-card p-6 text-left transition-colors hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={() => navigate(nextSettingsPage)}>
     {nextSettingsPage === "business-partner-numbering" ? <Settings className="mb-4 size-8 text-primary" /> : <UsersRound className="mb-4 size-8 text-primary" />}<h2 className="text-lg font-semibold">{pageTitle(nextSettingsPage)}</h2>
   </button>;
+  const catalogTiles = Object.keys(routeParents).filter(key => routeParents[key] === active && catalogRoutes.includes(key) && canOpenResource(session,key)).map(key => <button key={key} type="button" className="rounded-xl border bg-card p-6 text-left hover:bg-accent/50" onClick={() => navigate(key)}><Boxes className="mb-4 size-8 text-primary"/><h2 className="text-lg font-semibold">{pageTitle(key)}</h2></button>);
   const columns = tableFields(resource);
   return (
     <SidebarProvider>
@@ -751,11 +818,14 @@ export default function Workspace() {
           </div>
         )}
         <section id="main" className="workspace" tabIndex={-1}>
-          {settingsCatalogs.includes(active) && <Button variant="outline" className="mb-4" onClick={() => navigate("settings")}>{t("backToSettings")}</Button>}
+          {catalogRoutes.includes(active) && routeParents[active] && <Button variant="outline" className="mb-4" onClick={() => navigate(routeParents[active])}><ChevronLeft size={16}/>{pageTitle(routeParents[active])}</Button>}
+          {active === "currencies" && <Button variant="outline" className="mb-4" onClick={() => navigate("settings-system")}>{t("backToSystem")}</Button>}
+          {active === "settings-system" && <Button variant="outline" className="mb-4" onClick={() => navigate("settings")}>{t("backToSettings")}</Button>}
+          {settingsCatalogs.includes(active) && <Button variant="outline" className="mb-4" onClick={() => navigate("settings-system")}>{t("backToSystem")}</Button>}
           {active in partnerSettingsParents && <Button variant="outline" className="mb-4" onClick={() => navigate(partnerSettingsParents[active])}>{t(active === "business-partner-numbering" ? "backToBusinessPartners" : active === "settings-business-partners" ? "backToMasterData" : "backToSettings")}</Button>}
-          {!showPartnerWorkspace && <div className="page-heading">
+          {!showPartnerWorkspace && !(catalogResources.includes(active) && !needTenant && canOpenResource(session,active)) && !(active === "payments" && !needTenant && canOpenResource(session, active)) && <div className="page-heading">
             {heading}
-            {resource && !["settings", "business-partners", "business-partner-numbering"].includes(active) && !resource.readOnly && !needTenant && can(session, active, "create") && (
+            {resource && !["settings", "business-partners", "business-partner-numbering", "payments", ...catalogRoutes].includes(active) && !resource.readOnly && !needTenant && can(session, active, "create") && (
               <Button onClick={() => setEditor({ resource, row: null })}>
                 <Plus size={17} />
                 {t("new")}
@@ -770,15 +840,10 @@ export default function Workspace() {
             </div>
           )}
           {active === "settings" && <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3" aria-label={r("settings")}>
-            {settingsCatalogs.filter(key => accessible.some(item => item.key === key)).map(key => {
-              const Icon = icons[key];
-              return <button key={key} type="button" className="rounded-xl border bg-card p-6 text-left transition-colors hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={() => navigate(key)}>
-                <Icon className="mb-4 size-8 text-primary" /><h2 className="text-lg font-semibold">{r(key)}</h2>
-              </button>;
-            })}
             {settingsTile}
+            {canOpenResource(session, "settings-system") && <button type="button" className="rounded-xl border bg-card p-6 text-left hover:bg-accent/50" onClick={() => navigate("settings-system")}><Settings className="mb-4 size-8 text-primary" /><h2 className="text-lg font-semibold">{t("system")}</h2></button>}
           </div>}
-          {active === "settings-master-data" || active === "settings-business-partners" ? canOpenResource(session, active) && <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{settingsTile}</div> : active === "settings" && !needTenant ? null : needTenant ? (
+          {active === "settings-system" ? <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{settingsCatalogs.filter(key => accessible.some(item => item.key === key)).map(key => { const Icon = icons[key]; return <button key={key} type="button" className="rounded-xl border bg-card p-6 text-left hover:bg-accent/50" onClick={() => navigate(key)}><Icon className="mb-4 size-8 text-primary" /><h2 className="text-lg font-semibold">{r(key)}</h2></button>; })}{accessible.some(item => item.key === "currencies") && <button type="button" className="rounded-xl border bg-card p-6 text-left hover:bg-accent/50" onClick={() => navigate("currencies")}><Globe2 className="mb-4 size-8 text-primary" /><h2 className="text-lg font-semibold">{r("currencies")}</h2></button>}{catalogTiles}</div> : active === "settings-master-data" || active === "settings-business-partners" ? canOpenResource(session, active) && <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{settingsTile}{catalogTiles}</div> : catalogRoutes.includes(active) && !catalogResources.includes(active) ? canOpenResource(session,active) && <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{catalogTiles}</div> : active === "settings" && !needTenant ? null : needTenant ? (
             <Card className="empty-state">
               <span className="empty-icon">
                 <Building2 size={32} />
@@ -796,12 +861,18 @@ export default function Workspace() {
                 </Button>
               )}
             </Card>
+          ) : active === "catalog-items" && canOpenResource(session, active) ? (
+            <CatalogItemsOverview key={`${session.id}:${tenant}:${active}:${workspaceVersion}`} session={session} tenantId={tenant} scope={scope} onError={translateError} heading={heading}/>
+          ) : catalogResources.includes(active) && canOpenResource(session, active) ? (
+            <CatalogWorkspace key={`${session.id}:${tenant}:${active}:${workspaceVersion}`} session={session} tenantId={tenant} resource={active as CatalogResource} scope={scope} onError={translateError} heading={heading}/>
           ) : active === "business-partners" && canOpenResource(session, active) ? (
             <BusinessPartnerWorkspace key={`${tenant}:${partnerWorkspaceVersion}`} session={session} tenantId={tenant} scope={scope} onError={translateError} heading={heading} />
           ) : active === "business-partner-numbering" && can(session, active, "read") ? (
             <BusinessPartnerNumbering key={`${tenant}:${workspaceVersion}`} session={session} tenantId={tenant} scope={scope} onError={translateError} />
+          ) : active === "payments" && canOpenResource(session, active) ? (
+            <PaymentsWorkspace key={`${tenant}:${workspaceVersion}`} session={session} effectiveTenant={tenant} scope={scope} onError={translateError} heading={heading} />
           ) : resource ? (
-            <Card id={active === "settings" ? "settings-panel-general" : undefined} role={active === "settings" ? "tabpanel" : undefined} aria-labelledby={active === "settings" ? "settings-tab-general" : undefined} className="gap-0 overflow-hidden py-0" aria-label={r(active)}>
+            <Card className="gap-0 overflow-hidden py-0" aria-label={r(active)}>
               <div className="table-toolbar">
                 <div className="search-box">
                   <Search size={17} />
@@ -849,11 +920,11 @@ export default function Workspace() {
                   <TableHeader>
                     <TableRow>
                       {columns.map((col) => (
-                        <TableHead key={col.name} scope="col">
+                        <TableHead key={col.name} scope="col" kind={col.type === "integer" ? "number" : col.type === "boolean" || col.name === "is_enabled" ? "status" : "text"}>
                           {f(col.name)}
                         </TableHead>
                       ))}
-                      <TableHead scope="col" className="actions-cell">
+                      <TableHead scope="col" kind="actions" className="actions-cell">
                         {t("actions")}
                       </TableHead>
                     </TableRow>
@@ -886,9 +957,10 @@ export default function Workspace() {
                           {columns.map((col, i) => (
                             <TableCell
                               key={col.name}
+                              kind={col.type === "integer" ? "number" : col.type === "boolean" || col.name === "is_enabled" ? "status" : "text"}
                               className={active === "sites" && col.name === "address" ? "min-w-64 whitespace-normal" : i === 0 ? "primary-cell" : ""}
                             >
-                              {active === "sites" && col.name === "address" ? siteAddress(row, locale) : col.type === "boolean" ? (
+                              {active === "sites" && col.name === "address" ? siteAddress(row, locale) : col.type === "boolean" || col.name === "is_enabled" ? (
                                 <Badge
                                   variant={
                                     row[col.name] ? "default" : "secondary"
@@ -909,7 +981,7 @@ export default function Workspace() {
                               )}
                             </TableCell>
                           ))}
-                          <TableCell className="actions-cell">
+                          <TableCell kind="actions" className="actions-cell">
                             <div className="row-actions">
                               <Button
                                 variant="ghost"
@@ -1166,7 +1238,7 @@ function RecordEditor({
               ? true
               : field.type === "json"
                 ? "{}"
-                : field.type === "multiselect" ? [] : field.defaultValue ?? "",
+                : field.type === "multiselect" ? [] : field.defaultValue ?? (canWrite && field.required && field.type === "select" && !(resource.key === "sites" && field.name === "country_code") ? field.options?.find(option => !!option && option !== "__none__") : undefined) ?? "",
         ]),
       ),
     ),
@@ -1186,19 +1258,22 @@ function RecordEditor({
   const owner = row ?? {id: "", tenant_id: session.tenantId ?? "new"};
   const visibleRelations = (relations[resource.key] ?? []).filter(relation => canRelation(session, resource.key, relation.key, "read", owner));
   const editableRelations = visibleRelations.filter(relation => canRelation(session, resource.key, relation.key, "assign", owner));
-  const canSave = canWrite || editableRelations.length > 0 || coverageEditable;
+  const roleCompaniesVisible = resource.key === "roles" && can(session, "companies", "read") && (row ? can(session, "roles", "read") : can(session, "roles", "assign_companies"));
+  const roleCompaniesEditable = roleCompaniesVisible && can(session, "roles", "assign_companies");
+  const canSave = canWrite || editableRelations.length > 0 || coverageEditable || roleCompaniesEditable;
   const submitting = useRef(false);
   const recoveryKey = recordRecoveryKey(session, tenant, resource.key);
   const pendingKey = recordPendingKey(session, tenant, resource.key);
   const [uncertainCreate, setUncertainCreate] = useState(false);
   const recovery = useRef<any>(null);
+  const touchedReferences = useRef<Set<string>>(new Set());
   const [recoveryReady, setRecoveryReady] = useState(false);
   useEffect(() => {
-    if (!row && canWrite) {
+    if ((!row || resource.key === "currencies") && canWrite) {
       try {
         setUncertainCreate(!!sessionStorage.getItem(pendingKey));
         const saved = JSON.parse(sessionStorage.getItem(recoveryKey) || "null");
-        if (saved?.kind === "create") {
+        if ((!row && saved?.kind === "create") || (row && resource.key === "currencies" && saved?.kind === "edit" && saved.id === row.id && saved.baseline && typeof saved.baseline === "object")) {
           recovery.current = saved;
           if (saved.values && typeof saved.values === "object") setValues(old => ({...old, ...recoverableValues(resource.fields, saved.values)}));
         }
@@ -1239,7 +1314,20 @@ function RecordEditor({
     setRefsFailed(false);
     Promise.all(keys.map(async (key) => [key, await load(key)] as const))
       .then((entries) => {
-        if (alive) setRefs(Object.fromEntries(entries));
+        if (alive) {
+          const loaded = Object.fromEntries(entries);
+          setRefs(loaded);
+          if (!row && canWrite) setValues(old => {
+            const next = {...old};
+            for (const field of resource.fields) {
+              if (field.type !== "reference" || !field.required || !field.reference || field.defaultValue != null || next[field.name] || touchedReferences.current.has(field.name) || Object.hasOwn(recovery.current?.values ?? {}, field.name)) continue;
+              let options = loaded[field.reference] ?? [];
+              const first = options.find(option => typeof option.id === "string" && !!option.id.trim() && option.id !== "__none__" && option.is_enabled !== false && option.is_active !== false);
+              if (first) next[field.name] = first.id;
+            }
+            return next;
+          });
+        }
       })
       .catch((e) => {
         if (alive) {setRefsFailed(true); setError(onError(e));}
@@ -1250,7 +1338,7 @@ function RecordEditor({
     return () => {
       alive = false;
     };
-  }, [resource, load, onError]);
+  }, [resource, row, canWrite, load, onError]);
   useEffect(() => {
     if (!coverageVisible) return;
     let alive = true;
@@ -1266,12 +1354,46 @@ function RecordEditor({
     return () => {alive = false};
   }, [coverageVisible, row, load, scope, onError]);
   useEffect(() => {
-    if (row || !canWrite || !recoveryReady || relationsLoading || relationsError || (coverageVisible && (coverageLoading || coverageError || !coverageDraft))) return;
+    if ((row && resource.key !== "currencies") || !canWrite || !recoveryReady || relationsLoading || relationsError || (coverageVisible && (coverageLoading || coverageError || !coverageDraft))) return;
     try {
+      if (sessionStorage.getItem(pendingKey)) {
+        const pending = JSON.parse(sessionStorage.getItem(recoveryKey) || "null");
+        if (row ? pending?.kind !== "edit" || pending.id !== row.id : pending?.kind !== "create") return;
+      }
       const links = Object.fromEntries(editableRelations.filter(relation => drafts[relation.key]).map(relation => [relation.key, drafts[relation.key].ids]));
-      sessionStorage.setItem(recoveryKey, JSON.stringify({kind: "create", values: recoverableValues(resource.fields, values), links, ...(coverageEditable && coverageDraft ? {coverage: coverageDraft.coverage} : {})}));
+      sessionStorage.setItem(recoveryKey, JSON.stringify({...(row ? {kind: "edit", id: row.id, version: recovery.current?.kind === "edit" ? recovery.current.version : row.version, baseline: recovery.current?.kind === "edit" ? recovery.current.baseline : recoverableValues(resource.fields, row)} : {kind: "create"}), values: recoverableValues(resource.fields, values), links, ...(coverageEditable && coverageDraft ? {coverage: coverageDraft.coverage} : {})}));
     } catch { /* Storage is optional. */ }
-  }, [row, canWrite, recoveryReady, relationsLoading, relationsError, coverageVisible, coverageLoading, coverageError, coverageDraft, coverageEditable, drafts, values, recoveryKey, resource.fields]);
+  }, [row, canWrite, recoveryReady, relationsLoading, relationsError, coverageVisible, coverageLoading, coverageError, coverageDraft, coverageEditable, drafts, values, recoveryKey, pendingKey, resource.fields]);
+  // Append controller hooks: existing recovery/harness state slots stay stable.
+  const [roleCompanies, setRoleCompanies] = useState<{initialIds: string[]; ids: string[]; ready: boolean; error: string}>({initialIds: [], ids: [], ready: false, error: ""});
+  const [roleCompanyLookup, setRoleCompanyLookup] = useState({ready: false, error: ""});
+  const [roleCompanyRevision, setRoleCompanyRevision] = useState(0);
+  const onRoleCompanyLookup = useCallback((ready: boolean, error: string) => setRoleCompanyLookup({ready, error}), []);
+  useEffect(() => {
+    if (!roleCompaniesVisible) return;
+    let alive = true;
+    setRoleCompanies(old => ({...old, ready: false, error: ""}));
+    (row ? api<{companyIds: string[]}>(scope(`/roles/${encodeURIComponent(row.id)}/companies`)) : Promise.resolve({companyIds: [] as string[]}))
+      .then(data => {
+        if (!Array.isArray(data.companyIds) || !data.companyIds.every(id => typeof id === "string")) throw new Error("Invalid company assignments");
+        if (alive) {
+          const initialIds = [...new Set(data.companyIds)].sort();
+          const saved = recovery.current?.companyIds;
+          setRoleCompanies({initialIds, ids: !row && Array.isArray(saved) && saved.every((id: unknown) => typeof id === "string") ? [...new Set<string>(saved)].sort() : initialIds, ready: true, error: ""});
+        }
+      }).catch(e => {if (alive) setRoleCompanies(old => ({...old, ready: false, error: onError(e)}));});
+    return () => {alive = false;};
+  }, [roleCompaniesVisible, row, scope, onError, roleCompanyRevision]);
+  useEffect(() => {
+    if (row || !canWrite || !recoveryReady || !roleCompaniesEditable) return;
+    const companyIds = roleCompanies.ready ? roleCompanies.ids : recovery.current?.companyIds;
+    if (!Array.isArray(companyIds) || !companyIds.every(id => typeof id === "string")) return;
+    try {
+      if (sessionStorage.getItem(pendingKey)) return;
+      const saved = JSON.parse(sessionStorage.getItem(recoveryKey) || "null");
+      if (saved?.kind === "create") sessionStorage.setItem(recoveryKey, JSON.stringify({...saved, companyIds}));
+    } catch { /* Storage is optional until submit. */ }
+  }, [row, canWrite, recoveryReady, roleCompaniesEditable, roleCompanies, roleCompanyLookup, values, drafts, relationsLoading, relationsError, recoveryKey, pendingKey]);
   const set = (name: string, value: unknown) =>
     setValues((old) => ({ ...old, [name]: value }));
   const missingRequired = resource.fields.some(field => {
@@ -1296,28 +1418,35 @@ function RecordEditor({
   const pendingRelations = editableRelations.length > 0 && (relationsLoading || !!relationsError || editableRelations.some(relation => !drafts[relation.key]));
   const changedCoverage = coverageEditable && !!coverageDraft && coverageChanged(coverageDraft);
   const pendingCoverage = coverageVisible && (coverageLoading || !!coverageError || !coverageDraft || (coverageEditable && !coverageValid(coverageDraft)));
-  const hasChanges = !row && canWrite || invalidValues || Object.keys(changedValues).length > 0 || Object.keys(changedLinks).length > 0 || changedCoverage;
+  const changedCompanies = roleCompaniesEditable && roleCompanies.ready && JSON.stringify(roleCompanies.ids) !== JSON.stringify(roleCompanies.initialIds);
+  const pendingCompanies = roleCompaniesEditable && (!roleCompanies.ready || !!roleCompanies.error || !roleCompanyLookup.ready || !!roleCompanyLookup.error);
+  const hasChanges = !row && canWrite || invalidValues || Object.keys(changedValues).length > 0 || Object.keys(changedLinks).length > 0 || changedCoverage || changedCompanies;
   const fiscalFields = resource.key === "sites" && resource.fields.some(field => field.name === "vat_number") && resource.fields.some(field => field.name === "tax_code");
   const missingFiscal = fiscalFields && !String(values.vat_number ?? "").trim() && !String(values.tax_code ?? "").trim();
-  const blocked = (!row && (!recoveryReady || uncertainCreate)) || missingFiscal || busy || (canWrite && (refsLoading || missingRequired || refsFailed)) || pendingRelations || pendingCoverage || !hasChanges;
+  const currencyEdit = resource.key === "currencies" && !!row;
+  const expectedVersion = currencyEdit ? (recovery.current?.kind === "edit" ? recovery.current.version : row.version) : undefined;
+  const invalidCurrencyVersion = currencyEdit && (!Number.isSafeInteger(expectedVersion) || (expectedVersion as number) < 1);
+  const blocked = (!row && (!recoveryReady || uncertainCreate)) || (currencyEdit && (!recoveryReady || uncertainCreate || invalidCurrencyVersion)) || missingFiscal || busy || (canWrite && (refsLoading || missingRequired || refsFailed)) || pendingRelations || pendingCoverage || !hasChanges;
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!canSave || blocked || submitting.current) return;
+    if (!canSave || blocked || pendingCompanies || submitting.current) return;
     setError("");
     if (invalidValues) {setError(t("jsonInvalid")); return;}
     const body = {
       ...((!row && canWrite || Object.keys(changedValues).length > 0) ? {values: changedValues} : {}),
       ...(Object.keys(changedLinks).length > 0 ? {links: changedLinks} : {}),
       ...(changedCoverage ? {coverage: coverageDraft!.coverage} : {}),
+      ...(changedCompanies ? {companyIds: roleCompanies.ids} : {}),
+      ...(currencyEdit ? {expectedVersion} : {}),
     };
-    if (!row) {
+    if (!row || currencyEdit) {
       try {
         if (sessionStorage.getItem(pendingKey)) {setUncertainCreate(true); return;}
         const links = Object.fromEntries(editableRelations.filter(relation => drafts[relation.key]).map(relation => [relation.key, drafts[relation.key].ids]));
-        sessionStorage.setItem(recoveryKey, JSON.stringify({kind: "create", values: recoverableValues(resource.fields, values), links, ...(coverageEditable && coverageDraft ? {coverage: coverageDraft.coverage} : {})}));
+        sessionStorage.setItem(recoveryKey, JSON.stringify({...(row ? {kind: "edit", id: row.id, version: expectedVersion, baseline: recovery.current?.kind === "edit" ? recovery.current.baseline : recoverableValues(resource.fields, row)} : {kind: "create"}), values: recoverableValues(resource.fields, values), links, ...(roleCompaniesEditable && roleCompanies.ready ? {companyIds: roleCompanies.ids} : {}), ...(coverageEditable && coverageDraft ? {coverage: coverageDraft.coverage} : {})}));
         sessionStorage.setItem(pendingKey, "pending");
         if (sessionStorage.getItem(pendingKey) !== "pending") throw new Error("storage unavailable");
-      } catch {setError(t("createStorageUnavailable")); return;}
+      } catch {setError(currencyEdit ? (locale === "it" ? "Salvataggio bloccato: abilita la memoria di sessione e riprova." : "Save blocked: enable session storage and try again.") : t("createStorageUnavailable")); return;}
     }
     submitting.current = true;
     setBusy(true);
@@ -1325,18 +1454,18 @@ function RecordEditor({
     try {
       result = await api<Row>(scope(`/data/${resource.key}${row ? `/${row.id}` : ""}/save`), row ? "PUT" : "POST", body);
     } catch (e) {
-      if (!row) {
+      if (!row || currencyEdit) {
         const rejected = e instanceof ApiError && [400, 401, 403, 404, 409, 422].includes(e.status);
         if (rejected) {
           try {sessionStorage.removeItem(pendingKey);} catch {setUncertainCreate(true);}
           setError(onError(e));
-        } else {setUncertainCreate(true); setError(t("createOutcomeUncertain"));}
+        } else {setUncertainCreate(true); setError(currencyEdit ? (locale === "it" ? "Il salvataggio potrebbe essere riuscito. Controlla il record; il nuovo invio è bloccato." : "The save may have succeeded. Check the record; retry is blocked.") : t("createOutcomeUncertain"));}
       } else setError(onError(e));
       submitting.current = false;
       setBusy(false);
       return;
     }
-    if (!row) {try {sessionStorage.removeItem(pendingKey);} catch { /* Keep the conservative lock. */ }}
+    if (!row || currencyEdit) {try {sessionStorage.removeItem(pendingKey);} catch { /* Keep the conservative lock. */ }}
     // Il commit è concluso: un refresh fallito non deve rendere ripetibile il salvataggio.
     referenceCache = new WeakMap();
     onClose();
@@ -1367,17 +1496,10 @@ function RecordEditor({
             <fieldset disabled={!canWrite || busy} className="form-grid">
               {resource.fields.map((field) => {
                 const id = `field-${field.name}`;
+                const fieldRequired = fiscalFields && ["vat_number", "tax_code"].includes(field.name) ? !String(values[field.name === "vat_number" ? "tax_code" : "vat_number"] ?? "").trim() : field.required;
                 let options = field.reference
                   ? refs[field.reference] || []
                   : [];
-                if (
-                  resource.key === "settings" &&
-                  field.name === "site_id" &&
-                  values.company_id
-                )
-                  options = options.filter(
-                    (x) => x.company_id === values.company_id,
-                  );
                 if (field.type === "multiselect") {
                   const selected = Array.isArray(values[field.name]) ? values[field.name] as string[] : [];
                   return <fieldset key={field.name} id={id} className="field field-wide" disabled={!canWrite || busy}>
@@ -1402,13 +1524,15 @@ function RecordEditor({
                     className={`field ${["textarea", "json"].includes(field.type) ? "field-wide" : ""} ${field.type === "boolean" ? "switch-field" : ""}`}
                     key={field.name}
                   >
-                    <Label htmlFor={id}>
+                    <Label htmlFor={id} required={fieldRequired}>
                       {f(field.name)}
-                      {field.required && <span aria-hidden="true"> *</span>}
                     </Label>
                     {resource.key === "sites" && field.name === "country_code" ? (
                       <SiteCountrySelect id={id} value={String(values[field.name] ?? "")} scope={scope} disabled={!canWrite || busy} readOnly={!canWrite} required={field.required}
-                        onChange={value => {if (canWrite && !busy) set(field.name, value);}} />
+                        onDefault={!row && canWrite ? value => {
+                          setValues(old => old[field.name] || touchedReferences.current.has(field.name) || Object.hasOwn(recovery.current?.values ?? {}, field.name) ? old : {...old, [field.name]: value});
+                        } : undefined}
+                        onChange={value => {if (canWrite && !busy) {touchedReferences.current.add(field.name); set(field.name, value);}}} />
                     ) : resource.key === "sites" && ["address", "city", "province", "postal_code"].includes(field.name) ? (
                       <AddressAutocomplete id={id} field={field.name as AddressField} value={String(values[field.name] ?? "")} context={values} scope={scope}
                         disabled={!canWrite || busy} required={field.required}
@@ -1449,28 +1573,8 @@ function RecordEditor({
                         onValueChange={(selected) => {
                           if (!canWrite || busy || refsLoading) return;
                           const value = selected === "__none__" ? "" : selected;
-                          if (
-                            resource.key === "settings" &&
-                            field.name === "company_id"
-                          ) {
-                            setValues((old) => ({
-                              ...old,
-                              company_id: value,
-                              site_id: "",
-                            }));
-                          } else if (
-                            resource.key === "settings" &&
-                            field.name === "site_id"
-                          ) {
-                            const site = refs.sites?.find(
-                              (x) => x.id === value,
-                            );
-                            setValues((old) => ({
-                              ...old,
-                              site_id: value,
-                              ...(site ? { company_id: site.company_id } : {}),
-                            }));
-                          } else set(field.name, value);
+                          touchedReferences.current.add(field.name);
+                          set(field.name, value);
                         }}
                       >
                         <SelectTrigger id={id} className="w-full" aria-label={f(field.name)}><SelectValue placeholder={refsLoading ? t("loading") : "—"} /></SelectTrigger>
@@ -1491,8 +1595,9 @@ function RecordEditor({
                     ) : (
                       <Input
                         id={id}
-                        type={field.type === "date" || field.type === "tel" ? field.type : field.name === "email" ? "email" : "text"}
-                        required={fiscalFields && ["vat_number", "tax_code"].includes(field.name) ? !String(values[field.name === "vat_number" ? "tax_code" : "vat_number"] ?? "").trim() : field.required}
+                        type={field.type === "integer" ? "number" : field.type === "date" || field.type === "tel" ? field.type : field.name === "email" ? "email" : "text"}
+                        step={field.type === "integer" ? 1 : undefined}
+                        required={fieldRequired}
 
                         value={String(values[field.name] ?? "")}
                         autoComplete="off"
@@ -1508,7 +1613,13 @@ function RecordEditor({
           </form>
           <Notice message={relationsError} />
           <Notice message={coverageError} />
-          {resource.key === "roles" && row?.id && can(session, "roles", "read") && can(session, "companies", "read") && <RoleCompanyAccess key={row.id} roleId={row.id} {...{session, scope, onError}} />}
+          {roleCompaniesVisible && <RoleCompanyAccess roleId={row?.id ?? ""} {...{scope, onError, busy}} ids={roleCompanies.ids} ready={roleCompanies.ready} error={roleCompanies.error} editable={roleCompaniesEditable}
+            onLookupState={onRoleCompanyLookup}
+            onIdsChange={ids => {
+              if (!roleCompaniesEditable || busy || submitting.current || pendingCompanies) return;
+              setRoleCompanies(old => ({...old, ids: [...new Set(ids)].sort()}));
+            }} />}
+          {roleCompanies.error && <Button type="button" variant="outline" disabled={busy} onClick={() => {if (!busy && !submitting.current) setRoleCompanyRevision(old => old + 1);}}>{t("refresh")}</Button>}
           {coverageVisible && <PurchasingCoverageEditor draft={coverageDraft} editable={coverageEditable} loading={coverageLoading} busy={busy}
             onChange={coverage => {
               if (!coverageEditable || busy || coverageLoading || coverageError) return;
@@ -1531,6 +1642,8 @@ function RecordEditor({
           />)}
         </div>
         <DialogFooter>
+          {invalidCurrencyVersion && <p role="status" className="text-sm text-muted-foreground">{locale === "it" ? "Versione della bozza mancante: copia le modifiche, annulla e riapri il record." : "Draft version missing: copy your changes, cancel and reopen the record."}</p>}
+          {currencyEdit && uncertainCreate && <p role="status" className="text-sm text-muted-foreground">{locale === "it" ? "Esito del salvataggio incerto: controlla il record prima di procedere. Il nuovo invio è bloccato." : "Save outcome uncertain: check the record before proceeding. Retry is blocked."}</p>}
           {!canSave && <span className="read-only">{t("readOnly")}</span>}
           <Button variant="outline" onClick={onClose} disabled={busy}>
             {t("cancel")}
@@ -1539,7 +1652,7 @@ function RecordEditor({
             <Button
               type="submit"
               form="record-form"
-              disabled={blocked}
+              disabled={blocked || pendingCompanies}
             >
               {busy ? t("loading") : t("save")}
             </Button>
@@ -1635,7 +1748,7 @@ function PasswordForm({
       <Notice message={error} />
       {!resetId && (
         <div className="field">
-          <Label htmlFor="current-password">{t("currentPassword")}</Label>
+          <Label htmlFor="current-password" required>{t("currentPassword")}</Label>
           <Input
             id="current-password"
             type="password"
@@ -1647,7 +1760,7 @@ function PasswordForm({
         </div>
       )}
       <div className="field">
-        <Label htmlFor="new-password">{t("newPassword")}</Label>
+        <Label htmlFor="new-password" required>{t("newPassword")}</Label>
         <Input
           id="new-password"
           type="password"
@@ -1658,7 +1771,7 @@ function PasswordForm({
         />
       </div>
       <div className="field">
-        <Label htmlFor="confirm-password">{t("confirmPassword")}</Label>
+        <Label htmlFor="confirm-password" required>{t("confirmPassword")}</Label>
         <Input
           id="confirm-password"
           type="password"

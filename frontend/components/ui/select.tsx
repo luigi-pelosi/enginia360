@@ -14,7 +14,7 @@ type State = {
   active: string | null; setActive: (value: string | null) => void
   options: Option[]; visible: Option[]; choose: (value: string) => void
   setOpen: (open: boolean) => void; id: string
-  trigger: React.RefObject<HTMLButtonElement | null>
+  trigger: React.RefObject<HTMLButtonElement | null>; invalid: boolean
 }
 const Context = React.createContext<State | null>(null)
 const fold = (text: string) => text.normalize("NFD").replace(/\p{M}/gu, "").toLocaleLowerCase()
@@ -37,10 +37,22 @@ function SearchSelect({children, value: controlledValue, defaultValue = "", onVa
   const [localOpen, setLocalOpen] = React.useState(defaultOpen)
   const [query, setQueryState] = React.useState("")
   const [active, setActive] = React.useState<string | null>(null)
+  const [invalidValue, setInvalidValue] = React.useState<string | null>(null)
+  const native = React.useRef<HTMLSelectElement>(null)
+  const t = useTranslations("errors")
   const trigger = React.useRef<HTMLButtonElement>(null)
   const id = React.useId()
   const value = controlledValue ?? localValue
   const open = controlledOpen ?? localOpen
+  const invalid = invalidValue === value && !!required && !disabled
+  React.useEffect(() => {setInvalidValue(null)}, [value, required, disabled])
+  React.useEffect(() => {
+    const owner = native.current?.form
+    if (!owner) return
+    const reset = () => setInvalidValue(null)
+    owner.addEventListener("reset", reset)
+    return () => owner.removeEventListener("reset", reset)
+  }, [form])
   const options = collect(children).filter(option => !required || option.value !== "__none__")
   const visible = options.filter(option => fold(`${option.text} ${option.value}`).includes(fold(query)))
   const setQuery = (next: string) => {setQueryState(next); setActive(null)}
@@ -54,26 +66,37 @@ function SearchSelect({children, value: controlledValue, defaultValue = "", onVa
   const choose = (next: string) => {
     const option = options.find(option => option.value === next)
     if (disabled || !option || option.disabled) return
-    if (next !== value) {setLocalValue(next); onValueChange?.(next)}
+    if (next !== value) {if (controlledValue === undefined) setInvalidValue(null); setLocalValue(next); onValueChange?.(next)}
     setOpen(false)
   }
-  const state: State = {value, open, disabled, required, query, setQuery, active, setActive, options, visible, choose, setOpen, id, trigger}
+  const state: State = {value, open, disabled, required, query, setQuery, active, setActive, options, visible, choose, setOpen, id, trigger, invalid}
   return <Context.Provider value={state}>
     <Popover.Root open={open && !disabled} onOpenChange={setOpen} modal={false}>
       {children}
     </Popover.Root>
-    {(name || required) && <select aria-hidden="true" tabIndex={-1} className="sr-only" name={name} form={form} dir={dir} required={required} disabled={disabled} value={value}
-      onChange={event => choose(event.target.value)} onInvalid={event => {event.preventDefault(); trigger.current?.focus()}}>
+    {(name || required) && <select ref={native} aria-hidden="true" tabIndex={-1} className="sr-only" name={name} form={form} dir={dir} required={required} disabled={disabled} value={value}
+      onChange={event => choose(event.target.value)} onInvalid={event => {
+        event.preventDefault()
+        setInvalidValue(value)
+        const target = event.currentTarget
+        const firstInvalid = target?.form && Array.from(target.form.elements).find(element => {
+          const control = element as HTMLInputElement
+          return control.willValidate && !control.validity.valid
+        })
+        if (!firstInvalid || firstInvalid === target) trigger.current?.focus()
+      }}>
       <option value="" />
+      {value && value !== "__none__" && !options.some(option => option.value === value) && <option value={value}>{value}</option>}
       {options.map(option => <option key={option.value} value={option.value} disabled={option.disabled}>{textOf(option.label)}</option>)}
     </select>}
+    {invalid && <span id={`${id}-error`} data-slot="select-error" className="text-sm text-destructive">{t("field_required")}</span>}
   </Context.Provider>
 }
-function SelectTrigger({className, size = "default", children, ref, onKeyDown, disabled, ...props}: React.ComponentProps<typeof SelectPrimitive.Trigger> & {size?: "sm" | "default"}) {
+function SelectTrigger({className, size = "default", children, ref, onKeyDown, disabled, "aria-describedby": describedBy, "aria-invalid": ariaInvalid, ...props}: React.ComponentProps<typeof SelectPrimitive.Trigger> & {size?: "sm" | "default"}) {
   const state = React.useContext(Context)
-  if (!state) return <Ordinary.SelectTrigger className={className} size={size} ref={ref} disabled={disabled} onKeyDown={onKeyDown} {...props}>{children}</Ordinary.SelectTrigger>
+  if (!state) return <Ordinary.SelectTrigger aria-describedby={describedBy} aria-invalid={ariaInvalid} className={className} size={size} ref={ref} disabled={disabled} onKeyDown={onKeyDown} {...props}>{children}</Ordinary.SelectTrigger>
   return <Popover.Trigger asChild><button {...props} type="button" ref={node => {state.trigger.current = node; if (typeof ref === "function") ref(node); else if (ref) ref.current = node}}
-    role="combobox" aria-haspopup="listbox" aria-expanded={state.open && !state.disabled} aria-controls={`${state.id}-list`} aria-required={state.required}
+    role="combobox" aria-invalid={state.invalid || ariaInvalid} aria-describedby={[describedBy, state.invalid ? `${state.id}-error` : undefined].filter(Boolean).join(" ") || undefined} aria-haspopup="listbox" aria-expanded={state.open && !state.disabled} aria-controls={`${state.id}-list`} aria-required={state.required}
     disabled={state.disabled || disabled} data-slot="select-trigger" data-size={size} data-placeholder={!state.value ? "" : undefined}
     className={cn("flex min-w-0 items-center justify-between gap-2 rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 data-[placeholder]:text-muted-foreground data-[size=default]:h-9 data-[size=sm]:h-8 dark:bg-input/30 [&_svg]:shrink-0", className)}
     onKeyDown={event => {onKeyDown?.(event); if (!event.defaultPrevented && !state.disabled && (event.key === "ArrowDown" || event.key === "ArrowUp")) {event.preventDefault(); state.setOpen(true)}}}>
@@ -82,8 +105,9 @@ function SelectTrigger({className, size = "default", children, ref, onKeyDown, d
 }
 function SelectValue({children, placeholder, ...props}: React.ComponentProps<typeof SelectPrimitive.Value>) {
   const state = React.useContext(Context)
+  const t = useTranslations("app")
   if (!state) return <Ordinary.SelectValue placeholder={placeholder} {...props}>{children}</Ordinary.SelectValue>
-  return <span {...props} data-slot="select-value" className="block min-w-0 truncate">{children ?? state.options.find(option => option.value === state.value)?.label ?? (state.value || placeholder)}</span>
+  return <span {...props} data-slot="select-value" className="block min-w-0 truncate">{children ?? state.options.find(option => option.value === state.value)?.label ?? (state.required && state.value === "__none__" ? placeholder ?? t("empty") : state.value || placeholder)}</span>
 }
 function SelectContent({children, className, position: _position, align = "center", onEscapeKeyDown, onCloseAutoFocus, ...props}: React.ComponentProps<typeof SelectPrimitive.Content>) {
   const state = React.useContext(Context)
@@ -129,7 +153,7 @@ function SelectItem({children, value, disabled, className, textValue: _textValue
     onPointerDown={event => {props.onPointerDown?.(event); event.preventDefault()}}
     onPointerMove={event => {onPointerMove?.(event); if (!disabled && !state.disabled) state.setActive(value)}}
     onClick={event => {onClick?.(event); if (!event.defaultPrevented) state.choose(value)}}>
-    {children}{value === state.value && <CheckIcon className="absolute right-2 size-4" />}
+    {children}{value === state.value && <CheckIcon className="absolute top-1/2 right-2 size-4 -translate-y-1/2" />}
   </div>
 }
 function SelectGroup(props: React.ComponentProps<typeof SelectPrimitive.Group>) {return React.useContext(Context) ? <div {...props} role="group" data-slot="select-group" /> : <Ordinary.SelectGroup {...props} />}

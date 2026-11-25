@@ -130,7 +130,7 @@ export function ProfileDialog({onClose, onSaved, onError, session}: {
           <h2 id="profile-details-heading" className="font-medium sm:col-span-2">{t("personalDetails")}</h2>
           <div className="field sm:col-span-2"><Label htmlFor="profile-username">{f("username")}</Label><Input id="profile-username" value={profile.username} readOnly /></div>
           {profileFields.map(name => <div className="field" key={name}>
-            <Label htmlFor={`profile-${name}`}>{f(name)}</Label>
+            <Label htmlFor={`profile-${name}`} required={["first_name", "last_name", "email"].includes(name)}>{f(name)}</Label>
             {name === "preferred_language" ? <Select value={draft[name]} disabled={locked} onValueChange={value => change(name, value)}>
               <SelectTrigger id={`profile-${name}`}><SelectValue /></SelectTrigger>
               <SelectContent>{(["it", "en"] as const).map(language => <SelectItem key={language} value={language}>{languages(language)}</SelectItem>)}</SelectContent>
@@ -145,7 +145,7 @@ export function ProfileDialog({onClose, onSaved, onError, session}: {
         {draft && profile && <section className="grid gap-4 border-t pt-4" aria-labelledby="profile-password-heading">
           <h2 id="profile-password-heading" className="font-medium">{t("changePassword")} <span className="text-sm font-normal text-muted-foreground">({t("optional")})</span></h2>
           {(["current", "new", "confirm"] as const).map(name => <div className="field" key={name}>
-            <Label htmlFor={`profile-password-${name}`}>{t(name === "current" ? "currentPassword" : name === "new" ? "newPassword" : "confirmPassword")}</Label>
+            <Label htmlFor={`profile-password-${name}`} required={hasPassword}>{t(name === "current" ? "currentPassword" : name === "new" ? "newPassword" : "confirmPassword")}</Label>
             <Input id={`profile-password-${name}`} type="password" autoComplete={name === "current" ? "current-password" : "new-password"}
               value={name === "current" ? currentPassword : name === "new" ? newPassword : confirmPassword} disabled={locked} required={hasPassword}
               aria-invalid={!!passwordIssue} onChange={event => {
