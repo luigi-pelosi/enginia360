@@ -16,7 +16,7 @@ class SiteAddressesApiTests(unittest.TestCase):
     def autocomplete(self,**kwargs):
         return '/api/addresses/autocomplete?'+urlencode({'tenantId':self.case.tenant['id'],'field':'city','text':'Capua','language':'it',**kwargs})
     def create_site(self,**values):
-        status,row=self.root.request(self.case.path('sites',save=True),'POST',{'values':{'company_id':self.company['id'],'name':'Sede indirizzi','tax_code':'CF-test',**ADDRESS,**values}})
+        status,row=self.root.request(self.case.path('sites',save=True),'POST',{'values':{'company_id':self.company['id'],'name':'Sede indirizzi',**ADDRESS,**values}})
         self.assertEqual(status,201,row);return row
     def site(self,row):return json.loads(sql(f"SELECT row_to_json(t) FROM foundation.site t WHERE id='{row['id']}'").stdout)
 
@@ -29,18 +29,16 @@ class SiteAddressesApiTests(unittest.TestCase):
         self.assertEqual(len(set(country['options'])),249);self.assertIn('IT',country['options']);self.assertIn('BQ',country['options']);self.assertNotIn('ZZ',country['options'])
         self.assertTrue(all(next(f for f in fields if f['name']==name)['required'] for name in ('address','city','province','postal_code','country_code')))
 
-    def test_tax_identity_is_alternative_and_updates_merge_existing_values(self):
-        status,error=self.root.request(self.case.path('sites',save=True),'POST',{'values':{'company_id':self.company['id'],'name':'Non valida',**ADDRESS}})
-        self.assertEqual(status,400);self.assertEqual(error['code'],'tax_identity_required')
-        row=self.create_site(tax_code=None,vat_number='  VAT-test  ')
-        self.assertEqual(row['vat_number'],'VAT-test');self.assertIsNone(row['tax_code'])
+    def test_no_site_fiscal_gate_and_updates_merge_existing_address(self):
+        row=self.create_site()
+        self.assertNotIn('vat_number',row);self.assertNotIn('tax_code',row)
         status,updated=self.root.request(self.case.path('sites',row['id'],save=True),'PUT',{'values':{'city':'Capua'}})
-        self.assertEqual(status,200);self.assertEqual(updated['vat_number'],'VAT-test')
+        self.assertEqual(status,200);self.assertEqual(updated['city'],'Capua')
+        self.assertEqual({key:updated[key] for key in ADDRESS if key!='city'}, {key:value for key,value in ADDRESS.items() if key!='city'})
         before=self.site(row)
-        status,error=self.root.request(self.case.path('sites',row['id'],save=True),'PUT',{'values':{'vat_number':' \t ','tax_code':None,'name':'Non salvare'}})
-        self.assertEqual(status,400);self.assertEqual(error['code'],'tax_identity_required');self.assertEqual(self.site(row),before)
-        status,updated=self.root.request(self.case.path('sites',row['id'],save=True),'PUT',{'values':{'vat_number':None,'tax_code':' CF-test '}})
-        self.assertEqual(status,200);self.assertIsNone(updated['vat_number']);self.assertEqual(updated['tax_code'],'CF-test')
+        for field in ('vat_number','tax_code'):
+            status,_=self.root.request(self.case.path('sites',row['id'],save=True),'PUT',{'values':{field:'legacy','name':'Non salvare'}})
+            self.assertIn(status,range(400,500));self.assertEqual(self.site(row),before)
 
     def test_country_validation_and_legacy_crud_share_constraints(self):
         row=self.create_site(country_code='IT');before=self.site(row)

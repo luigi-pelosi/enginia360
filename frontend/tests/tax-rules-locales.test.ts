@@ -1,0 +1,8 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const en=JSON.parse(readFileSync(new URL('../messages/en.json',import.meta.url),'utf8'));
+const it=JSON.parse(readFileSync(new URL('../messages/it.json',import.meta.url),'utf8'));
+for(const namespace of ['taxRules','taxSimulator'])test(`${namespace}: IT and EN have identical keys, placeholders and nonempty labels`,()=>{assert.deepEqual(Object.keys(it[namespace]).sort(),Object.keys(en[namespace]).sort());for(const key of Object.keys(en[namespace])){assert.equal(typeof it[namespace][key],'string');assert.ok(it[namespace][key].length);assert.ok(en[namespace][key].length);const args=(value:string)=>[...value.matchAll(/\{([^{}]+)\}/g)].map(m=>m[1]).sort();assert.deepEqual(args(it[namespace][key]),args(en[namespace][key]));}});
+for(const [component,namespace] of [['tax-rules','taxRules'],['tax-simulator','taxSimulator']])test(`${component}: every literal translated label is in its own namespace`,()=>{const source=readFileSync(new URL(`../components/${component}.tsx`,import.meta.url),'utf8');for(const match of source.matchAll(/(?<![a-zA-Z])t\('([a-zA-Z_]+)'(?=[),])/g))assert.ok(Object.hasOwn(en[namespace],match[1]),`${namespace}.${match[1]}`);});
+test('finite resources and five new permission actions are translated',()=>{for(const resource of ['tax-rules','tax-determination'])for(const locale of [it,en])assert.ok(locale.resources[resource]);for(const action of ['validate','publish','withdraw','simulate','determine'])for(const locale of [it,en])assert.ok(locale.permissionActions[action]);assert.equal(en.permissionActions.create_version,undefined);});

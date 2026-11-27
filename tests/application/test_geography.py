@@ -25,9 +25,10 @@ class GeographyApiTests(unittest.TestCase):
  def test_import_covers_all_municipalities_and_preserves_leading_zero_cap(self):
   stats=sql("SELECT count(*),count(DISTINCT istat_code) FROM foundation.city WHERE istat_code IS NOT NULL;").stdout.strip();self.assertEqual(stats,'8458|7894')
   status,data=self.actor.request('/api/addresses/autocomplete?field=city&text=Alghero&countryCode=IT');self.assertEqual(status,200);city=next(x for x in data['items'] if x['city']=='Alghero');self.assertEqual((city['postalCode'],city['province'],city['region'],city['countryCode']),('07041','SS','Sardegna','IT'))
-  status,data=self.actor.request('/api/addresses/countries');self.assertEqual(status,200);self.assertEqual(data['provider'],'catalog');self.assertEqual(data['items'],[{'isoCode':'IT','name':'Italia'}])
+  status,data=self.actor.request('/api/addresses/countries');self.assertEqual(status,200);self.assertEqual(data['provider'],'catalog');self.assertEqual(len(data['items']),249);self.assertIn({'isoCode':'IT','name':'Italia'},data['items'])
  def test_global_catalog_can_only_be_maintained_by_global_super_admin(self):
-  status,country=self.root.request('/api/data/countries','POST',{'name':'Spagna QA','iso_code':'ES'});self.assertEqual(status,201,country);city=None
+  status,data=self.root.request('/api/data/countries?search=Spagna');self.assertEqual(status,200,data);country=next(row for row in data['items'] if row['iso_code']=='ES');city=None
+  self.assertEqual(self.root.request('/api/data/countries','POST',{'name':'Spagna QA','iso_code':'ES'})[0],409)
   try:
    status,city=self.root.request('/api/data/cities/save','POST',{'values':{'name':'Città QA','postal_code':'28001','province':'M','region':'Madrid','country_id':country['id']}});self.assertEqual(status,201,city)
    self.assertNotIn('tenant_id',city);self.assertNotIn('tenant_id',country)
@@ -39,7 +40,7 @@ class GeographyApiTests(unittest.TestCase):
    status,data=self.actor.request('/api/data/cities?search=28001');self.assertEqual(status,200);self.assertTrue(any(x['id']==city['id'] for x in data['items']))
   finally:
    if city and 'id' in city:self.root.request('/api/data/cities/'+city['id'],'DELETE')
-   self.root.request('/api/data/countries/'+country['id'],'DELETE')
+   # The canonical seeded country belongs to the fixture, not this test.
  def test_global_reference_lookup_is_same_across_tenants_and_ordinary_users_have_read_only_metadata(self):
   first=self.actor.request('/api/data/countries')[1]
   second=self.root.request('/api/data/countries?tenantId='+self.case.tenant['id'])[1];self.assertEqual(first['items'],second['items'])

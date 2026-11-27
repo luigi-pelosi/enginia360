@@ -1,5 +1,5 @@
 "use client";
-import {useCallback, useEffect, useMemo, useRef, useState, type ReactNode} from "react";
+import {useCallback, useEffect, useMemo, useRef, useState, lazy, Suspense, type ReactNode} from "react";
 import {useLocale, useTranslations} from "next-intl";
 import {Plus, RefreshCw, Pencil, Eye, Trash2} from "lucide-react";
 import {Button} from "@/components/ui/button";
@@ -23,6 +23,8 @@ import {SiteCountrySelect} from "@/components/site-country-select";
 import {BusinessPartnerCompanies, companyPartnerReadable} from "@/components/business-partner-companies";
 import {CompanyBusinessPartners} from "@/components/company-business-partners";
 
+import type {TaxProfileDraft} from '@/lib/tax-profiles';
+const TaxProfiles=lazy(()=>import('@/components/tax-profiles').then(module=>({default:module.TaxProfiles})));
 type Props = {session: Session; scope: (path: string) => string; onError: (error: unknown) => string; heading?: ReactNode; tenantId?: string | null};
 function storageKey(session: Session, tenantId?: string | null) {
   const tenant = session.isSuperAdmin ? tenantId : session.tenantId;
@@ -118,7 +120,7 @@ type TaxIdentifier = {country_code: string; identifier_type: string; value: stri
 type AddressUsage = {usage: string; is_default: boolean};
 type PartnerAddress = {label: string; street: string; street_number: string; postal_code: string; city: string; province: string; country_code: string; additional_info: string; usages: AddressUsage[]};
 type ContactChannel = {channel_type: string; value: string; purpose: string; is_primary: boolean};
-type PartnerDraft = {kind: string; legal_name: string; first_name: string; last_name: string; status: string; code: string; tax_identifiers: TaxIdentifier[]; addresses: PartnerAddress[]; contact_channels: ContactChannel[]};
+type PartnerDraft = {kind: string; legal_name: string; first_name: string; last_name: string; status: string; code: string; taxProfiles?: TaxProfileDraft[]; tax_identifiers: TaxIdentifier[]; addresses: PartnerAddress[]; contact_channels: ContactChannel[]};
 type PartnerRecord = PartnerDraft & {id: string; version: number};
 type RelatedKind = "tax" | "address" | "contact";
 const actionColumnClassName = "w-[120px] min-w-[120px] max-w-[120px]";
@@ -145,7 +147,7 @@ export function BusinessPartnerEditor({session, scope, onError, id, onClose, onS
   const countryOptions = useMemo(() => countryCodes.map(value => ({value, label: countryLabel(value, locale)}))
     .sort((a, b) => a.label.localeCompare(b.label, locale)), [locale]);
   const countryLabels = new Map(countryOptions.map(option => [option.value, option.label]));
-  const a = useTranslations("app"), t = useTranslations("businessPartners");
+  const tax = useTranslations("taxProfiles"), companies = useTranslations("partnerCompanies"), a = useTranslations("app"), t = useTranslations("businessPartners");
   const [draft, setDraft] = useState<PartnerDraft>(emptyDraft), [expectedVersion, setExpectedVersion] = useState<number | null>(null);
   const [loading, setLoading] = useState(Boolean(id)), [busy, setBusy] = useState(false), [error, setError] = useState("");
   const [fieldError, setFieldError] = useState<{id: string; message: string} | null>(null);
@@ -160,9 +162,12 @@ export function BusinessPartnerEditor({session, scope, onError, id, onClose, onS
   const key = storageKey(session, tenantId);
   const [recoveryReady, setRecoveryReady] = useState(false);
   const recovery = useRef<any>(null);
-  function clearRecovery() {const stored = readState(key); if (stored) writeState(key, {...stored, editor: null, draft: null});}
+  const [currentTab,setCurrentTab]=useState<"general"|"companies"|"taxation">(()=>{const saved=readState(key)?.taxProfileTab;return saved?.id===id&&(saved?.tab==='taxation'||saved?.tab==='companies')?saved.tab:'general';});
+  useEffect(()=>{if(recoveryReady)writeState(key,{...readState(key),taxProfileTab:{id,tab:currentTab}});},[key,id,recoveryReady,currentTab]);
+  function clearRecovery() {const stored = readState(key); if (stored) writeState(key, {...stored, editor: null, draft: null, taxProfileTab:null});if(!id){try{const taxKey=`tax-profiles:v1:${encodeURIComponent(session.id)}:${encodeURIComponent(session.isSuperAdmin?tenantId??'':session.tenantId??'')}:partner:new`;if(!readState(taxKey)?.pending)sessionStorage.removeItem(taxKey);}catch{/* Preserve unreadable recovery markers. */}}}
   useEffect(() => {
     const saved = readState(key)?.draft;
+    if (saved?.id === id && (saved?.currentTab === "taxation" || saved?.currentTab === "companies")) setCurrentTab(saved.currentTab);
     if (editable && !id && saved?.id === null) {
       setVerificationId(typeof saved.verificationId === "string" ? saved.verificationId : null);
       setCreateUncertain(Boolean(saved.createUncertain));
@@ -174,8 +179,8 @@ export function BusinessPartnerEditor({session, scope, onError, id, onClose, onS
     setRecoveryReady(true);
   }, [key, id]);
   useEffect(() => {
-    if (recoveryReady && editable && (!id || !loading) && (!id || expectedVersion !== null)) writeState(key, {...readState(key), draft: {id, draft, expectedVersion, related, verificationId, createUncertain}});
-  }, [key, id, recoveryReady, editable, loading, draft, expectedVersion, related, verificationId, createUncertain]);
+    if (recoveryReady && editable && (!id || !loading) && (!id || expectedVersion !== null)) writeState(key, {...readState(key), draft: {id, draft, expectedVersion, related, verificationId, createUncertain, currentTab}});
+  }, [key, id, recoveryReady, editable, loading, draft, expectedVersion, related, verificationId, createUncertain, currentTab]);
   const geographyScope = useCallback((path: string) => scope(`${path}${path.includes("?") ? "&" : "?"}resource=business-partners`), [scope]);
   useEffect(() => {
     if (id || !numberingReadable) return;
@@ -200,7 +205,7 @@ export function BusinessPartnerEditor({session, scope, onError, id, onClose, onS
     const message = onError(error), field = error instanceof ApiError ? error.field : undefined;
     let target: {id: string; label: string} | undefined;
     const identity = /^values\.(legal_name|first_name|last_name|kind|status|code)$/.exec(field ?? "");
-    if (identity) target = {id: `bp-${identity[1]}`, label: t(identity[1])};
+    if (identity) {setCurrentTab("general"); target = {id: `bp-${identity[1]}`, label: t(identity[1])};}
     const tax = /^taxIdentifiers\[(\d+)\]\.(country_code|identifier_type|value|normalized_value)$/.exec(field ?? "");
     if (tax && source.tax_identifiers[Number(tax[1])]) {
       const row = source.tax_identifiers[Number(tax[1])];
@@ -381,7 +386,7 @@ export function BusinessPartnerEditor({session, scope, onError, id, onClose, onS
       const record = await api<PartnerRecord>(scope(id ? `/data/business-partners/${encodeURIComponent(id)}/save` : "/data/business-partners/save"), id ? "PUT" : "POST", {
         values: {kind: draft.kind, legal_name: draft.kind === "ORGANIZATION" ? draft.legal_name.trim() || null : null, first_name: draft.kind === "PERSON" ? draft.first_name.trim() || null : null, last_name: draft.kind === "PERSON" ? draft.last_name.trim() || null : null, status: draft.status, ...(!id && numberingMode !== "AUTO" && draft.code.trim() ? {code: draft.code.trim()} : {})},
         ...serializeCollections(draft),
-        ...(id ? {expectedVersion} : {}),
+        ...(id ? {expectedVersion} : draft.taxProfiles?.length ? {taxProfiles:draft.taxProfiles} : {}),
       });
       if (!record?.id) throw new Error("Missing saved record id");
       accepted = true;
@@ -392,9 +397,21 @@ export function BusinessPartnerEditor({session, scope, onError, id, onClose, onS
     } catch (e) {if (!id && !accepted && e instanceof ApiError && e.status >= 400 && e.status < 500 && e.status !== 408) {setCreateUncertain(false); writeState(key, {...readState(key), draft: {id, draft, expectedVersion, related, verificationId: null, createUncertain: false}});} if (e instanceof ApiError && e.code === "business_partner_code_required") setNumberingMode("MANUAL"); showError(e);}
     finally {locked.current = false; setBusy(false);}
   }
-  return <form onSubmit={save} className="space-y-5" aria-busy={loading || busy}>
+  const taxVisible=id?can(session,"tax-partner-profiles","read"):editable&&can(session,"tax-partner-profiles","assign");
+  const companiesVisible = Boolean(id) && companyPartnerReadable(session);
+  const tabs = (["general", "companies", "taxation"] as const).filter(tab => tab === "general" || (tab === "companies" ? companiesVisible : taxVisible));
+  const activeTab = tabs.includes(currentTab) ? currentTab : "general";
+  return <form onSubmit={save} onInvalidCapture={event => {if (activeTab !== "general" && (event.target as HTMLElement).closest("#bp-panel-general")) {event.preventDefault(); const input = event.target as HTMLInputElement; setCurrentTab("general"); setTimeout(() => input.reportValidity(), 0);}}} className="space-y-5" aria-busy={loading || busy}>
     <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-semibold">{id ? a(editable ? "edit" : "details") : t("new")}</h2><Button type="button" variant="outline" disabled={busy || (createUncertain && !verificationId)} onClick={() => {clearRecovery(); onClose();}}>{a(editable ? "cancel" : "close")}</Button></div>
     {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
+    {tabs.length > 1 && <div role="tablist" aria-label={t("identity")} className="flex flex-wrap gap-2 border-b pb-2">{tabs.map(tab => <Button key={tab} type="button" role="tab" id={`bp-tab-${tab}`} aria-controls={`bp-panel-${tab}`} aria-selected={activeTab === tab} tabIndex={activeTab === tab ? 0 : -1} variant={activeTab === tab ? "default" : "ghost"} disabled={busy} onClick={() => setCurrentTab(tab)} onKeyDown={event => {
+      if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+      event.preventDefault();
+      const index = tabs.indexOf(tab), next = event.key === "Home" ? tabs[0] : event.key === "End" ? tabs[tabs.length - 1] : tabs[(index + (event.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length];
+      setCurrentTab(next); event.currentTarget.parentElement?.querySelector<HTMLButtonElement>(`#bp-tab-${next}`)?.focus();
+    }}>{tab === "taxation" ? tax("title") : tab === "companies" ? companies("title") : t("identity")}</Button>)}</div>}
+    {activeTab==="taxation"&&taxVisible&&<div role="tabpanel" id="bp-panel-taxation" aria-labelledby="bp-tab-taxation"><Suspense fallback={<p>{a("loading")}</p>}><TaxProfiles key={`${key}:taxation:${id??"new"}`} kind="partner" subjectId={id} session={session} tenantId={tenantId??session.tenantId??""} scope={scope} onError={onError} staged={draft.taxProfiles??[]} onStagedChange={taxProfiles=>{if(!id&&!baseDisabled)setDraft(current=>({...current,taxProfiles}));}} disabled={id?loading||busy||Boolean(verificationId||createUncertain):baseDisabled}/></Suspense></div>}
+    <div id="bp-panel-general" role="tabpanel" aria-labelledby={tabs.length > 1 ? "bp-tab-general" : undefined} hidden={activeTab !== "general"} className="space-y-5">
     {loading ? <p role="status">{a("loading")}</p> : <Card className="p-4 sm:p-6"><h3 className="font-semibold">{t("identity")}</h3><div className="grid gap-4 sm:grid-cols-2">
       {choice("kind", ["ORGANIZATION", "PERSON"])}{choice("status", ["DRAFT", "ACTIVE", "BLOCKED", "ARCHIVED"])}
       {draft.kind === "ORGANIZATION" ? text("legal_name", draft.status === "ACTIVE") : <>{text("first_name", draft.status === "ACTIVE")}{text("last_name", draft.status === "ACTIVE")}</>}
@@ -416,7 +433,10 @@ export function BusinessPartnerEditor({session, scope, onError, id, onClose, onS
         </TableBody></Table></div>
       </Card>;
     })}
-    {!loading && id && companyPartnerReadable(session) && <BusinessPartnerCompanies key={id} businessPartnerId={id} {...{session, scope, onError}} />}
+    </div>
+    {companiesVisible && <div id="bp-panel-companies" role="tabpanel" aria-labelledby="bp-tab-companies" hidden={activeTab !== "companies"}>
+      {!loading && id && <BusinessPartnerCompanies key={id} businessPartnerId={id} {...{session, scope, onError}} />}
+    </div>}
     {related && <Dialog open onOpenChange={open => {if (!open && !busy && !locked.current) {setRelated(null); setFieldError(null);}}}><DialogContent data-bp-related-editor={related.kind} className="sm:max-w-3xl max-h-[90dvh] overflow-y-auto">
       <DialogHeader><DialogTitle>{related.mode === "add" ? a("add") : a(related.mode)} — {rowLabel(related.kind, related.index)}</DialogTitle><DialogDescription>{t(id ? "relatedSaveHint" : "relatedDraftHint")}</DialogDescription></DialogHeader>
       <form data-bp-related-form onSubmit={applyRelated} className="space-y-4">{rowFields()}<DialogFooter><Button type="button" variant="outline" data-action="cancel-related" disabled={busy} onClick={() => {if (!busy && !locked.current) {setRelated(null); setFieldError(null);}}}>{a(related.mode === "details" ? "close" : "cancel")}</Button>{related.mode !== "details" && <Button type="submit" data-action="apply-related" disabled={baseDisabled}>{id ? a("save") : t("applyRelated")}</Button>}</DialogFooter></form>

@@ -8,7 +8,7 @@ from functools import lru_cache
 CONTAINER = 'enginia360-foundation-schema-proof'
 DATABASE = 'enginia360'
 SCOPE = 'foundation-close-sql'
-SITE_ADDRESS = {'tax_code': 'CF-PROOF', 'address': 'Via prova 1', 'city': 'Roma',
+SITE_ADDRESS = {'address': 'Via prova 1', 'city': 'Roma',
                 'province': 'RM', 'postal_code': '00100', 'country_code': 'IT'}
 
 
@@ -47,7 +47,7 @@ def dump_schema():
     return subprocess.check_output(['docker', 'exec', '-e',
         'PGOPTIONS=-c default_transaction_read_only=on', CONTAINER,
         'pg_dump', '-U', 'postgres', '-d', DATABASE, '--schema-only',
-        '--schema=foundation', '--schema=masterdata'], text=True, timeout=60)
+        '--schema=foundation', '--schema=masterdata', '--schema=taxmanagement'], text=True, timeout=60)
 
 
 def normalize_dump(raw):

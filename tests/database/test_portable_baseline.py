@@ -14,18 +14,22 @@ from database.sql_source import load_foundation_sql
 class PortableBaselineTests(unittest.TestCase):
     def test_inventory_matches_sql_including_business_partner_tables(self):
         source = load_foundation_sql()
-        tables = re.findall(r'^CREATE TABLE (foundation|masterdata)\.([^\s(]+)', source, re.MULTILINE)
+        tables = re.findall(r'^CREATE TABLE (foundation|masterdata|taxmanagement)\.([^\s(]+)', source, re.MULTILINE)
         from test_foundation import table_schema
         self.assertEqual({(table_schema(name), name) for name in TABLES}, {(schema, name.strip('"')) for schema, name in tables})
-        self.assertEqual(len(TABLES), len(tables))
+        self.assertEqual(len(TABLES), 65)
+        self.assertEqual(len(tables), 65)
+        self.assertEqual(sum(schema == 'taxmanagement' for schema, _ in tables), 16)
+        directives = [line for line in (ROOT/'database/foundation.sql').read_text().splitlines() if line.startswith('\\ir ')]
+        self.assertEqual(len(directives), 5)
+        self.assertEqual(directives[-2:], [r'\ir seeds/countries.sql', r'\ir taxmanagement.sql'])
 
-    def test_masterdata_owns_only_business_partner_tables(self):
+    def test_masterdata_owns_current_domain_tables(self):
         source = load_foundation_sql()
         self.assertIn('CREATE SCHEMA masterdata', source)
         tables = re.findall(r'^CREATE TABLE masterdata\.([^\s(]+)', source, re.MULTILINE)
-        self.assertEqual(set(tables), {'business_partner', 'business_partner_tax_identifier',
-            'business_partner_address', 'business_partner_address_usage', 'business_partner_contact_channel',
-            'company_business_partner', 'company_business_partner_role'})
+        from test_foundation import table_schema
+        self.assertEqual(set(tables), {name for name in TABLES if table_schema(name) == 'masterdata'})
         for name in ('numbering_series', 'numbering_counter'):
             self.assertIn('CREATE TABLE foundation.' + name, source)
         self.assertNotRegex(source, r'CREATE TABLE foundation\.business_partner')

@@ -13,7 +13,7 @@ public static class CommercialOrganizationTests
         void Assert(bool ok,string message) {if(!ok) throw new Exception(message);}
         void Case(string name,Func<Task> run) => test("commercial: "+name,() => run().GetAwaiter().GetResult());
         var a=Guid.NewGuid(); var b=Guid.NewGuid(); var site=Guid.NewGuid();
-        await db.Execute("INSERT INTO foundation.company(id,tenant_id,name) VALUES(@a,@t,'Company A'),(@b,@t,'Company B'); INSERT INTO foundation.site(id,tenant_id,company_id,name,tax_code,address,city,province,postal_code,country_code) VALUES(@s,@t,@b,'Site B','SYNTHETIC-TAX','Synthetic Road 42','Synthetic City','Synthetic Region','AB 12-X','GB')",("a",a),("b",b),("s",site),("t",tenant));
+        await db.Execute("INSERT INTO foundation.company(id,tenant_id,name) VALUES(@a,@t,'Company A'),(@b,@t,'Company B'); INSERT INTO foundation.site(id,tenant_id,company_id,name,address,city,province,postal_code,country_code) VALUES(@s,@t,@b,'Site B','Synthetic Road 42','Synthetic City','Synthetic Region','AB 12-X','GB')",("a",a),("b",b),("s",site),("t",tenant));
         object Entry(Guid company,string mode,params Guid[] sites) => new {companyId=company,siteScope=mode,siteIds=sites};
         var coverage=new[]{Entry(a,"all_sites"),Entry(b,"selected_sites",site)};
         var owner=Guid.Empty;

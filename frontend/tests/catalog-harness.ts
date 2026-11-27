@@ -5,6 +5,8 @@ import React from 'react';
 import {createTranslator} from 'next-intl';
 import ts from 'typescript';
 import * as model from '../lib/model.ts';
+import * as taxProfiles from '../lib/tax-profiles.ts';
+import * as companyTax from '../lib/company-tax.ts';
 export class CatalogApiError extends Error {code:string;status:number;field?:string;constructor(code:string,status:number,field?:string){super(code);this.code=code;this.status=status;this.field=field;}}
 export const catalogSession:model.Session={id:'u',username:'ada',displayName:'Ada',preferredLanguage:'it',tenantId:'t',isSuperAdmin:false,mustChangePassword:false,permissions:['catalog-units','catalog-categories','catalog-types','catalog-numbering'].flatMap(r=>['read','create','update','delete'].map(a=>r+'.'+a))};
 export function findCatalog(node:any,predicate:(n:any)=>boolean):any {
@@ -23,6 +25,8 @@ export function catalogHarness(resource='catalog-types',handler:(path:string,met
   if(name==='react')return {...React,useState:(initial:any)=>{const n=cursor++;if(!(n in slots))slots[n]=typeof initial==='function'?initial():initial;return[slots[n],(next:any)=>{const value=typeof next==='function'?next(slots[n]):next;if(!Object.is(value,slots[n])){slots[n]=value;dirty=true;}}];},useRef:(initial:any)=>{const n=cursor++;return slots[n]??(slots[n]={current:initial});},useEffect:(fn:any,deps:any[])=>{const n=cursor++;const old=effectSlots[n];if(!old||deps.some((v,i)=>!Object.is(v,old.deps[i]))){effects.push(()=>{old?.cleanup?.();effectSlots[n]={deps,cleanup:fn()};});}},useCallback:(fn:any)=>fn,useMemo:(fn:any)=>fn()};
   if(name==='next-intl')return{useTranslations:(namespace:string)=>createTranslator({locale,messages,namespace}),useLocale:()=>locale};
   if(name==='@/lib/model')return model;
+  if(name==='@/lib/tax-profiles')return taxProfiles;
+  if(name==='@/lib/company-tax')return companyTax;
   if(name==='@/lib/catalog')return helpers;
   if(name==='@/lib/api')return{ApiError:CatalogApiError,api:async(path:string,method='GET',body:any)=>{calls.push({path,method,body});if(path==='/session')return handler(path,method,body)??session;return handler(path,method,body);}};
   if(name.startsWith('@/components/ui/'))return new Proxy({},{get:(_,key)=>{const component=(props:any)=>React.createElement('div',props);Object.defineProperty(component,'name',{value:String(key)});return component;}});

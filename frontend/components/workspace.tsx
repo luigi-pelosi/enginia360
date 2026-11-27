@@ -52,6 +52,10 @@ import { ProfileDialog } from "@/components/profile-dialog";
 import { BusinessPartnerWorkspace, clearBusinessPartnerRecoveries, resetBusinessPartnerRecovery } from "@/components/business-partner-workspace";
 import { BusinessPartnerNumbering, resetBusinessPartnerNumberingRecovery } from "@/components/business-partner-numbering";
 import { PaymentsWorkspace } from "@/components/payments-workspace";
+import { TaxManagement, resetTaxRecovery } from "@/components/tax-workspace";
+import {clearTaxProfileDrafts} from "@/lib/tax-profiles";
+import {CompanyTaxation} from "@/components/company-taxation";
+import {clearCompanyTaxDrafts, type CompanyTaxDraft} from "@/lib/company-tax";
 import { CatalogWorkspace, resetCatalogRecovery } from "@/components/catalog-workspace";
 import { CatalogItemsOverview } from "@/components/catalog-items-overview";
 import {catalogKey,resetCatalog,type CatalogResource} from "@/lib/catalog";
@@ -77,6 +81,8 @@ import {
   partnerSettingsParents,
   catalogRoutes,
   catalogResources,
+  taxRoutes,
+  taxResources,
   routeParents,
   navigationPath,
   canRelation,
@@ -179,7 +185,7 @@ function recoverableValues(fields: {name: string; type: string}[], values: Recor
 async function recoverCurrencyEdit(saved: any, resource: Resource, load: (key: string) => Promise<Row[]>): Promise<Row | null> {
   if (saved?.kind !== "edit" || typeof saved.id !== "string" || !saved.baseline || typeof saved.baseline !== "object") return null;
   const row = (await load(resource.key)).find(item => item.id === saved.id);
-  if (!row || resource.key !== "currencies") return null;
+  if (!row || !["currencies", "companies", "sites"].includes(resource.key)) return null;
   return row;
 }
 /* end-record-recovery-helpers */
@@ -374,7 +380,7 @@ export default function Workspace() {
     api<Resource[]>("/resources")
       .then((data) => {
         if (!alive) return;
-        data = [...data.filter(item => item.key !== settingsRoute.key && item.key !== "payments" && !catalogRoutes.includes(item.key)).map(item => item.key === "currencies" ? {...item, fields: item.fields.map(field => field.name === "minor_units" ? {...field, type: "integer" as const} : field)} : item), {key: "payments", fields: []}, ...catalogRoutes.map(key => ({key, fields: []}))];
+        data = [...data.filter(item => item.key !== settingsRoute.key && item.key !== "payments" && !catalogRoutes.includes(item.key) && !taxRoutes.includes(item.key)).map(item => item.key === "currencies" ? {...item, fields: item.fields.map(field => field.name === "minor_units" ? {...field, type: "integer" as const} : field)} : item), {key: "payments", fields: []}, ...catalogRoutes.map(key => ({key, fields: []})), ...taxRoutes.map(key => ({key, fields: []}))];
         setResources(data);
         const allowed = [...data.map(item => item.key), settingsRoute.key, ...Object.keys(partnerSettingsParents), "settings-system"].filter(key => canOpenResource(session, key));
         const requested = typeof window === "undefined" ? "" : workspaceRoute(window.location.search, allowed, session, tenant);
@@ -412,7 +418,7 @@ export default function Workspace() {
   useEffect(() => {
     if (!session || session.mustChangePassword || !active) return;
     if (!canOpenResource(session, active)) {setRows([]); setTotal(0); setLoading(false); return;}
-    if (["settings", "business-partners", "payments", ...catalogRoutes].includes(active) || (active in partnerSettingsParents || active === "settings-system")) {setRows([]); setTotal(0); setLoading(false); return;}
+    if (["settings", "business-partners", "payments", ...catalogRoutes, ...taxRoutes].includes(active) || (active in partnerSettingsParents || active === "settings-system")) {setRows([]); setTotal(0); setLoading(false); return;}
     if (session.isSuperAdmin && !["tenants", "countries", "cities", "currencies"].includes(active) && !tenant) {
       setRows([]);
       setTotal(0);
@@ -489,9 +495,9 @@ export default function Workspace() {
     try {
       const saved = JSON.parse(sessionStorage.getItem(key) || "null");
       if (saved?.kind === "create" && !resource.readOnly && can(session, active, "create")) setEditor({resource, row: null});
-      if (active === "currencies" && saved?.kind === "edit" && !resource.readOnly && can(session, active, "update")) {
+      if (["currencies", "companies", "sites"].includes(active) && saved?.kind === "edit" && !resource.readOnly && can(session, active, active === "companies" ? "read" : "update")) {
         recoverCurrencyEdit(saved, resource, allRows).then(row => {
-          if (alive && row && can(session, active, "update", row)) setEditor({resource, row});
+          if (alive && row && can(session, active, active === "companies" ? "read" : "update", row)) setEditor({resource, row});
         }).catch(e => {if (alive) setError(translateError(e));});
       }
     } catch { /* Ignore invalid or unavailable storage. */ }
@@ -557,6 +563,12 @@ export default function Workspace() {
       if (session) clearBusinessPartnerRecoveries(session);
       if (session) clearUserProfileRecoveries(session);
       if (session) clearUserPaymentRecoveries(session);
+      if (session) {
+        const prefix = `company-tax:v1:${encodeURIComponent(session.id)}:`;
+        const tenants = new Set<string>();
+        try {for (let i = 0; i < sessionStorage.length; i++) {const key = sessionStorage.key(i); if (key?.startsWith(prefix)) tenants.add(decodeURIComponent(key.slice(prefix.length).split(":")[0]));}} catch { /* Mantiene le bozze se la memoria non è disponibile. */ }
+        for (const ownTenant of tenants) clearCompanyTaxDrafts(sessionStorage, session.id, ownTenant);
+      }
       setProfileOpen(false);
       try {
         if (session) sessionStorage.removeItem(workspaceTenantKey(session));
@@ -596,14 +608,21 @@ export default function Workspace() {
     if (key !== active && typeof window !== "undefined") {
       try { window.history.pushState(null, "", `${window.location.pathname}?view=${encodeURIComponent(key)}`); } catch { /* History may be disabled. */ }
     }
+    if (key === "companies") {
+      clearRecordRecovery(session, tenant, "companies");
+      clearCompanyTaxDrafts(sessionStorage, session.id, session.isSuperAdmin ? tenant : session.tenantId || "");
+    }
     if (key === "business-partners") {
       if (session) resetBusinessPartnerRecovery(session, tenant);
+      clearTaxProfileDrafts(sessionStorage,session.id,session.isSuperAdmin?tenant:session.tenantId||"","partner");
       setPartnerWorkspaceVersion(current => current + 1);
     }
     if (key === "business-partner-numbering" && session) resetBusinessPartnerNumberingRecovery(session, tenant);
     if (key === "payments" && session) clearPaymentRecovery(session, tenant);
+    if (session && (taxRoutes.includes(key) || key === "settings-master-data" || key === "settings")) resetTaxRecovery(session, tenant);
     if (session) for (const catalogResource of catalogResources.filter(resource => navigationPath(resource).includes(key))) resetCatalogRecovery(session, tenant, catalogResource);
     if (key === "catalog-items" || key === "catalog") {
+      clearTaxProfileDrafts(sessionStorage,session.id,session.isSuperAdmin?tenant:session.tenantId||"","item");
       try { sessionStorage.removeItem(catalogKey(session.id, session.isSuperAdmin ? tenant : session.tenantId || "", "catalog-items-view")); } catch { /* Optional view recovery. */ }
       const prefix = catalogKey(session.id, session.isSuperAdmin ? tenant : session.tenantId || "", "catalog-item-companies") + ":item:";
       try {for (let i = sessionStorage.length - 1; i >= 0; i--) {const saved = sessionStorage.key(i); if (saved?.startsWith(prefix) && !saved.endsWith(":pending")) resetCatalog(sessionStorage, saved);}} catch { /* Non rimuovere marcatori di esito incerto. */ }
@@ -722,7 +741,7 @@ export default function Workspace() {
         </Card>
       </main>
     );
-  const needTenant = session.isSuperAdmin && !["tenants", "countries", "cities", "settings", "settings-master-data", "settings-business-partners", "settings-system", "currencies"].includes(active) && !tenant;
+  const needTenant = session.isSuperAdmin && !["tenants", "countries", "cities", "settings", "settings-master-data", "settings-business-partners", "settings-system", "currencies", "tax-management"].includes(active) && !tenant;
   const pageTitle = (key: string) => key === "settings-system" ? t("system") : key === "settings-master-data" ? t("masterData")
     : key === "settings-business-partners" ? r("business-partners")
     : key === "business-partner-numbering" ? t("numbering") : r(key);
@@ -740,6 +759,7 @@ export default function Workspace() {
     {nextSettingsPage === "business-partner-numbering" ? <Settings className="mb-4 size-8 text-primary" /> : <UsersRound className="mb-4 size-8 text-primary" />}<h2 className="text-lg font-semibold">{pageTitle(nextSettingsPage)}</h2>
   </button>;
   const catalogTiles = Object.keys(routeParents).filter(key => routeParents[key] === active && catalogRoutes.includes(key) && canOpenResource(session,key)).map(key => <button key={key} type="button" className="rounded-xl border bg-card p-6 text-left hover:bg-accent/50" onClick={() => navigate(key)}><Boxes className="mb-4 size-8 text-primary"/><h2 className="text-lg font-semibold">{pageTitle(key)}</h2></button>);
+  const taxTile = active === "settings-master-data" && canOpenResource(session,"tax-management") && <button type="button" className="rounded-xl border bg-card p-6 text-left hover:bg-accent/50" onClick={()=>navigate("tax-management")}><Settings className="mb-4 size-8 text-primary"/><h2 className="text-lg font-semibold">{r("tax-management")}</h2></button>;
   const columns = tableFields(resource);
   return (
     <SidebarProvider>
@@ -818,14 +838,15 @@ export default function Workspace() {
           </div>
         )}
         <section id="main" className="workspace" tabIndex={-1}>
+          {taxRoutes.includes(active) && <Button variant="outline" className="mb-4" onClick={()=>navigate(active === "tax-management" ? "settings-master-data" : "tax-management")}><ChevronLeft size={16}/>{pageTitle(active === "tax-management" ? "settings-master-data" : "tax-management")}</Button>}
           {catalogRoutes.includes(active) && routeParents[active] && <Button variant="outline" className="mb-4" onClick={() => navigate(routeParents[active])}><ChevronLeft size={16}/>{pageTitle(routeParents[active])}</Button>}
           {active === "currencies" && <Button variant="outline" className="mb-4" onClick={() => navigate("settings-system")}>{t("backToSystem")}</Button>}
           {active === "settings-system" && <Button variant="outline" className="mb-4" onClick={() => navigate("settings")}>{t("backToSettings")}</Button>}
           {settingsCatalogs.includes(active) && <Button variant="outline" className="mb-4" onClick={() => navigate("settings-system")}>{t("backToSystem")}</Button>}
           {active in partnerSettingsParents && <Button variant="outline" className="mb-4" onClick={() => navigate(partnerSettingsParents[active])}>{t(active === "business-partner-numbering" ? "backToBusinessPartners" : active === "settings-business-partners" ? "backToMasterData" : "backToSettings")}</Button>}
-          {!showPartnerWorkspace && !(catalogResources.includes(active) && !needTenant && canOpenResource(session,active)) && !(active === "payments" && !needTenant && canOpenResource(session, active)) && <div className="page-heading">
+          {!showPartnerWorkspace && !(taxRoutes.includes(active) && !needTenant && canOpenResource(session,active)) && !(catalogResources.includes(active) && !needTenant && canOpenResource(session,active)) && !(active === "payments" && !needTenant && canOpenResource(session, active)) && <div className="page-heading">
             {heading}
-            {resource && !["settings", "business-partners", "business-partner-numbering", "payments", ...catalogRoutes].includes(active) && !resource.readOnly && !needTenant && can(session, active, "create") && (
+            {resource && !["settings", "business-partners", "business-partner-numbering", "payments", ...catalogRoutes, ...taxRoutes].includes(active) && !resource.readOnly && !needTenant && can(session, active, "create") && (
               <Button onClick={() => setEditor({ resource, row: null })}>
                 <Plus size={17} />
                 {t("new")}
@@ -843,7 +864,7 @@ export default function Workspace() {
             {settingsTile}
             {canOpenResource(session, "settings-system") && <button type="button" className="rounded-xl border bg-card p-6 text-left hover:bg-accent/50" onClick={() => navigate("settings-system")}><Settings className="mb-4 size-8 text-primary" /><h2 className="text-lg font-semibold">{t("system")}</h2></button>}
           </div>}
-          {active === "settings-system" ? <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{settingsCatalogs.filter(key => accessible.some(item => item.key === key)).map(key => { const Icon = icons[key]; return <button key={key} type="button" className="rounded-xl border bg-card p-6 text-left hover:bg-accent/50" onClick={() => navigate(key)}><Icon className="mb-4 size-8 text-primary" /><h2 className="text-lg font-semibold">{r(key)}</h2></button>; })}{accessible.some(item => item.key === "currencies") && <button type="button" className="rounded-xl border bg-card p-6 text-left hover:bg-accent/50" onClick={() => navigate("currencies")}><Globe2 className="mb-4 size-8 text-primary" /><h2 className="text-lg font-semibold">{r("currencies")}</h2></button>}{catalogTiles}</div> : active === "settings-master-data" || active === "settings-business-partners" ? canOpenResource(session, active) && <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{settingsTile}{catalogTiles}</div> : catalogRoutes.includes(active) && !catalogResources.includes(active) ? canOpenResource(session,active) && <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{catalogTiles}</div> : active === "settings" && !needTenant ? null : needTenant ? (
+          {active === "settings-system" ? <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{settingsCatalogs.filter(key => accessible.some(item => item.key === key)).map(key => { const Icon = icons[key]; return <button key={key} type="button" className="rounded-xl border bg-card p-6 text-left hover:bg-accent/50" onClick={() => navigate(key)}><Icon className="mb-4 size-8 text-primary" /><h2 className="text-lg font-semibold">{r(key)}</h2></button>; })}{accessible.some(item => item.key === "currencies") && <button type="button" className="rounded-xl border bg-card p-6 text-left hover:bg-accent/50" onClick={() => navigate("currencies")}><Globe2 className="mb-4 size-8 text-primary" /><h2 className="text-lg font-semibold">{r("currencies")}</h2></button>}{catalogTiles}</div> : active === "settings-master-data" || active === "settings-business-partners" ? canOpenResource(session, active) && <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{settingsTile}{catalogTiles}{taxTile}</div> : catalogRoutes.includes(active) && !catalogResources.includes(active) ? canOpenResource(session,active) && <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{catalogTiles}</div> : active === "settings" && !needTenant ? null : needTenant ? (
             <Card className="empty-state">
               <span className="empty-icon">
                 <Building2 size={32} />
@@ -861,6 +882,8 @@ export default function Workspace() {
                 </Button>
               )}
             </Card>
+          ) : taxRoutes.includes(active) && canOpenResource(session,active) ? (
+            <TaxManagement key={`${session.id}:${tenant}:${active}:${workspaceVersion}`} session={session} tenantId={tenant} initialSection={taxResources.includes(active) ? active : undefined} scope={scope} onError={translateError} heading={heading}/>
           ) : active === "catalog-items" && canOpenResource(session, active) ? (
             <CatalogItemsOverview key={`${session.id}:${tenant}:${active}:${workspaceVersion}`} session={session} tenantId={tenant} scope={scope} onError={translateError} heading={heading}/>
           ) : catalogResources.includes(active) && canOpenResource(session, active) ? (
@@ -1223,7 +1246,8 @@ function RecordEditor({
     f = useTranslations("fields"),
     languages = useTranslations("languages"),
     fieldOptions = useTranslations("fieldOptions"),
-    r = useTranslations("resources");
+    r = useTranslations("resources"),
+    companyT = useTranslations("companyTax");
   const [values, setValues] = useState<Record<string, unknown>>(() =>
       Object.fromEntries(
         resource.fields.map((field) => [
@@ -1256,7 +1280,7 @@ function RecordEditor({
   const coverageVisible = resource.key === "purchasing-organizations" && can(session, resource.key, "read") && can(session, "companies", "read") && can(session, "sites", "read");
   const coverageEditable = coverageVisible && can(session, resource.key, "assign_scope");
   const owner = row ?? {id: "", tenant_id: session.tenantId ?? "new"};
-  const visibleRelations = (relations[resource.key] ?? []).filter(relation => canRelation(session, resource.key, relation.key, "read", owner));
+  const visibleRelations = (resource.key === "companies" ? [] : relations[resource.key] ?? []).filter(relation => canRelation(session, resource.key, relation.key, "read", owner));
   const editableRelations = visibleRelations.filter(relation => canRelation(session, resource.key, relation.key, "assign", owner));
   const roleCompaniesVisible = resource.key === "roles" && can(session, "companies", "read") && (row ? can(session, "roles", "read") : can(session, "roles", "assign_companies"));
   const roleCompaniesEditable = roleCompaniesVisible && can(session, "roles", "assign_companies");
@@ -1269,11 +1293,11 @@ function RecordEditor({
   const touchedReferences = useRef<Set<string>>(new Set());
   const [recoveryReady, setRecoveryReady] = useState(false);
   useEffect(() => {
-    if ((!row || resource.key === "currencies") && canWrite) {
+    if ((!row || ["currencies", "companies", "sites"].includes(resource.key)) && canWrite) {
       try {
         setUncertainCreate(!!sessionStorage.getItem(pendingKey));
         const saved = JSON.parse(sessionStorage.getItem(recoveryKey) || "null");
-        if ((!row && saved?.kind === "create") || (row && resource.key === "currencies" && saved?.kind === "edit" && saved.id === row.id && saved.baseline && typeof saved.baseline === "object")) {
+        if ((!row && saved?.kind === "create") || (row && ["currencies", "companies", "sites"].includes(resource.key) && saved?.kind === "edit" && saved.id === row.id && saved.baseline && typeof saved.baseline === "object")) {
           recovery.current = saved;
           if (saved.values && typeof saved.values === "object") setValues(old => ({...old, ...recoverableValues(resource.fields, saved.values)}));
         }
@@ -1285,7 +1309,7 @@ function RecordEditor({
     let alive = true;
     setRelationsLoading(true);
     setRelationsError("");
-    Promise.all((relations[resource.key] ?? []).filter(relation => canRelation(session, resource.key, relation.key, "read", row ?? {id: "", tenant_id: session.tenantId ?? "new"})).map(async relation => {
+    Promise.all((resource.key === "companies" ? [] : relations[resource.key] ?? []).filter(relation => canRelation(session, resource.key, relation.key, "read", row ?? {id: "", tenant_id: session.tenantId ?? "new"})).map(async relation => {
       const [options, data] = await Promise.all([
         load(relation.target),
         row ? api<{ids: string[]}>(scope(`/links/${relation.key}/${row.id}`)) : Promise.resolve({ids: [] as string[]}),
@@ -1354,14 +1378,15 @@ function RecordEditor({
     return () => {alive = false};
   }, [coverageVisible, row, load, scope, onError]);
   useEffect(() => {
-    if ((row && resource.key !== "currencies") || !canWrite || !recoveryReady || relationsLoading || relationsError || (coverageVisible && (coverageLoading || coverageError || !coverageDraft))) return;
+    if ((row && !["currencies", "companies", "sites"].includes(resource.key)) || !canWrite || !recoveryReady || relationsLoading || relationsError || (coverageVisible && (coverageLoading || coverageError || !coverageDraft))) return;
     try {
       if (sessionStorage.getItem(pendingKey)) {
+        if (resource.key === "companies") return;
         const pending = JSON.parse(sessionStorage.getItem(recoveryKey) || "null");
         if (row ? pending?.kind !== "edit" || pending.id !== row.id : pending?.kind !== "create") return;
       }
       const links = Object.fromEntries(editableRelations.filter(relation => drafts[relation.key]).map(relation => [relation.key, drafts[relation.key].ids]));
-      sessionStorage.setItem(recoveryKey, JSON.stringify({...(row ? {kind: "edit", id: row.id, version: recovery.current?.kind === "edit" ? recovery.current.version : row.version, baseline: recovery.current?.kind === "edit" ? recovery.current.baseline : recoverableValues(resource.fields, row)} : {kind: "create"}), values: recoverableValues(resource.fields, values), links, ...(coverageEditable && coverageDraft ? {coverage: coverageDraft.coverage} : {})}));
+      sessionStorage.setItem(recoveryKey, JSON.stringify({...(resource.key === "companies" ? JSON.parse(sessionStorage.getItem(recoveryKey) || "null") : {}), ...(row ? {kind: "edit", id: row.id, ...(resource.key === "currencies" ? {version: recovery.current?.kind === "edit" ? recovery.current.version : row.version} : {}), baseline: recovery.current?.kind === "edit" ? recovery.current.baseline : recoverableValues(resource.fields, row)} : {kind: "create"}), values: recoverableValues(resource.fields, values), links, ...(coverageEditable && coverageDraft ? {coverage: coverageDraft.coverage} : {})}));
     } catch { /* Storage is optional. */ }
   }, [row, canWrite, recoveryReady, relationsLoading, relationsError, coverageVisible, coverageLoading, coverageError, coverageDraft, coverageEditable, drafts, values, recoveryKey, pendingKey, resource.fields]);
   // Append controller hooks: existing recovery/harness state slots stay stable.
@@ -1394,6 +1419,20 @@ function RecordEditor({
       if (saved?.kind === "create") sessionStorage.setItem(recoveryKey, JSON.stringify({...saved, companyIds}));
     } catch { /* Storage is optional until submit. */ }
   }, [row, canWrite, recoveryReady, roleCompaniesEditable, roleCompanies, roleCompanyLookup, values, drafts, relationsLoading, relationsError, recoveryKey, pendingKey]);
+  const company = resource.key === "companies";
+  const companyTenant = session.isSuperAdmin ? tenant : session.tenantId || "";
+  const stageCompanyTax = company && !row && canWrite && session.isSuperAdmin;
+  const companyRecovery = () => {try {const saved = JSON.parse(sessionStorage.getItem(recoveryKey) || "null"); return (!row && saved?.kind === "create") || (row && saved?.kind === "edit" && saved.id === row.id) ? saved : null;} catch {return null;}};
+  const [companyTab, setCompanyTab] = useState<"general" | "taxation">(() => company && companyRecovery()?.tab === "taxation" ? "taxation" : "general");
+  const [companyTaxDrafts, setCompanyTaxDrafts] = useState<CompanyTaxDraft[]>(() => stageCompanyTax && Array.isArray(companyRecovery()?.taxConfigurations) ? companyRecovery().taxConfigurations : []);
+  useEffect(() => {
+    if (!company || !recoveryReady) return;
+    try {
+      if (sessionStorage.getItem(pendingKey)) return;
+      const saved = companyRecovery();
+      sessionStorage.setItem(recoveryKey, JSON.stringify({...saved, ...(row ? {kind: "edit", id: row.id, baseline: saved?.baseline ?? recoverableValues(resource.fields, row)} : {kind: "create"}), tab: companyTab, ...(!row ? {taxConfigurations: stageCompanyTax ? companyTaxDrafts : []} : {})}));
+    } catch { /* La bozza resta disponibile nella pagina corrente. */ }
+  }, [company, row, recoveryReady, companyTab, companyTaxDrafts, stageCompanyTax, values, recoveryKey, pendingKey]);
   const set = (name: string, value: unknown) =>
     setValues((old) => ({ ...old, [name]: value }));
   const missingRequired = resource.fields.some(field => {
@@ -1411,7 +1450,8 @@ function RecordEditor({
     try {
       const normalized = normalizeValues(resource.fields, values);
       // L'ordine iniziale dei multiselect non rende modificato lo stesso insieme.
-      const initial = row ? {...row, ...normalizeValues(resource.fields.filter(field => field.type === "multiselect"), row)} : null;
+      const baseline = (company || resource.key === "sites") && recovery.current?.kind === "edit" ? recovery.current.baseline : row;
+      const initial = row ? {...baseline, ...normalizeValues(resource.fields.filter(field => field.type === "multiselect"), baseline)} : null;
       changedValues = initial ? Object.fromEntries(Object.entries(normalized).filter(([key, value]) => JSON.stringify(value) !== JSON.stringify(initial[key] ?? null))) : normalized;
     } catch {invalidValues = true;}
   }
@@ -1421,12 +1461,11 @@ function RecordEditor({
   const changedCompanies = roleCompaniesEditable && roleCompanies.ready && JSON.stringify(roleCompanies.ids) !== JSON.stringify(roleCompanies.initialIds);
   const pendingCompanies = roleCompaniesEditable && (!roleCompanies.ready || !!roleCompanies.error || !roleCompanyLookup.ready || !!roleCompanyLookup.error);
   const hasChanges = !row && canWrite || invalidValues || Object.keys(changedValues).length > 0 || Object.keys(changedLinks).length > 0 || changedCoverage || changedCompanies;
-  const fiscalFields = resource.key === "sites" && resource.fields.some(field => field.name === "vat_number") && resource.fields.some(field => field.name === "tax_code");
-  const missingFiscal = fiscalFields && !String(values.vat_number ?? "").trim() && !String(values.tax_code ?? "").trim();
+
   const currencyEdit = resource.key === "currencies" && !!row;
   const expectedVersion = currencyEdit ? (recovery.current?.kind === "edit" ? recovery.current.version : row.version) : undefined;
   const invalidCurrencyVersion = currencyEdit && (!Number.isSafeInteger(expectedVersion) || (expectedVersion as number) < 1);
-  const blocked = (!row && (!recoveryReady || uncertainCreate)) || (currencyEdit && (!recoveryReady || uncertainCreate || invalidCurrencyVersion)) || missingFiscal || busy || (canWrite && (refsLoading || missingRequired || refsFailed)) || pendingRelations || pendingCoverage || !hasChanges;
+  const blocked = (!row && (!recoveryReady || uncertainCreate)) || (currencyEdit && (!recoveryReady || uncertainCreate || invalidCurrencyVersion)) || busy || (canWrite && (refsLoading || missingRequired || refsFailed)) || pendingRelations || pendingCoverage || !hasChanges;
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!canSave || blocked || pendingCompanies || submitting.current) return;
@@ -1438,14 +1477,16 @@ function RecordEditor({
       ...(changedCoverage ? {coverage: coverageDraft!.coverage} : {}),
       ...(changedCompanies ? {companyIds: roleCompanies.ids} : {}),
       ...(currencyEdit ? {expectedVersion} : {}),
+      ...(stageCompanyTax && companyTaxDrafts.length ? {taxConfigurations: companyTaxDrafts} : {}),
     };
     if (!row || currencyEdit) {
       try {
         if (sessionStorage.getItem(pendingKey)) {setUncertainCreate(true); return;}
         const links = Object.fromEntries(editableRelations.filter(relation => drafts[relation.key]).map(relation => [relation.key, drafts[relation.key].ids]));
-        sessionStorage.setItem(recoveryKey, JSON.stringify({...(row ? {kind: "edit", id: row.id, version: expectedVersion, baseline: recovery.current?.kind === "edit" ? recovery.current.baseline : recoverableValues(resource.fields, row)} : {kind: "create"}), values: recoverableValues(resource.fields, values), links, ...(roleCompaniesEditable && roleCompanies.ready ? {companyIds: roleCompanies.ids} : {}), ...(coverageEditable && coverageDraft ? {coverage: coverageDraft.coverage} : {})}));
-        sessionStorage.setItem(pendingKey, "pending");
-        if (sessionStorage.getItem(pendingKey) !== "pending") throw new Error("storage unavailable");
+        sessionStorage.setItem(recoveryKey, JSON.stringify({...(row ? {kind: "edit", id: row.id, version: expectedVersion, baseline: recovery.current?.kind === "edit" ? recovery.current.baseline : recoverableValues(resource.fields, row)} : {kind: "create"}), values: recoverableValues(resource.fields, values), links, ...(company ? {tab: companyTab, taxConfigurations: stageCompanyTax ? companyTaxDrafts : []} : {}), ...(roleCompaniesEditable && roleCompanies.ready ? {companyIds: roleCompanies.ids} : {}), ...(coverageEditable && coverageDraft ? {coverage: coverageDraft.coverage} : {})}));
+        const marker = company ? JSON.stringify({kind: "create", body}) : "pending";
+        sessionStorage.setItem(pendingKey, marker);
+        if (sessionStorage.getItem(pendingKey) !== marker) throw new Error("storage unavailable");
       } catch {setError(currencyEdit ? (locale === "it" ? "Salvataggio bloccato: abilita la memoria di sessione e riprova." : "Save blocked: enable session storage and try again.") : t("createStorageUnavailable")); return;}
     }
     submitting.current = true;
@@ -1465,6 +1506,14 @@ function RecordEditor({
       setBusy(false);
       return;
     }
+    if (company && !row && stageCompanyTax && companyTaxDrafts.length) {
+      try {
+        const actual = await api<{items: Array<Record<string, unknown>>}>(scope(`/tax/companies/${encodeURIComponent(result.id)}/configurations`));
+        const contains = (actual: any, expected: any): boolean => Array.isArray(expected) ? Array.isArray(actual) && actual.length === expected.length && expected.every(value => actual.some(item => contains(item, value))) : expected && typeof expected === "object" ? actual && Object.entries(expected).every(([key, value]) => contains(actual[key], value)) : actual === expected;
+        if (!Array.isArray(actual.items) || !companyTaxDrafts.every(draft => actual.items.some(root => root.company_id === result.id && root.tenant_id === companyTenant && contains(root, {...draft.values, registrations: (draft.registrations ?? []).map(registration => ({...registration.values, profiles: registration.profiles ?? []}))})))) throw new Error("Company tax readback mismatch");
+        clearCompanyTaxDrafts(sessionStorage, session.id, companyTenant, "new");
+      } catch (e) {setUncertainCreate(true); setError(onError(e)); submitting.current = false; setBusy(false); return;}
+    }
     if (!row || currencyEdit) {try {sessionStorage.removeItem(pendingKey);} catch { /* Keep the conservative lock. */ }}
     // Il commit è concluso: un refresh fallito non deve rendere ripetibile il salvataggio.
     referenceCache = new WeakMap();
@@ -1479,7 +1528,7 @@ function RecordEditor({
         if (!open && !busy) onClose();
       }}
     >
-      <DialogContent className="flex max-h-[90dvh] flex-col sm:max-w-2xl">
+      <DialogContent className={`flex max-h-[90dvh] flex-col ${company && companyTab === "taxation" ? "sm:max-w-[min(96vw,90rem)]" : "sm:max-w-2xl"}`}>
         <DialogHeader>
           <DialogTitle>
             {r(resource.key)} ·{" "}
@@ -1490,13 +1539,17 @@ function RecordEditor({
           </DialogDescription>
         </DialogHeader>
         <div className="editor-scroll">
-          <form onSubmit={submit} id="record-form">
+          {company && <div role="tablist" aria-label={companyT("title")} className="mb-3 flex gap-2">
+            <Button type="button" role="tab" id="company-tab-general" aria-selected={companyTab === "general"} aria-controls="record-form" variant={companyTab === "general" ? "default" : "outline"} onClick={() => setCompanyTab("general")}>{companyT("general")}</Button>
+            <Button type="button" role="tab" id="company-tab-taxation" aria-selected={companyTab === "taxation"} aria-controls="company-tax-panel" variant={companyTab === "taxation" ? "default" : "outline"} onClick={() => setCompanyTab("taxation")}>{companyT("title")}</Button>
+          </div>}
+          <form onSubmit={submit} onInvalidCapture={company ? () => setCompanyTab("general") : undefined} hidden={company && companyTab !== "general"} id="record-form">
             <Notice message={uncertainCreate ? t("createOutcomeUncertain") : error} />
 
             <fieldset disabled={!canWrite || busy} className="form-grid">
               {resource.fields.map((field) => {
                 const id = `field-${field.name}`;
-                const fieldRequired = fiscalFields && ["vat_number", "tax_code"].includes(field.name) ? !String(values[field.name === "vat_number" ? "tax_code" : "vat_number"] ?? "").trim() : field.required;
+                const fieldRequired = field.required;
                 let options = field.reference
                   ? refs[field.reference] || []
                   : [];
@@ -1611,6 +1664,9 @@ function RecordEditor({
               })}
             </fieldset>
           </form>
+          {company && <div id="company-tax-panel" hidden={companyTab !== "taxation"}>
+            <CompanyTaxation companyId={row?.id ?? null} session={session} tenantId={companyTenant} scope={scope} onError={onError} staged={row ? [] : companyTaxDrafts} disabled={busy || (!row && (!stageCompanyTax || uncertainCreate))} onStagedChange={drafts => {if (stageCompanyTax && !busy && !uncertainCreate && !submitting.current) setCompanyTaxDrafts(drafts);}} />
+          </div>}
           <Notice message={relationsError} />
           <Notice message={coverageError} />
           {roleCompaniesVisible && <RoleCompanyAccess roleId={row?.id ?? ""} {...{scope, onError, busy}} ids={roleCompanies.ids} ready={roleCompanies.ready} error={roleCompanies.error} editable={roleCompaniesEditable}

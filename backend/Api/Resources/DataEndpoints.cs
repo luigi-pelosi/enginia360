@@ -95,12 +95,18 @@ public static class DataEndpoints
         var create=!ownerId.HasValue;
         Check.Require(!r.ReadOnly,403,"forbidden");
         Check.Require(body.ValueKind==JsonValueKind.Object);
-        JsonElement? valuesBody=null; JsonElement? linksBody=null; PurchasingCoverage.Entry[]? coverage=null; long? expected=null; HashSet<Guid>? companyIds=null;
+        JsonElement? valuesBody=null; JsonElement? linksBody=null; JsonElement? taxConfigurations=null; PurchasingCoverage.Entry[]? coverage=null; long? expected=null; HashSet<Guid>? companyIds=null;
         var names=new HashSet<string>(StringComparer.Ordinal);
         foreach(var prop in body.EnumerateObject())
         {
             var name=Resources.ReadName(prop);
-            Check.Require(names.Add(name) && name is "values" or "links" or "coverage" or "expectedVersion" or "companyIds");
+            Check.Require(names.Add(name) && name is "values" or "links" or "coverage" or "expectedVersion" or "companyIds" or "taxConfigurations");
+            if(name=="taxConfigurations") {
+                // Solo staging iniziale: il PUT rifiuta il campo anche se contiene un array vuoto.
+                Enginia360.Modules.TaxManagement.CompanyTaxConfiguration.Require(resource=="companies" && create,"initial_create_only",field:"taxConfigurations");
+                _=Enginia360.Modules.TaxManagement.CompanyTaxInput.Array(prop.Value,"taxConfigurations",20);
+                taxConfigurations=prop.Value; continue;
+            }
             if(name=="companyIds") {
                 Check.Require(resource=="roles");
                 companyIds=RoleCompanyEndpoints.Parse(prop.Value); continue;
@@ -146,6 +152,8 @@ public static class DataEndpoints
         {
             after=await Create(db,r,state,tenant,values!);
             ownerId=after.Value.GetProperty("id").GetGuid();
+            if(taxConfigurations.HasValue)
+                await Enginia360.Modules.TaxManagement.CompanyTaxApplication.AssignInitial(ctx,db,tenant!.Value,ownerId.Value,taxConfigurations.Value);
         }
         else if(values != null) after=await Update(db,r,state,tenant,ownerId.Value,values,expected);
         foreach(var (name,ids) in links) await ReplaceLinks(db,Resources.Links[name],name,state,tenant,ownerId.Value,ids);
@@ -215,7 +223,6 @@ public static class DataEndpoints
         var before=HasSnapshots(resource) ? await Resources.Row(db,r,id,tenant) : null;
         if(resource == "countries" && values.ContainsKey("iso_code"))
             GeographyCatalog.ValidateCountryIdentity(values,before!.Value,(bool)(await db.Scalar("SELECT EXISTS(SELECT 1 FROM foundation.city WHERE country_id=@id)",("id",id)))!);
-        if(resource == "sites") Resources.ValidateTaxIdentity(values,before);
         var revoke=resource == "users" && (values.ContainsKey("username") || values.ContainsKey("is_enabled"))
             ? ",security_stamp=gen_random_uuid()" : "";
         await using var cmd=await db.Command($"UPDATE {SqlNames.Table(r.Table)} SET {string.Join(',',values.Keys.Select(f => f+"=@"+f))}{revoke} WHERE id=@id AND {Resources.Scope(r)}",("id",id),("tenant",tenant));

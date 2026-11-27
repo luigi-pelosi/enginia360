@@ -1,0 +1,8 @@
+{
+  "countries.json": "226b4d8bac48d2ea7563bf852c35db15dacabbec613f18ba6ed7c688ef6edd50",
+  "cldr-territories-it.json": "d41462485baabf9b0b70de0092a173a45a7af8c415ace686e6cbe1909baf390f",
+  "UNICODE-LICENSE.txt": "220ba0e1c43b99530d2d5bdb892a99dca0989414f51ab695ecd90163eaa1ec3b",
+  "sources.json": "e1438cf27cde73380a6058a6884163a9cf13467365aa694b571ba7d660d91562",
+  "generate_sql.py": "e31ce139c2285dddf8dacde2aafc93434d161e3ed01bc7f20bee55dbe9c567f6",
+  "../countries.sql": "73d77a894238d76631aeba5a7f64507fe6e4f63780dba7626e3d8abd531673b7"
+}

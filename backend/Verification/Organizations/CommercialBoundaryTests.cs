@@ -39,7 +39,7 @@ public static class CommercialBoundaryTests
             Assert(response.StatusCode==HttpStatusCode.Created,"500 companies refused: "+await response.Content.ReadAsStringAsync());
             var owner=(await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
             Assert((long)(await db.Scalar("SELECT count(*) FROM foundation.purchasing_organization_company WHERE purchasing_organization_id=@o",("o",owner)))! == 500,"500 companies not committed.");
-            await db.Execute("INSERT INTO foundation.site(tenant_id,company_id,name,tax_code,address,city,province,postal_code,country_code) SELECT @t,@c,'Coverage boundary '||i,'SYNTHETIC-TAX','Synthetic Road 42','Synthetic City','Synthetic Region','AB 12-X','GB' FROM generate_series(1,500) i",("t",tenant),("c",a));
+            await db.Execute("INSERT INTO foundation.site(tenant_id,company_id,name,address,city,province,postal_code,country_code) SELECT @t,@c,'Coverage boundary '||i,'Synthetic Road 42','Synthetic City','Synthetic Region','AB 12-X','GB' FROM generate_series(1,500) i",("t",tenant),("c",a));
             var sites=new List<Guid>();
             await using(var command=await db.Command("SELECT id FROM foundation.site WHERE tenant_id=@t AND company_id=@c AND name LIKE 'Coverage boundary %' ORDER BY id",("t",tenant),("c",a)))
             await using(var reader=await command.ExecuteReaderAsync()) while(await reader.ReadAsync()) sites.Add(reader.GetGuid(0));

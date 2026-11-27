@@ -1,6 +1,6 @@
 # Enginia360 — Foundation
 
-Riferimento tecnico generale e regole di sviluppo della foundation. Specifiche di dominio: [Business Partner](masterdata_business_partner.md), [Catalogo](masterdata_catalog.md). Per le attività quotidiane: [Manuale utente](manuale-utente.md).
+Riferimento tecnico generale e regole di sviluppo della foundation. Specifiche di dominio: [Business Partner](masterdata_business_partner.md), [Catalogo](masterdata_catalog.md), [TaxManagement](taxmanagement.md). Per le attività quotidiane: [Manuale utente](manuale-utente.md).
 
 ## Indice
 
@@ -35,6 +35,7 @@ La progettazione segue DDD pragmatico, API-first, modularità, riuso e interoper
 - Business Partner: identità tenant condivisa, identificativi fiscali, indirizzi e recapiti; numerazione dedicata, rapporti multi-company e ruoli Cliente/Fornitore.
 - Pagamenti: metodi, condizioni rateali, simulazione delle scadenze e default aziendali e per ruolo Business Partner.
 - Catalogo: identità tenant-wide di articoli/servizi, unità e conversioni, categorie, tipologie, marchi, identificativi, confezioni e dati fisici; configurazioni autonome di utilizzo per azienda e quattro numerazioni sul nucleo condiviso.
+- TaxManagement Fasi 1–5: codici/versioni, classificazioni e profili articolo/BP, fiscalità aziendale, regole e determinazione italiana ordinaria, calcolo multi-riga EUR con rettifiche e arrotondamenti; senza persistenza documentale.
 
 Sono esclusi i processi operativi successivi: documenti, ordini, commesse, movimentazione e valorizzazione di magazzino, incassi e pagamenti effettivi, fatturazione e contabilità. Non sono introdotti identity provider esterni, intercompany, organizzazioni predefinite o dati dimostrativi automatici.
 
@@ -58,7 +59,7 @@ Il nome precede il codice nei form. I **codici anagrafici sono facoltativi**, no
 
 - `site_type`: una scelta facoltativa tra `LEGAL`, `LOCAL_UNIT`, `SECONDARY`, senza default.
 - `functions`: insieme indipendente, inizialmente vuoto: `OPERATIONAL`, `ADMINISTRATIVE`, `COMMERCIAL`, `PRODUCTION`, `LOGISTICS`, `WAREHOUSE`, `TECHNICAL_SERVICE`, `MANAGEMENT`, `RETAIL`.
-- Almeno uno tra `vat_number` e `tax_code` deve essere non vuoto. I dati fiscali rimangono sulla sede; non si deduce la futura sede fiscale dei documenti.
+- La sede non possiede partita IVA o codice fiscale e non richiede identificativi fiscali per essere salvata. Il codice fiscale facoltativo appartiene a `taxmanagement.company_tax_configurations.tax_code`; codice fiscale e registrazioni IVA sono gestiti esclusivamente in **Azienda → Fiscalità**. Non si deduce la futura sede fiscale dei documenti.
 - `address`, `city`, `province`, `postal_code`, `country_code` obbligatori; `region` facoltativa. CAP testuale; paese ISO 3166-1 alpha-2.
 - L'indirizzo è uno snapshot: modificare un catalogo non riscrive le sedi. Nessun backfill inventato o FK retroattiva.
 
@@ -94,6 +95,12 @@ Identità e configurazioni condivise nel tenant, nello schema `masterdata`, senz
 `CatalogItemCompany` governa abilitazione opt-in e configurazioni operative indipendenti per azienda, senza duplicare il master. Default della tipologia copiati soltanto alla prima associazione, unità predefinite tra quelle ammesse dall'articolo, disponibilità effettive calcolate e stock previsto solo per GOOD. Permessi con ambito aziendale sullo stesso ruolo; nessuna associazione automatica, movimento, prezzo o regola fiscale/contabile.
 
 La UI riunisce le viste in **Anagrafiche → Catalogo → Articoli e servizi**, con tab **Identità** e **Per azienda**, secondo il modello Business Partner. I permessi restano distinti: il solo lettore aziendale può raggiungere il contenitore senza ottenere lettura o CRUD sul master. Tab, filtri e bozze sono isolati per utente/tenant e recuperabili al refresh; il menu resetta la schermata senza eliminare le mutazioni incerte. La vecchia rotta UI aziendale è un alias compatibile, non una voce separata; le API non cambiano.
+
+### TaxManagement
+
+Le cinque fasi operative formano un solo contesto nello schema `taxmanagement`: codici IVA/versioni e cataloghi readonly; classificazioni/profili temporali di articoli e BP; configurazioni fiscali Company con codice fiscale, stabilimento, registrazioni e regimi; regole versionate e determinazione italiana nazionale ordinaria; calcolo multi-riga EUR con rettifiche sequenziali e arrotondamenti deterministici. Codici e classificazioni sono tenant-wide, configurazioni company-owned e regole condivise o aziendali, senza precedenze implicite. Catalogo/BP restano proprietari dei soggetti, mai di aliquote. Ogni nuova registrazione richiede un regime iniziale atomico; date inclusive, revisioni indipendenti, audit e lock proteggono lo storico. Dati sconosciuti, lacune e ambiguità bloccano la decisione. La detraibilità è matematica su una percentuale dichiarata, assente = `null`; niente documenti, XML o contabilità. Modello, fonti, limiti e API nel [riferimento unico TaxManagement](taxmanagement.md).
+
+La UI riunisce configurazioni e simulatore in **Impostazioni → Anagrafiche → Tasse e imposte**, con profili in **Articolo/BP → Fiscalità** e registrazioni in **Azienda → Fiscalità**. Su padri già salvati i comandi fiscali sono autonomi dai metadati; su nuovi padri le righe iniziali committano insieme alla creazione autorizzata. Bozze e risultati recuperabili al refresh, reset ordinario da menu e nessun replay automatico di comandi incerti. Perimetro decisionale e fatti autorevoli: [determinazione](taxmanagement.md#5-fatti-autorevoli-e-determinazione); policy monetaria: [calcolo](taxmanagement.md#6-calcolo-monetario).
 
 ### Valute
 
@@ -151,9 +158,9 @@ User → Role → Permission
 User → Group → Role → Permission
 ```
 
-Si uniscono le concessioni attive. Nessun permesso diretto utente, deny, gruppo annidato o gerarchia di ruoli. Ruoli, gruppi e catalogo permessi appartengono al tenant. Per le operazioni `business-partner-companies.*` e `catalog-item-companies.*`, l'ambito è aziendale: il ruolo che concede l'operazione deve contenere anche l'azienda in `role_company`. Gli altri permessi tenant esistenti mantengono il loro ambito; l'elenco aziende non attribuisce automaticamente diritti ad altri moduli o sedi.
+Si uniscono le concessioni attive. Nessun permesso diretto utente, deny, gruppo annidato o gerarchia di ruoli. Ruoli, gruppi e catalogo permessi appartengono al tenant. Per le operazioni `business-partner-companies.*`, `catalog-item-companies.*` e `company-tax-configurations.*`, l'ambito è aziendale: il ruolo che concede l'operazione deve contenere anche l'azienda in `role_company`. Regole fiscali aziendali, determinazione e calcolo richiedono a loro volta azione e azienda nello stesso ruolo, secondo il [contratto fiscale](taxmanagement.md#7-api-e-permessi); le regole condivise mantengono l'autorità tenant. Gli altri permessi tenant esistenti mantengono il loro ambito; l'elenco aziende non attribuisce automaticamente diritti ad altri moduli o sedi.
 
-Il catalogo è finito, readonly e contiene **97 operazioni**, incluse Pagamenti e Catalogo multi-company; `catalog-types.delete` abilita l'eliminazione delle sole tipologie senza articoli collegati:
+Il catalogo sorgente è finito, readonly e contiene **147 operazioni**, incluse Pagamenti, Catalogo multi-company e TaxManagement Fasi 1–5; `catalog-types.delete` abilita l'eliminazione delle sole tipologie senza articoli collegati. Materializzare definizioni non assegna grant; il catalogo sorgente non attesta da solo un upgrade del database.
 
 | Risorse | Operazioni |
 |---|---|
@@ -177,6 +184,15 @@ Il catalogo è finito, readonly e contiene **97 operazioni**, incluse Pagamenti 
 | `catalog-items` | `read`, `create`, `update`, `activate`, `deactivate`, `archive` |
 | `catalog-brands` | `read`, `create`, `update` |
 | `catalog-item-companies` | `read`, `create`, `update` |
+| `tax-codes` | `read`, `create`, `update`, `schedule`, `deactivate`, `reactivate`, `install_templates` |
+| `tax-types`, `tax-nature-codes` | `read` |
+| `tax-item-classifications`, `tax-partner-classifications` | `read`, `create`, `update`, `deactivate`, `reactivate`, `install_templates` |
+| `tax-item-profiles`, `tax-partner-profiles` | `read`, `assign`, `schedule` |
+| `tax-regimes` | `read` |
+| `company-tax-configurations` | `read`, `create`, `update`, `activate`, `suspend`, `register`, `close`, `assign_regime`, `schedule_regime` |
+| `tax-rules` | `read`, `create`, `update`, `validate`, `publish`, `withdraw`, `install_templates` |
+| `tax-determination` | `read`, `simulate`, `determine` |
+| `tax-calculation` | `read`, `simulate`, `calculate` |
 
 Creare un tenant materializza il catalogo, **non ruoli o grant impliciti**. Codici sconosciuti, legacy non di sistema e vecchi `.write` non concedono autorità. `tenants` è esclusivo del globale; Nazioni/Città hanno policy globali dedicate, fuori dal catalogo tenant.
 
@@ -194,7 +210,7 @@ Policy e handler ASP.NET Core applicano default deny. Identità, stamp, stato te
 
 ## 4. Database e installazione
 
-Unico ingresso di installazione: [`database/foundation.sql`](../database/foundation.sql). Le definizioni condivise Numbering appartengono a `foundation`; Business Partner e Pagamenti conservano i frammenti [`masterdata_business_partner.sql`](../database/masterdata_business_partner.sql) e [`masterdata_payments.sql`](../database/masterdata_payments.sql). Il Catalogo usa un solo frammento finale [`masterdata_catalog.sql`](../database/masterdata_catalog.sql), non una catena di parti incrementali o migrazioni obsolete. La tabella unità resta `masterdata.catalog_unit_of_measure` anche quando la sua definizione è posta fra i prerequisiti della baseline. Non applicare la baseline a dati esistenti.
+Unico ingresso di installazione: [`database/foundation.sql`](../database/foundation.sql), con cinque inclusioni dirette: [`masterdata_business_partner.sql`](../database/masterdata_business_partner.sql), [`masterdata_payments.sql`](../database/masterdata_payments.sql), [`masterdata_catalog.sql`](../database/masterdata_catalog.sql), [`seeds/countries.sql`](../database/seeds/countries.sql) e [`taxmanagement.sql`](../database/taxmanagement.sql). Numbering condiviso appartiene a `foundation`; Catalogo e TaxManagement hanno ciascuno una sola definizione finale, senza catene incrementali. La tabella unità resta `masterdata.catalog_unit_of_measure` anche quando definita fra i prerequisiti. Non applicare la baseline a dati esistenti.
 
 | Area | Tabelle |
 |---|---|
@@ -214,8 +230,14 @@ Unico ingresso di installazione: [`database/foundation.sql`](../database/foundat
 | Catalogo (`masterdata`) | `catalog_unit_of_measure`, `catalog_category`, `catalog_item_type` |
 | Articoli e servizi (`masterdata`) | `catalog_brand`, `catalog_item`, `catalog_item_code`, `catalog_item_identifier`, `catalog_item_unit`, `catalog_item_physical_data` |
 | Utilizzo aziendale Catalogo (`masterdata`) | `catalog_item_company` |
+| Tax Foundation (`taxmanagement`) | `tax_types`, `tax_nature_codes`, `tax_codes`, `tax_code_versions`, `tax_audit_events` |
+| Classificazioni fiscali (`taxmanagement`) | `item_tax_classifications`, `partner_tax_classifications`, `item_tax_profiles`, `partner_tax_profiles` |
+| Fiscalità aziendale (`taxmanagement`) | `tax_regimes`, `company_tax_configurations`, `company_tax_registrations`, `company_tax_regime_profiles` |
+| Determinazione fiscale (`taxmanagement`) | `tax_rules`, `tax_rule_versions`, `tax_rule_conditions` |
 
-**49 tabelle: 26 in `foundation`, 23 in `masterdata`.** Le altre aree della tabella sopra rimangono in `foundation`. Tenant, utenti, geografia, BP, serie, marchi, articoli e associazioni aziendali non sono precaricati dall'SQL; i cataloghi globali Valute e FatturaPA hanno i rispettivi dati iniziali. La creazione applicativa di un tenant materializza permessi senza grant e inizializza 11 unità e le tipologie Merce/Servizio, senza categorie o confezioni specifiche. Date tecniche e aggiornamento di `updated_at`, dove presenti, sono gestiti dal database; associazioni, FK, unicità e trigger fanno parte dello schema. Il runtime riceve USAGE su entrambi gli schemi senza CREATE e non ha DELETE su BP, rapporti commerciali/ruoli, unità Catalogo, articoli, marchi, configurazioni aziendali, serie o contatori; le tipologie inutilizzate sono eliminabili con permesso dedicato e il registro codici è append-only. Gli accessi aziendali `role_company` sono invece sostituibili per revocare l'autorità. I guard di dominio appartengono a `masterdata`; il trigger timestamp riusa la funzione condivisa `foundation.set_updated_at`.
+**65 tabelle nella baseline sorgente: 26 in `foundation`, 23 in `masterdata`, 16 in `taxmanagement`.** Il consolidamento rappresenta lo stato finale delle cinque fasi fiscali, non una nuova procedura di upgrade. Le altre aree della tabella sopra rimangono in `foundation`. Tenant, utenti, BP, serie, marchi, articoli e associazioni aziendali non sono precaricati dall'SQL; i cataloghi globali Nazioni, Valute e FatturaPA hanno i rispettivi dati iniziali, senza città automatiche. TaxManagement include tipologie, nature italiane e regimi supportati IT/DE/FR, senza creare codici, classificazioni, profili, configurazioni o regole tenant automaticamente. La creazione applicativa di un tenant materializza permessi senza grant e inizializza 11 unità e le tipologie Merce/Servizio, senza categorie o confezioni specifiche. Date tecniche e aggiornamento di `updated_at`, dove presenti, sono gestiti dal database; associazioni, FK, unicità e trigger fanno parte dello schema. Il runtime riceve USAGE sui tre schemi senza CREATE e non ha DELETE su BP, rapporti commerciali/ruoli, unità Catalogo, articoli, marchi, configurazioni aziendali, serie, contatori o tabelle TaxManagement; le tipologie Catalogo inutilizzate sono eliminabili con permesso dedicato e il registro codici è append-only. Gli accessi aziendali `role_company` sono invece sostituibili per revocare l'autorità. I guard di dominio appartengono allo schema responsabile; il trigger timestamp riusa la funzione condivisa `foundation.set_updated_at`.
+
+La sola eccezione fiscale al divieto di DELETE del runtime riguarda `tax_rule_conditions`: la sostituzione controllata di condizioni Draft è consentita, mentre i guard impediscono modifiche e cancellazioni sulle versioni pubblicate o ritirate. Radici e versioni delle regole non sono eliminabili.
 
 ### Nuova installazione
 
@@ -241,6 +263,8 @@ Non esistono `EnsureCreated`, `Migrate`, DDL automatico all'avvio o migration ru
 
 L'installazione esistente ha già ricevuto le evoluzioni BP; non richiede alcuna applicazione SQL per questa riorganizzazione. I checkpoint dei rilasci restano privati in `/root/.config/enginia360/releases/`. Ripristinare richiede schema, dati, immagini e chiavi compatibili, valutando le scritture successive al checkpoint.
 
+Le cinque fasi TaxManagement e gli adeguamenti già pubblicati sono rappresentati direttamente in `taxmanagement.sql` per installazioni nuove. I precedenti frammenti e le migrazioni fiscali sono ritirati dal percorso canonico: non rieseguirli e non usare il consolidato su database popolati. Originali ed evidenze sono conservati privatamente in `/root/.config/enginia360/releases/tax-final-consolidation-20261127/`; questo riordino non richiede SQL sull'installazione esistente. Vedi [baseline TaxManagement](taxmanagement.md#9-baseline-e-fonti-del-contratto).
+
 ## 5. Moduli backend
 
 Un solo assembly .NET; namespace coerenti con le cartelle, import espliciti e nessuna nuova dipendenza.
@@ -257,6 +281,7 @@ backend/
     Numbering/                       # nucleo BP/Catalogo, discriminante serie esplicito
     Catalog/                         # configurazioni, articoli, figli, marchi e ciclo di vita
     Payments/                        # metodi, condizioni, default e simulazione
+    TaxManagement/                   # codici, profili, fiscalità Company, determinazione e calcolo
   Infrastructure/Persistence/        # AppDb, mapping, identificatori SQL
   Api/Resources/                     # metadata e CRUD/associazioni condivisi
   Shared/Validation/                 # Check e ApiException
@@ -332,7 +357,7 @@ Contratti di anagrafica, collezioni, numerazione, rapporti commerciali e accessi
 - Stato utente/tenant e security stamp sono rivalidati; disabilitazione o revoca invalida l'accesso. Cambio obbligatorio consente solo sessione, cambio password e logout.
 - Lockout: cinque errori, quindici minuti; trenta login/minuto per IP visto dall'API. Dietro proxy il limite può essere condiviso; non fidarsi di header IP del client.
 - HTTPS termina sull'ingresso privato; `App__Origin` imposta lo schema, non gli header client. API `no-store` e `nosniff`.
-- Body 64 KiB, profondità JSON 32, pagina massimo 100, ricerca massimo 200 caratteri. SQL parametrico e identificatori da whitelist.
+- Body 64 KiB, salvo i soli POST `/api/tax/calculations` e `/api/tax/calculations/simulate` a 1 MiB; profondità JSON 32, pagina massimo 100, ricerca massimo 200 caratteri. SQL parametrico e identificatori da whitelist.
 - Advisory lock `3607902026` serializza controllo autorizzazioni e mutazioni amministrative. È una scelta conservativa, non una garanzia di alto throughput.
 - Risposte protette trattenute fino al commit. Audit minimizzato prima/dopo e associazioni, mai password, hash, stamp o chiavi. Fallimento audit annulla la mutazione; storia non riscritta.
 - File segreti `0600`, directory private `0700`; niente environment completi, connessioni o segreti nei log, nel repository o nel bundle frontend.
@@ -342,6 +367,8 @@ Contratti di anagrafica, collezioni, numerazione, rapporti commerciali e accessi
 Nazioni e Città sono dati globali condivisi: per gli utenti ordinari la consultazione richiede rispettivamente `countries.read` e `cities.read`; Valute richiede `currencies.read`. La manutenzione di questi tre cataloghi rimane riservata al Super Admin. I nuovi permessi sono assegnabili nei ruoli tenant, non vengono concessi automaticamente. Una città è una coppia località/CAP; `istat_code` è tecnico e non editabile. Nazione ISO univoca, non modificabile se referenziata; eliminazione RESTRICT. Le città estere possono non avere provincia/regione: gli obblighi della sede rimangono separati.
 
 La UI le presenta come tile di **Impostazioni → Sistema**, non in sidebar. Il contenitore non ha un permesso generico: è visibile soltanto con almeno una funzione discendente autorizzata. Consultazione e modifica delle singole funzioni dipendono dalle rispettive autorizzazioni.
+
+Il catalogo iniziale contiene tutti i 249 paesi e territori ISO 3166-1, con nomi italiani Unicode CLDR. Il seed condiviso `database/seeds/countries.sql` è incluso nella baseline delle nuove installazioni. Per database esistenti si applica soltanto il seed, dopo backup e prova isolata, in una transazione con lock advisory `3607902026`: non si riesegue `foundation.sql`. L’inserimento è idempotente per codice ISO e non modifica ID, nomi, stato o riferimenti delle nazioni già presenti. Dataset, fonti, licenza e rigenerazione sono in `database/seeds/countries/`. Il catalogo completo non importa automaticamente città estere e non assegna permessi.
 
 | Endpoint | Comportamento |
 |---|---|
@@ -491,6 +518,7 @@ Dopo il refactoring: manifest sorgenti prima della build, publish reale, candida
 8. **Codici anagrafici:** facoltativi e secondari, dopo nome/dati principali; niente generazione per colmare assenze. Codice tenant/login obbligatorio, ma dopo Nome nel form. Codici tecnici permessi obbligatori e readonly.
    Eccezione autorizzata Business Partner: codice obbligatorio e immutabile, automatico o manuale secondo la configurazione Numbering dedicata.
    Eccezione autorizzata Catalogo: codice/simbolo obbligatorio per le unità di misura; codice articolo obbligatorio, automatico o manuale e immutabile dalla prima attivazione. Il codice articolo inserito o modificato manualmente ammette esclusivamente lettere ASCII A–Z/a–z e cifre 0–9, massimo 40 caratteri, senza spazi, accenti, simboli o normalizzazioni automatiche. Gli articoli sospesi mai attivati in modalità manuale possono cambiarlo, senza liberare i codici precedenti. Categorie, tipologie e marchi conservano il codice facoltativo.
+   Eccezione autorizzata TaxManagement: codici del trattamento e delle classificazioni obbligatori e stabili, univoci per tenant, giurisdizione e tipologia; la classificazione non identifica un'aliquota.
 9. **Integrazioni esterne:** segreti in impostazioni e schermate dedicate autorizzate, cifrati nel DB; non in file root/bundle, risposte API o audit/log. `integrations.` riservato ed escluso dalla CRUD generica.
 10. **Select con ricerca in tempo reale**, salvo richiesta esplicita diversa; comportamento condiviso anche su cataloghi brevi, etichette localizzate e tastiera.
 11. **Messaggi specifici e precisi:** avvisi, errori e informazioni indicano l'operazione o il controllo effettivo, il campo e la riga interessati quando noti, e l'azione utile. Non sostituire una causa conosciuta con un messaggio generico né esporre dettagli SQL, dati riservati o cause non verificate. Se indistinguibili, indicare tutti i campi rilevanti. Non distinguere username inesistente/password errata né rivelare stato prima della password corretta.
@@ -513,5 +541,7 @@ Dopo il refactoring: manifest sorgenti prima della build, publish reale, candida
 20. **Filtri compatti e adattivi:** preferire una sola riga, con etichette brevi e comprensibili. Se lo spazio non basta, mantenere la ricerca e i primi filtri sulla riga principale e porre in fondo un pulsante con icona filtri che espande un accordion sottostante con gli altri controlli. Dimensionamento sulla larghezza disponibile, non su un numero fisso di campi. Nascondere un controllo non azzera né disattiva il suo filtro; niente duplicazioni dei controlli o perdita delle selezioni al ridimensionamento.
 
 21. **Allineamento delle tabelle:** celle testuali e relative intestazioni a sinistra; valori numerici, economici e importi in valuta a destra con intestazioni centrate; badge, icone e azioni centrati nelle celle e nelle intestazioni. Usare il tipo semantico delle colonne nei componenti condivisi, senza dedurlo dal contenuto occasionale. I codici identificativi restano testi anche quando composti da cifre.
+
+22. **Etichette di salvataggio:** i pulsanti che eseguono un salvataggio usano la traduzione condivisa `app.save`: «Salva» in italiano, «Save» in inglese, anche nelle conferme di salvataggio. Non cambiare le operazioni sottostanti; descrivere effetti aggiuntivi e irreversibili nel contesto o nella conferma. Restano distinte le azioni diverse dal salvataggio, i testi informativi e lo stato di caricamento.
 
 UI professionale: niente testi su agente, proprietario, prototipo, tecnologia o scelte implementative; niente help text tecnico permanente. Azioni tabellari centrate in colonna di larghezza fissa; preferire icone con nome accessibile e descrizione al passaggio del mouse. Le azioni della videata restano allineate a destra sulla barra dei tab. Un solo Salva per anagrafica e associazioni, salvo le operazioni autonome delle tabelle correlate già persistibili descritte sopra. Permessi a domini/risorse/operazioni, ricerca bilingue e checkbox parziali: filtrare o collassare non perde selezioni, la selezione di un ramo include anche foglie nascoste. Nessun dato demo persistente.

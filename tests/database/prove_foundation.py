@@ -2,7 +2,7 @@
 
 python3 tests/database/prove_foundation.py --oracle /percorso/live-schema.sql \
   --output /root/.hermes/cache/scratch/enginia360-foundation-close/sql
-L'oracolo deve essere un pg_dump --schema-only --schema=foundation --schema=masterdata, acquisito
+L'oracolo deve essere un pg_dump --schema-only dei tre schemi foundation/masterdata/taxmanagement, acquisito
 in sola lettura. Questo programma non si collega mai al database live.
 """
 import argparse
@@ -33,8 +33,8 @@ def main():
     parser.add_argument('--output',required=True,type=Path)
     args=parser.parse_args()
     oracle=args.oracle.read_text()
-    if 'CREATE SCHEMA foundation;' not in oracle or 'CREATE SCHEMA masterdata;' not in oracle or len(re.findall(r'^CREATE TABLE (?:foundation|masterdata)\.',oracle,re.M))!=len(TABLES):
-        raise RuntimeError(f'Oracolo incompleto o non conforme: attese {len(TABLES)} tabelle foundation/masterdata')
+    if any('CREATE SCHEMA '+n+';' not in oracle for n in ('foundation','masterdata','taxmanagement')) or len(re.findall(r'^CREATE TABLE (?:foundation|masterdata|taxmanagement)\.',oracle,re.M))!=len(TABLES):
+        raise RuntimeError(f'Oracolo incompleto o non conforme: attese {len(TABLES)} tabelle foundation/masterdata/taxmanagement')
     args.output.mkdir(parents=True,exist_ok=True)
     baseline=load_foundation_sql()
     (args.output/'foundation.sql').write_text(baseline)
@@ -55,11 +55,17 @@ def main():
         record(name,good,returncode=result.returncode)
         return result
 
-    def zero_rows(name):
-        names=json.loads(sql("SELECT json_agg(schemaname||'.'||tablename ORDER BY schemaname,tablename) FROM pg_tables WHERE schemaname IN ('foundation','masterdata')").stdout)
+    def pristine_rows(name):
+        names=json.loads(sql("SELECT json_agg(schemaname||'.'||tablename ORDER BY schemaname,tablename) FROM pg_tables WHERE schemaname IN ('foundation','masterdata','taxmanagement')").stdout)
         record(name+'-inventory',names==sorted(table_schema(t)+'.'+t for t in TABLES),tables=names,count=len(names))
-        counts=json.loads(sql('SELECT json_build_object('+','.join("'"+t+"',(SELECT count(*) FROM "+'.'.join('"'+part+'"' for part in t.split('.'))+')' for t in names)+')').stdout)
-        record(name,len(counts)==len(TABLES) and all(v==0 for v in counts.values()),rows=counts)
+        # UNION evita il limite PostgreSQL di 100 argomenti per funzione.
+        rows=' UNION ALL '.join("SELECT '"+t+"' name,count(*) rows FROM "+'.'.join('"'+part+'"' for part in t.split('.')) for t in names)
+        counts=json.loads(sql('SELECT json_object_agg(name,rows) FROM ('+rows+') q').stdout)
+        allowed={'foundation.country':249,'foundation.currency':178,
+                 'masterdata.fatturapa_payment_codes':8,'taxmanagement.tax_types':5,
+                 'taxmanagement.tax_nature_codes':21,'taxmanagement.tax_regimes':3}
+        expected={table:allowed.get(table,0) for table in names}
+        record(name,len(counts)==len(TABLES) and counts==expected,rows=counts,approved_global_seeds=allowed)
 
     def terminate(signum,frame):
         raise SystemExit('Segnale di arresto '+str(signum))
@@ -121,7 +127,7 @@ def main():
             END IF;
         END $probe$;"""
         execute('first-apply',faulty[0]+lock_probe+'\nCOMMIT;\n')
-        zero_rows('baseline-zero-rows')
+        pristine_rows('baseline-only-approved-global-seeds')
         fresh=dump_schema()
         (args.output/'fresh-schema.sql').write_text(fresh)
         left,right=normalize_product_dump(oracle),normalize_product_dump(fresh)
@@ -147,7 +153,7 @@ def main():
         execute('second-apply-refused',baseline,success=False,contains='foundation esiste già')
         after=sql("SELECT json_agg(json_build_array(oid,relname) ORDER BY oid) FROM pg_class WHERE relnamespace='foundation'::regnamespace").stdout
         record('second-apply-no-change',before==after and normalize_dump(dump_schema())==right)
-        zero_rows('second-apply-zero-rows')
+        pristine_rows('second-apply-only-approved-global-seeds')
         modules=['test_foundation','test_optional_code_schema','test_commercial_organizations',
                  'test_required_site_addresses','test_site_classification','test_site_addresses','test_dbbaseline']
         env=os.environ.copy();env['PYTHONPATH']=str(ROOT/'tests/database')
@@ -157,7 +163,7 @@ def main():
         record('current-invariant-tests',tests.returncode==0 and count is not None and int(count[1])==39,
                returncode=tests.returncode,executed=int(count[1]) if count else None,
                skipped=tests.stderr.count('... skipped'))
-        zero_rows('post-tests-zero-rows')
+        pristine_rows('post-tests-only-approved-global-seeds')
         record('schema-still-canonical-after-tests',normalize_dump(dump_schema())==right)
         extra=subprocess.run([sys.executable,'-m','unittest','-v','test_portable_baseline'],cwd=ROOT,env=env,capture_output=True,text=True,timeout=30)
         (args.output/'portable-tests.log').write_text(extra.stdout+extra.stderr)
@@ -185,7 +191,7 @@ def main():
             (args.output/'concurrent-first.log').write_text(out1+err1)
             (args.output/'concurrent-second.log').write_text(out2+err2)
             record('concurrent-install-serialized',waiting and first.returncode==0 and second.returncode!=0 and 'foundation esiste già' in err2,waiter_observed=waiting,returncodes=[first.returncode,second.returncode])
-            counts=sql("SELECT count(*) FROM pg_tables WHERE schemaname IN ('foundation','masterdata')",database='enginia360_proof_concurrent').stdout.strip()
+            counts=sql("SELECT count(*) FROM pg_tables WHERE schemaname IN ('foundation','masterdata','taxmanagement')",database='enginia360_proof_concurrent').stdout.strip()
             record('concurrent-installed-exactly-once',counts==str(len(TABLES)),tables=counts)
         finally:
             for process in runners:

@@ -84,7 +84,7 @@ with sync_playwright() as p:
         else:
             expect(tenant_select).to_contain_text(labels[tenant])
         company = create('companies', 'Aziende', {'code': 'main', 'name': 'Società verifica'})
-        site = create('sites', 'Sedi', {'company_id': company, 'code': 'hq', 'name': 'Sede legale', 'site_type': 'registered_office', 'vat_number': 'IT-verifica'})
+        site = create('sites', 'Sedi', {'company_id': company, 'code': 'hq', 'name': 'Sede legale', 'site_type': 'LEGAL', 'address': 'Via QA 1', 'city': 'Roma', 'province': 'RM', 'postal_code': '00100', 'country_code': 'IT'})
         kind = create('warehouse-types', 'Tipi di magazzino', {'code': 'returns', 'name': 'Resi'})
         warehouse = create('warehouses', 'Magazzini', {'site_id': site, 'warehouse_type_id': kind, 'code': 'main', 'name': 'Magazzino resi'})
         create('warehouse-locations', 'Ubicazioni', {'warehouse_id': warehouse, 'code': 'a1', 'name': 'Scaffale A1'})

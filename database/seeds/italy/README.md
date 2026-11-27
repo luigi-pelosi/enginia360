@@ -2,7 +2,7 @@
 
 Snapshot Garda Informatica del **6 novembre 2026**, confrontato con l'elenco ISTAT e il raccordo territoriale della Sardegna scaricati il 18 novembre 2026.
 
-- Una nazione iniziale: **Italia**, ISO 3166-1 alpha-2 **IT**.
+- Una nazione nella fixture storica: **Italia**, ISO 3166-1 alpha-2 **IT**. Per il seed mondiale canonico questa fixture è **superata** da `../countries.sql` e dal dataset `../countries/countries.json` (249 nazioni/territori ISO, nomi italiani CLDR). Le nuove installazioni lo caricano già da `database/foundation.sql`; questa fixture resta invariata per l'importatore dei comuni italiani, senza duplicare il dataset mondiale negli archivi o checksum Garda/ISTAT.
 - **7.894 comuni** identificati dal codice ISTAT: copertura esattamente coincidente con l'elenco ufficiale archiviato.
 - **8.458 coppie comune/CAP**: 43 comuni hanno più CAP; non si riducono a un CAP arbitrario e non si generano codici espandendo intervalli.
 - CAP sempre stringhe di cinque cifre, inclusi gli zeri iniziali; nessun CAP nullo o `00000`.

@@ -46,11 +46,11 @@ class SiteAddressesBrowserTests(unittest.TestCase):
         if country and 'Italia' not in dialog.locator('#field-country_code').inner_text():
             dialog.locator('#field-country_code').click();self.page.get_by_role('option',name='Italia',exact=True).click()
 
-    def test_code_order_alternative_fiscal_requirement_and_catalog_country_dropdown(self):
+    def test_code_order_no_site_fiscal_fields_and_catalog_country_dropdown(self):
         self.login();dialog=self.new_site()
         self.assertTrue(dialog.locator('#field-name').evaluate('(el)=>el.closest(".field").nextElementSibling.contains(document.getElementById("field-code"))'))
         expect(dialog.get_by_role('button',name='Salva',exact=True)).to_be_disabled()
-        dialog.locator('#field-tax_code').fill('CF-TEST')
+        expect(dialog.locator('#field-tax_code')).to_have_count(0)
         expect(dialog.get_by_role('button',name='Salva',exact=True)).to_be_disabled()
         self.complete_manual_address(dialog,country=False)
         dialog.locator('#field-country_code').click()
@@ -59,12 +59,12 @@ class SiteAddressesBrowserTests(unittest.TestCase):
         with self.page.expect_response(lambda r:urlsplit(r.url).path=='/api/data/sites/save' and r.request.method=='POST') as saved:
             dialog.get_by_role('button',name='Salva',exact=True).click()
         self.assertEqual(saved.value.status,201);row=saved.value.json()
-        self.assertEqual(row['country_code'],'IT');self.assertIsNone(row['vat_number']);self.assertEqual(row['tax_code'],'CF-TEST');self.assertIsNone(row['code'])
+        self.assertEqual(row['country_code'],'IT');self.assertNotIn('vat_number',row);self.assertNotIn('tax_code',row);self.assertIsNone(row['code'])
         self.assertEqual(len(self.mutations),1)
 
     def test_local_city_autocomplete_fills_geography_and_saves_one_draft(self):
         self.login();dialog=self.new_site()
-        dialog.locator('#field-vat_number').fill('VAT-TEST')
+        expect(dialog.locator('#field-vat_number')).to_have_count(0)
         with self.page.expect_response(lambda r:urlsplit(r.url).path=='/api/addresses/autocomplete' and 'field=city' in r.url) as found:
             dialog.locator('#field-city').fill('Capua')
         self.assertEqual(found.value.status,200)
@@ -88,7 +88,7 @@ class SiteAddressesBrowserTests(unittest.TestCase):
 
     def test_autocomplete_selection_cancel_never_writes_and_failure_allows_manual_entry(self):
         self.login();dialog=self.new_site()
-        dialog.locator('#field-tax_code').fill('CF-TEST')
+        expect(dialog.locator('#field-tax_code')).to_have_count(0)
         with self.page.expect_response(lambda r:urlsplit(r.url).path=='/api/addresses/autocomplete') as found:dialog.locator('#field-city').fill('Capua')
         choice=next(item for item in found.value.json()['items'] if item['countryCode']=='IT')
         dialog.get_by_role('option',name=choice['label'],exact=True).click()
@@ -96,7 +96,7 @@ class SiteAddressesBrowserTests(unittest.TestCase):
         self.assertEqual(sql(f"SELECT count(*) FROM foundation.site WHERE tenant_id='{self.case.tenant['id']}'").stdout.strip(),'0')
         # Guasto HTTP simulato del solo endpoint locale, senza configurazioni esterne.
         self.page.route('**/api/addresses/autocomplete?*',lambda route:route.fulfill(status=503,content_type='application/json',body='{"code":"unavailable"}'))
-        dialog=self.new_site();dialog.locator('#field-tax_code').fill('CF-TEST')
+        dialog=self.new_site()
         with self.page.expect_response(lambda r:urlsplit(r.url).path=='/api/addresses/autocomplete') as failed:dialog.locator('#field-city').fill('Capua')
         self.assertEqual(failed.value.status,503)
         self.complete_manual_address(dialog)
@@ -104,7 +104,7 @@ class SiteAddressesBrowserTests(unittest.TestCase):
             dialog.locator('#field-city').focus()
         expect(dialog.locator('#field-city-error')).to_be_visible()
         before=dialog.get_by_role('button',name='Salva',exact=True).bounding_box()
-        dialog.locator('#field-tax_code').focus()
+        dialog.locator('#field-name').focus()
         expect(dialog.locator('#field-city-error')).not_to_be_visible()
         after=dialog.get_by_role('button',name='Salva',exact=True).bounding_box()
         self.assertLess(abs(before['y']-after['y']),1,'Il feedback della ricerca non deve spostare Salva durante il click')

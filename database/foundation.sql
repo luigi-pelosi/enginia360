@@ -4,8 +4,8 @@
 -- Il ruolo enginia360_app deve ESISTERE: il bootstrap SQL non crea login,
 -- password o utenti. Deve essere non privilegiato e senza membership elevate.
 -- I nomi dei vincoli NOT NULL preesistenti sono conservati per identità canonica.
--- Nessun dato iniziale: cataloghi geografici soltanto con la CLI esplicita
--- documentata in database/seeds/italy/README.md, dopo questa inizializzazione.
+-- Nazioni ISO precaricate dal seed canonico insert-only; le città restano vuote.
+-- L'importazione esplicita delle città è documentata in database/seeds/italy/README.md.
 -- Non è un aggiornamento: lo schema foundation già presente causa un errore.
 
 BEGIN;
@@ -14,8 +14,8 @@ SET LOCAL statement_timeout = '60s';
 SELECT pg_catalog.pg_advisory_xact_lock(3607902026);
 DO $foundation_guard$
 BEGIN
-    IF EXISTS (SELECT 1 FROM pg_catalog.pg_namespace WHERE nspname IN ('foundation','masterdata')) THEN
-        RAISE EXCEPTION 'foundation o masterdata esiste già: usare esclusivamente un database nuovo';
+    IF EXISTS (SELECT 1 FROM pg_catalog.pg_namespace WHERE nspname IN ('foundation','masterdata','taxmanagement')) THEN
+        RAISE EXCEPTION 'foundation, masterdata o taxmanagement esiste già: usare esclusivamente un database nuovo';
     END IF;
     IF current_user <> 'postgres' THEN
         RAISE EXCEPTION 'Il proprietario di installazione deve essere postgres';
@@ -165,6 +165,7 @@ CREATE TABLE foundation.company (
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT company_code_check CHECK ((btrim(code) <> ''::text)),
     CONSTRAINT company_name_check CHECK ((btrim(name) <> ''::text)),
+
     CONSTRAINT company_pkey PRIMARY KEY (id),
     CONSTRAINT company_tenant_id_code_key UNIQUE (tenant_id, code),
     CONSTRAINT company_tenant_id_id_key UNIQUE (tenant_id, id)
@@ -175,6 +176,8 @@ ALTER TABLE foundation.company OWNER TO postgres;
 
 COMMENT ON TABLE foundation.company IS 'Società giuridica appartenente al tenant.';
 
+
+
 CREATE TABLE foundation.site (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     tenant_id uuid NOT NULL,
@@ -182,8 +185,6 @@ CREATE TABLE foundation.site (
     code text,
     name text NOT NULL,
     site_type text,
-    vat_number text,
-    tax_code text,
     address text NOT NULL,
     city text NOT NULL,
     province text NOT NULL,
@@ -217,7 +218,6 @@ CREATE TABLE foundation.site (
     CONSTRAINT site_functions_check CHECK (foundation.valid_site_functions(functions)),
     CONSTRAINT site_name_check CHECK ((btrim(name) <> ''::text)),
     CONSTRAINT site_region_check CHECK ((length(region) <= 500)),
-    CONSTRAINT site_tax_identity_check CHECK ((COALESCE((vat_number ~ '[^[:space:]]'::text), false) OR COALESCE((tax_code ~ '[^[:space:]]'::text), false))),
     CONSTRAINT site_type_check CHECK ((site_type = ANY (ARRAY['LEGAL'::text, 'LOCAL_UNIT'::text, 'SECONDARY'::text]))),
     CONSTRAINT site_pkey PRIMARY KEY (id),
     CONSTRAINT site_tenant_id_company_id_code_key UNIQUE (tenant_id, company_id, code),
@@ -228,13 +228,9 @@ CREATE TABLE foundation.site (
 
 ALTER TABLE foundation.site OWNER TO postgres;
 
-COMMENT ON TABLE foundation.site IS 'Sede della società, inclusa la sede legale.';
+COMMENT ON TABLE foundation.site IS 'Sede fisica della società, inclusa la sede legale; senza identità fiscale propria. Codice fiscale sulla società e registrazioni IVA in TaxManagement.';
 
 COMMENT ON COLUMN foundation.site.site_type IS 'Tipologia giuridica facoltativa: LEGAL, LOCAL_UNIT o SECONDARY.';
-
-COMMENT ON COLUMN foundation.site.vat_number IS 'Partita IVA mantenuta sulla sede per scelta del proprietario del prodotto.';
-
-COMMENT ON COLUMN foundation.site.tax_code IS 'Codice fiscale mantenuto sulla sede per scelta del proprietario del prodotto.';
 
 COMMENT ON COLUMN foundation.site.functions IS 'Funzioni aziendali della sede, indipendenti dalla tipologia giuridica.';
 
@@ -399,7 +395,7 @@ CREATE TABLE foundation.permission (
     is_system boolean DEFAULT false NOT NULL,
     CONSTRAINT permission_code_check CHECK ((btrim(code) <> ''::text)),
     CONSTRAINT permission_name_check CHECK ((btrim(name) <> ''::text)),
-    CONSTRAINT permission_system_code_check CHECK (((NOT is_system) OR (code = ANY (ARRAY['permissions.read'::text, 'users.reset_password'::text, 'roles.assign'::text, 'groups.assign_users'::text, 'roles.assign_permissions'::text, 'purchasing-organizations.assign_scope'::text, 'business-partners.read'::text, 'business-partners.create'::text, 'business-partners.update'::text, 'business-partner-numbering.read'::text, 'business-partner-numbering.update'::text, 'roles.assign_companies'::text, 'business-partner-companies.read'::text, 'business-partner-companies.create'::text, 'business-partner-companies.update'::text, 'business-partner-companies.use_customer'::text, 'business-partner-companies.use_supplier'::text, 'payment-methods.read'::text, 'payment-methods.create'::text, 'payment-methods.update'::text, 'payment-terms.read'::text, 'payment-terms.create'::text, 'payment-terms.update'::text, 'payment-settings.read'::text, 'payment-settings.update'::text, 'payment-partner-defaults.read'::text, 'payment-partner-defaults.update'::text, 'payment-schedule.preview'::text, 'payment-resolution.read'::text, 'catalog-units.read'::text, 'catalog-units.create'::text, 'catalog-units.update'::text, 'countries.read'::text, 'cities.read'::text, 'currencies.read'::text, 'catalog-items.read'::text, 'catalog-items.create'::text, 'catalog-items.update'::text, 'catalog-items.activate'::text, 'catalog-items.deactivate'::text, 'catalog-items.archive'::text, 'catalog-brands.read'::text, 'catalog-brands.create'::text, 'catalog-brands.update'::text, 'catalog-categories.read'::text, 'catalog-categories.create'::text, 'catalog-categories.update'::text, 'catalog-categories.delete'::text, 'catalog-types.read'::text, 'catalog-types.create'::text, 'catalog-types.update'::text, 'catalog-numbering.read'::text, 'catalog-numbering.update'::text])) OR ((split_part(code, '.'::text, 1) = ANY (ARRAY['companies'::text, 'sites'::text, 'warehouse-types'::text, 'warehouses'::text, 'warehouse-locations'::text, 'users'::text, 'groups'::text, 'roles'::text, 'sales-organizations'::text, 'purchasing-organizations'::text])) AND (split_part(code, '.'::text, 2) = ANY (ARRAY['read'::text, 'create'::text, 'update'::text, 'delete'::text])) AND (code = ((split_part(code, '.'::text, 1) || '.'::text) || split_part(code, '.'::text, 2)))) OR (code = 'catalog-types.delete'::text) OR (code = ANY (ARRAY['catalog-item-companies.read'::text, 'catalog-item-companies.create'::text, 'catalog-item-companies.update'::text])))),
+    CONSTRAINT permission_system_code_check CHECK (((NOT is_system) OR (code = ANY (ARRAY['permissions.read'::text, 'users.reset_password'::text, 'roles.assign'::text, 'groups.assign_users'::text, 'roles.assign_permissions'::text, 'purchasing-organizations.assign_scope'::text, 'business-partners.read'::text, 'business-partners.create'::text, 'business-partners.update'::text, 'business-partner-numbering.read'::text, 'business-partner-numbering.update'::text, 'roles.assign_companies'::text, 'business-partner-companies.read'::text, 'business-partner-companies.create'::text, 'business-partner-companies.update'::text, 'business-partner-companies.use_customer'::text, 'business-partner-companies.use_supplier'::text, 'payment-methods.read'::text, 'payment-methods.create'::text, 'payment-methods.update'::text, 'payment-terms.read'::text, 'payment-terms.create'::text, 'payment-terms.update'::text, 'payment-settings.read'::text, 'payment-settings.update'::text, 'payment-partner-defaults.read'::text, 'payment-partner-defaults.update'::text, 'payment-schedule.preview'::text, 'payment-resolution.read'::text, 'catalog-units.read'::text, 'catalog-units.create'::text, 'catalog-units.update'::text, 'countries.read'::text, 'cities.read'::text, 'currencies.read'::text, 'catalog-items.read'::text, 'catalog-items.create'::text, 'catalog-items.update'::text, 'catalog-items.activate'::text, 'catalog-items.deactivate'::text, 'catalog-items.archive'::text, 'catalog-brands.read'::text, 'catalog-brands.create'::text, 'catalog-brands.update'::text, 'catalog-categories.read'::text, 'catalog-categories.create'::text, 'catalog-categories.update'::text, 'catalog-categories.delete'::text, 'catalog-types.read'::text, 'catalog-types.create'::text, 'catalog-types.update'::text, 'catalog-numbering.read'::text, 'catalog-numbering.update'::text, 'tax-codes.read'::text, 'tax-codes.create'::text, 'tax-codes.update'::text, 'tax-codes.schedule'::text, 'tax-codes.deactivate'::text, 'tax-codes.reactivate'::text, 'tax-codes.install_templates'::text, 'tax-types.read'::text, 'tax-nature-codes.read'::text])) OR ((split_part(code, '.'::text, 1) = ANY (ARRAY['companies'::text, 'sites'::text, 'warehouse-types'::text, 'warehouses'::text, 'warehouse-locations'::text, 'users'::text, 'groups'::text, 'roles'::text, 'sales-organizations'::text, 'purchasing-organizations'::text])) AND (split_part(code, '.'::text, 2) = ANY (ARRAY['read'::text, 'create'::text, 'update'::text, 'delete'::text])) AND (code = ((split_part(code, '.'::text, 1) || '.'::text) || split_part(code, '.'::text, 2)))) OR (code = 'catalog-types.delete'::text) OR (code = ANY (ARRAY['catalog-item-companies.read'::text, 'catalog-item-companies.create'::text, 'catalog-item-companies.update'::text])) OR (code = ANY (ARRAY['tax-item-classifications.read'::text, 'tax-item-classifications.create'::text, 'tax-item-classifications.update'::text, 'tax-item-classifications.deactivate'::text, 'tax-item-classifications.reactivate'::text, 'tax-item-classifications.install_templates'::text, 'tax-partner-classifications.read'::text, 'tax-partner-classifications.create'::text, 'tax-partner-classifications.update'::text, 'tax-partner-classifications.deactivate'::text, 'tax-partner-classifications.reactivate'::text, 'tax-partner-classifications.install_templates'::text, 'tax-item-profiles.read'::text, 'tax-item-profiles.assign'::text, 'tax-item-profiles.schedule'::text, 'tax-partner-profiles.read'::text, 'tax-partner-profiles.assign'::text, 'tax-partner-profiles.schedule'::text])) OR (code = ANY (ARRAY['tax-regimes.read'::text, 'company-tax-configurations.read'::text, 'company-tax-configurations.create'::text, 'company-tax-configurations.activate'::text, 'company-tax-configurations.suspend'::text, 'company-tax-configurations.register'::text, 'company-tax-configurations.close'::text, 'company-tax-configurations.assign_regime'::text, 'company-tax-configurations.schedule_regime'::text])) OR (is_system AND (code = 'company-tax-configurations.update'::text)) OR (is_system AND (code = ANY (ARRAY['tax-rules.read'::text, 'tax-rules.create'::text, 'tax-rules.update'::text, 'tax-rules.validate'::text, 'tax-rules.publish'::text, 'tax-rules.withdraw'::text, 'tax-rules.install_templates'::text, 'tax-determination.read'::text, 'tax-determination.simulate'::text, 'tax-determination.determine'::text]))) OR (is_system AND (code = ANY (ARRAY['tax-calculation.read'::text, 'tax-calculation.simulate'::text, 'tax-calculation.calculate'::text]))))),
     CONSTRAINT permission_pkey PRIMARY KEY (id),
     CONSTRAINT permission_tenant_id_code_key UNIQUE (tenant_id, code),
     CONSTRAINT permission_tenant_id_id_key UNIQUE (tenant_id, id)
@@ -574,7 +570,7 @@ COMMENT ON TABLE foundation.audit_event IS 'Registro minimo atomico senza creden
 
 COMMENT ON COLUMN foundation.audit_event.details IS 'Variazioni amministrative prima/dopo, senza credenziali o campi di sicurezza.';
 
--- Cataloghi geografici globali, inizialmente vuoti.
+-- Cataloghi geografici globali: nazioni precaricate al termine, città vuote.
 
 CREATE TABLE foundation.country (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
@@ -1110,5 +1106,8 @@ CREATE UNIQUE INDEX catalog_unit_base_unique ON masterdata.catalog_unit_of_measu
 
 \ir masterdata_payments.sql
 \ir masterdata_catalog.sql
+-- Nazioni prima dei regimi IT/DE/FR; il seed fiscale inizializza le nature esistenti.
+\ir seeds/countries.sql
+\ir taxmanagement.sql
 
 COMMIT;

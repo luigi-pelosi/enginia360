@@ -33,8 +33,10 @@ test("table dates and language values are localized without timezone day shift",
   assert.equal(model.formatFieldValue(language, "en", "it", code => ({it: "Italiano", en: "Inglese"})[code]), "Inglese");
   assert.equal(model.formatFieldValue(language, "it", "en", code => ({it: "Italian", en: "English"})[code]), "Italian");
 });
-test("all resources including BP, Catalog and their virtual numbering settings are supported", () => {
-  assert.equal(resourceKeys.length, 32);
+test("all resources including BP, Catalog, Tax and their virtual numbering settings are supported", () => {
+  assert.equal(resourceKeys.length, 44);
+  for (const key of ["tax-codes", "tax-types", "tax-nature-codes", "tax-rules", "tax-determination"]) assert.ok(resourceKeys.includes(key), key);
+  assert.equal(new Set(resourceKeys).size, resourceKeys.length);
   for (const key of ["catalog-item-companies", "catalog-items", "catalog-brands", "catalog-units", "catalog-categories", "catalog-types", "catalog-numbering"]) assert.ok(resourceKeys.includes(key), key);
   assert.ok(resourceKeys.includes("currencies"));
   assert.ok(resourceKeys.includes("business-partner-companies"));

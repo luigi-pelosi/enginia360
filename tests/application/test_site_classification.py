@@ -76,8 +76,8 @@ class SiteClassificationApiTests(unittest.TestCase):
                 self.assertEqual(self.stored(row['id']), before)
         self.assertEqual(sql(f"SELECT count(*) FROM foundation.audit_event WHERE record_id='{row['id']}'").stdout, audits)
 
-    def test_fiscal_data_warehouse_and_purchase_coverage_remain_unchanged(self):
-        row = self.create(site_type='LOCAL_UNIT', functions=['WAREHOUSE'], vat_number='VAT esistente', tax_code='CF esistente')
+    def test_warehouse_and_purchase_coverage_remain_unchanged(self):
+        row = self.create(site_type='LOCAL_UNIT', functions=['WAREHOUSE'])
         kind = self.case.create('warehouse-types', {'name': 'Fisico'})
         warehouse = self.case.create('warehouses', {'name': 'Ricambi', 'site_id': row['id'], 'warehouse_type_id': kind['id']})
         status, purchase = self.root.request(self.case.path('purchasing-organizations', save=True), 'POST', {
@@ -85,7 +85,7 @@ class SiteClassificationApiTests(unittest.TestCase):
         self.assertEqual(status, 201)
         status, updated = self.root.request(self.case.path('sites', row['id'], save=True), 'PUT', {'values': {'site_type': 'SECONDARY', 'functions': ['TECHNICAL_SERVICE', 'COMMERCIAL']}})
         self.assertEqual(status, 200)
-        self.assertEqual((updated['vat_number'], updated['tax_code']), ('VAT esistente', 'CF esistente'))
+        self.assertNotIn('vat_number', updated); self.assertNotIn('tax_code', updated)
         self.assertEqual(sql(f"SELECT site_id FROM foundation.warehouse WHERE id='{warehouse['id']}'").stdout.strip(), row['id'])
         status, coverage = self.root.request('/api/data/purchasing-organizations/' + purchase['id'] + '/coverage?tenantId=' + self.case.tenant['id'])
         self.assertEqual(status, 200)

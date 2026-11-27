@@ -20,6 +20,19 @@ public static class PermissionCatalog
             "catalog-items.read", "catalog-items.create", "catalog-items.update", "catalog-items.activate", "catalog-items.deactivate", "catalog-items.archive",
             "catalog-brands.read", "catalog-brands.create", "catalog-brands.update",
             "catalog-item-companies.read", "catalog-item-companies.create", "catalog-item-companies.update" })
+        .Concat(new[] { "tax-codes.read", "tax-codes.create", "tax-codes.update", "tax-codes.schedule",
+            "tax-codes.deactivate", "tax-codes.reactivate", "tax-codes.install_templates", "tax-types.read", "tax-nature-codes.read" })
+        .Concat(new[] { "tax-item-classifications", "tax-partner-classifications" }
+            .SelectMany(resource => new[] { "read", "create", "update", "deactivate", "reactivate", "install_templates" }.Select(action => resource + "." + action)))
+        .Concat(new[] { "tax-item-profiles", "tax-partner-profiles" }
+            .SelectMany(resource => new[] { "read", "assign", "schedule" }.Select(action => resource + "." + action)))
+        .Append("tax-regimes.read")
+        .Concat(new[] { "read", "create", "update", "validate", "publish", "withdraw", "install_templates" }
+            .Select(action => "tax-rules." + action))
+        .Concat(new[] { "read", "simulate", "determine" }.Select(action => "tax-determination." + action))
+        .Concat(new[] { "read", "simulate", "calculate" }.Select(action => "tax-calculation." + action))
+        .Concat(new[] { "read", "create", "update", "activate", "suspend", "register", "close", "assign_regime", "schedule_regime" }
+            .Select(action => "company-tax-configurations." + action))
         .Concat(ResourceCatalog.Links.Values.Select(r => r.Permission)).Concat(new[]{"payment-methods.read","payment-methods.create","payment-methods.update","payment-terms.read","payment-terms.create","payment-terms.update","payment-settings.read","payment-settings.update","payment-partner-defaults.read","payment-partner-defaults.update","payment-schedule.preview","payment-resolution.read"}).Concat(new[]{"roles.assign_companies","business-partner-companies.read","business-partner-companies.create","business-partner-companies.update","business-partner-companies.use_customer","business-partner-companies.use_supplier"}).Append("business-partner-numbering.read").Append("business-partner-numbering.update").Append("purchasing-organizations.assign_scope").Append("permissions.read").Append("users.reset_password").Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
     public static async Task Seed(AppDb db,Guid tenantId)
     {

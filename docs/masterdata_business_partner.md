@@ -12,7 +12,7 @@ Esclusi: qualificazione `PROSPECT` del futuro CRM, valuta, listini, plafond, con
 
 ## 2. Persistenza e SQL consolidato
 
-Unica definizione SQL del dominio: [`database/masterdata_business_partner.sql`](../database/masterdata_business_partner.sql). Crea direttamente gli oggetti definitivi, senza `ALTER` o trasferimenti successivi di schema. È inclusa una sola volta dalla baseline [`database/foundation.sql`](../database/foundation.sql), nella stessa transazione e dopo i prerequisiti condivisi. Le definizioni condivise di serie/contatori appartengono ora a [`database/foundation_numbering.sql`](../database/foundation_numbering.sql), incluso prima del frammento BP: il nucleo supporta BP e Catalogo con discriminanti separati, senza modificare il contratto BP.
+Unica definizione SQL del dominio: [`database/masterdata_business_partner.sql`](../database/masterdata_business_partner.sql). Crea direttamente gli oggetti definitivi, senza `ALTER` o trasferimenti successivi di schema. È inclusa una sola volta dalla baseline [`database/foundation.sql`](../database/foundation.sql), nella stessa transazione e dopo i prerequisiti condivisi. Le definizioni condivise di serie/contatori sono nella baseline, nello schema `foundation`: il nucleo supporta BP e Catalogo con discriminanti separati, senza modificare il contratto BP.
 
 | Schema | Tabella | Responsabilità |
 |---|---|---|
@@ -53,6 +53,12 @@ Il runtime ha USAGE senza CREATE sugli schemi. Può leggere/inserire/aggiornare 
 - Recapiti `EMAIL`, `PHONE`, `MOBILE`, `PEC`, `WEBSITE`, scopo facoltativo e al massimo un principale per tipologia. PEC anagrafica non equivale a configurazione di fatturazione elettronica.
 
 La geografia riusa cataloghi e controlli delle Sedi, con risorsa `business-partners` e relativi permessi create/update. Nessun provider remoto, stradario o campo `region` nel BP. I suggerimenti aggiornano soltanto l'indirizzo corrente; la compilazione manuale resta disponibile e modificare i cataloghi non riscrive gli indirizzi registrati.
+
+### Profili fiscali: responsabilità separata
+
+La scheda **Fiscalità** ospita anche i profili di classificazione posseduti da [TaxManagement](taxmanagement.md#2-codici-e-classificazioni), non dall'aggregato BP. `partner_tax_classifications` e `partner_tax_profiles` restano nello schema fiscale: nessuna aliquota o configurazione Company viene aggiunta al master. Identificativi fiscali BP, profili descrittivi e registrazioni aziendali sono tre concetti distinti; il paese del profilo o della partita IVA non prova stabilimento, territorialità o VIES.
+
+Su un nuovo BP i profili autorizzati committano insieme al padre; su BP salvato assegnazione e programmazione sono autonome, con stream di revisione fiscale indipendente da `business_partner.version`. Richiedono `business-partners.read` e i permessi `tax-partner-profiles.read/assign/schedule` pertinenti, senza concedere CRUD BP o manutenzione delle classificazioni. Date inclusive, lacune esplicite, nessun fallback e nessun replay dopo esito incerto. API e gate di determinazione/calcolo: [contratto fiscale](taxmanagement.md#7-api-e-permessi); operazioni: [Manuale](manuale-utente.md#fiscalità-di-articoli-e-business-partner).
 
 ## 4. Numerazione
 
@@ -125,8 +131,10 @@ Gli elenchi commerciali accettano `role`, `usableOnly`, `search`, `page`, `pageS
 
 ## 7. Persistenza UI, concorrenza ed errori
 
+Nell'editor, i rapporti commerciali sono nella tab dedicata **Aziende e ruoli**, disponibile solo per BP già creati e con i permessi di lettura richiesti. Identità e Fiscalità restano separate; tab e bozza sopravvivono al refresh nel contesto utente/tenant corretto. Il cambio tab non scrive dati e non modifica le conferme autonome dei rapporti.
+
 - BP nuovo: identità e figli restano locali fino al Salva generale. Un esito di creazione incerto non autorizza a ripetere automaticamente la POST.
-- BP esistente: confermare aggiunta/modifica/rimozione di fiscalità, indirizzi o contatti invia la PUT aggregata con `values:{}`, sola collezione interessata ed `expectedVersion`. Persistenza immediata; figli e revisione autorevoli aggiornati senza salvare la bozza dell'identità. Annullare il padre non annulla queste scritture.
+- BP esistente: confermare aggiunta/modifica/rimozione di identificativi fiscali, indirizzi o contatti invia la PUT aggregata con `values:{}`, sola collezione interessata ed `expectedVersion`. Persistenza immediata; figli e revisione autorevoli aggiornati senza salvare la bozza dell'identità. I profili fiscali usano invece API e revisione TaxManagement autonome. Annullare il padre non annulla queste scritture.
 - I rapporti BP mantengono le proprie conferme contestuali. Nell’editor Ruoli, invece, aziende autorizzate, anagrafica e permessi appartengono a un’unica bozza e vengono registrati con il Salva principale nella stessa transazione. Annulla scarta tutta la bozza; selezionare aziende non scrive. Blocchi e rimozioni mantengono le conferme previste.
 - Vista **Per azienda** inizialmente senza filtri: tutte le aziende leggibili, tutti i ruoli, inclusi bloccati/non utilizzabili, ricerca vuota. Colonna Azienda esplicita; filtri manuali facoltativi.
 - `version` e `expectedVersion` impediscono sovrascritture obsolete. Errori e conflitti conservano i dati tentati; nessun retry di scrittura automatico. Lettura, revisione e audit restano autorevoli sul server.
@@ -145,6 +153,6 @@ python3 tests/database/prove_business_partner_consolidation.py \
 
 La prova confronta i dump schema-only di installazione precedente, `psql -f` con inclusione e stdin espanso. Normalizza soltanto versioni pg_dump e nonce di protezione, non differenze di dominio. Verifica l'inventario di 33 tabelle vuote e i relativi privilegi/invarianti nel solo cluster effimero.
 
-I test mirati sono in `backend/tests/`, `tests/database/`, `tests/application/` e `frontend/tests/`. Gli harness PostgreSQL/HTTP/browser usano cluster effimeri e identità sintetiche, mai dati o credenziali live. Il runner applicativo espande l'unica inclusione SQL mediante il loader di baseline prima dell'invio a `psql` via stdin; l'installazione ordinaria usa direttamente `psql -f`.
+I test mirati sono in `backend/tests/`, `tests/database/`, `tests/application/` e `frontend/tests/`. Gli harness PostgreSQL/HTTP/browser usano cluster effimeri e identità sintetiche, mai dati o credenziali live. Il runner applicativo espande le cinque inclusioni canoniche mediante il loader di baseline prima dell'invio a `psql` via stdin; l'installazione ordinaria usa direttamente `psql -f`.
 
 Per modifiche di dominio verificare invarianti, isolamento tenant, concessioni aziendali dello stesso ruolo, revoche, concorrenza e rollback audit. Per modifiche UI verificare conferme autonome, bozze preservate, sola lettura e percorsi IT/EN pertinenti. Se si modificano soltanto organizzazione dei file SQL e documentazione, non ricreare servizi applicativi né applicare la baseline al database esistente.

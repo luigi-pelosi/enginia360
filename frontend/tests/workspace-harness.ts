@@ -7,13 +7,17 @@ import {renderToStaticMarkup} from "react-dom/server";
 import {createTranslator} from "next-intl";
 import * as model from "../lib/model.ts";
 import * as catalog from "../lib/catalog.ts";
+import * as tax from "../lib/tax.ts";
+import * as taxProfiles from "../lib/tax-profiles.ts";
+import * as companyTax from "../lib/company-tax.ts";
 
 export const source = readFileSync(new URL("../components/workspace.tsx", import.meta.url), "utf8");
 const require = createRequire(import.meta.url);
-export function harness(locale = "it", states: Record<number, unknown> = {}, apiResult: unknown = {ids: []}, storage = new Map<string, string>(), browserWindow?: object) {
+export function harness(locale = "it", states: Record<number, unknown> = {}, apiResult: unknown = {ids: []}, storage = new Map<string, string>(), browserWindow?: object, stateful = false) {
   const messages = JSON.parse(readFileSync(new URL(`../messages/${locale}.json`, import.meta.url), "utf8"));
   let index = 0;
   const effects: Array<() => unknown> = [];
+  const slots: any[] = [], refs: any[] = [], dependencies: any[][] = [];
 
   const updates: Record<number, unknown> = {};
   const ui = new Proxy({}, {get: (_target, name) => name === "useSidebar" ? () => ({setOpenMobile() {}}) : (props: Record<string, unknown>) => {
@@ -24,20 +28,28 @@ export function harness(locale = "it", states: Record<number, unknown> = {}, api
     return React.createElement(tag, safe);
   }});
   const module = {exports: {} as Record<string, (...args: any[]) => any>};
-  const code = ts.transpileModule(source + "\nexport {RecordEditor, RelationEditor, PermissionTree, PasswordForm, PurchasingCoverageEditor, recoverCurrencyEdit};", {compilerOptions: {target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true}}).outputText;
+  const code = ts.transpileModule(source + "\nexport {RecordEditor, RelationEditor, PermissionTree, PasswordForm, PurchasingCoverageEditor, recoverCurrencyEdit, canOpenResource};", {compilerOptions: {target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true}}).outputText;
   const apiCalls: string[] = [];
   const apiPayloads: unknown[] = [];
   const resolve = (name: string): any => {
     if (name === "react") return {...React, useState: (value: unknown) => {
       const current = index++;
+      if (stateful) {if (!(current in slots)) slots[current] = typeof value === "function" ? value() : value; return [slots[current], (next: any) => {slots[current] = typeof next === "function" ? next(slots[current]) : next;}];}
       return [Object.hasOwn(states, current) ? states[current] : typeof value === "function" ? value() : value, (next: unknown) => {updates[current] = next}];
-    }, useRef: (current: unknown) => ({current}), useEffect: (effect: () => unknown) => effects.push(effect), useMemo: (fn: () => unknown) => fn(), useCallback: (fn: unknown) => fn};
+    }, useRef: (current: unknown) => stateful ? refs[index++] ??= {current} : {current}, useEffect: (effect: () => unknown, deps: any[]) => {if (!stateful) {effects.push(effect); return;} const slot = index++; if (!dependencies[slot] || deps.some((value, i) => !Object.is(value, dependencies[slot][i]))) {dependencies[slot] = deps; effects.push(effect);}}, useMemo: (fn: () => unknown) => fn(), useCallback: (fn: unknown) => fn};
     if (name === "next-intl") return {useLocale: () => locale, useTranslations: (namespace: string) => createTranslator({locale, messages, namespace})};
     if (name === "@/lib/model") return model;
+    if (name === "@/lib/tax-profiles") return taxProfiles;
+    if (name === "@/lib/company-tax") return companyTax;
+    if (name === "@/components/company-taxation") return {CompanyTaxation: function CompanyTaxation() {return null;}};
     if (name === "@/lib/catalog") return catalog;
     if (name === "@/components/catalog-workspace") return {
       CatalogWorkspace: () => null,
       resetCatalogRecovery: (session: model.Session, tenant: string, resource: string) => catalog.resetCatalog(sessionStorage, catalog.catalogKey(session.id, session.isSuperAdmin ? tenant : session.tenantId || "", resource)),
+    };
+    if (name === "@/components/tax-workspace") return {
+      TaxManagement: () => null,
+      resetTaxRecovery: (session: model.Session, tenant: string) => tax.resetTaxState(sessionStorage, tax.taxKey(session.id, session.isSuperAdmin ? tenant : session.tenantId || "")),
     };
     if (name === "@/components/catalog-items-overview") return {CatalogItemsOverview: () => null};
     if (name === "@/components/catalog-item-workspace") return {CatalogItemWorkspace: () => null};
@@ -63,7 +75,7 @@ export function harness(locale = "it", states: Record<number, unknown> = {}, api
   };
   const sessionStorage = {get length() {return storage.size;}, key: (i: number) => [...storage.keys()][i] ?? null, getItem: (key: string) => storage.get(key) ?? null, setItem: (key: string, value: string) => {storage.set(key, value);}, removeItem: (key: string) => {storage.delete(key);}};
   runInNewContext(code, {module, exports: module.exports, require: resolve, console, setTimeout, clearTimeout, sessionStorage, URLSearchParams, ...(browserWindow ? {window: browserWindow} : {})});
-  return {components: module.exports, effects, updates, apiCalls, apiPayloads, render: (component: string, props = {}) => renderToStaticMarkup(React.createElement(module.exports[component], props))};
+  return {components: module.exports, effects, updates, apiCalls, apiPayloads, tree: (component: string, props: any) => {index = 0; return module.exports[component](props);}, flush: async () => {for (const effect of effects.splice(0)) effect(); await new Promise(resolve => setImmediate(resolve));}, render: (component: string, props = {}) => renderToStaticMarkup(React.createElement(module.exports[component], props))};
 }
 export function find(node: any, predicate: (node: any) => boolean): any {
   if (!node || typeof node !== "object") return;

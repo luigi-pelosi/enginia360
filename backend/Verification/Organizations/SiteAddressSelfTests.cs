@@ -4,7 +4,7 @@ using Enginia360.Shared.Validation;
 using Enginia360.Verification.Shared;
 using ResourceCatalog = global::Enginia360.Api.Resources.Resources;
 using System.Text.Json;
-using System.Reflection;
+
 namespace Enginia360.Verification.Organizations;
 public static class SiteAddressSelfTests
 {
@@ -16,7 +16,7 @@ public static class SiteAddressSelfTests
         var site=ResourceCatalog.Get("sites");
         foreach(var fieldName in new[]{"address","city","province","postal_code","country_code"})
             test("addresses: required field tracer "+fieldName,()=> {
-                var payload=new {name="Synthetic site",company_id="00000000-0000-0000-0000-000000000001",tax_code="SYNTHETIC-TAX",address="Synthetic Road 42",city="Synthetic City",province="Synthetic Region",postal_code="AB 12-X",country_code="GB"};
+                var payload=new {name="Synthetic site",company_id="00000000-0000-0000-0000-000000000001",address="Synthetic Road 42",city="Synthetic City",province="Synthetic Region",postal_code="AB 12-X",country_code="GB"};
                 var values=ResourceCatalog.Validate(site,JsonSerializer.SerializeToElement(payload),true);
                 Assert(values.ContainsKey(fieldName),"Complete payload must support "+fieldName);
                 Assert(site.Fields.Single(f=>f.Name==fieldName).Required,"Required metadata missing: "+fieldName);
@@ -24,7 +24,7 @@ public static class SiteAddressSelfTests
         foreach(var fieldName in new[]{"address","city","province","postal_code","country_code"})
             test("addresses: required input create and patch cases "+fieldName,()=> {
                 Dictionary<string,object?> Complete()=>new() {
-                    ["name"]="Synthetic site",["company_id"]="00000000-0000-0000-0000-000000000001",["tax_code"]="SYNTHETIC-TAX",
+                    ["name"]="Synthetic site",["company_id"]="00000000-0000-0000-0000-000000000001",
                     ["address"]="Synthetic Road 42",["city"]="Synthetic City",["province"]="Synthetic Region",["postal_code"]="AB 12-X",["country_code"]="GB"
                 };
                 var complete=Complete();
@@ -46,28 +46,13 @@ public static class SiteAddressSelfTests
             var names=site.Fields.Select(f=>f.Name).ToArray(); Assert(Array.IndexOf(names,"code")==Array.IndexOf(names,"name")+1,"Code not immediately after name");
             var country=site.Fields.Single(f=>f.Name=="country_code"); Assert(country.Type=="select" && country.Options?.Distinct().Count()==249,"Country select missing ISO249");
         });
-        test("addresses: tax identity required on create after accepted complete payload",()=> {
-            ResourceCatalog.Validate(site,Json("""{"name":"Site","company_id":"00000000-0000-0000-0000-000000000001","vat_number":" X ","address":"Synthetic Road 42","city":"Synthetic City","province":"Synthetic Region","postal_code":"AB 12-X","country_code":"GB"}"""),true);
-            const string completeAddress="\"address\":\"Synthetic Road 42\",\"city\":\"Synthetic City\",\"province\":\"Synthetic Region\",\"postal_code\":\"AB 12-X\",\"country_code\":\"GB\"";
-            foreach(var tax in new[]{"",",\"vat_number\":null,\"tax_code\":null",",\"vat_number\":\"  \",\"tax_code\":\" \",".TrimEnd(',')})
-                Reject(()=>ResourceCatalog.Validate(site,Json("{\"name\":\"Site\",\"company_id\":\"00000000-0000-0000-0000-000000000001\","+completeAddress+tax+"}"),true),"tax_identity_required");
-        });
-        test("addresses: fiscal normalization and required country whitelist",()=> {
-            var values=ResourceCatalog.Validate(site,Json("""{"vat_number":" X ","tax_code":" "}"""),false);
-            Assert(Equals(values["vat_number"],"X") && values["tax_code"]==null && !values.ContainsKey("country_code"),"Normalization or omission changed");
+        test("addresses: required country whitelist",()=> {
             foreach(var blank in new string?[]{null,""," \t\n ","\u00a0\u2003"})
                 Reject(()=>ResourceCatalog.Validate(site,JsonSerializer.SerializeToElement(new{country_code=blank}),false));
             Reject(()=>ResourceCatalog.Validate(site,Json("""{"country_code":"ZZ"}"""),false));
             foreach(var code in CountryCodes.All) ResourceCatalog.Validate(site,JsonSerializer.SerializeToElement(new{country_code=code}),false);
         });
-        test("addresses: partial tax final state merge",()=> {
-            var method=typeof(ResourceCatalog).GetMethod("ValidateTaxIdentity",BindingFlags.Public|BindingFlags.Static);
-            Assert(method!=null,"Final state tax primitive missing");
-            void Call(string patch,string previous) { try {method!.Invoke(null,[ResourceCatalog.Validate(site,Json(patch),false),Json(previous)]);} catch(TargetInvocationException e) when(e.InnerException!=null) {System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(e.InnerException).Throw();} }
-            Call("""{"vat_number":null}""","""{"vat_number":"X","tax_code":"Y"}""");
-            Call("""{"name":"Renamed"}""","""{"vat_number":"X","tax_code":null}""");
-            Reject(()=>Call("""{"vat_number":null}""","""{"vat_number":"X","tax_code":null}"""),"tax_identity_required");
-        });
+        CompanyFiscalIdentitySelfTests.Run(test);
     }
     public static void Lookup(Action<string,Action> test,IServiceProvider services)
     {

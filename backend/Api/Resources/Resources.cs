@@ -27,7 +27,7 @@ public static class Resources
         new("companies", "company", Named()),
         new("sales-organizations", "sales_organization", [Ref("company_id", "companies"), ..Named(true)]),
         new("purchasing-organizations", "purchasing_organization", Named(true)),
-        new("sites", "site", [Ref("company_id", "companies"), Text("name", true), Text("code"), new("site_type", "select", Options: ["LEGAL", "LOCAL_UNIT", "SECONDARY"]), new("functions", "multiselect", Options: ["OPERATIONAL", "ADMINISTRATIVE", "COMMERCIAL", "PRODUCTION", "LOGISTICS", "WAREHOUSE", "TECHNICAL_SERVICE", "MANAGEMENT", "RETAIL"]), Text("vat_number"), Text("tax_code"), Text("address", true), Text("city", true), Text("province", true), Text("region"), Text("postal_code", true), new("country_code", "select", Required: true, Options: CountryCodes.All), new("is_enabled", "boolean")]),
+        new("sites", "site", [Ref("company_id", "companies"), Text("name", true), Text("code"), new("site_type", "select", Options: ["LEGAL", "LOCAL_UNIT", "SECONDARY"]), new("functions", "multiselect", Options: ["OPERATIONAL", "ADMINISTRATIVE", "COMMERCIAL", "PRODUCTION", "LOGISTICS", "WAREHOUSE", "TECHNICAL_SERVICE", "MANAGEMENT", "RETAIL"]), Text("address", true), Text("city", true), Text("province", true), Text("region"), Text("postal_code", true), new("country_code", "select", Required: true, Options: CountryCodes.All), new("is_enabled", "boolean")]),
         new("warehouse-types", "warehouse_type", Named()),
         new("warehouses", "warehouse", [Ref("site_id", "sites"), Ref("warehouse_type_id", "warehouse-types"), ..Named()]),
         new("warehouse-locations", "warehouse_location", [Ref("warehouse_id", "warehouses"), ..Named()]),
@@ -110,7 +110,6 @@ public static class Resources
                     Check.Require(System.Text.RegularExpressions.Regex.IsMatch(text, f.Name == "code" ? "^[A-Z]{3}$" : "^[0-9]{3}$"));
                 if (resource.Key == "countries" && f.Name == "iso_code") Check.Require(CountryCodes.All.Contains(text, StringComparer.Ordinal));
                 if (IsGlobalMaster(resource.Key)) text = text.Trim();
-                if (resource.Key == "sites" && f.Name is "vat_number" or "tax_code") text = text.Trim();
                 if (f.Type == "reference") { Check.Require(Guid.TryParse(text, out var id) && id != Guid.Empty); value = id; }
                 else if(f.Type == "date")
                 {
@@ -128,22 +127,14 @@ public static class Resources
                     var code = text.Trim();
                     value = code.Length == 0 ? null : code;
                 }
-                else value = resource.Key == "sites" && f.Name is "vat_number" or "tax_code" && text.Length == 0 ? null : text;
+                else value = text;
             }
             values.Add(f.Name, value);
         }
         if (create) foreach (var field in resource.Fields.Where(f => f.Required)) Check.Require(values.ContainsKey(field.Name));
-        if (resource.Key == "sites" && create) ValidateTaxIdentity(values,null);
 
         Check.Require(values.Count > 0);
         return values;
-    }
-
-    public static void ValidateTaxIdentity(Dictionary<string,object?> values, JsonElement? previous)
-    {
-        string? Value(string key) => values.TryGetValue(key,out var value) ? value as string
-            : previous.HasValue && previous.Value.TryGetProperty(key,out var old) && old.ValueKind == JsonValueKind.String ? old.GetString() : null;
-        Check.Require(!string.IsNullOrWhiteSpace(Value("vat_number")) || !string.IsNullOrWhiteSpace(Value("tax_code")),400,"tax_identity_required");
     }
 
     internal static string ReadName(JsonProperty property)

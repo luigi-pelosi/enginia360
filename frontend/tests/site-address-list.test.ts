@@ -2,11 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as model from '../lib/model.ts';
 
-const fields = ['company_id','name','code','site_type','functions','vat_number','tax_code','address','city','province','postal_code','country_code'].map(name => ({name,type:'text' as const,required:false}));
+const fields = ['company_id','name','code','site_type','functions','address','city','province','postal_code','country_code'].map(name => ({name,type:'text' as const,required:false}));
 
-test('sites table adds one address column while other resource columns remain unchanged', () => {
+test('sites table includes the address exactly once while other resource columns remain unchanged', () => {
   assert.equal(typeof model.tableFields, 'function');
-  assert.deepEqual(model.tableFields({key:'sites',fields}).map(field=>field.name), [...fields.slice(0,6).map(field=>field.name),'address']);
+  assert.deepEqual(model.tableFields({key:'sites',fields}).map(field=>field.name), fields.slice(0,6).map(field=>field.name));
+  assert.equal(model.tableFields({key:'sites',fields}).filter(field=>field.name==='address').length,1);
   assert.deepEqual(model.tableFields({key:'users',fields}).map(field=>field.name), fields.slice(0,6).map(field=>field.name));
   assert.deepEqual(model.tableFields(undefined), []);
 });

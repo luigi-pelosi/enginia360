@@ -19,7 +19,7 @@ class BusinessPartnerSourceTests(unittest.TestCase):
         self.assertEqual(loader.read_sql(ROOT / 'database/foundation.sql'), source)
         main = (ROOT / 'database/foundation.sql').read_text()
         expected = main
-        fragments = ('masterdata_business_partner.sql', 'masterdata_payments.sql', 'masterdata_catalog.sql')
+        fragments = ('masterdata_business_partner.sql', 'masterdata_payments.sql', 'masterdata_catalog.sql', 'seeds/countries.sql', 'taxmanagement.sql')
         for filename in fragments:
             self.assertEqual(main.splitlines().count('\\ir ' + filename), 1)
             expected = expected.replace('\\ir ' + filename, (ROOT / 'database' / filename).read_text().rstrip('\n'))
@@ -67,7 +67,7 @@ class BusinessPartnerSourceTests(unittest.TestCase):
         main = (ROOT / 'database/foundation.sql').read_text()
         self.assertEqual(main.count('\\ir masterdata_business_partner.sql'), 1)
         self.assertLess(main.index('GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE foundation.warehouse_type'), main.index('\\ir masterdata_business_partner.sql'))
-        self.assertEqual([line for line in main.splitlines() if line.startswith('\\ir ')], ['\\ir '+name for name in ('masterdata_business_partner.sql','masterdata_payments.sql','masterdata_catalog.sql')])
+        self.assertEqual([line for line in main.splitlines() if line.startswith('\\ir ')], ['\\ir '+name for name in ('masterdata_business_partner.sql', 'masterdata_payments.sql', 'masterdata_catalog.sql', 'seeds/countries.sql', 'taxmanagement.sql')])
         self.assertNotRegex(main, r'CREATE TABLE (?:masterdata\.business_partner|foundation\.role_company)')
 
 

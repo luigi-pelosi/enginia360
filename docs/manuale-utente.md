@@ -1,6 +1,6 @@
 # Enginia360 — Guida rapida
 
-Questa guida spiega accesso, anagrafiche, Business Partner e rapporti aziendali, Pagamenti, Catalogo articoli e servizi, magazzini, utenti, autorizzazioni e cataloghi geografici.
+Questa guida spiega accesso, anagrafiche, Business Partner e rapporti aziendali, Pagamenti, Catalogo articoli e servizi, tasse e imposte, magazzini, utenti, autorizzazioni e cataloghi geografici.
 
 Le schermate sono reali e usano un'organizzazione dimostrativa. Le voci e i pulsanti disponibili dipendono dai tuoi permessi.
 
@@ -43,19 +43,18 @@ Digitare in una ricerca non salva nulla. Se Salva non è disponibile, controlla 
 
 Per iniziare, crea prima l'**Azienda**, poi le sue **Sedi**.
 
+La scheda **Generale** dell'azienda non contiene identificativi fiscali. Il **Codice fiscale**, facoltativo, e le registrazioni IVA nazionali ed estere si gestiscono nella scheda **Fiscalità** dell'azienda, non sulle sedi. Per configurazione, registrazione iniziale e regimi segui [Fiscalità aziendale](#regimi-fiscali-e-fiscalità-aziendale): ogni nuova registrazione richiede un regime iniziale.
+
 ### Creare una sede
 
 1. Apri **Sedi → Nuovo**.
 2. Seleziona l'azienda e inserisci il nome della sede.
-3. Compila almeno uno tra **Partita IVA** e **Codice fiscale**.
-4. Inserisci la strada nel campo **Indirizzo**.
-5. Scegli la **Nazione** e cerca la **Città**. Seleziona il suggerimento con il CAP corretto: città, provincia, CAP e regione vengono completati dai cataloghi locali. La strada digitata resta invariata.
-6. Verifica **Indirizzo, Città, Provincia, CAP e Nazione**: sono tutti obbligatori. La Regione è facoltativa. Puoi completare manualmente i dati mancanti.
-7. Scegli eventuali tipologia giuridica e funzioni, quindi premi **Salva**.
+3. Inserisci la strada nel campo **Indirizzo**.
+4. Scegli la **Nazione** e cerca la **Città**. Seleziona il suggerimento con il CAP corretto: città, provincia, CAP e regione vengono completati dai cataloghi locali. La strada digitata resta invariata.
+5. Verifica **Indirizzo, Città, Provincia, CAP e Nazione**: sono tutti obbligatori. La Regione è facoltativa. Puoi completare manualmente i dati mancanti.
+6. Scegli eventuali tipologia giuridica e funzioni, quindi premi **Salva**. Non sono richiesti né esposti identificativi fiscali della sede.
 
 Uno stesso comune può avere più CAP: scegli quello appropriato alla sede. I suggerimenti aiutano la compilazione, ma i dati vanno sempre controllati.
-
-![Esempio di compilazione di una sede](assets/manuale/03-nuova-sede.png)
 
 ### Organizzazioni commerciali
 
@@ -103,7 +102,7 @@ Apri **Impostazioni → Sistema**, poi scegli la tile **Nazioni** o **Città**. 
 
 I cataloghi sono condivisi da tutte le organizzazioni. Per consultarli serve il permesso di lettura del singolo catalogo assegnato dall’amministratore; solo il **Super Admin** può modificarli. Le unità di misura hanno permessi dedicati per consultazione, creazione e modifica.
 
-- **Nazioni:** nome e codice paese a due lettere, per esempio `IT`.
+- **Nazioni:** tutti i 249 paesi e territori ISO, con nome italiano e codice paese a due lettere, per esempio `IT`. Cerca per nome o codice ISO.
 - **Città:** nazione, nome, CAP, provincia e regione. Più CAP dello stesso comune sono voci distinte.
 
 Per aggiungere una città di una nuova nazione, registra prima la nazione. Una nazione collegata a città non può essere eliminata finché esistono quei collegamenti. Le modifiche ai cataloghi non riscrivono gli indirizzi già salvati nelle sedi.
@@ -152,13 +151,15 @@ Un errore di validazione indica la riga e il campo interessati, spiega il contro
 
 Il codice viene assegnato automaticamente oppure inserito manualmente secondo la configurazione dell'organizzazione. Dopo il salvataggio non si modifica. Usa la ricerca anche per codice, identificativo fiscale o recapito.
 
+Nella scheda **Fiscalità**, gli identificativi fiscali del soggetto restano distinti dai [profili fiscali del Business Partner](#fiscalità-di-articoli-e-business-partner). Un profilo assegna una classificazione per paese e periodo: non modifica la partita IVA e non verifica VIES o stabilimento della controparte.
+
 Per conservare un soggetto non più utilizzato, aprilo e scegli **Archiviato** nello stato, poi salva: non esiste un cestino per i Business Partner. Il codice e gli identificativi fiscali restano riservati. Lo stato **Attivo** non certifica la completezza fiscale per future fatture.
 
 Se un altro operatore ha modificato lo stesso soggetto, il sistema rifiuta la sovrascrittura: conserva i dati utili della tua bozza e riapri il soggetto per verificare la versione aggiornata.
 
 ### Aziende e ruoli commerciali
 
-1. Apri un Business Partner già salvato e raggiungi **Aziende e ruoli**.
+1. Apri un Business Partner già salvato e seleziona la tab **Aziende e ruoli**, separata da **Identità** e **Fiscalità**. Il cambio tab conserva le modifiche pendenti; al refresh viene ripristinata l'ultima tab autorizzata.
 2. Premi **Associa azienda**, scegli un'azienda autorizzata e seleziona **Cliente**, **Fornitore**, entrambi o nessuno.
 3. Conferma: il rapporto viene registrato subito, senza il Salva generale.
 4. Usa la matita della riga per gestire i ruoli. Assegna un ruolo non ancora presente con la relativa casella o azione; per un ruolo già assegnato, usa l'azione distinta di blocco/attivazione.
@@ -248,6 +249,8 @@ Per una confezione CF da 12 PZ imposta numeratore 12 e denominatore 1; per un al
 
 Su un articolo già salvato, confermare una riga di identificativi o unità registra subito quella riga, **senza salvare le modifiche dei dati generali**. Dati fisici e stato vengono invece registrati dal Salva generale. Sul nuovo articolo le righe restano locali fino al primo Salva. Prima di cambiare la base di un articolo sospeso mai attivato occorre non avere unità alternative, identificativi o dati fisici; dopo la prima attivazione la base e il codice restano bloccati.
 
+La scheda **Fiscalità** gestisce i [profili fiscali dell'articolo](#fiscalità-di-articoli-e-business-partner), indipendenti dalle abilitazioni aziendali. Scegli classificazione e validità: la natura Bene/Servizio non assegna un'aliquota e non sostituisce una regola fiscale.
+
 Per sospendere o riattivare un articolo, scegli **Sospeso** o **Attivo** nel campo **Stato**, poi premi **Salva**. Per archiviarlo scegli **Archiviato** e salva: prima dell'aggiornamento compare una conferma perché l'operazione è definitiva e l'articolo non potrà più essere riattivato. **Annulla** nella conferma non scrive nulla e conserva le modifiche del form. Un articolo archiviato rimane soltanto consultabile. Le transizioni richiedono permessi distinti; non vengono assegnati automaticamente.
 
 ### Marchi
@@ -325,7 +328,109 @@ Per abilitare più articoli insieme:
 
 L'amministratore assegna lettura, creazione e modifica del catalogo aziendale e le aziende autorizzate nello stesso ruolo. I pulsanti di scrittura richiedono anche la lettura della precisa azienda, necessaria alla verifica dell'esito; il catalogo aziendale può essere consultato senza accesso all'intero catalogo organizzativo o alla gestione anagrafica aziende. Nessun nuovo permesso è assegnato automaticamente. Dopo una risposta incerta usa **Leggi dati aggiornati** e conferma la verifica; refresh e menu non ripetono l'operazione.
 
-## 10. Risolvere i problemi più comuni
+## 10. Tasse e imposte
+
+Apri **Impostazioni → Anagrafiche → Tasse e imposte**. Per il Super Admin seleziona prima l'organizzazione. Le schede **Codici imposta**, **Tipi di imposta** e **Nature IVA** dipendono dai permessi assegnati; tipologie e nature sono consultabili, non modificabili.
+
+Nello stesso workspace trovi **Classificazioni articoli**, **Classificazioni Business Partner**, **Regimi fiscali**, **Regole fiscali** e **Simulatore fiscale**, ciascuno con permessi propri. Per modello e API: [riferimento tecnico TaxManagement](taxmanagement.md). La disponibilità di una scheda non concede scritture nelle altre; i nuovi permessi non vengono assegnati automaticamente ai ruoli.
+
+**Creare un codice**
+
+1. In **Codici imposta** premi **Nuovo** e inserisci nome, codice, nazione e tipologia. Il codice identifica il trattamento, non soltanto la percentuale.
+2. Nella scheda delle versioni indica aliquota, trattamento e decorrenza; scegli la natura per i trattamenti italiani senza IVA esposta. `22` indica il 22%, non `0,22`.
+3. Premi **Salva**. Identità e versioni iniziali vengono registrate insieme; **Annulla** non scrive.
+
+**Programmare una variazione**
+
+1. Apri un codice già salvato e la scheda **Versioni fiscali**.
+2. Aggiungi la nuova configurazione con la relativa decorrenza e conferma. La versione precedente che contiene tale decorrenza viene chiusa al giorno prima, nella stessa operazione.
+3. Controlla lo storico. Non modificare l'aliquota precedente per rappresentare una variazione; non sono ammessi intervalli sovrapposti.
+
+Nome e descrizione si modificano nei dati generali. Disattivare impedisce nuovi utilizzi, ma conserva lo storico; riattivare richiede il relativo permesso. Le versioni registrate non si eliminano né si riscrivono. La scheda **Cronologia** mostra le operazioni del codice.
+
+**Installare i codici italiani iniziali**
+
+Usa l'azione di installazione dei codici italiani e scegli la decorrenza della configurazione. L'operazione aggiunge i codici mancanti, senza sovrascrivere quelli già personalizzati. Serve la nazione Italia nel catalogo e un permesso dedicato. I codici non vengono installati automaticamente nelle organizzazioni.
+
+Il refresh conserva filtri e bozze nella stessa scheda; il menu resetta la schermata. Un conflitto richiede il confronto con i dati aggiornati. Se manca la risposta dopo un salvataggio, controlla prima l'esito autorevole: non ripetere alla cieca l'operazione.
+
+### Classificazioni fiscali
+
+Nello stesso percorso apri **Classificazioni articoli** oppure **Classificazioni Business Partner**. Sono elenchi configurabili dell'organizzazione, non un nomenclatore ufficiale e non aliquote IVA.
+
+1. Premi **Nuovo** e indica nome, codice stabile, paese e tipo d'imposta. In questa fase è disponibile IVA.
+2. Salva. Puoi correggere nome e descrizione; codice, paese e tipo restano immutabili. Per un significato diverso crea una nuova classificazione.
+3. Disattiva le voci non più assegnabili. Gli abbinamenti già registrati restano nello storico; non si eliminano fisicamente.
+
+L'installazione dei modelli iniziali è esplicita e aggiunge solo le voci mancanti per paese e tipo scelti, senza sovrascrivere le personalizzazioni. Non assegna automaticamente profili alle anagrafiche.
+
+### Fiscalità di articoli e Business Partner
+
+Apri il dettaglio dell'articolo oppure del Business Partner e la scheda **Fiscalità**.
+
+1. Aggiungi un profilo indicando paese fiscale, tipo d'imposta, classificazione e decorrenza. La fine della validità è facoltativa.
+2. Su una nuova anagrafica, conferma la riga e poi usa il **Salva** generale: padre e profili vengono registrati insieme. Prima di quel salvataggio le righe sono soltanto bozze.
+3. Su un'anagrafica esistente, confermare il profilo lo registra subito e non salva le eventuali modifiche dei dati generali.
+4. Per una variazione usa la programmazione: il profilo precedente che contiene la nuova decorrenza viene chiuso al giorno prima. Non sono ammessi intervalli sovrapposti nello stesso paese e tipo.
+
+La data fiscale permette di consultare la classificazione valida in quel giorno. In assenza di profilo viene indicata esplicitamente la mancanza; non viene scelta una voce predefinita. Il paese fiscale non è necessariamente la residenza o lo stabilimento del partner. Natura articolo e partita IVA non determinano automaticamente classificazione o aliquota. Articoli e Business Partner possono essere creati senza profili; il profilo da solo non determina l'aliquota: occorrono anche configurazione aziendale, fatti e regole del simulatore.
+
+Consultazione, assegnazione e programmazione del profilo hanno permessi distinti e richiedono anche la lettura dell'anagrafica. Il comando fiscale usa una propria versione: non salva le modifiche pendenti al soggetto. Disattivare una classificazione impedisce nuove assegnazioni ma conserva lo storico; gli intervalli registrati non si cancellano o riscrivono.
+
+### Regimi fiscali e fiscalità aziendale
+
+Il catalogo **Regimi fiscali**, in **Impostazioni → Anagrafiche → Tasse e imposte**, è consultabile ma non modificabile. Distingue regimi attivi e supportati; inizialmente è assegnabile il regime ordinario IVA per Italia, Germania e Francia. Il supporto applicativo parte dal **26 novembre 2026**: non indica l'introduzione del regime nella legislazione e non ricostruisce periodi anteriori.
+
+1. Apri **Aziende**, quindi il dettaglio dell'azienda e la scheda **Fiscalità**. La tabella mostra una riga per configurazione, con tipo imposta, paese di stabilimento, codice fiscale e stato. In **Azioni** trovi **Attiva/Sospendi**, **Nuova registrazione** e **Mostra registrazioni**. Espandendo la riga consulti le registrazioni in una tabella di dettaglio, ciascuna con le proprie azioni uniformi. L'espansione resta al refresh ed è ripristinata per l'azienda corrente; il click sulla voce di menu resetta la vista ordinaria.
+2. **Nuova configurazione** è disponibile solo per tipi di imposta supportati non ancora configurati, anche nelle bozze dell'azienda in creazione. Crea una configurazione IVA indicando esplicitamente il **Paese di stabilimento IVA**, l'eventuale **Codice fiscale**, la **Registrazione iniziale** e il **Regime iniziale**. Registrazione e regime sono obbligatori e vengono salvati insieme alla configurazione. Il paese di stabilimento resta immutabile e non viene ricavato dalle sedi; la configurazione nasce in **Bozza**.
+3. Indica per la registrazione identificativo completo di prefisso maiuscolo, tipo e periodo. Il controllo è solo formale: non verifica assegnazione né VIES. I tipi disponibili dipendono dalla matrice supportata; la scelta non attesta requisiti o nomina di un rappresentante fiscale. Puoi aggiungere altre registrazioni dopo la creazione: **ciascuna richiede un regime iniziale**, salvato insieme alla registrazione. Non è presente una checkbox per escluderlo. Servono entrambi i permessi di registrazione e assegnazione del regime, nello stesso ruolo e ambito aziendale.
+4. Il periodo del regime deve rientrare nella validità della registrazione e del regime stesso; non può sovrapporsi a un altro profilo della stessa registrazione. Il **Codice fiscale** delle configurazioni salvate è visualizzato in sola lettura nella scheda **Fiscalità**. Il modale si allarga in questa scheda per mostrare la tabella; sugli schermi piccoli resta disponibile lo scorrimento orizzontale.
+5. Attiva la configurazione quando l'azienda è abilitata e almeno una registrazione con regime supportato è valida oggi, secondo la data UTC del server. La sospensione blocca nuovi utilizzi ma mantiene lo storico.
+6. Per una variazione usa **Programma regime**; per cessare una posizione usa **Chiudi registrazione**. Le chiusure accorciano i periodi senza eliminare lo storico e rifiutano operazioni che renderebbero incoerenti profili futuri.
+
+Sulle aziende esistenti le operazioni fiscali vengono salvate subito, senza salvare o scartare le bozze dei dati generali. Per creare un'azienda insieme alle configurazioni fiscali iniziali serve il Super Admin globale; gli altri utenti possono creare l'azienda senza dati fiscali e configurarla dopo l'assegnazione dell'ambito aziendale. Servono i permessi fiscali specifici e l'azienda autorizzata nello stesso ruolo, oltre alla lettura Aziende; non serve il permesso di modifica dei dati generali.
+
+Nei nuovi moduli **Paese di stabilimento IVA** e **Paese fiscale** propongono **Italia**, modificabile prima del salvataggio. Il paese fiscale parte da Italia anche aggiungendo una registrazione a una configurazione estera; il tipo di registrazione proposto rispetta il paese di stabilimento. Le scelte già presenti nelle bozze non vengono sovrascritte.
+
+Bozze e scheda selezionata vengono recuperate al refresh. Se l'esito di una richiesta è incerto, non ripeterla: usa **Rileggi dati fiscali** e conferma la verifica. Il reset da menu non elimina i comandi incerti. Registrazioni e regimi non determinano da soli aliquota, imponibilità o trattamento della transazione.
+
+### Regole fiscali e simulatore
+
+In **Impostazioni → Anagrafiche → Tasse e imposte**, apri **Regole fiscali** o **Simulatore fiscale**. Le due sezioni richiedono permessi distinti; l'aggiunta dei permessi al catalogo non li assegna automaticamente ai ruoli.
+
+1. Crea una **Nuova regola** indicando paese, tipo imposta e ambito condiviso o aziendale. Il codice identifica stabilmente la regola. Aggiungi la prima versione in bozza, codice imposta, periodo, priorità e riferimento normativo. Il codice imposta viene risolto alla data dell'operazione: non copiare l'aliquota nella regola.
+2. Costruisci le **Condizioni** con campi, operatori e valori proposti dal sistema. Sono combinate in AND. Per alternative usa regole separate; un dato sconosciuto non equivale a falso. La priorità numerica maggiore prevale, senza precedenza automatica per le regole aziendali.
+3. **Valida** controlla riferimenti, condizioni e conflitti; **Pubblica** rende utilizzabile la bozza e ripete i controlli. La pubblicazione di un successore può chiudere il periodo della versione precedente. Le condizioni pubblicate non si modificano: crea una nuova versione. **Ritira** conserva lo storico e impedisce nuove determinazioni, anche retrodatate.
+4. I template italiani si installano esplicitamente come sei bozze, senza sovrascrivere regole esistenti o creare automaticamente codici/classificazioni mancanti. Non sono una certificazione fiscale. I template con decorrenza nel 2026 terminano il 31 dicembre 2026; il passaggio al 2027 richiede una configurazione esplicita.
+5. Nel **Simulatore fiscale** seleziona azienda, tipo imposta, data, registrazione aziendale, articolo e controparte. Dichiara i fatti dell'operazione e la loro provenienza: stabilimento della controparte, ruolo fiscale, territorialità ordinaria, eventuali trattamenti speciali e, per i beni, ubicazione, movimento e condizione doganale. Lascia sconosciuto ciò che non è accertato; partita IVA e classificazione non provano stabilimento o VIES.
+6. Premi **Simula** per leggere esito, regola, versione del codice imposta, aliquota configurata e traccia. Le bozze entrano nella preview solo se selezionate esplicitamente. Il risultato non calcola importi né registra documenti. Un contesto incompleto, un conflitto o una casistica non supportata blocca la scelta: non viene applicata un'aliquota di ripiego.
+
+Su una nuova regola, metadati e versioni iniziali restano locali fino al primo **Salva**. Su una regola già creata, salvare una versione in bozza è autonomo: non salva le modifiche pendenti a nome e descrizione. Il successo di **Salva** non pubblica la versione; dopo **Valida**, usa **Pubblica** e verifica il badge **Pubblicata**. La bozza salvata può essere simulata solo selezionandola esplicitamente; la preview sostituisce la pubblicata della stessa regola, non tutte le altre. Un errore di validazione o conflitto conserva la bozza da correggere e non certifica un esito fiscale.
+
+Modificare gli input rende il risultato precedente non aggiornato. **Confronta due snapshot** confronta simulazioni salvate localmente, senza rideterminarle. Il refresh recupera form e risultati senza rieseguire la simulazione; il menu resetta la vista ordinaria. Per i salvataggi di esito incerto rileggi e verifica lo stato prima di procedere: nessun replay automatico. Il primo perimetro operativo comprende soltanto operazioni italiane nazionali ordinarie; transfrontaliere, esenzioni, reverse charge, split payment e regimi speciali restano esclusi.
+
+### Calcolo fiscale multi-riga
+
+Nel **Simulatore fiscale**, dopo una simulazione o determinazione riuscita, premi **Aggiungi al calcolo** nella scheda Risultato. Si apre **Calcolo documento** nello stesso simulatore: nessun nuovo menu. Ogni riga conserva il proprio scenario acquisito; modificarlo nel form iniziale non riscrive le righe già aggiunte.
+
+1. Inserisci quantità e prezzo positivi e scegli **IVA esclusa** o **IVA inclusa**. Aggiungi altri scenari riusciti della stessa azienda e operazione. Sono ammesse al massimo 100 righe.
+2. Aggiungi sconti o maggiorazioni di riga, percentuali o fissi. Le rettifiche si applicano nell'ordine mostrato: 10% seguito da 5% non equivale a 15%. Le frecce ne modificano la sequenza.
+3. Le rettifiche di documento si ripartiscono sulle righe selezionate, oppure su tutte. Seleziona destinatari con la stessa base di prezzo, inclusa oppure esclusa; il sistema non interpreta automaticamente una rettifica mista come netta o lorda. Gli oneri comuni ordinari si inseriscono come maggiorazioni esplicite sulle operazioni principali; nessun onere del Catalogo viene aggiunto automaticamente.
+4. Negli acquisti, lascia vuota **IVA detraibile (%)** quando la percentuale non è nota. Il valore inserito serve soltanto al calcolo matematico, non determina il diritto fiscale alla detrazione e non cambia il totale dovuto al fornitore. Gli importi attesi non modificano la fattura ricevuta.
+5. Premi **Calcola · rivaluta il contesto fiscale**: il server acquisisce nuovamente le determinazioni correnti, una volta per riga, e restituisce imponibili, IVA, totali, riepiloghi e dettagli degli arrotondamenti. L'aliquota non è modificabile nella riga. La policy EUR è di sola lettura e richiede EUR abilitata con due decimali nel catalogo valute.
+6. **Fissa confronto** conserva un risultato per il confronto locale. Le modifiche rendono il precedente risultato non aggiornato. Il refresh recupera dati e risultati senza rieseguire il calcolo; il click sul menu resetta la vista ordinaria.
+
+Per aggiungere una seconda riga, torna al form del simulatore, imposta il nuovo articolo/partner e i fatti, esegui **Simula** e, solo con esito riuscito, premi nuovamente **Aggiungi al calcolo**. Le righe precedenti restano invariate. Se cambi azienda o operazione, non mescolare scenari: usa **Svuota righe documento** per iniziare un nuovo insieme. Togliere una riga rimuove anche quel destinatario dalle rettifiche comuni; verifica che ne resti almeno uno quando la selezione è esplicita.
+
+Sono consentite fino a **20 rettifiche per riga** e **20 rettifiche di documento**. Le frecce su/giù cambiano la sequenza e quindi il risultato: prima si applicano quelle della riga, poi quelle comuni sulla base risultante. Usa il punto come separatore decimale. Quantità: fino a 6 decimali; prezzo: fino a 8; importi fissi: fino a 2; percentuali: fino a 6. Gli sconti e la detraibilità vanno da 0 a 100%; una rettifica non può consumare più della capienza disponibile. Un valore finale zero è ammesso dopo uno sconto valido.
+
+Apri **Riepiloghi fiscali**, **Importi e ripartizioni per riga**, **Dettagli del calcolo** e **Dati acquisiti per il calcolo** per verificare gruppi fiscali, quote e correzioni di arrotondamento. I dettagli annidati si espandono a tutta la larghezza disponibile, anche nel confronto: non devi interpretarli come colonne monetarie della riga precedente. Negli importi inclusi il lordo commerciale viene conservato; righe, gruppi e totali riconciliano senza tolleranze a centesimi. Lasciare sconosciuta la detraibilità mostra un risultato non disponibile (`null`), non un'assunzione di 0% o 100%.
+
+La schermata produce simulazioni, anche con bozze esplicitamente selezionate, e non registra documenti. **Storno** applica il segno negativo ai risultati di input positivi: non emette una nota di credito e non recupera le aliquote storiche di una fattura. Contesti incompleti, sconti oltre capienza e trattamenti non supportati bloccano il calcolo indicando riga, campo e verifiche fiscali pertinenti.
+
+Servono lettura del simulatore e del calcolo, simulazione di entrambe le funzioni e lettura delle fonti, con gli ambiti aziendali previsti. I tre nuovi permessi di calcolo non vengono assegnati automaticamente ai ruoli; la sola lettura della policy non richiede il permesso della pagina Valute.
+
+## 11. Risolvere i problemi più comuni
 
 | Situazione | Cosa fare |
 |---|---|

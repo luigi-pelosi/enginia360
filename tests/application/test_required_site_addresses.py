@@ -12,7 +12,7 @@ class RequiredSiteAddressesApiTests(unittest.TestCase):
     def setUpClass(cls):cls.root,cls.credentials=root_client()
     def setUp(self):
         self.case=Case(self.root);self.company=self.case.create('companies',{'name':'Azienda QA'})
-        self.valid={'company_id':self.company['id'],'name':'Sede QA','tax_code':'QA-TAX',**ADDRESS}
+        self.valid={'company_id':self.company['id'],'name':'Sede QA',**ADDRESS}
     def tearDown(self):self.case.close()
     def body(self,values,save):return {'values':values} if save else values
     def row(self,id):return sql(f"SELECT row_to_json(t) FROM foundation.site t WHERE id='{id}'").stdout.strip()
@@ -22,7 +22,7 @@ class RequiredSiteAddressesApiTests(unittest.TestCase):
         status,resources=self.root.request('/api/resources');self.assertEqual(status,200)
         fields=next(r['fields'] for r in resources if r['key']=='sites');metadata={f['name']:f for f in fields}
         self.assertEqual({key:metadata[key]['required'] for key in FIELDS},dict.fromkeys(FIELDS,True))
-        self.assertFalse(metadata['vat_number']['required']);self.assertFalse(metadata['tax_code']['required'])
+        self.assertNotIn('vat_number',metadata);self.assertNotIn('tax_code',metadata)
         self.assertEqual(len(set(metadata['country_code']['options'])),249)
         names=[f['name'] for f in fields];self.assertEqual(names[names.index('name')+1],'code');self.assertFalse(metadata['code']['required'])
 
@@ -52,13 +52,10 @@ class RequiredSiteAddressesApiTests(unittest.TestCase):
                         self.assertEqual(status,400)
             self.assertEqual(self.row(row['id']),before);self.assertEqual(self.count('audit_event'),audit)
 
-    def test_fiscal_alternative_is_unchanged_and_no_geographic_values_are_invented(self):
-        status,error=self.root.request(self.case.path('sites',save=True),'POST',{'values':{**self.valid,'tax_code':None}})
-        self.assertEqual(status,400);self.assertEqual(error['code'],'tax_identity_required')
-        status,row=self.root.request(self.case.path('sites',save=True),'POST',{'values':{**self.valid,'tax_code':None,'vat_number':'QA-VAT'}})
+    def test_no_site_fiscal_gate_and_no_geographic_values_are_invented(self):
+        status,row=self.root.request(self.case.path('sites',save=True),'POST',{'values':self.valid})
         self.assertEqual(status,201);self.assertEqual({f:row[f] for f in FIELDS},ADDRESS);self.assertIsNone(row['code'])
-        status,row=self.root.request(self.case.path('sites',row['id'],save=True),'PUT',{'values':{'vat_number':None,'tax_code':'QA-TAX'}})
-        self.assertEqual(status,200);self.assertIsNone(row['vat_number'])
+        self.assertNotIn('vat_number',row);self.assertNotIn('tax_code',row)
 
     def test_direct_fixture_consumers_produce_explicit_complete_synthetic_sites(self):
         row=self.case.create('sites',{'company_id':self.company['id'],'name':'Sede fixture'})

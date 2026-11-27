@@ -16,7 +16,6 @@ public static class SiteClassificationSelfTests
     static Dictionary<string, object?> Values(object payload, bool create = false)
     {
         var values=JsonSerializer.SerializeToElement(payload).EnumerateObject().ToDictionary(p=>p.Name,p=>(object?)p.Value);
-        if(create && !values.ContainsKey("vat_number") && !values.ContainsKey("tax_code")) values["tax_code"]="SYNTHETIC-TAX";
         if(create) {
             values.TryAdd("address","Synthetic Road 42"); values.TryAdd("city","Synthetic City");
             values.TryAdd("province","Synthetic Region"); values.TryAdd("postal_code","AB 12-X"); values.TryAdd("country_code","GB");
@@ -66,15 +65,13 @@ public static class SiteClassificationSelfTests
         test("site classification: sites audit snapshot enabled", () => {
             Require((bool)typeof(DataEndpoints).GetMethod("HasSnapshots", BindingFlags.NonPublic | BindingFlags.Static)!.Invoke(null, ["sites"])!, "Audit sites deve includere before/after.");
         });
-        test("site classification: existing omission clear and fiscal scope regressions", () => {
+        test("site classification: existing omission clear and tenant scope regressions", () => {
             foreach (var create in new[] { false, true }) {
                 var omitted = Values(new { name = "Sede", company_id = Guid.NewGuid() }, create);
                 Require(!omitted.ContainsKey("functions") && !omitted.ContainsKey("site_type"), "Omissione deve preservare update/default DB create.");
                 var cleared = Values(new { name = "Sede", company_id = Guid.NewGuid(), functions = Array.Empty<string>(), site_type = (string?)null }, create);
                 Require(cleared["functions"] is string[] { Length: 0 } && cleared["site_type"] == null, "Clear array e null tipologia non preservati.");
             }
-            var fiscal = Values(new { vat_number = " VAT ", tax_code = " TAX " });
-            Require(Equals(fiscal["vat_number"], "VAT") && Equals(fiscal["tax_code"], "TAX"), "Campi fiscali alterati.");
             Require(ResourceCatalog.Scope(Site) == "tenant_id=@tenant::uuid", "Scope sedi alterato.");
             Reject(new { tenant_id = Guid.NewGuid(), functions = Array.Empty<string>() });
         });

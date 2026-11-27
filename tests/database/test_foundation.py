@@ -24,9 +24,15 @@ TABLES = (
     "catalog_unit_of_measure", "catalog_category", "catalog_item_type",
     "catalog_brand", "catalog_item", "catalog_item_code", "catalog_item_identifier",
     "catalog_item_unit", "catalog_item_physical_data", "catalog_item_company",
+    "tax_types", "tax_nature_codes", "tax_codes", "tax_code_versions", "tax_audit_events",
+    "item_tax_classifications", "partner_tax_classifications", "item_tax_profiles", "partner_tax_profiles",
+    "tax_regimes", "company_tax_configurations", "company_tax_registrations", "company_tax_regime_profiles",
+    "tax_rules", "tax_rule_versions", "tax_rule_conditions",
 )
 
 def table_schema(name):
+    if name.startswith(('tax_', 'company_tax_')) or name in ('item_tax_classifications', 'partner_tax_classifications', 'item_tax_profiles', 'partner_tax_profiles'):
+        return 'taxmanagement'
     return 'masterdata' if name.startswith(('business_partner', 'company_business_partner', 'catalog_', 'payment_')) or name in ('company_payment_settings', 'fatturapa_payment_codes') else 'foundation'
 
 
@@ -46,7 +52,7 @@ def fixture():
         statements.extend([
             f"INSERT INTO foundation.tenant (id, code, name) VALUES ({tenant}, 't{number}', 'Cliente');",
             f"INSERT INTO foundation.company (id, tenant_id, code, name) VALUES ({tenant}, {tenant}, 'main', 'Società');",
-            f"INSERT INTO foundation.site (id, tenant_id, company_id, code, name, site_type, vat_number, tax_code, address, city, province, postal_code, country_code) VALUES ({tenant}, {tenant}, {tenant}, 'hq', 'Sede legale', 'LEGAL', 'IT-example', 'example', 'Via prova 1', 'Roma', 'RM', '00100', 'IT');",
+            f"INSERT INTO foundation.site (id, tenant_id, company_id, code, name, site_type, address, city, province, postal_code, country_code) VALUES ({tenant}, {tenant}, {tenant}, 'hq', 'Sede legale', 'LEGAL', 'Via prova 1', 'Roma', 'RM', '00100', 'IT');",
             f"INSERT INTO foundation.warehouse_type (id, tenant_id, code, name) VALUES ({tenant}, {tenant}, 'main', 'Principale');",
             f"INSERT INTO foundation.warehouse (id, tenant_id, site_id, warehouse_type_id, code, name) VALUES ({tenant}, {tenant}, {tenant}, {tenant}, 'main', 'Magazzino');",
             f"INSERT INTO foundation.warehouse_location (id, tenant_id, warehouse_id, code, name) VALUES ({tenant}, {tenant}, {tenant}, 'a1', 'Scaffale');",
@@ -58,7 +64,7 @@ def fixture():
             )
     statements.extend([
         f"INSERT INTO foundation.company (id, tenant_id, code, name) VALUES ({uid(3)}, {uid(1)}, 'second', 'Altra società');",
-        f"INSERT INTO foundation.site (id, tenant_id, company_id, code, name, tax_code, address, city, province, postal_code, country_code) VALUES ({uid(3)}, {uid(1)}, {uid(3)}, 'hq', 'Altra sede', 'CF', 'Via prova 1', 'Roma', 'RM', '00100', 'IT');",
+        f"INSERT INTO foundation.site (id, tenant_id, company_id, code, name, address, city, province, postal_code, country_code) VALUES ({uid(3)}, {uid(1)}, {uid(3)}, 'hq', 'Altra sede', 'Via prova 1', 'Roma', 'RM', '00100', 'IT');",
     ])
     return '\n'.join(statements)
 
@@ -93,7 +99,7 @@ class FoundationTests(unittest.TestCase):
         first, second = uid(1), uid(2)
         statements = [
             f"INSERT INTO foundation.company (tenant_id, code, name) VALUES ({uid(99)}, 'x', 'X')",
-            f"INSERT INTO foundation.site (tenant_id, company_id, code, name, tax_code, address, city, province, postal_code, country_code) VALUES ({first}, {second}, 'x', 'X', 'CF', 'Via prova', 'Roma', 'RM', '00100', 'IT')",
+            f"INSERT INTO foundation.site (tenant_id, company_id, code, name, address, city, province, postal_code, country_code) VALUES ({first}, {second}, 'x', 'X', 'Via prova', 'Roma', 'RM', '00100', 'IT')",
             f"INSERT INTO foundation.warehouse (tenant_id, site_id, warehouse_type_id, code, name) VALUES ({first}, {second}, {first}, 'x', 'X')",
             f"INSERT INTO foundation.warehouse (tenant_id, site_id, warehouse_type_id, code, name) VALUES ({first}, {first}, {second}, 'x', 'X')",
             f"INSERT INTO foundation.warehouse_location (tenant_id, warehouse_id, code, name) VALUES ({first}, {second}, 'x', 'X')",
@@ -121,7 +127,7 @@ class FoundationTests(unittest.TestCase):
         statements = [
             "INSERT INTO foundation.tenant (code, name) VALUES ('t1', 'Duplicato')",
             f"INSERT INTO foundation.company (tenant_id, code, name) VALUES ({tenant}, 'main', 'Duplicato')",
-            f"INSERT INTO foundation.site (tenant_id, company_id, code, name, tax_code, address, city, province, postal_code, country_code) VALUES ({tenant}, {tenant}, 'hq', 'Duplicato', 'CF', 'Via prova', 'Roma', 'RM', '00100', 'IT')",
+            f"INSERT INTO foundation.site (tenant_id, company_id, code, name, address, city, province, postal_code, country_code) VALUES ({tenant}, {tenant}, 'hq', 'Duplicato', 'Via prova', 'Roma', 'RM', '00100', 'IT')",
             f"INSERT INTO foundation.warehouse_type (tenant_id, code, name) VALUES ({tenant}, 'main', 'Duplicato')",
             f"INSERT INTO foundation.warehouse (tenant_id, site_id, warehouse_type_id, code, name) VALUES ({tenant}, {tenant}, {tenant}, 'main', 'Duplicato')",
             f"INSERT INTO foundation.warehouse_location (tenant_id, warehouse_id, code, name) VALUES ({tenant}, {tenant}, 'a1', 'Duplicato')",

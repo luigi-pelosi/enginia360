@@ -1,0 +1,115 @@
+"use client";
+import {useEffect,useRef,useState,type ReactNode} from 'react';
+import {useTranslations} from 'next-intl';
+import {Eye,Pencil,Plus,Power,RefreshCw,Download} from 'lucide-react';
+import {api,ApiError} from '@/lib/api';
+import {can,type Session} from '@/lib/model';
+import {taxKey,type TaxPending} from '@/lib/tax';
+import {classificationTemplateCodes,classificationDefaults,classificationKey,readClassificationState,classificationEditor,classificationPayload,classificationValid,type ClassificationKind,type ClassificationState,type ClassificationLookups,type TaxClassification} from '@/lib/tax-classifications';
+import {Button} from '@/components/ui/button';
+import {Badge} from '@/components/ui/badge';
+import {Card} from '@/components/ui/card';
+import {FilterBar} from '@/components/ui/filter-bar';
+import {Input} from '@/components/ui/input';
+import {Textarea} from '@/components/ui/textarea';
+import {Label} from '@/components/ui/label';
+import {Select,SelectTrigger,SelectValue,SelectContent,SelectItem} from '@/components/ui/select';
+import {Table,TableHeader,TableHead,TableBody,TableRow,TableCell} from '@/components/ui/table';
+import {Dialog,DialogContent,DialogHeader,DialogTitle,DialogFooter} from '@/components/ui/dialog';
+type Page={items:TaxClassification[];total:number;page:number;pageSize:number};
+export function TaxClassifications({kind,session,tenantId,scope,onError,navigation,onBusyChange}:{kind:ClassificationKind;session:Session;tenantId:string;scope:(path:string)=>string;onError:(error:unknown)=>string;navigation:ReactNode;onBusyChange?:(busy:boolean)=>void}) {
+ const t=useTranslations('taxClassification'),a=useTranslations('app'),r=useTranslations('resources');
+ const tenant=session.isSuperAdmin?tenantId:session.tenantId||'',resource=kind==='item'?'tax-item-classifications':'tax-partner-classifications',base='/'+kind+'-classifications',key=classificationKey(taxKey(session.id,tenant),kind);
+ const [state,setState]=useState<ClassificationState>(()=>typeof sessionStorage==='undefined'?classificationDefaults():readClassificationState(sessionStorage,key));
+ const [identity,setIdentity]=useState(session),[rows,setRows]=useState<TaxClassification[]>([]),[total,setTotal]=useState(0),[lookups,setLookups]=useState<ClassificationLookups>({countries:[],types:[],classifications:[]});
+ const [busy,setBusy]=useState(false),[loading,setLoading]=useState(true),[verified,setVerified]=useState(false),[ready,setReady]=useState(false),[stale,setStale]=useState(false),[current,setCurrent]=useState<TaxClassification|null>(null),[error,setError]=useState(''),[notice,setNotice]=useState(''),[revision,setRevision]=useState(0);
+ const [pending,setPending]=useState<TaxPending|null>(()=>{try {const value=sessionStorage.getItem(key+':pending');return value?JSON.parse(value):null;}catch{return {path:'',method:'',body:null,recordId:null,action:'unknown'};}}),[review,setReview]=useState<unknown>(null);
+ const lock=useRef(false),mounted=useRef(true),restored=useRef(false),stateRef=useRef(state);stateRef.current=state;
+ const editor=state.editor,disabled=busy||loading||!verified||stale||!!pending,editable=!!editor&&!editor.readonly&&can(identity,resource,editor.id?'update':'create');
+ const url=(path:string)=>scope('/tax'+path);
+ function change(next:Partial<ClassificationState>){setState(previous=>{const value={...previous,...next};try{sessionStorage.setItem(key,JSON.stringify(value));}catch{}return value;});}
+ function fail(e:unknown){const code=e instanceof ApiError?e.code:'';const field=e instanceof ApiError&&e.field&&t.has(e.field)?t(e.field):'';setError((t.has(code)?t(code):onError(e))+(field?' · '+field:''));if(['tax_classification_stale_version','tax_stale_version','stale_version'].includes(code))setStale(true);}
+ async function fresh(action:string){const actual=await api<Session>('/session');if(!mounted.current||actual.id!==session.id||actual.mustChangePassword||!actual.isSuperAdmin&&actual.tenantId!==tenant||!can(actual,resource,'read')||!can(actual,resource,action))throw new ApiError('forbidden',403);setIdentity(actual);return actual;}
+ useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;};},[]);
+ useEffect(()=>{onBusyChange?.(busy);return()=>onBusyChange?.(false);},[busy,onBusyChange]);
+ useEffect(()=>{setIdentity(session);},[session]);
+ useEffect(()=>{
+  if(!tenant){setLoading(false);setVerified(false);return;}
+  let alive=true;const controller=new AbortController();setLoading(true);setVerified(false);setError('');
+  (async()=>{
+   const actual=await fresh('read');if(!alive)return;
+   const params=new URLSearchParams({page:String(state.page),pageSize:'25',search:state.search});if(state.country)params.set('country_id',state.country);if(state.type)params.set('tax_type_id',state.type);if(state.status)params.set('is_active',state.status);
+   const page=await api<Page>(url(base+'?'+params),'GET',undefined,{signal:controller.signal});if(!alive)return;setRows(page.items);setTotal(page.total);
+   if(!page.items.length&&state.page>1){change({page:state.page-1});return;}
+   if(!restored.current){const saved=stateRef.current.editor;if(saved){if(!saved.readonly&&!can(actual,resource,saved.id?'update':'create'))change({editor:null});else if(saved.id){const record=await api<TaxClassification>(url(base+'/'+encodeURIComponent(saved.id)),'GET',undefined,{signal:controller.signal});if(!alive)return;setCurrent(record);setStale(record.version!==saved.expectedVersion);}}restored.current=true;}
+   setVerified(true);
+  })().catch(e=>{if(alive)fail(e);}).finally(()=>{if(alive)setLoading(false);});
+  return()=>{alive=false;controller.abort();};
+ },[key,tenant,state.search,state.country,state.type,state.status,state.page,scope,revision]);
+ useEffect(()=>{if(!tenant||!can(identity,resource,'read'))return;let alive=true;const controller=new AbortController();setReady(false);api<ClassificationLookups>(url('/classification-lookups?kind='+kind),'GET',undefined,{signal:controller.signal}).then(value=>{if(alive){setLookups(value);setReady(true);}}).catch(e=>{if(alive)fail(e);});return()=>{alive=false;controller.abort();};},[key,tenant,scope,revision,can(identity,resource,'read')]);
+ async function open(row:TaxClassification|null,readonly=false){if(lock.current||pending||loading)return;lock.current=true;setBusy(true);setError('');setNotice('');try{await fresh(readonly?'read':row?'update':'create');const record=row?await api<TaxClassification>(url(base+'/'+encodeURIComponent(row.id))):null;if(!mounted.current)return;const draft=classificationEditor(record,lookups,readonly);if(!record&&(!ready||!draft.values.country_id||!draft.values.tax_type_id))throw new ApiError('referencesRequired',400);setCurrent(record);setStale(false);change({editor:draft});}catch(e){if(mounted.current)fail(e);}finally{lock.current=false;if(mounted.current)setBusy(false);}}
+ async function mutate(path:string,method:string,body:unknown,action:string,recordId:string|null){
+  if(lock.current||disabled||!tenant)return;lock.current=true;setBusy(true);setError('');setNotice('');setReview(null);let marked=false,committed=false;const command:TaxPending={path,method,body,action,recordId};
+  try {
+   await fresh(action);if(!mounted.current)return;
+   if(sessionStorage.getItem(key+':pending')){setPending(command);return;}
+   sessionStorage.setItem(key,JSON.stringify(stateRef.current));const marker=JSON.stringify(command);sessionStorage.setItem(key+':pending',marker);if(sessionStorage.getItem(key+':pending')!==marker)throw new ApiError('storageUnavailable',0);marked=true;
+   const response=await api<TaxClassification&{installed:number;skipped:number}>(url(path),method,body);committed=true;
+   if(action==='install_templates'){
+    if(!Number.isSafeInteger(response.installed)||!Number.isSafeInteger(response.skipped))throw new ApiError('write_not_verified',502);
+    const authoritative=await api<ClassificationLookups>(url('/classification-lookups?kind='+kind));
+    const values=body as {country_id:string;tax_type_id:string};
+    const scoped=authoritative.classifications.filter(row=>row.country_id===values.country_id&&row.tax_type_id===values.tax_type_id&&row.tenant_id===tenant);
+    if(response.installed<0||response.skipped<0||response.installed+response.skipped!==classificationTemplateCodes[kind].length||!classificationTemplateCodes[kind].every(code=>scoped.some(row=>row.code.toUpperCase()===code)))throw new ApiError('write_not_verified',502);
+   }else{
+    const id=recordId||response.id;if(!id)throw new ApiError('write_not_verified',502);
+    const record=await api<TaxClassification>(url(base+'/'+encodeURIComponent(id)));
+    if(record.id!==id||record.version!==response.version||!Number.isSafeInteger(record.version))throw new ApiError('write_not_verified',502);
+    const fields=['tenant_id','country_id','tax_type_id','code','name','description','is_active'] as const;
+    if(record.tenant_id!==tenant||fields.some(name=>record[name]!==response[name]))throw new ApiError('write_not_verified',502);
+    if(action==='deactivate'&&record.is_active||action==='reactivate'&&!record.is_active)throw new ApiError('write_not_verified',502);
+   }
+   sessionStorage.removeItem(key+':pending');if(!mounted.current)return;setPending(null);change({editor:null,transition:null,install:null});setStale(false);setNotice(action==='install_templates'?t('installed',{installed:response.installed,skipped:response.skipped}):a('saved'));setRevision(v=>v+1);
+  }catch(e){
+   if(marked&&!committed&&e instanceof ApiError&&e.status>=400&&e.status<500){try{sessionStorage.removeItem(key+':pending');}catch{if(mounted.current)setPending(command);}}
+   else if(marked||!(e instanceof ApiError)||e.code==='storageUnavailable'){if(mounted.current)setPending(command);}
+   if(mounted.current){fail(e);if(e instanceof ApiError&&['tax_classification_stale_version','stale_version','tax_stale_version'].includes(e.code)&&recordId){try{const record=await api<TaxClassification>(url(base+'/'+encodeURIComponent(recordId)));if(mounted.current)setCurrent(record);}catch{}}}
+  }finally{lock.current=false;if(mounted.current)setBusy(false);}
+ }
+ function field(name:keyof NonNullable<ClassificationState['editor']>['values'],value:string){if(!editor||!editable||disabled||editor.id&&['code','country_id','tax_type_id'].includes(name))return;change({editor:{...editor,values:{...editor.values,[name]:value}}});}
+ function closeDraft(target:'editor'|'transition'){if(busy||pending)return;change({[target]:null});setStale(false);setCurrent(null);setError('');}
+ function save(){if(!editor||!editable||disabled)return;if(!classificationValid(editor)){setError(t('requiredFields'));return;}if(!editor.id&&(!lookups.types.some(row=>row.id===editor.values.tax_type_id&&row.code==='VAT'&&row.is_active)||!lookups.countries.some(row=>row.id===editor.values.country_id))){setError(t('referencesRequired'));return;}void mutate(base+(editor.id?'/'+encodeURIComponent(editor.id):''),editor.id?'PUT':'POST',classificationPayload(editor),editor.id?'update':'create',editor.id);}
+ async function reviewPending(){if(!pending||busy)return;setBusy(true);setError('');try{await fresh('read');const value=pending.recordId?await api<TaxClassification>(url(base+'/'+encodeURIComponent(pending.recordId))):await api<ClassificationLookups>(url('/classification-lookups?kind='+kind));if(mounted.current)setReview(value);}catch(e){if(mounted.current)fail(e);}finally{if(mounted.current)setBusy(false);}}
+ function acknowledge(){if(!pending||!review||busy)return;try{sessionStorage.removeItem(key+':pending');setPending(null);setReview(null);change({editor:null,transition:null,install:null});setStale(false);setRevision(v=>v+1);}catch(e){fail(e);}}
+ const countries=lookups.countries.map(c=>({value:c.id,label:`${c.name} (${c.iso_code})`})),types=lookups.types.filter(c=>c.code==='VAT'&&c.is_active).map(c=>({value:c.id,label:c.name||c.code}));
+ function select(id:string,label:string,value:string,choices:{value:string;label:string}[],onChange:(value:string)=>void,required=false,off=false){return <div className="space-y-2"><Label htmlFor={id} required={required}>{label}</Label><Select searchable required={required} value={value||'__none__'} disabled={off||busy} onValueChange={v=>onChange(v==='__none__'?'':v)}><SelectTrigger id={id} data-testid={id} className="w-full"><SelectValue/></SelectTrigger><SelectContent>{!required&&<SelectItem value="__none__">{a('none')}</SelectItem>}{choices.map(c=><SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent></Select></div>;}
+ function input(id:string,label:string,value:string,onChange:(value:string)=>void,required=false,off=false,maxLength=150){return <div className="space-y-2"><Label htmlFor={id} required={required}>{label}</Label><Input id={id} data-testid={id} value={value} required={required} disabled={off||busy} maxLength={maxLength} onChange={e=>onChange(e.target.value)}/></div>;}
+ const icon=(label:string,Icon:typeof Eye,onClick:()=>void,off=false)=><Button type="button" variant="ghost" size="icon" className="size-8" aria-label={label} title={label} disabled={busy||off} onClick={onClick}><Icon className="size-4" aria-hidden="true"/></Button>;
+ const status=(active:boolean)=><Badge variant={active?'default':'secondary'}>{t(active?'active':'inactive')}</Badge>;
+ return <>
+  <div className="flex flex-wrap items-center gap-2 border-b pb-3" role="tablist" aria-label={r('tax-management')}>{navigation}<div className="ml-auto flex flex-wrap gap-2" role="group" aria-label={a('actions')}>{can(identity,resource,'read')&&!editor&&<>{can(identity,resource,'install_templates')&&<Button id="taxclassinstall" data-testid="taxclassinstall" variant="outline" disabled={disabled||!ready} onClick={()=>{const draft=classificationEditor(null,lookups);change({install:{country_id:draft.values.country_id,tax_type_id:draft.values.tax_type_id}});}}><Download size={16}/>{t('installTemplates')}</Button>}{can(identity,resource,'create')&&<Button id="taxclass-new" data-testid="taxclass-new" disabled={disabled||!ready} onClick={()=>void open(null)}><Plus size={16}/>{a('new')}</Button>}</>}</div></div>
+  {error&&<p role="alert" className="text-sm text-destructive">{error}</p>}{notice&&<p role="status">{notice}</p>}
+  {pending&&<Card className="p-4 space-y-3"><p role="alert">{t('uncertain')}</p><div className="flex gap-2"><Button variant="outline" disabled={busy||!verified} onClick={()=>void reviewPending()}>{t('review')}</Button>{review!==null&&<Button disabled={busy} onClick={acknowledge}>{t('acknowledge')}</Button>}</div>{review!==null&&<div className="grid gap-4 md:grid-cols-2"><div><h3>{t('attempted')}</h3><pre className="max-h-72 overflow-auto text-xs whitespace-pre-wrap">{JSON.stringify(pending.body,null,2)}</pre></div><div><h3>{t('authoritative')}</h3><pre className="max-h-72 overflow-auto text-xs whitespace-pre-wrap">{JSON.stringify(review,null,2)}</pre></div></div>}</Card>}
+  {!tenant?<Card className="p-6">{a('selectTenant')}</Card>:<Card className="gap-0 overflow-hidden py-0"><div className="flex items-start gap-2 border-b"><div className="min-w-0 flex-1"><FilterBar id="taxclass-filters" expanded={state.filtersExpanded} onExpandedChange={filtersExpanded=>change({filtersExpanded})} fields={[
+   {key:'search',grow:true,minWidth:200,content:input('taxclass-search',a('search'),state.search,search=>change({search,page:1}),false,false,200)},
+   {key:'country',minWidth:180,content:select('taxclass-country-filter',t('country_id'),state.country,countries,country=>change({country,page:1}))},
+   {key:'type',minWidth:160,content:select('taxclass-type-filter',t('tax_type_id'),state.type,types,type=>change({type,page:1}))},
+   {key:'status',minWidth:150,content:select('taxclass-status-filter',t('status'),state.status,[{value:'true',label:t('active')},{value:'false',label:t('inactive')}],status=>change({status,page:1}))}
+  ]}/></div><div className="flex shrink-0 items-center gap-2 p-4 pt-10"><span className="text-sm tabular-nums">{total}</span>{icon(a('refresh'),RefreshCw,()=>setRevision(v=>v+1),busy)}</div></div>
+  <div className="table-scroll"><Table id="taxclass-table" data-testid="taxclass-table"><TableHeader><TableRow><TableHead>{t('code')}</TableHead><TableHead>{t('name')}</TableHead><TableHead>{t('country_id')}</TableHead><TableHead>{t('tax_type_id')}</TableHead><TableHead kind="status">{t('status')}</TableHead><TableHead kind="actions" className="w-32">{a('actions')}</TableHead></TableRow></TableHeader><TableBody>{loading?<TableRow><TableCell colSpan={6}>{t('loading')}</TableCell></TableRow>:!rows.length?<TableRow><TableCell colSpan={6}><p className="table-empty">{a('empty')}</p></TableCell></TableRow>:rows.map(row=><TableRow key={row.id}><TableCell>{row.code}</TableCell><TableCell className="min-w-48 whitespace-normal font-medium">{row.name}</TableCell><TableCell>{row.country_iso_code||lookups.countries.find(c=>c.id===row.country_id)?.iso_code||'—'}</TableCell><TableCell>{row.tax_type_code||lookups.types.find(c=>c.id===row.tax_type_id)?.code||'—'}</TableCell><TableCell kind="status">{status(row.is_active)}</TableCell><TableCell kind="actions" className="w-32"><div className="flex justify-center">{icon(`${a('details')} ${row.name}`,Eye,()=>void open(row,true),!!pending)}{can(identity,resource,'update')&&icon(`${a('edit')} ${row.name}`,Pencil,()=>void open(row),disabled)}{can(identity,resource,row.is_active?'deactivate':'reactivate')&&icon(`${t(row.is_active?'deactivate':'reactivate')} ${row.name}`,Power,()=>change({transition:row}),disabled)}</div></TableCell></TableRow>)}</TableBody></Table></div>
+  <div className="pagination"><span>{a('page')} {state.page} {a('of')} {Math.max(1,Math.ceil(total/25))}</span><div><Button variant="outline" disabled={busy||state.page<=1} onClick={()=>change({page:state.page-1})}>{a('previous')}</Button><Button variant="outline" disabled={busy||state.page*25>=total} onClick={()=>change({page:state.page+1})}>{a('next')}</Button></div></div></Card>}
+  {editor&&!pending&&<Dialog open onOpenChange={open=>{if(!open&&!busy)closeDraft('editor');}}><DialogContent id="taxclass-editor" data-testid="taxclass-editor" aria-describedby={undefined} className="max-h-[90vh] overflow-y-auto sm:max-w-3xl min-w-0"><DialogHeader><DialogTitle>{a(editor.id?(editor.readonly?'details':'edit'):'new')} · {r(resource)}</DialogTitle></DialogHeader>
+   <div className="flex items-center gap-2 border-b pb-2" role="tablist" aria-label={r(resource)}><Button type="button" role="tab" aria-selected tabIndex={0}>{t('general')}</Button><div className="ml-auto flex gap-2"><Button type="button" variant="outline" disabled={busy} onClick={()=>closeDraft('editor')}>{a('cancel')}</Button>{editable&&<Button type="submit" form="taxclass-editor-form" disabled={disabled}>{a('save')}</Button>}</div></div>
+   {error&&<p role="alert" className="text-sm text-destructive">{error}</p>}{stale&&<p role="alert">{t('tax_classification_stale_version')}</p>}
+   <form id="taxclass-editor-form" noValidate onSubmit={e=>{e.preventDefault();save();}}><div role="tabpanel" className="grid gap-4 sm:grid-cols-2">
+    {input('taxclass-name',t('name'),editor.values.name,v=>field('name',v),true,!editable||disabled)}{input('taxclass-code',t('code'),editor.values.code,v=>field('code',v),true,!editable||disabled||!!editor.id,50)}
+    {select('taxclass-country_id',t('country_id'),editor.values.country_id,countries.some(c=>c.value===editor.values.country_id)?countries:[...countries,{value:editor.values.country_id,label:editor.original?.country_iso_code||editor.values.country_id}],v=>field('country_id',v),true,!editable||disabled||!!editor.id)}
+    {select('taxclass-tax_type_id',t('tax_type_id'),editor.values.tax_type_id,types.some(c=>c.value===editor.values.tax_type_id)?types:[...types,{value:editor.values.tax_type_id,label:editor.original?.tax_type_code||editor.values.tax_type_id}],v=>field('tax_type_id',v),true,!editable||disabled||!!editor.id)}
+    <div className="space-y-2 sm:col-span-2"><Label htmlFor="taxclass-description">{t('description')}</Label><Textarea id="taxclass-description" value={editor.values.description} maxLength={10000} disabled={!editable||disabled} onChange={e=>field('description',e.target.value)}/></div>
+    {editor.original&&<div className="sm:col-span-2 flex gap-4">{status(editor.original.is_active)}<span>{t('revision')}: {editor.expectedVersion}</span></div>}
+   </div></form>{stale&&current&&<details><summary>{t('authoritative')}</summary><pre className="max-h-48 overflow-auto whitespace-pre-wrap text-xs">{JSON.stringify(current,null,2)}</pre></details>}
+  </DialogContent></Dialog>}
+  {state.install&&!pending&&<Dialog open onOpenChange={open=>{if(!open&&!busy)change({install:null});}}><DialogContent aria-describedby={undefined}><DialogHeader><DialogTitle>{t('installTemplates')}</DialogTitle></DialogHeader><form id="taxclass-install-form" className="space-y-4" onSubmit={e=>{e.preventDefault();const values=state.install!;if(!lookups.countries.some(c=>c.id===values.country_id)||!lookups.types.some(c=>c.id===values.tax_type_id&&c.is_active&&c.code==='VAT')){setError(t('referencesRequired'));return;}void mutate(base+'/templates/install','POST',values,'install_templates',null);}}><p>{t('installConfirmation',{count:kind==='item'?10:3})}</p>{select('taxclassinstall-country_id',t('country_id'),state.install.country_id,countries,country_id=>change({install:{...state.install!,country_id}}),true,disabled)}{select('taxclassinstall-tax_type_id',t('tax_type_id'),state.install.tax_type_id,types,tax_type_id=>change({install:{...state.install!,tax_type_id}}),true,disabled)}{error&&<p role="alert">{error}</p>}<DialogFooter><Button type="button" variant="outline" disabled={busy} onClick={()=>change({install:null})}>{a('cancel')}</Button><Button disabled={disabled}>{t('install')}</Button></DialogFooter></form></DialogContent></Dialog>}
+  {state.transition&&!pending&&<Dialog open onOpenChange={open=>{if(!open&&!busy)closeDraft('transition');}}><DialogContent aria-describedby={undefined}><DialogHeader><DialogTitle>{t(state.transition.is_active?'deactivate':'reactivate')} · {state.transition.name}</DialogTitle></DialogHeader><p>{t(state.transition.is_active?'deactivateConfirmation':'reactivateConfirmation')}</p>{stale&&current&&<details><summary>{t('authoritative')}</summary><pre className="max-h-48 overflow-auto whitespace-pre-wrap text-xs">{JSON.stringify(current,null,2)}</pre></details>}{error&&<p role="alert">{error}</p>}<DialogFooter><Button type="button" variant="outline" disabled={busy} onClick={()=>closeDraft('transition')}>{a('cancel')}</Button><Button disabled={disabled||!can(identity,resource,state.transition.is_active?'deactivate':'reactivate')} onClick={()=>{const row=state.transition!;void mutate(base+'/'+encodeURIComponent(row.id)+'/'+(row.is_active?'deactivate':'reactivate'),'POST',{expectedVersion:row.version},row.is_active?'deactivate':'reactivate',row.id);}}>{t(state.transition.is_active?'deactivate':'reactivate')}</Button></DialogFooter></DialogContent></Dialog>}
+ </>;
+}

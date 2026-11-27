@@ -88,7 +88,7 @@ class BusinessPartnerBrowserTests(unittest.TestCase):
     def test_05_bp_geography_completes_only_the_current_address_and_saves_explicitly(self):
         country = self.case.root.request('/api/data/countries', 'POST', {'name': 'Italia prova', 'iso_code': 'IT'})
         self.assertIn(country[0], (201, 409))
-        country_id = country[1]['id'] if country[0] == 201 else next(item['id'] for item in self.case.root.request('/api/data/countries?pageSize=100')[1]['items'] if item['iso_code'] == 'IT')
+        country_id = country[1]['id'] if country[0] == 201 else next(item['id'] for item in self.case.root.request('/api/data/countries?pageSize=100&search=Italia')[1]['items'] if item['iso_code'] == 'IT')
         result = self.case.root.request('/api/data/cities', 'POST', {'country_id': country_id, 'name': 'Roma geografia prova', 'postal_code': '00123', 'province': 'RM'})
         self.assertIn(result[0], (201, 409))
         self.login(); self.navigate()

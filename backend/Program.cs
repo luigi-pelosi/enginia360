@@ -13,10 +13,11 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
-var builder = WebApplication.CreateBuilder(args.Length > 0 && args[0] is "bootstrap" or "self-test" or "self-test-site-addresses" or "import-geography" or "self-test-geography" ? [] : args);
+var builder = WebApplication.CreateBuilder(args.Length > 0 && args[0] is "bootstrap" or "self-test" or "self-test-tax" or "self-test-tax-classification" or "self-test-company-tax" or "self-test-tax-determination" or "self-test-tax-calculation" or "self-test-site-addresses" or "import-geography" or "self-test-geography" ? [] : args);
 builder.WebHost.ConfigureKestrel(k => { k.Limits.MaxRequestBodySize=65536; k.Limits.RequestHeadersTimeout=TimeSpan.FromSeconds(15); });
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
@@ -50,11 +51,23 @@ if (args.Length > 0 && args[0] == "import-geography")
 if (args.Length > 0 && args[0] == "self-test-geography") { GeographySelfTests.Run(app.Services); return; }
 if (args.Length > 0 && args[0] == "self-test-bp-phase2") { await BusinessPartnerPhase2Tests.Run(builder.Configuration.GetConnectionString("Database")!); return; }
 if (args.Length > 0 && args[0] == "self-test") { SelfTests.Run(app.Services); return; }
+if (args.Length > 0 && args[0] == "self-test-tax") { Enginia360.Verification.TaxManagement.TaxSelfTests.Run(); return; }
+if (args.Length > 0 && args[0] == "self-test-tax-classification") { Enginia360.Verification.TaxManagement.ClassificationSelfTests.Run(); return; }
+if (args.Length > 0 && args[0] == "self-test-company-tax") { Enginia360.Verification.TaxManagement.CompanyTaxSelfTests.Run(); return; }
+if (args.Length > 0 && args[0] == "self-test-tax-determination") { Enginia360.Verification.TaxManagement.TaxDeterminationSelfTests.Run(); return; }
+if (args.Length > 0 && args[0] == "self-test-tax-calculation") { Enginia360.Verification.TaxManagement.TaxCalculationSelfTests.Run(); return; }
 if (args.Length > 0 && args[0] == "self-test-site-addresses") { SiteAddressSelfTests.Run(app.Services); return; }
 var origin = app.Configuration["App:Origin"];
 if (!Uri.TryCreate(origin,UriKind.Absolute,out var originUri) || originUri.GetLeftPart(UriPartial.Authority) != origin || originUri.Scheme != "https")
     throw new InvalidOperationException("Canonical HTTPS App:Origin required (without trailing slash).");
 app.Use(async (ctx,next) => {
+    // Il calcolo multi-riga ha un limite dedicato; gli altri endpoint restano a 64 KiB.
+    if (ctx.Request.Method == "POST" && ctx.Request.Path is var calculationPath &&
+        (calculationPath == "/api/tax/calculations" || calculationPath == "/api/tax/calculations/simulate"))
+    {
+        var bodyLimit = ctx.Features.Get<IHttpMaxRequestBodySizeFeature>();
+        if (bodyLimit is {IsReadOnly: false}) bodyLimit.MaxRequestBodySize = 1024 * 1024;
+    }
     // TLS termina sull'ingresso privato; lo schema deriva dall'origine configurata, non da header del client.
     ctx.Request.Scheme=originUri.Scheme;
     ctx.Response.Headers.CacheControl="no-store";
@@ -132,5 +145,11 @@ Enginia360.Modules.Payments.PaymentDefaultsEndpoints.Map(app);
 Enginia360.Modules.Catalog.CatalogEndpoints.Map(app);
 Enginia360.Modules.Catalog.CatalogItemEndpoints.Map(app);
 Enginia360.Modules.Catalog.CatalogItemCompanyEndpoints.Map(app);
+Enginia360.Modules.TaxManagement.TaxEndpoints.Map(app);
+Enginia360.Modules.TaxManagement.TaxClassificationEndpoints.Map(app);
+Enginia360.Modules.TaxManagement.CompanyTaxEndpoints.Map(app);
+Enginia360.Modules.TaxManagement.TaxRuleEndpoints.Map(app);
+Enginia360.Modules.TaxManagement.TaxDeterminationEndpoints.Map(app);
+Enginia360.Modules.TaxManagement.TaxCalculationEndpoints.Map(app);
 app.MapFallback("/api/{**path}",() => Results.Json(new {code="not_found"},statusCode:404));
 await app.RunAsync();

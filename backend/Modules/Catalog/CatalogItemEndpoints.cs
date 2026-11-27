@@ -5,6 +5,7 @@ using Enginia360.Modules.BusinessPartners;
 using Enginia360.Modules.AccessControl;
 using Enginia360.Modules.Identity;
 using Enginia360.Modules.Numbering;
+using Enginia360.Modules.TaxManagement;
 using Enginia360.Shared.Validation;
 using Npgsql;
 using static Enginia360.Modules.Catalog.CatalogItem;
@@ -229,7 +230,8 @@ public static class CatalogItemEndpoints
     private static async Task<IResult> Save(HttpContext ctx,AppDb db,Guid? id,JsonElement body)
     {
         var tenant=await Gate(ctx,db,id.HasValue?"catalog-items.update":"catalog-items.create");
-        var input=PartnerInput.Object(body,id.HasValue?["values","expectedVersion","physicalData","status"]:["values","identifiers","units","physicalData","status","companies"]);
+        ClassificationTimeline.Require(!id.HasValue || body.ValueKind!=JsonValueKind.Object || !body.TryGetProperty("taxProfiles",out _),"tax_profile_initial_only",field:"taxProfiles");
+        var input=PartnerInput.Object(body,id.HasValue?["values","expectedVersion","physicalData","status"]:["values","identifiers","units","physicalData","status","companies","taxProfiles"]);
         var values=Values(input,MainFields);
         var before=id.HasValue?await Root(db,tenant,id.Value,true):null;
         if(before!=null) Version(before,Expected(input));
@@ -295,6 +297,8 @@ public static class CatalogItemEndpoints
                 Require(CatalogItemKind.SupportsPhysicalData(kind),400,"physical_data_goods_only","physicalData");
                 await WritePhysical(db,tenant,record,PartnerInput.Object(physical,PhysicalFields),null);
             }
+            if(input.TryGetValue("taxProfiles",out var taxProfiles))
+                await TaxClassificationApplication.AssignInitial(ctx,db,ClassificationKind.Item,tenant,record,taxProfiles);
             // Configurazioni opt-in nella stessa transazione, dopo le unita alternative.
             if(input.TryGetValue("companies",out var companies))
                 await CatalogItemCompanyEndpoints.CreateForItem(ctx,db,tenant,record,companies);

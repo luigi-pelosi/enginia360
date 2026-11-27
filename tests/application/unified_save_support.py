@@ -70,9 +70,9 @@ class Case:
         return '/api/links/' + relation + '/' + owner + '?tenantId=' + self.tenant['id']
 
     def create(self, resource, body):
-        # Le anagrafiche sintetiche valide rispettano identificativo fiscale e indirizzo obbligatori.
+        # Le sedi sintetiche valide rispettano tutti i campi indirizzo obbligatori.
         if resource == 'sites':
-            body = {'tax_code': 'QA-SITE-TAX', 'address': 'Via QA 1', 'city': 'Città QA',
+            body = {'address': 'Via QA 1', 'city': 'Città QA',
                     'province': 'Provincia QA', 'postal_code': '00000', 'country_code': 'IT', **body}
         status, row = self.root.request(self.path(resource), 'POST', body)
         if status != 201:

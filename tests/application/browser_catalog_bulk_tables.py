@@ -11,7 +11,7 @@ class CatalogBulkTablesBrowser(CatalogCompaniesBrowser):
     def test_companies_table_address_page_selection_and_recovery(self):
         from playwright.sync_api import expect
         branches=[self.case.data_create('companies',{'name':f'Branch {i:02}','is_enabled':True}) for i in range(26)]
-        self.case.data_create('sites',{'company_id':branches[0]['id'],'name':'Legale','site_type':'LEGAL','address':'Via Riga 1','city':'Roma','province':'RM','postal_code':'00100','country_code':'IT','tax_code':'SYNTHETIC','is_enabled':True})
+        self.case.data_create('sites',{'company_id':branches[0]['id'],'name':'Legale','site_type':'LEGAL','address':'Via Riga 1','city':'Roma','province':'RM','postal_code':'00100','country_code':'IT','is_enabled':True})
         self.open_bulk();dialog=self.bulk_dialog();table=dialog.locator('fieldset').nth(0).locator('table');expect(table.locator('tbody tr')).to_have_count(25)
         self.assertEqual([s.strip() for s in table.locator('thead th').all_text_contents()],['',self.messages['catalogCompanies']['company'],self.messages['catalogCompanies']['legalAddress']])
         row=self.page.locator('#catalog-bulk-company-'+branches[0]['id']).locator('xpath=ancestor::tr');expect(row.locator('td').nth(2)).to_contain_text('Via Riga 1')

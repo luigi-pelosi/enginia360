@@ -1,6 +1,7 @@
 using Enginia360.Infrastructure.Persistence;
 using Enginia360.Modules.Identity;
 using Enginia360.Modules.Numbering;
+using Enginia360.Modules.TaxManagement;
 using Enginia360.Shared.Validation;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -58,7 +59,8 @@ public static class BusinessPartnerEndpoints
     {
         await Security.Authorize(ctx,id.HasValue ? "business-partners.update" : "business-partners.create");
         var state=Security.State(ctx);var tenant=state.Tenant(ctx,"business-partners")!.Value;
-        var input=PartnerInput.Object(body,"values","taxIdentifiers","addresses","contactChannels","expectedVersion");
+        ClassificationTimeline.Require(!id.HasValue || body.ValueKind!=JsonValueKind.Object || !body.TryGetProperty("taxProfiles",out _),"tax_profile_initial_only",field:"taxProfiles");
+        var input=PartnerInput.Object(body,"values","taxIdentifiers","addresses","contactChannels","expectedVersion","taxProfiles");
         Check.Require(input.TryGetValue("values",out var raw));
         var values=PartnerInput.Object(raw,"kind","legal_name","first_name","last_name","status","code");
         JsonElement? before=id.HasValue ? await Read(db,tenant,id.Value) : null;
@@ -80,6 +82,8 @@ public static class BusinessPartnerEndpoints
             await db.Execute("UPDATE masterdata.business_partner SET kind=@kind,status=@status,legal_name=@legal,first_name=@first,last_name=@last,version=version+1 WHERE id=@id AND tenant_id=@t",("id",record),("t",tenant),("kind",kind),("status",status),("legal",legal),("first",first),("last",last));
         }
         await ReplaceChildren(db,tenant,record,input);
+        if(!id.HasValue && input.TryGetValue("taxProfiles",out var taxProfiles))
+            await TaxClassificationApplication.AssignInitial(ctx,db,ClassificationKind.Partner,tenant,record,taxProfiles);
         var after=await Read(db,tenant,record);
         await db.Audit(state.User.Id,tenant,id.HasValue ? "update" : "create","business-partners",record,new{before,after});
         return Results.Json(after,statusCode:id.HasValue ? 200 : 201);

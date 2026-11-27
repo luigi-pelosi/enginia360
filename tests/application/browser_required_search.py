@@ -57,15 +57,15 @@ class RequiredSearchBrowserTests(unittest.TestCase):
         for field in ('address','city','province','postal_code','country_code'):
             expect(dialog.locator('label[for=field-'+field+']')).to_contain_text('*')
         for field in ('vat_number','tax_code'):
-            self.assertNotIn('tax-identity-requirement',dialog.locator('#field-'+field).get_attribute('aria-describedby') or '')
-        dialog.locator('#field-tax_code').fill('QA-TAX');expect(save).to_be_disabled()
+            expect(dialog.locator('#field-'+field)).to_have_count(0)
+        expect(save).to_be_disabled()
         self.fill_address(dialog);expect(save).to_be_disabled()
         dialog.locator('#field-country_code').click();expect(self.page.get_by_role('option')).to_have_count(1)
         self.search('ITAL');self.page.get_by_role('option',name='Italia',exact=True).click();expect(save).to_be_enabled()
         for field in ('address','city','province','postal_code'):
             input=dialog.locator('#field-'+field);old=input.input_value()
             self.assertIsNotNone(input.get_attribute('required'));input.fill('   ');expect(save).to_be_disabled();input.fill(old);expect(save).to_be_enabled()
-        dialog.locator('#field-tax_code').fill('');expect(save).to_be_disabled();dialog.locator('#field-vat_number').fill('QA-VAT');expect(save).to_be_enabled()
+        expect(save).to_be_enabled()
         self.assertEqual(self.mutations,[])
         with self.page.expect_response(lambda r:urlsplit(r.url).path=='/api/data/sites/save' and r.request.method=='POST') as saved:save.click()
         self.assertEqual(saved.value.status,201);row=saved.value.json();self.assertEqual(row['country_code'],'IT');self.assertTrue(all(row[f] for f in ('address','city','province','postal_code')))
@@ -125,7 +125,7 @@ class RequiredSearchBrowserTests(unittest.TestCase):
         self.assertEqual(self.mutations,[])
 
     def test_local_city_autocomplete_fills_geography_but_requires_manual_address(self):
-        self.login();dialog=self.new_site();dialog.locator('#field-tax_code').fill('QA-TAX')
+        self.login();dialog=self.new_site()
         with self.page.expect_response(lambda r:urlsplit(r.url).path=='/api/addresses/autocomplete' and 'field=city' in r.url) as found:dialog.locator('#field-city').fill('Alghero')
         self.assertEqual(found.value.status,200);self.assertEqual(found.value.json()['attribution'],'');item=next(i for i in found.value.json()['items'] if i['city']=='Alghero' and i['countryCode']=='IT')
         dialog.get_by_role('option',name=item['label'],exact=True).click();expect(dialog.locator('#field-country_code')).to_contain_text('Italia');expect(dialog.locator('#field-province')).to_have_value('SS')

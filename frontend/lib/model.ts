@@ -57,7 +57,21 @@ export const catalogRouteParents: Record<string, string> = {
 };
 export const catalogResources = ["catalog-item-companies", "catalog-items", "catalog-brands", "catalog-units", "catalog-categories", "catalog-types", "catalog-numbering"];
 export const catalogRoutes = ["catalog", ...Object.keys(catalogRouteParents)];
+export const taxResources = ["tax-codes", "tax-types", "tax-nature-codes", "tax-item-classifications", "tax-partner-classifications", "tax-regimes", "tax-rules", "tax-determination"];
+export const taxRouteParents: Record<string, string> = {
+  "tax-management": "settings-master-data",
+  "tax-codes": "tax-management",
+  "tax-types": "tax-management",
+  "tax-nature-codes": "tax-management",
+  "tax-item-classifications": "tax-management",
+  "tax-partner-classifications": "tax-management",
+  "tax-regimes": "tax-management",
+  "tax-rules": "tax-management",
+  "tax-determination": "tax-management",
+};
+export const taxRoutes = Object.keys(taxRouteParents);
 export const routeParents: Record<string, string> = {
+  ...taxRouteParents,
   ...catalogRouteParents,
   "settings-system": "settings",
   "currencies": "settings-system",
@@ -68,6 +82,10 @@ export const routeParents: Record<string, string> = {
   "payment-schedule": "payments",
   "payment-resolution": "payments",
   "business-partner-companies": "business-partners",
+  "tax-item-profiles": "catalog-items",
+  "tax-partner-profiles": "business-partners",
+  "tax-calculation": "tax-determination",
+  "company-tax-configurations": "companies",
   ...partnerSettingsParents,
   ...Object.fromEntries(settingsCatalogs.map(key => [key, "settings-system"])),
 };
@@ -123,7 +141,9 @@ export function permissionLabel(row: Row, messages: PermissionMessages): string 
   const [resource, action] = code.split(".");
   if (!resource || !action || code !== `${resource}.${action}` || resource === "tenants" ||
       !can({isSuperAdmin: true, tenantId: null, permissions: []}, resource, action)) return code;
-  return `${messages.resources[resource]} · ${messages.permissionActions[action]}`;
+  const label = resource.endsWith("-profiles") && resource.startsWith("tax-") && ["assign", "schedule"].includes(action)
+    ? `${action}_profile` : resource.endsWith("-classifications") && action === "install_templates" ? "install_classification_templates" : action;
+  return `${messages.resources[resource]} · ${messages.permissionActions[label]}`;
 }
 export function permissionMatches(row: Row, query: string, messages: PermissionMessages[]): boolean {
   const resource = String(row.code ?? "").split(".")[0];
@@ -162,6 +182,11 @@ export function formatFieldValue(
   return String(value);
 }
 export const resourceKeys = [
+  ...taxResources,
+  "tax-calculation",
+  "tax-item-profiles",
+  "tax-partner-profiles",
+  "company-tax-configurations",
   ...catalogResources,
   "payments",
   "payment-methods",
@@ -197,6 +222,14 @@ export function can(
 ) {
   if (!resourceKeys.includes(resource)) return false;
   if (resource === "payments") return false;
+  if (["tax-types", "tax-nature-codes", "tax-regimes"].includes(resource) && action !== "read") return false;
+  if (resource === "company-tax-configurations" && !["read", "create", "update", "activate", "suspend", "register", "close", "assign_regime", "schedule_regime"].includes(action)) return false;
+  if (resource === "tax-codes" && !["read", "create", "update", "schedule", "deactivate", "reactivate", "install_templates"].includes(action)) return false;
+  if (resource === "tax-rules" && !["read", "create", "update", "validate", "publish", "withdraw", "install_templates"].includes(action)) return false;
+  if (resource === "tax-determination" && !["read", "simulate", "determine"].includes(action)) return false;
+  if (resource === "tax-calculation" && !["read", "simulate", "calculate"].includes(action)) return false;
+  if (["tax-item-classifications", "tax-partner-classifications"].includes(resource) && !["read", "create", "update", "deactivate", "reactivate", "install_templates"].includes(action)) return false;
+  if (["tax-item-profiles", "tax-partner-profiles"].includes(resource) && !["read", "assign", "schedule"].includes(action)) return false;
   if (["catalog-units", "catalog-brands", "catalog-item-companies"].includes(resource) && !["read", "create", "update"].includes(action)) return false;
   if (resource === "catalog-items" && !["read", "create", "update", "activate", "deactivate", "archive"].includes(action)) return false;
   if (resource === "catalog-numbering" && !["read", "update"].includes(action)) return false;
@@ -209,6 +242,15 @@ export function can(
   if (["payment-methods", "payment-terms"].includes(resource) && !["read", "create", "update"].includes(action)) return false;
   const standard = ["read", "create", "update", "delete"];
   const extra: Record<string, string[]> = {
+    "tax-codes": ["schedule", "deactivate", "reactivate", "install_templates"],
+    "tax-rules": ["validate", "publish", "withdraw", "install_templates"],
+    "tax-determination": ["simulate", "determine"],
+    "tax-calculation": ["simulate", "calculate"],
+    "tax-item-classifications": ["deactivate", "reactivate", "install_templates"],
+    "tax-partner-classifications": ["deactivate", "reactivate", "install_templates"],
+    "tax-item-profiles": ["assign", "schedule"],
+    "tax-partner-profiles": ["assign", "schedule"],
+    "company-tax-configurations": ["activate", "suspend", "register", "close", "assign_regime", "schedule_regime"],
     "catalog-items": ["activate", "deactivate", "archive"],
     "payment-schedule": ["preview"],
     "business-partner-companies": ["use_customer", "use_supplier"],

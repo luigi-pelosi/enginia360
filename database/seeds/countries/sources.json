@@ -1,0 +1,9 @@
+{
+  "cldr_commit": "7d2b9cb11cec08f4d333ad73209deb3df0711c3b",
+  "cldr_url": "https://raw.githubusercontent.com/unicode-org/cldr-json/7d2b9cb11cec08f4d333ad73209deb3df0711c3b/cldr-json/cldr-localenames-full/main/it/territories.json",
+  "license": "Unicode-3.0",
+  "license_file": "UNICODE-LICENSE.txt",
+  "code_authority": "backend/Modules/Geography/CountryCodes.cs: CountryCodes.All (249 ISO 3166-1 alpha-2 entries)",
+  "code_cross_check": "/usr/share/iso-codes/json/iso_3166-1.json: 3166-1[].alpha_2, exact equality verified",
+  "transformation": "Select only exact existing alpha-2 whitelist keys from main.it.localeDisplayNames.territories; no alt variants, non-ISO territories or macroregions; sort by iso_code; preserve default Italian names verbatim."
+}

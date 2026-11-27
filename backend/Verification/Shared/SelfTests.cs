@@ -319,7 +319,7 @@ public static class SelfTests
             Reject(() => ResourceCatalog.Validate(r,JsonSerializer.SerializeToElement(new {company_id=company}),true));
         });
         Test("commercial finite catalog and assign scope native isolation",() => {
-            if(PermissionCatalog.Codes.Length!=97 || !Allowed("purchasing-organizations.assign_scope",["purchasing-organizations.assign_scope"])) throw new Exception("97 codes including company catalog and system catalog reads, excluding generic settings required.");
+            if(PermissionCatalog.Codes.Length!=147 || !Allowed("purchasing-organizations.assign_scope",["purchasing-organizations.assign_scope"])) throw new Exception("Catalogo finito richiesto, incluse Tax Foundation, Classification, Company Tax Configuration, Tax Determination e Tax Calculation e senza permessi generici Impostazioni.");
             foreach(var other in new[]{"read","create","update","delete"}) {
                 if(Allowed("purchasing-organizations.assign_scope",["purchasing-organizations."+other]) || Allowed("purchasing-organizations."+other,["purchasing-organizations.assign_scope"])) throw new Exception("Coverage and profile authority conflated.");
             }

@@ -44,7 +44,13 @@ class BusinessPartnerCompanyTests(unittest.TestCase):
 
     def role(self, codes, companies):
         role = self.create('roles', {'name': 'Ruolo ' + uuid.uuid4().hex[:8]})
-        catalog = self.root.request(self.scope('/api/data/permissions?pageSize=100'))[1]['items']
+        catalog = []
+        for page in range(1, 1001):
+            status, result = self.root.request(self.scope(f'/api/data/permissions?pageSize=100&page={page}'))
+            self.assertEqual(status, 200, result)
+            catalog.extend(result['items'])
+            if len(catalog) >= result['total']:break
+        self.assertEqual(len(catalog), result['total'])
         ids = [row['id'] for row in catalog if row['code'] in codes]
         self.assertEqual(len(ids), len(codes), 'Catalogo permessi della fase 2 incompleto')
         self.assertEqual(self.root.request(self.scope('/api/links/role-permissions/' + role['id']), 'PUT', {'ids': ids})[0], 204)

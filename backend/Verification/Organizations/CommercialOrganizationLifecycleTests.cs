@@ -20,7 +20,7 @@ public static class CommercialOrganizationLifecycleTests
             return await (Task<bool>)method!.Invoke(null,new object[]{db,t,o,c,s})!;
         }
         var futureA=Guid.NewGuid(); var futureB=Guid.NewGuid();
-        await db.Execute("INSERT INTO foundation.site(id,tenant_id,company_id,name,tax_code,address,city,province,postal_code,country_code) VALUES(@s1,@t,@a,'Future A','SYNTHETIC-TAX','Synthetic Road 42','Synthetic City','Synthetic Region','AB 12-X','GB'),(@s2,@t,@b,'Future B','SYNTHETIC-TAX','Synthetic Road 42','Synthetic City','Synthetic Region','AB 12-X','GB')",("s1",futureA),("s2",futureB),("t",tenant),("a",a),("b",b));
+        await db.Execute("INSERT INTO foundation.site(id,tenant_id,company_id,name,address,city,province,postal_code,country_code) VALUES(@s1,@t,@a,'Future A','Synthetic Road 42','Synthetic City','Synthetic Region','AB 12-X','GB'),(@s2,@t,@b,'Future B','Synthetic Road 42','Synthetic City','Synthetic Region','AB 12-X','GB')",("s1",futureA),("s2",futureB),("t",tenant),("a",a),("b",b));
         Case("all_sites includes future sites but selected_sites excludes future sites",async () => {
             Assert(await Applies(tenant,owner,a,futureA),"all_sites must include future matching sites.");
             Assert(await Applies(tenant,owner,b,site),"Selected configured site must apply.");

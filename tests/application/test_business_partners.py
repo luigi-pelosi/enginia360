@@ -95,7 +95,7 @@ class BusinessPartnerTests(unittest.TestCase):
         from urllib.parse import urlencode
         country = self.root.request('/api/data/countries', 'POST', {'name': 'Italia prova', 'iso_code': 'IT'})
         if country[0] == 409:
-            country_id = next(item['id'] for item in self.root.request('/api/data/countries?pageSize=100')[1]['items'] if item['iso_code'] == 'IT')
+            country_id = next(item['id'] for item in self.root.request('/api/data/countries?pageSize=100&search=Italia')[1]['items'] if item['iso_code'] == 'IT')
         else:
             self.assertEqual(country[0], 201, country[1]); country_id = country[1]['id']
         status, city = self.root.request('/api/data/cities', 'POST', {'country_id': country_id, 'name': 'Località BP prova', 'province': 'RM', 'postal_code': '00123'})
@@ -270,7 +270,13 @@ class BusinessPartnerTests(unittest.TestCase):
         username = 'actor-'+uuid.uuid4().hex[:8]
         user = create('users', {'username': username, 'first_name': 'Mario', 'last_name': 'Prova', 'email': 'actor@example.invalid'})
         role = create('roles', {'name': 'Ruolo prova'})
-        catalog = self.root.request(f'/api/data/permissions?tenantId={self.tenant_id}&pageSize=100')[1]['items']
+        catalog = []
+        for page in range(1, 1001):
+            status, result = self.root.request(f'/api/data/permissions?tenantId={self.tenant_id}&pageSize=100&page={page}')
+            self.assertEqual(status, 200, result)
+            catalog.extend(result['items'])
+            if len(catalog) >= result['total']:break
+        self.assertEqual(len(catalog), result['total'])
         ids = [r['id'] for r in catalog if r['code'] in permissions]
         self.assertEqual(len(ids), len(permissions))
         for link, owner, targets in [('user-roles', user['id'], [role['id']]), ('role-permissions', role['id'], ids)]:

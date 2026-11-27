@@ -5,7 +5,7 @@ from catalog_items_helpers import fixture_sql
 HTTP_CASES=('test_legal_address_uses_first_active_legal_site_and_exact_company_scope',)
 class CatalogBulkTablesHttp(CatalogCompaniesHttp):
     def site(self,company,site_type,address,enabled=True):
-        return self.data_create('sites',{'company_id':company['id'],'name':address,'site_type':site_type,'address':address,'city':'Roma','province':'RM','postal_code':'00100','country_code':'IT','tax_code':'SYNTHETIC','is_enabled':enabled})
+        return self.data_create('sites',{'company_id':company['id'],'name':address,'site_type':site_type,'address':address,'city':'Roma','province':'RM','postal_code':'00100','country_code':'IT','is_enabled':enabled})
     def options(self,client=None):
         status,body=(client or self.root).request(self.path('item-companies','options'));self.assertEqual(status,200,body);return {row['id']:row for row in body['items']}
     def test_legal_address_uses_first_active_legal_site_and_exact_company_scope(self):

@@ -27,7 +27,6 @@ public static class OptionalCodeSelfTests
             {
                 var payload=new Dictionary<string,object?> { ["name"]="Example" };
                 if(create && key=="sites") {
-                    payload["tax_code"]="SYNTHETIC-TAX";
                     payload["address"]="Synthetic Road 42"; payload["city"]="Synthetic City";
                     payload["province"]="Synthetic Region"; payload["postal_code"]="AB 12-X"; payload["country_code"]="GB";
                 }
@@ -99,8 +98,8 @@ public static class OptionalCodeSelfTests
             Reject(() => ResourceCatalog.Validate(tenant,JsonSerializer.SerializeToElement(new {name="Tenant"}),true));
         });
         test("optional code: unrelated code-like fields unchanged",() => {
-            var values=ResourceCatalog.Validate(ResourceCatalog.Get("sites"),JsonSerializer.SerializeToElement(new {tax_code=" T ",country_code="IT"}),false);
-            if(!Equals(values["tax_code"],"T") || !Equals(values["country_code"],"IT")) throw new Exception("Site identifiers changed.");
+            var values=ResourceCatalog.Validate(ResourceCatalog.Get("sites"),JsonSerializer.SerializeToElement(new {country_code="IT"}),false);
+            if(!Equals(values["country_code"],"IT")) throw new Exception("Site country changed.");
             Reject(() => ResourceCatalog.Validate(ResourceCatalog.Get("sites"),JsonSerializer.SerializeToElement(new {country_code=" IT "}),false));
 
         });

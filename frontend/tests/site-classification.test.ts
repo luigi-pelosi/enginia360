@@ -39,12 +39,9 @@ test("functions use nine accessible checkboxes in a parent-owned draft and canon
 });
 
 test("classification draft submits once through values and Cancel discards it", async () => {
-  const fields = [...fullResource.fields,
-    {name: "code", type: "text" as const, required: false},
-    {name: "vat_number", type: "text" as const, required: false},
-    {name: "tax_code", type: "text" as const, required: false}];
-  const p = {...fullProps, resource: {...fullResource, fields}, row: {...fullProps.row, code: null, vat_number: "IT123", tax_code: "TAX123"}};
-  const initial = {site_type: "LEGAL", functions: ["OPERATIONAL"], code: "", vat_number: "IT123", tax_code: "TAX123"};
+  const fields = [...fullResource.fields, {name: "code", type: "text" as const, required: false}];
+  const p = {...fullProps, resource: {...fullResource, fields}, row: {...fullProps.row, code: null}};
+  const initial = {site_type: "LEGAL", functions: ["OPERATIONAL"], code: ""};
   const draft = harness("it");
   const tree = draft.components.RecordEditor(p);
   find(tree, n => n.props?.name === "site_type").props.onValueChange("SECONDARY");

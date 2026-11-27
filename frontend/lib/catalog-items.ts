@@ -1,4 +1,5 @@
 import type {Row} from './model';
+import type {TaxProfileDraft} from './tax-profiles';
 import type {CatalogKind} from './catalog';
 import type {CatalogCompanyValues,CatalogCompanyOption} from './catalog-companies';
 export type ItemCompanyDraft={company_id:string;values:CatalogCompanyValues};
@@ -6,9 +7,9 @@ export type ItemKind=CatalogKind;
 export type ItemStatus='ACTIVE'|'SUSPENDED'|'ARCHIVED';
 export type ItemRecord=Row & {version:number;kind:ItemKind;status:ItemStatus;activated_at?:string|null;identifiers:Row[];units:Row[];physicalData:Record<string,unknown>|null};
 export type ItemOptions={types:Row[];categories:Row[];units:Row[];brands:Row[];numbering:Partial<Record<ItemKind,{mode:'AUTO'|'MANUAL'}>>};
-export type ItemEditor={id:string|null;version:number;values:Record<string,unknown>;original:Record<string,unknown>;record:ItemRecord;readonly:boolean;statusDraft?:ItemStatus;physicalDraft?:Record<string,unknown>;companyDrafts?:ItemCompanyDraft[]};
+export type ItemEditor={id:string|null;version:number;values:Record<string,unknown>;original:Record<string,unknown>;record:ItemRecord;readonly:boolean;statusDraft?:ItemStatus;physicalDraft?:Record<string,unknown>;taxProfiles?:TaxProfileDraft[];companyDrafts?:ItemCompanyDraft[]};
 export type ItemRowEditor={collection:'identifiers'|'units'|'physical-data';id:string|null;values:Record<string,unknown>;readonly:boolean;version:number};
-export type ItemState={filtersExpanded?:boolean;filterVersion:2;search:string;status:string;itemTypeId:string;page:number;tab:'general'|'identifiers'|'units'|'physical'|'companies';editor:ItemEditor|null;rowEditor:ItemRowEditor|null;removing:boolean;transition:ItemStatus|null;conversion:{sourceUnitId:string;targetUnitId:string;quantity:string}|null};
+export type ItemState={filtersExpanded?:boolean;filterVersion:2;search:string;status:string;itemTypeId:string;page:number;tab:'general'|'identifiers'|'units'|'physical'|'companies'|'taxation';editor:ItemEditor|null;rowEditor:ItemRowEditor|null;removing:boolean;transition:ItemStatus|null;conversion:{sourceUnitId:string;targetUnitId:string;quantity:string}|null};
 export type ItemPending={id:string|null;path:string;method:string;body:unknown;version:number;committed?:boolean};
 export const itemDefaults:ItemState={filterVersion:2,search:'',status:'ACTIVE',itemTypeId:'ALL',page:1,tab:'general',editor:null,rowEditor:null,removing:false,transition:null,conversion:null};
 export function itemInitial():Record<string,unknown>{return {name:'',code:'',description:'',item_type_id:null,category_id:null,base_uom_id:null,brand_id:null};}
@@ -69,4 +70,4 @@ export function itemCompanyDraftError(editor:ItemEditor,options:ItemOptions,comp
  }
  return null;
 }
-export function itemCreation(editor:ItemEditor){return {values:itemValues(editor.values),...(editor.companyDrafts?.length?{companies:editor.companyDrafts}:{}),identifiers:editor.record.identifiers.map(identifierValues),units:editor.record.units.map(r=>({uom_id:r.uom_id,conversion_numerator:r.conversion_numerator,conversion_denominator:r.conversion_denominator,is_active:r.is_active})),...(editor.record.kind==='GOOD'?(editor.physicalDraft?itemPhysicalPayload(editor):editor.record.physicalData?{physicalData:physicalValues(editor.record.physicalData)}:{}):{})};}
+export function itemCreation(editor:ItemEditor){return {values:itemValues(editor.values),...(editor.taxProfiles?.length?{taxProfiles:editor.taxProfiles}:{}),...(editor.companyDrafts?.length?{companies:editor.companyDrafts}:{}),identifiers:editor.record.identifiers.map(identifierValues),units:editor.record.units.map(r=>({uom_id:r.uom_id,conversion_numerator:r.conversion_numerator,conversion_denominator:r.conversion_denominator,is_active:r.is_active})),...(editor.record.kind==='GOOD'?(editor.physicalDraft?itemPhysicalPayload(editor):editor.record.physicalData?{physicalData:physicalValues(editor.record.physicalData)}:{}):{})};}

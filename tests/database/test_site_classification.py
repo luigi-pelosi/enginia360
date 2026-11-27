@@ -14,16 +14,16 @@ def sql(statement):
 def fixture(body):
     return sql("BEGIN;INSERT INTO foundation.tenant(id,code,name) VALUES('90000000-0000-0000-0000-000000000001','site-proof','Prova sedi');"
                "INSERT INTO foundation.company(id,tenant_id,name) VALUES('90000000-0000-0000-0000-000000000002','90000000-0000-0000-0000-000000000001','Azienda prova');"
-               "INSERT INTO foundation.site(id,tenant_id,company_id,name,vat_number,tax_code,address,city,province,postal_code,country_code) VALUES('90000000-0000-0000-0000-000000000003','90000000-0000-0000-0000-000000000001','90000000-0000-0000-0000-000000000002','Sede prova','VAT preservata','CF preservato','Via prova','Roma','RM','00100','IT');"
+               "INSERT INTO foundation.site(id,tenant_id,company_id,name,address,city,province,postal_code,country_code) VALUES('90000000-0000-0000-0000-000000000003','90000000-0000-0000-0000-000000000001','90000000-0000-0000-0000-000000000002','Sede prova','Via prova','Roma','RM','00100','IT');"
                + body + ';ROLLBACK;')
 
 
 class SiteClassificationDatabaseTests(unittest.TestCase):
     def test_functions_are_empty_nonnullable_array_without_legal_default(self):
-        result = fixture("SELECT json_build_object('functions',functions,'site_type',site_type,'vat_number',vat_number,'tax_code',tax_code) FROM foundation.site WHERE id='90000000-0000-0000-0000-000000000003'")
+        result = fixture("SELECT json_build_object('functions',functions,'site_type',site_type) FROM foundation.site WHERE id='90000000-0000-0000-0000-000000000003'")
         self.assertEqual(result.returncode, 0, result.stderr)
         value = next(json.loads(line) for line in result.stdout.splitlines() if line.startswith('{'))
-        self.assertEqual(value, {'functions': [], 'site_type': None, 'vat_number': 'VAT preservata', 'tax_code': 'CF preservato'})
+        self.assertEqual(value, {'functions': [], 'site_type': None})
 
     def test_legal_classification_accepts_only_exact_optional_choices(self):
         for value in ('LEGAL', 'LOCAL_UNIT', 'SECONDARY', None):

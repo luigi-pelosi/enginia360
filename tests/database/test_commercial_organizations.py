@@ -13,7 +13,7 @@ def fixture():
     q=f"""INSERT INTO foundation.tenant(id,code,name) VALUES('{ids['tenant']}','proof-{ids['tenant']}','Verifica');
     INSERT INTO foundation.tenant(id,code,name) VALUES('{ids['other']}','proof-{ids['other']}','Altro tenant');
     INSERT INTO foundation.company(id,tenant_id,name) VALUES('{ids['a']}','{ids['tenant']}','A'),('{ids['b']}','{ids['tenant']}','B');
-    INSERT INTO foundation.site(id,tenant_id,company_id,name,tax_code,address,city,province,postal_code,country_code) VALUES('{ids['s1']}','{ids['tenant']}','{ids['a']}','Sede A','CF','Via prova','Roma','RM','00100','IT'),('{ids['s2']}','{ids['tenant']}','{ids['b']}','Sede B','CF','Via prova','Roma','RM','00100','IT');
+    INSERT INTO foundation.site(id,tenant_id,company_id,name,address,city,province,postal_code,country_code) VALUES('{ids['s1']}','{ids['tenant']}','{ids['a']}','Sede A','Via prova','Roma','RM','00100','IT'),('{ids['s2']}','{ids['tenant']}','{ids['b']}','Sede B','Via prova','Roma','RM','00100','IT');
     INSERT INTO foundation.purchasing_organization(id,tenant_id,name) VALUES('{ids['org']}','{ids['tenant']}','Acquisti');"""
     return ids,q
 
@@ -69,7 +69,7 @@ class CommercialOrganizationSchemaTests(unittest.TestCase):
     def test_concurrent_site_removals_keep_selected_scope_nonempty(self):
         import time
         ids,base=fixture();second=str(uuid.uuid4())
-        setup=base+f"INSERT INTO foundation.site(id,tenant_id,company_id,name,tax_code,address,city,province,postal_code,country_code) VALUES('{second}','{ids['tenant']}','{ids['a']}','Seconda sede A','CF','Via prova','Roma','RM','00100','IT'); INSERT INTO foundation.purchasing_organization_company VALUES('{ids['tenant']}','{ids['org']}','{ids['a']}','selected_sites',now()); INSERT INTO foundation.purchasing_organization_site VALUES('{ids['tenant']}','{ids['org']}','{ids['a']}','{ids['s1']}',now()),('{ids['tenant']}','{ids['org']}','{ids['a']}','{second}',now());"
+        setup=base+f"INSERT INTO foundation.site(id,tenant_id,company_id,name,address,city,province,postal_code,country_code) VALUES('{second}','{ids['tenant']}','{ids['a']}','Seconda sede A','Via prova','Roma','RM','00100','IT'); INSERT INTO foundation.purchasing_organization_company VALUES('{ids['tenant']}','{ids['org']}','{ids['a']}','selected_sites',now()); INSERT INTO foundation.purchasing_organization_site VALUES('{ids['tenant']}','{ids['org']}','{ids['a']}','{ids['s1']}',now()),('{ids['tenant']}','{ids['org']}','{ids['a']}','{second}',now());"
         sql('BEGIN;'+setup+'COMMIT;')
         processes=[]
         try:

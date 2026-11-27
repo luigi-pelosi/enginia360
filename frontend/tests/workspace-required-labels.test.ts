@@ -8,9 +8,10 @@ test('login and password labels mark exactly their required inputs', () => {
   assert.match(source, /<Label htmlFor="tenant-code">/);
 });
 
-test('generic field labels use the same conditional required state as fiscal inputs', () => {
+test('generic field labels use metadata without fiscal alternatives on sites', () => {
   assert.match(source, /<Label htmlFor=\{id\} required=\{fieldRequired\}>/);
   assert.match(source, /required=\{fieldRequired\}/);
-  assert.match(source, /const fieldRequired = fiscalFields && \["vat_number", "tax_code"\]\.includes\(field\.name\) \? !String\(values\[field\.name === "vat_number" \? "tax_code" : "vat_number"\] \?\? ""\)\.trim\(\) : field\.required;/);
+  assert.match(source, /const fieldRequired = field\.required;/);
+  assert.doesNotMatch(source, /fiscalFields|missingFiscal|taxIdentityRequired/);
   assert.doesNotMatch(source, /field\.required && <span aria-hidden="true"> \*<\/span>/);
 });

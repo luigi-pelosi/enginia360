@@ -7,9 +7,11 @@ from test_foundation import TABLES, fixture, table_schema
 
 class BaselineInvariantTests(unittest.TestCase):
     def test_exact_table_inventory(self):
-        names = json.loads(sql("SELECT json_agg(schemaname||'.'||tablename ORDER BY schemaname,tablename) FROM pg_tables WHERE schemaname IN ('foundation','masterdata')").stdout)
+        names = json.loads(sql("SELECT json_agg(schemaname||'.'||tablename ORDER BY schemaname,tablename) FROM pg_tables WHERE schemaname IN ('foundation','masterdata','taxmanagement')").stdout)
         self.assertEqual(sorted(table_schema(t)+'.'+t for t in TABLES), names)
-        self.assertEqual(len(names), len(TABLES))
+        self.assertEqual(len(TABLES), 65)
+        self.assertEqual(len(names), 65)
+        self.assertEqual(sum(name.startswith('taxmanagement.') for name in names), 16)
 
     def test_runtime_role_has_no_escalation_or_ownership(self):
         attrs = json.loads(sql("""SELECT json_build_object('super',rolsuper,'createdb',rolcreatedb,
@@ -81,13 +83,29 @@ class BaselineInvariantTests(unittest.TestCase):
                 'catalog-items.read','catalog-items.create','catalog-items.update','catalog-items.activate','catalog-items.deactivate','catalog-items.archive',
                 'catalog-brands.read','catalog-brands.create','catalog-brands.update']
         codes+=['countries.read','cities.read','currencies.read']
-        self.assertEqual(len(set(codes)),97)
+        codes+=['tax-codes.'+action for action in ('read','create','update','schedule','deactivate','reactivate','install_templates')]
+        codes+=['tax-types.read','tax-nature-codes.read']
+        codes += [r+'.'+a for r in ('tax-item-classifications','tax-partner-classifications')
+                  for a in ('read','create','update','deactivate','reactivate','install_templates')]
+        codes += [r+'.'+a for r in ('tax-item-profiles','tax-partner-profiles')
+                  for a in ('read','assign','schedule')]
+        codes += ['tax-regimes.read'] + ['company-tax-configurations.'+a for a in
+                  ('read','create','update','activate','suspend','register','close','assign_regime','schedule_regime')]
+        codes += ['tax-rules.'+a for a in ('read','create','update','validate','publish','withdraw','install_templates')]
+        codes += ['tax-determination.'+a for a in ('read','simulate','determine')]
+        codes += ['tax-calculation.'+a for a in ('read','simulate','calculate')]
+        self.assertEqual(len(codes), 147)
+        self.assertEqual(len(set(codes)),147)
         base="BEGIN;INSERT INTO foundation.tenant(id,code,name) VALUES('95000000-0000-0000-0000-000000000001','catalog-proof','Verifica');"
         values=','.join("('95000000-0000-0000-0000-000000000001','"+c+"','Operazione',true)" for c in codes)
         result=sql(base+'INSERT INTO foundation.permission(tenant_id,code,name,is_system) VALUES '+values+';SELECT count(*) FROM foundation.role_permission;ROLLBACK;',role='enginia360_app')
         self.assertEqual(result.stdout.strip(),'0')
         for code in ('companies.write','tenants.read','roles.assign_users','unknown.read','users.read.extra','business-partners.delete','business-partner-numbering.create',
                      'catalog-items.delete','catalog-items.write','catalog-items.status','catalog-brands.delete',
+                     'tax-item-classifications.delete','tax-partner-classifications.assign',
+                     'tax-item-profiles.create','tax-partner-profiles.update','tax-item-profiles.read.extra',
+                     'tax-regimes.create','tax-regimes.update','company-tax-configurations.update.extra',
+                     'company-tax-configurations.delete','company-tax-configurations.assign','company-tax-configurations.read.extra',
                      'settings.read','settings.create','settings.update','settings.delete',
                      'countries.create','countries.update','countries.delete',
                      'cities.create','cities.update','cities.delete',
@@ -116,22 +134,21 @@ class BaselineInvariantTests(unittest.TestCase):
 
     def test_geography_global_identity_and_country_guard(self):
         base="""BEGIN;
-            INSERT INTO foundation.country(id,name,iso_code) VALUES('96000000-0000-0000-0000-000000000001','Italia','IT');
             INSERT INTO foundation.city(country_id,name,postal_code,province,istat_code)
-            VALUES('96000000-0000-0000-0000-000000000001','Roma','00100','RM','058091');"""
+            VALUES((SELECT id FROM foundation.country WHERE iso_code='IT'),'Roma','00100','RM','058091');"""
         sql(base+'ROLLBACK;',role='enginia360_app')
         for statement,marker in (
-            ("UPDATE foundation.country SET iso_code='US'",'23503'),
-            ("DELETE FROM foundation.country",'23001'),
+            ("UPDATE foundation.country SET iso_code='US' WHERE iso_code='IT'",'23514'),
+            ("DELETE FROM foundation.country WHERE iso_code='IT'",'23001'),
             ("INSERT INTO foundation.country(name,iso_code) VALUES('Italia duplicata','IT')",'23505'),
             ("INSERT INTO foundation.country(name,iso_code) VALUES('Non valido','ZZ')",'23514'),
-            ("INSERT INTO foundation.city(country_id,name,postal_code,province) VALUES('96000000-0000-0000-0000-000000000001',' roma ','00100',' rm ')",'23505'),
-            ("INSERT INTO foundation.city(country_id,name,postal_code,istat_code) VALUES('96000000-0000-0000-0000-000000000001','Altro','00100','058091')",'23505')):
+            ("INSERT INTO foundation.city(country_id,name,postal_code,province) VALUES((SELECT id FROM foundation.country WHERE iso_code='IT'),' roma ','00100',' rm ')",'23505'),
+            ("INSERT INTO foundation.city(country_id,name,postal_code,istat_code) VALUES((SELECT id FROM foundation.country WHERE iso_code='IT'),'Altro','00100','058091')",'23505')):
             with self.subTest(statement=statement):
                 result=sql(base+statement+';ROLLBACK;',role='enginia360_app',check=False)
                 self.assertNotEqual(result.returncode,0)
                 self.assertIn(marker,result.stderr)
-        sql(base+"INSERT INTO foundation.city(country_id,name,postal_code,province,istat_code) VALUES('96000000-0000-0000-0000-000000000001','Roma','00101','RM','058091');ROLLBACK;")
+        sql(base+"INSERT INTO foundation.city(country_id,name,postal_code,province,istat_code) VALUES((SELECT id FROM foundation.country WHERE iso_code='IT'),'Roma','00101','RM','058091');ROLLBACK;")
 
     def test_oracle_normalization_does_not_hide_schema_changes(self):
         original="-- Dumped by pg_dump version 18.6\n\\restrict abc\nCREATE TABLE t(id int DEFAULT 1);\nGRANT SELECT ON t TO r;\n\\unrestrict abc\n"

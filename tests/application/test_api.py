@@ -123,7 +123,7 @@ class ApplicationTests(unittest.TestCase):
                 return record['id']
 
             company = create('companies', {'code': 'main', 'name': 'Società', 'is_enabled': True})
-            site = create('sites', {'company_id': company, 'code': 'hq', 'name': 'Sede legale', 'vat_number': 'IT-test', 'is_enabled': True})
+            site = create('sites', {'company_id': company, 'code': 'hq', 'name': 'Sede legale', 'address': 'Via QA 1', 'city': 'Roma', 'province': 'RM', 'postal_code': '00100', 'country_code': 'IT', 'is_enabled': True})
             kind = create('warehouse-types', {'code': 'returns', 'name': 'Resi', 'is_enabled': True})
             warehouse = create('warehouses', {'site_id': site, 'warehouse_type_id': kind, 'code': 'main', 'name': 'Magazzino', 'is_enabled': True})
             create('warehouse-locations', {'warehouse_id': warehouse, 'code': 'a1', 'name': 'Scaffale', 'is_enabled': True})
